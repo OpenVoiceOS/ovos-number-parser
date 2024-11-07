@@ -649,7 +649,7 @@ def plural_ru(num: int, one: str, few: str, many: str):
     return many
 
 
-def _convert_words_to_numbers_ru(text, short_scale=True, ordinals=False):
+def numbers_to_digits_ru(text, short_scale=True, ordinals=False):
     """
     Convert words in a string into their equivalent numbers.
     Args:

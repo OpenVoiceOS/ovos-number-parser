@@ -531,7 +531,7 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
     return result
 
 
-def _convert_words_to_numbers_en(text, short_scale=True, ordinals=False):
+def numbers_to_digits_en(text, short_scale=True, ordinals=False):
     """
     Convert words in a string into their equivalent numbers.
     Args:

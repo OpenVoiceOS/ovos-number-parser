@@ -294,7 +294,7 @@ _STRING_SHORT_ORDINAL_CS = invert_dict(_SHORT_ORDINAL_CS)
 _STRING_LONG_ORDINAL_CS = invert_dict(_LONG_ORDINAL_CS)
 
 
-def _convert_words_to_numbers_cs(text, short_scale=True, ordinals=False):
+def numbers_to_digits_cs(text, short_scale=True, ordinals=False):
     """
     Convert words in a string into their equivalent numbers.
     Args:

@@ -1,28 +1,61 @@
 from typing import Union
 
-from ovos_number_parser.numbers_az import extract_number_az, is_fractional_az, pronounce_number_az
+from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_ca import pronounce_number_ca, is_fractional_ca, extract_number_ca
-from ovos_number_parser.numbers_cs import pronounce_number_cs, is_fractional_cs, extract_number_cs
+from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, extract_number_cs
 from ovos_number_parser.numbers_da import is_fractional_da, is_ordinal_da, pronounce_number_da, \
     pronounce_ordinal_da, extract_number_da
-from ovos_number_parser.numbers_de import pronounce_number_de, pronounce_ordinal_de, is_ordinal_de, \
-    is_fractional_de, extract_number_de
-from ovos_number_parser.numbers_en import is_ordinal_en, pronounce_number_en, extract_number_en, \
+from ovos_number_parser.numbers_de import numbers_to_digits_de, pronounce_number_de, pronounce_ordinal_de, \
+    is_ordinal_de, is_fractional_de, extract_number_de
+from ovos_number_parser.numbers_en import numbers_to_digits_en, is_ordinal_en, pronounce_number_en, extract_number_en, \
     is_fractional_en
-from ovos_number_parser.numbers_es import pronounce_number_es, extract_number_es, is_fractional_es
+from ovos_number_parser.numbers_es import numbers_to_digits_es, pronounce_number_es, extract_number_es, is_fractional_es
 from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu
 from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa
 from ovos_number_parser.numbers_fr import (pronounce_number_fr, extract_number_fr, is_fractional_fr)
 from ovos_number_parser.numbers_hu import pronounce_number_hu, pronounce_ordinal_hu
 from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, is_fractional_it)
-from ovos_number_parser.numbers_nl import pronounce_number_nl, pronounce_ordinal_nl, extract_number_nl, \
-    is_fractional_nl
-from ovos_number_parser.numbers_pl import pronounce_number_pl, extract_number_pl, is_fractional_pl
-from ovos_number_parser.numbers_pt import pronounce_number_pt, is_fractional_pt, extract_number_pt
-from ovos_number_parser.numbers_ru import pronounce_number_ru, extract_number_ru, is_fractional_ru
+from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
+    extract_number_nl, is_fractional_nl
+from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, is_fractional_pl
+from ovos_number_parser.numbers_pt import numbers_to_digits_pt, pronounce_number_pt, is_fractional_pt, extract_number_pt
+from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru
 from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
     is_fractional_sv
-from ovos_number_parser.numbers_uk import pronounce_number_uk, extract_number_uk, is_fractional_uk
+from ovos_number_parser.numbers_uk import numbers_to_digits_uk, pronounce_number_uk, extract_number_uk, is_fractional_uk
+
+
+def numbers_to_digits(utterance: str, lang: str) -> str:
+    """
+    Replace written numbers in text with their digit equivalents.
+
+    Args:
+        utterance (str): Input string possibly containing written numbers.
+
+    Returns:
+        str: Text with written numbers replaced by digits.
+    """
+    if lang.startswith("az"):
+        return numbers_to_digits_az(utterance)
+    if lang.startswith("cs"):
+        return numbers_to_digits_cs(utterance)
+    if lang.startswith("de"):
+        return numbers_to_digits_de(utterance)
+    if lang.startswith("en"):
+        return numbers_to_digits_en(utterance)
+    if lang.startswith("es"):
+        return numbers_to_digits_es(utterance)
+    if lang.startswith("nl"):
+        return numbers_to_digits_nl(utterance)
+    if lang.startswith("pl"):
+        return numbers_to_digits_pl(utterance)
+    if lang.startswith("pt"):
+        return numbers_to_digits_pt(utterance)
+    if lang.startswith("ru"):
+        return numbers_to_digits_ru(utterance)
+    if lang.startswith("uk"):
+        return numbers_to_digits_uk(utterance)
+    raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
 def pronounce_number(number: Union[int, float], lang: str, places: int = 2, short_scale: bool = True,
