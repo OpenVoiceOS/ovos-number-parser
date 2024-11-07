@@ -198,6 +198,13 @@ result = is_ordinal("third", "en")
 print(result)  # 3
 ```
 
+## Related Projects
+
+- [ovos-date-parser](https://github.com/OpenVoiceOS/ovos-date-parser) - for handling dates and times
+- [ovos-lang-parser](https://github.com/OVOSHatchery/ovos-lang-parser) - for handling languages
+- [ovos-color-parser](https://github.com/OVOSHatchery/ovos-color-parser) - for handling colors
+
+
 ## License
 
 This project is licensed under the Apache License 2.0.
