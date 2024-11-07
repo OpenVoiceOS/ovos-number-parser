@@ -14,26 +14,27 @@ fractional and ordinal numbers, and more.
 
 ## Supported Languages
 
-| Language Code           | Pronounce Number | Pronounce Ordinal | Extract Number | Is Fractional | Is Ordinal |
-|-------------------------|------------------|-------------------|----------------|---------------|------------|
-| `en` (English)          | ✅                | ❌                 | ✅              | ✅             | ✅          |
-| `az` (Azerbaijani)      | ✅                | ❌                 | ✅              | ✅             | ❌          |
-| `ca` (Catalan)          | ✅                | ❌                 | ✅              | ✅             | ❌          |
-| `cs` (Czech)            | ✅                | ❌                 | ✅              | ✅             | ❌          |
-| `da` (Danish)           | ✅                | ✅                 | ✅              | ✅             | ✅          |
-| `de` (German)           | ✅                | ✅                 | ✅              | ✅             | ✅          |
-| `es` (Spanish)          | ✅                | ❌                 | ✅              | ✅             | ❌          |
-| `eu` (Euskara / Basque) | ✅                | ❌                 | ✅              | ✅             | ❌          |
-| `fa` (Farsi / Persian)  | ✅                | ❌                 | ✅              | ❌             | ❌          |
-| `fr` (French)           | ✅                | ❌                 | ✅              | ✅             | ❌          |
-| `hu` (Hungarian)        | ✅                | ✅                 | ❌              | ❌             | ❌          |
-| `it` (Italian)          | ✅                | ❌                 | ✅              | ✅             | ❌          |
-| `nl` (Dutch)            | ✅                | ✅                 | ✅              | ✅             | ❌          |
-| `pl` (Polish)           | ✅                | ❌                 | ✅              | ✅             | ❌          |
-| `pt` (Portuguese)       | ✅                | ❌                 | ✅              | ✅             | ❌          |
-| `ru` (Russian)          | ✅                | ❌                 | ✅              | ✅             | ❌          |
-| `sv` (Swedish)          | ✅                | ✅                 | ✅              | ✅             | ❌          |
-| `uk` (Ukrainian)        | ✅                | ❌                 | ✅              | ✅             | ❌          |
+| Language Code           | Pronounce Number | Pronounce Ordinal | Extract Number | numbers_to_digits |
+|-------------------------|------------------|-------------------|----------------|-------------------|
+| `en` (English)          | ✅               | ❌                | ✅             | ✅                |
+| `az` (Azerbaijani)      | ✅               | ❌                | ✅             | ✅                |
+| `ca` (Catalan)          | ✅                | ❌                 | ✅              | ❌                 |
+| `cs` (Czech)            | ✅                | ❌                 | ✅              | ✅                 |
+| `da` (Danish)           | ✅                | ✅                 | ✅              | ❌                 |
+| `de` (German)           | ✅                | ✅                 | ✅              | ✅                 |
+| `es` (Spanish)          | ✅                | ❌                 | ✅              | ✅                 |
+| `eu` (Euskara / Basque) | ✅                | ❌                 | ✅              | ❌                 |
+| `fa` (Farsi / Persian)  | ✅                | ❌                 | ✅              | ❌                 |
+| `fr` (French)           | ✅                | ❌                 | ✅              | ❌                 |
+| `hu` (Hungarian)        | ✅                | ✅                 | ❌              | ❌                 |
+| `it` (Italian)          | ✅                | ❌                 | ✅              | ❌                 |
+| `nl` (Dutch)            | ✅                | ✅                 | ✅              | ✅                 |
+| `pl` (Polish)           | ✅                | ❌                 | ✅              | ✅                 |
+| `pt` (Portuguese)       | ✅                | ❌                 | ✅              | ✅                 |
+| `ru` (Russian)          | ✅                | ❌                 | ✅              | ✅                 |
+| `sv` (Swedish)          | ✅                | ✅                 | ✅              | ❌                 |
+| `sl` (Slovenian)        | ✅                | ❌                 | ❌              | ❌                 |
+| `uk` (Ukrainian)        | ✅                | ❌                 | ✅              | ✅                 |
 
 ## Installation
 
@@ -82,7 +83,6 @@ print(result)  # "one hundred and twenty-three"
 
 Convert a number to its ordinal spoken equivalent.
 
-
 ```python
 def pronounce_ordinal(number: Union[int, float], lang: str, short_scale: bool = True) -> str:
     """
@@ -111,7 +111,6 @@ print(result)  # "fifth"
 ### Extract a Number
 
 Extract a number from a given text string.
-
 
 ```python
 def extract_number(text: str, lang: str, short_scale: bool = True, ordinals: bool = False) -> Union[int, float, bool]:
@@ -143,7 +142,6 @@ print(result)  # 20
 
 Identify if the text contains a fractional number.
 
-
 ```python
 def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[bool, float]:
     """
@@ -173,7 +171,6 @@ print(result)  # 0.5
 
 Determine if the text contains an ordinal number.
 
-
 ```python
 def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
     """
@@ -197,6 +194,12 @@ from ovos_number_parser import is_ordinal
 result = is_ordinal("third", "en")
 print(result)  # 3
 ```
+
+## Related Projects
+
+- [ovos-date-parser](https://github.com/OpenVoiceOS/ovos-date-parser) - for handling dates and times
+- [ovos-lang-parser](https://github.com/OVOSHatchery/ovos-lang-parser) - for handling languages
+- [ovos-color-parser](https://github.com/OVOSHatchery/ovos-color-parser) - for handling colors
 
 ## License
 

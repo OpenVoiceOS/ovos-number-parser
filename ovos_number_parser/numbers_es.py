@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
-                                     is_numeric)
+                                     is_numeric, tokenize)
 
 _ARTICLES_ES = {'el', 'la', 'los', 'las'}
 
@@ -667,3 +667,27 @@ def pronounce_number_es(number, places=2):
         for char in _num_str:
             result += " " + _NUM_STRING_ES[int(char)]
     return result
+
+def numbers_to_digits_es(utterance: str) -> str:
+    """
+    Replace written numbers in a Spanish text with their digit equivalents.
+
+    Args:
+        utterance (str): Input string possibly containing written numbers.
+
+    Returns:
+        str: Text with written numbers replaced by digits.
+    """
+    number_replacements = {
+        "uno": "1", "dos": "2", "tres": "3", "cuatro": "4",
+        "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",
+        "diez": "10", "once": "11", "doce": "12", "trece": "13", "catorce": "14",
+        "quince": "15", "dieciséis": "16", "diecisiete": "17", "dieciocho": "18",
+        "diecinueve": "19", "veinte": "20"
+        # Extend this dictionary for higher numbers as needed
+    }
+    words = tokenize(utterance)
+    for idx, word in enumerate(words):
+        if word in number_replacements:
+            words[idx] = number_replacements[word]
+    return " ".join(words)
