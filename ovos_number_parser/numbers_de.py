@@ -423,7 +423,7 @@ def pronounce_ordinal_de(number):
         return pronounce_number_de(number) + "ste"
 
 
-def _convert_words_to_numbers_de(text, short_scale=False,
+def numbers_to_digits_de(text, short_scale=False,
                                  ordinals=False, fractions=True):
     """
     Convert words in a string into their equivalent numbers.

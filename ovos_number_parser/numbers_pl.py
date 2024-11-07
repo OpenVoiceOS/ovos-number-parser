@@ -556,7 +556,7 @@ _STRING_SHORT_ORDINAL_PL = invert_dict(_SHORT_ORDINAL_PL)
 _REV_FRACTITONS = generate_fractions_pl(invert_dict(_FRACTION_STRING_PL))
 
 
-def _convert_words_to_numbers_pl(text, short_scale=True, ordinals=False):
+def numbers_to_digits_pl(text, short_scale=True, ordinals=False):
     """
     Convert words in a string into their equivalent numbers.
     Args:

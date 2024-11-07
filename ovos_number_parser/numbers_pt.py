@@ -1,3 +1,5 @@
+import re
+
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions
 
 _NUMBERS_PT = {
@@ -375,3 +377,123 @@ def extract_number_pt(text, short_scale=True, ordinals=False):
             result = int(integer)
 
     return result or False
+
+
+def numbers_to_digits_pt(utterance: str) -> str:
+    """
+    Replace written numbers in text with their digit equivalents.
+
+    Args:
+        utterance (str): Input string possibly containing written numbers.
+
+    Returns:
+        str: Text with written numbers replaced by digits.
+    """
+    number_replacements = {
+        "catorze": "14",
+        "cem": "100",
+        "cento": "100",
+        "cinco": "5",
+        "cinquenta": "50",
+        "dez": "10",
+        "dezanove": "19",
+        "dezasseis": "16",
+        "dezassete": "17",
+        "dezoito": "18",
+        "dois": "2",
+        "doze": "12",
+        "duas": "2",
+        "duzentas": "200",
+        "duzentos": "200",
+        "mil": "1000",
+        "milhão": "1000000",
+        "nove": "9",
+        "novecentas": "900",
+        "novecentos": "900",
+        "noventa": "90",
+        "oitenta": "80",
+        "oito": "8",
+        "oitocentas": "800",
+        "oitocentos": "800",
+        "onze": "11",
+        "primeiro": "1",
+        "quarenta": "40",
+        "quatro": "4",
+        "quatrocentas": "400",
+        "quatrocentos": "400",
+        "quinhentas": "500",
+        "quinhentos": "500",
+        "quinze": "15",
+        "segundo": "2",
+        "seis": "6",
+        "seiscentas": "600",
+        "seiscentos": "600",
+        "sessenta": "60",
+        "sete": "7",
+        "setecentas": "700",
+        "setecentos": "700",
+        "setenta": "70",
+        "terceiro": "3",
+        "tres": "3",
+        "treze": "13",
+        "trezentas": "300",
+        "trezentos": "300",
+        "trinta": "30",
+        "três": "3",
+        "um": "1",
+        "uma": "1",
+        "vinte": "20",
+        "zero": "0"
+    }
+    words = tokenize(utterance)
+    for idx, word in enumerate(words):
+        if word in number_replacements:
+            words[idx] = number_replacements[word]
+    return " ".join(words)
+
+
+def tokenize(utterance):
+    # Split things like 12%
+    utterance = re.sub(r"([0-9]+)([\%])", r"\1 \2", utterance)
+    # Split things like #1
+    utterance = re.sub(r"(\#)([0-9]+\b)", r"\1 \2", utterance)
+    # Split things like amo-te
+    utterance = re.sub(r"([a-zA-Z]+)(-)([a-zA-Z]+\b)", r"\1 \2 \3",
+                       utterance)
+    tokens = utterance.split()
+    if tokens[-1] == '-':
+        tokens = tokens[:-1]
+
+    return tokens
+
+
+def _pt_pruning(text, symbols=True, accents=True, agressive=True):
+    # agressive pt word pruning
+    words = ["a", "o", "os", "as", "de", "dos", "das",
+             "lhe", "lhes", "me", "e", "no", "nas", "na", "nos", "em", "para",
+             "este",
+             "esta", "deste", "desta", "neste", "nesta", "nesse",
+             "nessa", "foi", "que"]
+    if symbols:
+        symbols = [".", ",", ";", ":", "!", "?", "º", "ª"]
+        for symbol in symbols:
+            text = text.replace(symbol, "")
+        text = text.replace("-", " ").replace("_", " ")
+    if accents:
+        accents = {"a": ["á", "à", "ã", "â"],
+                   "e": ["ê", "è", "é"],
+                   "i": ["í", "ì"],
+                   "o": ["ò", "ó"],
+                   "u": ["ú", "ù"],
+                   "c": ["ç"]}
+        for char in accents:
+            for acc in accents[char]:
+                text = text.replace(acc, char)
+    if agressive:
+        text_words = text.split(" ")
+        for idx, word in enumerate(text_words):
+            if word in words:
+                text_words[idx] = ""
+        text = " ".join(text_words)
+        text = ' '.join(text.split())
+    return text
