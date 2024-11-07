@@ -150,7 +150,7 @@ _SHORT_ORDINAL_SL = {
 _SHORT_ORDINAL_SL.update(_ORDINAL_BASE_SL)
 
 
-def nice_number_sl(number, speech=True, denominators=range(1, 21)):
+def nice_number_sl(number, speech=True, denominators=None):
     """ Slovenian helper for nice_number
 
     This function formats a float to human understandable functions. Like
@@ -163,7 +163,8 @@ def nice_number_sl(number, speech=True, denominators=range(1, 21)):
     Returns:
         (str): The formatted string.
     """
-
+    if denominators is None:
+        denominators = range(1, 21)
     result = convert_to_mixed_fraction(number, denominators)
     if not result:
         # Give up, just represent as a 3 decimal number
