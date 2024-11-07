@@ -150,7 +150,9 @@ _SHORT_ORDINAL_SL = {
 _SHORT_ORDINAL_SL.update(_ORDINAL_BASE_SL)
 
 
-def nice_number_sl(number, speech=True, denominators=range(1, 21)):
+def nice_number_sl(number, speech=True, denominators=None):
+    if denominators is None:
+        denominators = range(1, 21)
     """ Slovenian helper for nice_number
 
     This function formats a float to human understandable functions. Like
