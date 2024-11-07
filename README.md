@@ -33,6 +33,7 @@ fractional and ordinal numbers, and more.
 | `pt` (Portuguese)       | ✅                | ❌                 | ✅              | ✅                 |
 | `ru` (Russian)          | ✅                | ❌                 | ✅              | ✅                 |
 | `sv` (Swedish)          | ✅                | ✅                 | ✅              | ❌                 |
+| `sl` (Slovenian)        | ✅                | ❌                 | ❌              | ❌                 |
 | `uk` (Ukrainian)        | ✅                | ❌                 | ✅              | ✅                 |
 
 ## Installation
