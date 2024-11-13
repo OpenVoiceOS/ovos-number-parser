@@ -389,6 +389,7 @@ def numbers_to_digits_pt(utterance: str) -> str:
     Returns:
         str: Text with written numbers replaced by digits.
     """
+    # TODO - this is a quick and dirty placeholder and needs rewriting
     number_replacements = {
         "catorze": "14",
         "cem": "100",

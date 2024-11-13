@@ -668,6 +668,7 @@ def pronounce_number_es(number, places=2):
             result += " " + _NUM_STRING_ES[int(char)]
     return result
 
+
 def numbers_to_digits_es(utterance: str) -> str:
     """
     Replace written numbers in a Spanish text with their digit equivalents.
@@ -678,6 +679,7 @@ def numbers_to_digits_es(utterance: str) -> str:
     Returns:
         str: Text with written numbers replaced by digits.
     """
+    # TODO - this is a quick and dirty placeholder and needs rewriting
     number_replacements = {
         "uno": "1", "dos": "2", "tres": "3", "cuatro": "4",
         "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",

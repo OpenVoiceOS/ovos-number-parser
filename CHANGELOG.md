@@ -1,18 +1,12 @@
 # Changelog
 
-## [0.0.1a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.0.1a2) (2024-11-07)
+## [0.0.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.0.2a1) (2024-11-13)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/bc086aef8c1f18b03f6481e222a6c460f5b94962...0.0.1a2)
-
-**Closed issues:**
-
-- Enhance text normalization in  [\#3](https://github.com/OpenVoiceOS/ovos-number-parser/issues/3)
-- Add  support for missing languages [\#2](https://github.com/OpenVoiceOS/ovos-number-parser/issues/2)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.0.1...0.0.2a1)
 
 **Merged pull requests:**
 
-- semver [\#6](https://github.com/OpenVoiceOS/ovos-number-parser/pull/6) ([JarbasAl](https://github.com/JarbasAl))
-- feat: numbers\_to\_digits [\#1](https://github.com/OpenVoiceOS/ovos-number-parser/pull/1) ([JarbasAl](https://github.com/JarbasAl))
+- fix: number\_to\_digits catalan placeholder [\#9](https://github.com/OpenVoiceOS/ovos-number-parser/pull/9) ([JarbasAl](https://github.com/JarbasAl))
 
 
 
