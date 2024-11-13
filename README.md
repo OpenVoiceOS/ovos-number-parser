@@ -14,15 +14,20 @@ fractional and ordinal numbers, and more.
 
 ## Supported Languages
 
+✅ - supported
+❌ - not supported
+🚧 - imperfect placeholder, needs rewriting
+
+
 | Language Code           | Pronounce Number | Pronounce Ordinal | Extract Number | numbers_to_digits |
 |-------------------------|------------------|-------------------|----------------|-------------------|
 | `en` (English)          | ✅               | ❌                | ✅             | ✅                |
 | `az` (Azerbaijani)      | ✅               | ❌                | ✅             | ✅                |
-| `ca` (Catalan)          | ✅                | ❌                 | ✅              | ❌                 |
+| `ca` (Catalan)          | ✅                | ❌                 | ✅              | 🚧                 |
 | `cs` (Czech)            | ✅                | ❌                 | ✅              | ✅                 |
 | `da` (Danish)           | ✅                | ✅                 | ✅              | ❌                 |
 | `de` (German)           | ✅                | ✅                 | ✅              | ✅                 |
-| `es` (Spanish)          | ✅                | ❌                 | ✅              | ✅                 |
+| `es` (Spanish)          | ✅                | ❌                 | ✅              | 🚧                 |
 | `eu` (Euskara / Basque) | ✅                | ❌                 | ✅              | ❌                 |
 | `fa` (Farsi / Persian)  | ✅                | ❌                 | ✅              | ❌                 |
 | `fr` (French)           | ✅                | ❌                 | ✅              | ❌                 |
@@ -30,7 +35,7 @@ fractional and ordinal numbers, and more.
 | `it` (Italian)          | ✅                | ❌                 | ✅              | ❌                 |
 | `nl` (Dutch)            | ✅                | ✅                 | ✅              | ✅                 |
 | `pl` (Polish)           | ✅                | ❌                 | ✅              | ✅                 |
-| `pt` (Portuguese)       | ✅                | ❌                 | ✅              | ✅                 |
+| `pt` (Portuguese)       | ✅                | ❌                 | ✅              | 🚧                 |
 | `ru` (Russian)          | ✅                | ❌                 | ✅              | ✅                 |
 | `sv` (Swedish)          | ✅                | ✅                 | ✅              | ❌                 |
 | `sl` (Slovenian)        | ✅                | ❌                 | ❌              | ❌                 |

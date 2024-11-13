@@ -1,5 +1,5 @@
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
-                                     is_numeric)
+                                     is_numeric, tokenize)
 
 _NUMBERS_CA = {
     "zero": 0,
@@ -466,3 +466,29 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
             result = int(integer)
 
     return result or False
+
+
+def numbers_to_digits_ca(utterance: str) -> str:
+    """
+    Substitueix els números escrits en un text en català per les seves equivalents en xifres.
+
+    Args:
+        utterance (str): Cadena d'entrada que possiblement conté números escrits.
+
+    Returns:
+        str: Text amb els números escrits substituïts per xifres.
+    """
+    # TODO - this is a quick and dirty placeholder and needs rewriting
+    number_replacements = {
+        "un": "1", "dos": "2", "tres": "3", "quatre": "4",
+        "cinc": "5", "sis": "6", "set": "7", "vuit": "8", "nou": "9",
+        "deu": "10", "onze": "11", "dotze": "12", "tretze": "13", "catorze": "14",
+        "quinze": "15", "setze": "16", "disset": "17", "divuit": "18",
+        "dinou": "19", "vint": "20"
+        # Amplieu aquest diccionari per a números més alts si és necessari
+    }
+    words = tokenize(utterance)
+    for idx, word in enumerate(words):
+        if word in number_replacements:
+            words[idx] = number_replacements[word]
+    return " ".join(words)

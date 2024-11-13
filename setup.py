@@ -57,7 +57,6 @@ setup(
     version=get_version(),
     packages=['ovos_number_parser'],
     url='https://github.com/OpenVoiceOS/ovos-number-parser',
-    obsoletes=['ovos_number_parser'],
     license='Apache2.0',
     package_data={'': extra_files},
     include_package_data=True,
