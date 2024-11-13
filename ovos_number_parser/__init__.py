@@ -1,7 +1,7 @@
 from typing import Union
 
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
-from ovos_number_parser.numbers_ca import pronounce_number_ca, is_fractional_ca, extract_number_ca
+from ovos_number_parser.numbers_ca import numbers_to_digits_ca, pronounce_number_ca, is_fractional_ca, extract_number_ca
 from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, extract_number_cs
 from ovos_number_parser.numbers_da import is_fractional_da, is_ordinal_da, pronounce_number_da, \
     pronounce_ordinal_da, extract_number_da
@@ -38,6 +38,8 @@ def numbers_to_digits(utterance: str, lang: str) -> str:
     """
     if lang.startswith("az"):
         return numbers_to_digits_az(utterance)
+    if lang.startswith("ca"):
+        return numbers_to_digits_ca(utterance)
     if lang.startswith("cs"):
         return numbers_to_digits_cs(utterance)
     if lang.startswith("de"):
