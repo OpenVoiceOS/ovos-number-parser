@@ -1,7 +1,8 @@
 from collections import OrderedDict
+from typing import List
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
-                                     is_numeric, tokenize)
+                                     is_numeric, tokenize, Token)
 
 _NUM_STRING_GL = {
     0: 'cero',
@@ -642,9 +643,11 @@ def pronounce_number_gl(number, places=2):
     return result
 
 
-def numbers_to_digits_gl(utterance: str, short_scale=False) -> str:
+def numbers_to_digits_gl(utterance: str) -> str:
     """
-    Replace written numbers in a Spanish text with their digit equivalents.
+    Replace written numbers in a Galician text with their digit equivalents.
+
+       "un dous catro" -> "1 2 4"
 
     Args:
         utterance (str): Input string possibly containing written numbers.
@@ -652,12 +655,12 @@ def numbers_to_digits_gl(utterance: str, short_scale=False) -> str:
     Returns:
         str: Text with written numbers replaced by digits.
     """
-    if short_scale:
-        mapping = {v: str(k) for k, v in _SHORT_SCALE_GL.items()}
-    else:
-        mapping = {v: str(k) for k, v in _LONG_SCALE_GL.items()}
-    words = tokenize(utterance)
-    for idx, word in enumerate(words):
-        if word in mapping:
-            words[idx] = mapping[word]
+    # TODO - above twenty it's ambiguous, "twenty one" is 2 words but only 1 number
+    mapping = {_NUM_STRING_GL[i + 1]: str(i + 1) for i in range(20)}
+    words: List[Token] = tokenize(utterance)
+    for idx, tok in enumerate(words):
+        if tok.word in mapping:
+            words[idx] = mapping[tok.word]
+        else:
+            words[idx] = tok.word
     return " ".join(words)

@@ -1,5 +1,7 @@
+from typing import List
+
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
-                                     is_numeric, tokenize)
+                                     is_numeric, tokenize, Token)
 
 _NUMBERS_CA = {
     "zero": 0,
@@ -478,9 +480,19 @@ def numbers_to_digits_ca(utterance: str) -> str:
     Returns:
         str: Text amb els números escrits substituïts per xifres.
     """
-    mapping = {v: str(k) for k, v in _NUMBERS_CA.items()}
-    words = tokenize(utterance)
-    for idx, word in enumerate(words):
-        if word in mapping:
-            words[idx] = mapping[word]
+    # TODO - above twenty it's ambiguous, "twenty one" is 2 words but only 1 number
+    number_replacements = {
+        "un": "1", "dos": "2", "tres": "3", "quatre": "4",
+        "cinc": "5", "sis": "6", "set": "7", "vuit": "8", "nou": "9",
+        "deu": "10", "onze": "11", "dotze": "12", "tretze": "13", "catorze": "14",
+        "quinze": "15", "setze": "16", "disset": "17", "divuit": "18",
+        "dinou": "19", "vint": "20"
+        # Amplieu aquest diccionari per a números més alts si és necessari
+    }
+    words: List[Token] = tokenize(utterance)
+    for idx, tok in enumerate(words):
+        if tok.word in number_replacements:
+            words[idx] = number_replacements[tok.word]
+        else:
+            words[idx] = tok.word
     return " ".join(words)

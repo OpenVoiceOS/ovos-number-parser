@@ -1,7 +1,8 @@
 from collections import OrderedDict
+from typing import List
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
-                                     is_numeric, tokenize)
+                                     is_numeric, tokenize, Token)
 
 _ARTICLES_ES = {'el', 'la', 'los', 'las'}
 
@@ -669,7 +670,7 @@ def pronounce_number_es(number, places=2):
     return result
 
 
-def numbers_to_digits_es(utterance: str, short_scale=False) -> str:
+def numbers_to_digits_es(utterance: str) -> str:
     """
     Replace written numbers in a Spanish text with their digit equivalents.
 
@@ -679,12 +680,19 @@ def numbers_to_digits_es(utterance: str, short_scale=False) -> str:
     Returns:
         str: Text with written numbers replaced by digits.
     """
-    if short_scale:
-        mapping = {v: str(k) for k, v in _SHORT_SCALE_ES.items()}
-    else:
-        mapping = {v: str(k) for k, v in _LONG_SCALE_ES.items()}
-    words = tokenize(utterance)
-    for idx, word in enumerate(words):
-        if word in mapping:
-            words[idx] = mapping[word]
+    # TODO - above twenty it's ambiguous, "twenty one" is 2 words but only 1 number
+    number_replacements = {
+        "uno": "1", "dos": "2", "tres": "3", "cuatro": "4",
+        "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",
+        "diez": "10", "once": "11", "doce": "12", "trece": "13", "catorce": "14",
+        "quince": "15", "dieciséis": "16", "diecisiete": "17", "dieciocho": "18",
+        "diecinueve": "19", "veinte": "20"
+        # Extend this dictionary for higher numbers as needed
+    }
+    words: List[Token] = tokenize(utterance)
+    for idx, tok in enumerate(words):
+        if tok.word in number_replacements:
+            words[idx] = number_replacements[tok.word]
+        else:
+            words[idx] = tok.word
     return " ".join(words)
