@@ -1,6 +1,7 @@
 import re
+from typing import List
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions
+from ovos_number_parser.util import Token, convert_to_mixed_fraction, is_numeric, look_for_fractions
 
 _NUMBERS_PT = {
     "zero": 0,
@@ -446,10 +447,12 @@ def numbers_to_digits_pt(utterance: str) -> str:
         "vinte": "20",
         "zero": "0"
     }
-    words = tokenize(utterance)
-    for idx, word in enumerate(words):
-        if word in number_replacements:
-            words[idx] = number_replacements[word]
+    words: List[Token] = tokenize(utterance)
+    for idx, tok in enumerate(words):
+        if tok.word in number_replacements:
+            words[idx] = number_replacements[tok.word]
+        else:
+            words[idx] = tok.word
     return " ".join(words)
 
 

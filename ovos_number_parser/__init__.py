@@ -24,6 +24,8 @@ from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal
     is_fractional_sv
 from ovos_number_parser.numbers_uk import numbers_to_digits_uk, pronounce_number_uk, extract_number_uk, is_fractional_uk
 from ovos_number_parser.numbers_sl import nice_number_sl, pronounce_number_sl
+from ovos_number_parser.numbers_gl import (nice_number_gl, pronounce_number_gl, extract_number_gl,
+                                           is_fractional_gl, numbers_to_digits_gl)
 
 
 def numbers_to_digits(utterance: str, lang: str) -> str:
@@ -40,6 +42,8 @@ def numbers_to_digits(utterance: str, lang: str) -> str:
         return numbers_to_digits_az(utterance)
     if lang.startswith("ca"):
         return numbers_to_digits_ca(utterance)
+    if lang.startswith("gl"):
+        return numbers_to_digits_gl(utterance)
     if lang.startswith("cs"):
         return numbers_to_digits_cs(utterance)
     if lang.startswith("de"):
@@ -92,6 +96,8 @@ def pronounce_number(number: Union[int, float], lang: str, places: int = 2, shor
         return pronounce_number_da(number, places, short_scale, scientific, ordinals)
     if lang.startswith("de"):
         return pronounce_number_de(number, places, short_scale, scientific, ordinals)
+    if lang.startswith("gl"):
+        return pronounce_number_gl(number, places)
     if lang.startswith("es"):
         return pronounce_number_es(number, places)
     if lang.startswith("eu"):
@@ -181,6 +187,8 @@ def extract_number(text: str, lang: str, short_scale: bool = True, ordinals: boo
         return extract_number_de(text, short_scale, ordinals)
     if lang.startswith("es"):
         return extract_number_es(text, short_scale, ordinals)
+    if lang.startswith("gl"):
+        return extract_number_gl(text, short_scale, ordinals)
     if lang.startswith("eu"):
         return extract_number_eu(text, short_scale, ordinals)
     if lang.startswith("fa"):
@@ -234,6 +242,8 @@ def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[
         return is_fractional_de(input_str, short_scale)
     if lang.startswith("es"):
         return is_fractional_es(input_str, short_scale)
+    if lang.startswith("gl"):
+        return is_fractional_gl(input_str, short_scale)
     if lang.startswith("eu"):
         return is_fractional_eu(input_str)
     if lang.startswith("fr"):

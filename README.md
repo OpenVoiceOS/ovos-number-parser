@@ -24,6 +24,7 @@ fractional and ordinal numbers, and more.
 | `en` (English)          | ✅               | ❌                | ✅             | ✅                |
 | `az` (Azerbaijani)      | ✅               | ❌                | ✅             | ✅                |
 | `ca` (Catalan)          | ✅                | ❌                 | ✅              | 🚧                 |
+| `gl` (Galician)         | ✅                | ❌                 | ✅              |  🚧                  |
 | `cs` (Czech)            | ✅                | ❌                 | ✅              | ✅                 |
 | `da` (Danish)           | ✅                | ✅                 | ✅              | ❌                 |
 | `de` (German)           | ✅                | ✅                 | ✅              | ✅                 |
