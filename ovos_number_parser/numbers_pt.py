@@ -389,67 +389,11 @@ def numbers_to_digits_pt(utterance: str) -> str:
     Returns:
         str: Text with written numbers replaced by digits.
     """
-    # TODO - this is a quick and dirty placeholder and needs rewriting
-    number_replacements = {
-        "catorze": "14",
-        "cem": "100",
-        "cento": "100",
-        "cinco": "5",
-        "cinquenta": "50",
-        "dez": "10",
-        "dezanove": "19",
-        "dezasseis": "16",
-        "dezassete": "17",
-        "dezoito": "18",
-        "dois": "2",
-        "doze": "12",
-        "duas": "2",
-        "duzentas": "200",
-        "duzentos": "200",
-        "mil": "1000",
-        "milhão": "1000000",
-        "nove": "9",
-        "novecentas": "900",
-        "novecentos": "900",
-        "noventa": "90",
-        "oitenta": "80",
-        "oito": "8",
-        "oitocentas": "800",
-        "oitocentos": "800",
-        "onze": "11",
-        "primeiro": "1",
-        "quarenta": "40",
-        "quatro": "4",
-        "quatrocentas": "400",
-        "quatrocentos": "400",
-        "quinhentas": "500",
-        "quinhentos": "500",
-        "quinze": "15",
-        "segundo": "2",
-        "seis": "6",
-        "seiscentas": "600",
-        "seiscentos": "600",
-        "sessenta": "60",
-        "sete": "7",
-        "setecentas": "700",
-        "setecentos": "700",
-        "setenta": "70",
-        "terceiro": "3",
-        "tres": "3",
-        "treze": "13",
-        "trezentas": "300",
-        "trezentos": "300",
-        "trinta": "30",
-        "três": "3",
-        "um": "1",
-        "uma": "1",
-        "vinte": "20",
-        "zero": "0"
-    }
+    mapping = {v: str(k) for k, v in _NUMBERS_PT.items()}
     words = tokenize(utterance)
     for idx, word in enumerate(words):
-        if word in number_replacements:
-            words[idx] = number_replacements[word]
+        if word in mapping:
+            words[idx] = mapping[word]
     return " ".join(words)
 
 

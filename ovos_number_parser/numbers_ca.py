@@ -478,17 +478,9 @@ def numbers_to_digits_ca(utterance: str) -> str:
     Returns:
         str: Text amb els números escrits substituïts per xifres.
     """
-    # TODO - this is a quick and dirty placeholder and needs rewriting
-    number_replacements = {
-        "un": "1", "dos": "2", "tres": "3", "quatre": "4",
-        "cinc": "5", "sis": "6", "set": "7", "vuit": "8", "nou": "9",
-        "deu": "10", "onze": "11", "dotze": "12", "tretze": "13", "catorze": "14",
-        "quinze": "15", "setze": "16", "disset": "17", "divuit": "18",
-        "dinou": "19", "vint": "20"
-        # Amplieu aquest diccionari per a números més alts si és necessari
-    }
+    mapping = {v: str(k) for k, v in _NUMBERS_CA.items()}
     words = tokenize(utterance)
     for idx, word in enumerate(words):
-        if word in number_replacements:
-            words[idx] = number_replacements[word]
+        if word in mapping:
+            words[idx] = mapping[word]
     return " ".join(words)
