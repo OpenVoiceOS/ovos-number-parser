@@ -14,33 +14,36 @@ fractional and ordinal numbers, and more.
 
 ## Supported Languages
 
-✅ - supported
-❌ - not supported
-🚧 - imperfect placeholder, needs rewriting
+- ✅ - supported
+- ❌ - not supported
+- 🚧 - imperfect placeholder, usually a language agnostic implementation or external library
 
 
 | Language Code           | Pronounce Number | Pronounce Ordinal | Extract Number | numbers_to_digits |
 |-------------------------|------------------|-------------------|----------------|-------------------|
-| `en` (English)          | ✅               | ❌                | ✅             | ✅                |
-| `az` (Azerbaijani)      | ✅               | ❌                | ✅             | ✅                |
-| `ca` (Catalan)          | ✅                | ❌                 | ✅              | 🚧                 |
-| `gl` (Galician)         | ✅                | ❌                 | ✅              |  🚧                  |
-| `cs` (Czech)            | ✅                | ❌                 | ✅              | ✅                 |
+| `en` (English)          | ✅               | 🚧                | ✅             | ✅                |
+| `az` (Azerbaijani)      | ✅               | 🚧                | ✅             | ✅                |
+| `ca` (Catalan)          | ✅                | 🚧                 | ✅              | 🚧                 |
+| `gl` (Galician)         | ✅                | ❌                | ✅              |  🚧                  |
+| `cs` (Czech)            | ✅                | 🚧                 | ✅              | ✅                 |
 | `da` (Danish)           | ✅                | ✅                 | ✅              | ❌                 |
 | `de` (German)           | ✅                | ✅                 | ✅              | ✅                 |
-| `es` (Spanish)          | ✅                | ❌                 | ✅              | 🚧                 |
+| `es` (Spanish)          | ✅                | 🚧                 | ✅              | 🚧                 |
 | `eu` (Euskara / Basque) | ✅                | ❌                 | ✅              | ❌                 |
-| `fa` (Farsi / Persian)  | ✅                | ❌                 | ✅              | ❌                 |
-| `fr` (French)           | ✅                | ❌                 | ✅              | ❌                 |
+| `fa` (Farsi / Persian)  | ✅                | 🚧                 | ✅              | ❌                 |
+| `fr` (French)           | ✅                | 🚧                 | ✅              | ❌                 |
 | `hu` (Hungarian)        | ✅                | ✅                 | ❌              | ❌                 |
-| `it` (Italian)          | ✅                | ❌                 | ✅              | ❌                 |
+| `it` (Italian)          | ✅                | 🚧                | ✅              | ❌                 |
 | `nl` (Dutch)            | ✅                | ✅                 | ✅              | ✅                 |
-| `pl` (Polish)           | ✅                | ❌                 | ✅              | ✅                 |
-| `pt` (Portuguese)       | ✅                | ❌                 | ✅              | 🚧                 |
-| `ru` (Russian)          | ✅                | ❌                 | ✅              | ✅                 |
+| `pl` (Polish)           | ✅                | 🚧                 | ✅              | ✅                 |
+| `pt` (Portuguese)       | ✅                | 🚧                 | ✅              | 🚧                 |
+| `ru` (Russian)          | ✅                | 🚧                 | ✅              | ✅                 |
 | `sv` (Swedish)          | ✅                | ✅                 | ✅              | ❌                 |
-| `sl` (Slovenian)        | ✅                | ❌                 | ❌              | ❌                 |
-| `uk` (Ukrainian)        | ✅                | ❌                 | ✅              | ✅                 |
+| `sl` (Slovenian)        | ✅                | 🚧                 | ❌              | ❌                 |
+| `uk` (Ukrainian)        | ✅                | 🚧                 | ✅              | ✅                 |
+
+
+> 💡 If a language is not implemented for `pronounce_number` or `pronounce_ordinal` then [unicode-rbnf](https://github.com/rhasspy/unicode-rbnf) will be used as a fallback
 
 ## Installation
 

@@ -1,5 +1,6 @@
 from typing import Union
 
+from unicode_rbnf import RbnfEngine, FormatPurpose
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_ca import numbers_to_digits_ca, pronounce_number_ca, is_fractional_ca, extract_number_ca
 from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, extract_number_cs
@@ -124,7 +125,13 @@ def pronounce_number(number: Union[int, float], lang: str, places: int = 2, shor
         return pronounce_number_sv(number, places, short_scale, scientific, ordinals)
     if lang.startswith("uk"):
         return pronounce_number_uk(number, places, short_scale, scientific, ordinals)
-    raise NotImplementedError(f"Unsupported language: '{lang}'")
+    # fallback to unicode RBNF
+    try:
+        engine = RbnfEngine.for_language(lang.split("-")[0])
+        fmt = FormatPurpose.ORDINAL if ordinals else FormatPurpose.CARDINAL
+        return engine.format_number(number, fmt).text
+    except Exception as err:
+        raise NotImplementedError(f"Unsupported language: '{lang}'") from err
 
 
 def pronounce_ordinal(number: Union[int, float], lang: str, short_scale: bool = True) -> str:
@@ -152,7 +159,13 @@ def pronounce_ordinal(number: Union[int, float], lang: str, short_scale: bool = 
         return pronounce_ordinal_nl(number)
     if lang.startswith("sv"):
         return pronounce_ordinal_sv(number)
-    raise NotImplementedError(f"Unsupported language: '{lang}'")
+    # fallback to unicode RBNF
+    try:
+        engine = RbnfEngine.for_language(lang.split("-")[0])
+        fmt = FormatPurpose.ORDINAL
+        return engine.format_number(number, fmt).text
+    except Exception as err:
+        raise NotImplementedError(f"Unsupported language: '{lang}'") from err
 
 
 def extract_number(text: str, lang: str, short_scale: bool = True, ordinals: bool = False) -> Union[int, float, bool]:
