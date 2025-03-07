@@ -26,7 +26,7 @@ fractional and ordinal numbers, and more.
 | `ca` (Catalan)          | ✅                | 🚧                 | ✅              | 🚧                 |
 | `gl` (Galician)         | ✅                | ❌                | ✅              |  🚧                  |
 | `cs` (Czech)            | ✅                | 🚧                 | ✅              | ✅                 |
-| `da` (Danish)           | ✅                | ✅                 | ✅              | ❌                 |
+| `da` (Danish)           | ✅                | ✅                 | ✅              | 🚧                 |
 | `de` (German)           | ✅                | ✅                 | ✅              | ✅                 |
 | `es` (Spanish)          | ✅                | 🚧                 | ✅              | 🚧                 |
 | `eu` (Euskara / Basque) | ✅                | ❌                 | ✅              | ❌                 |
