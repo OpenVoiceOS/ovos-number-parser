@@ -1,8 +1,7 @@
 from math import floor
-from collections import OrderedDict
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
-                                     ReplaceableNumber, Token, look_for_fractions, is_numeric)
+                                     ReplaceableNumber, Token, look_for_fractions)
 
 
 _ARTICLES = {'en', 'et'}
@@ -156,22 +155,29 @@ _STRING_FRACTION_DA.update({
     'kvart': 4
 })
 
-_LONG_SCALE = OrderedDict([
-    (100, 'hundrede'),
-    (1000, 'tusinde'),
-    (1000000, 'million'),
-    (1e9, "milliard"),
-    (1e12, 'billion'),
-    (1e15, "billiard"),
-    (1e18, "trillion"),
-    (1e21, "trilliard"),
-    (1e24, "quadrillion"),
-    (1e27, "quadrilliard")
-])
+_LONG_SCALE = {
+    100: 'hundrede',
+    1000: 'tusinde',
+    1000000: 'million',
+    1e9: "milliard",
+    1e12: 'billion',
+    1e15: "billiard",
+    1e18: "trillion",
+    1e21: "trilliard",
+    1e24: "quadrillion",
+    1e27: "quadrilliard"
+}
 
 _MULTIPLIER = set(_LONG_SCALE.values())
 
 _STRING_LONG_SCALE = invert_dict(_LONG_SCALE)
+
+# ending manipulation
+for number, item in _LONG_SCALE.items():
+    if int(number) > 1000:
+        name = item + 'er'
+        _MULTIPLIER.add(name)
+        _STRING_LONG_SCALE[name] = number
 
 _FRACTION_MARKER = set()
 
@@ -518,8 +524,7 @@ def _extract_numbers_with_text_da(tokens, short_scale=False,
     return results
 
 
-def _extract_number_with_text_da(tokens, short_scale=False,
-                                 ordinals=False):
+def _extract_number_with_text_da(tokens, short_scale=False, ordinals=False):
     """
     This function extracts a number from a list of Tokens.
 
@@ -537,10 +542,9 @@ def _extract_number_with_text_da(tokens, short_scale=False,
     return ReplaceableNumber(number, tokens)
 
 
-def _extract_number_with_text_da_helper(tokens,
-                                        short_scale, ordinals):
+def _extract_number_with_text_da_helper(tokens, short_scale, ordinals):
     """
-    Helper for _extract_number_with_text_de.
+    Helper for _extract_number_with_text_da.
 
     Args:
         tokens [Token]:
