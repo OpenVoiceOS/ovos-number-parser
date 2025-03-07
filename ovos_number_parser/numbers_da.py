@@ -1,6 +1,10 @@
 from math import floor
 
-from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions, is_numeric)
+from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
+                                     ReplaceableNumber, Token, look_for_fractions)
+
+
+_ARTICLES = {'en', 'et'}
 
 _DA_NUMBERS = {
     'nul': 0,
@@ -43,6 +47,7 @@ _DA_NUMBERS = {
     'firs': 80,
     'halvfems': 90,
     'hunderede': 100,
+    'ethunderede': 100,
     'tohundrede': 200,
     'trehundrede': 300,
     'firehundrede': 400,
@@ -52,12 +57,22 @@ _DA_NUMBERS = {
     'ottehundrede': 800,
     'nihundrede': 900,
     'tusinde': 1000,
+    'ettusinde': 1000,
+    'totusinde': 2000,
+    'tretusinde': 3000,
+    'firetusinde': 4000,
+    'femtusinde': 5000,
+    'sekstusinde': 6000,
+    'syvtusinde': 7000,
+    'ottetusinde': 8000,
+    'nitusinde': 9000,
+    'titusinde': 10000,
     'million': 1000000
 }
 
-_MONTHS_DA = ['januar', 'februar', 'märz', 'april', 'mai', 'juni',
+_MONTHS_DA = ['januar', 'februar', 'marts', 'april', 'maj', 'juni',
               'juli', 'august', 'september', 'oktober', 'november',
-              'dezember']
+              'december']
 
 _NUM_STRING_DA = {
     0: 'nul',
@@ -88,7 +103,17 @@ _NUM_STRING_DA = {
     70: 'halvfjers',
     80: 'firs',
     90: 'halvfems',
-    100: 'hundrede'
+    100: 'hundrede',
+    200: 'tohundrede',
+    300: 'trehundrede',
+    400: 'firehundrede',
+    500: 'femhundrede',
+    600: 'sekshundrede',
+    700: 'syvhundrede',
+    800: 'ottehundrede',
+    900: 'nihundrede',
+    1000: 'tusinde',
+    1000000: 'million'
 }
 
 _NUM_POWERS_OF_TEN = [
@@ -124,6 +149,44 @@ _FRACTION_STRING_DA = {
     20: 'tyvendedel'
 }
 
+_STRING_FRACTION_DA = invert_dict(_FRACTION_STRING_DA)
+_STRING_FRACTION_DA.update({
+    'halvdel': 2,
+    'kvart': 4
+})
+
+_LONG_SCALE = {
+    100: 'hundrede',
+    1000: 'tusinde',
+    1000000: 'million',
+    1e9: "milliard",
+    1e12: 'billion',
+    1e15: "billiard",
+    1e18: "trillion",
+    1e21: "trilliard",
+    1e24: "quadrillion",
+    1e27: "quadrilliard"
+}
+
+_MULTIPLIER = set(_LONG_SCALE.values())
+
+_STRING_LONG_SCALE = invert_dict(_LONG_SCALE)
+
+# ending manipulation
+for number, item in _LONG_SCALE.items():
+    if int(number) > 1000:
+        name = item + 'er'
+        _MULTIPLIER.add(name)
+        _STRING_LONG_SCALE[name] = number
+
+_FRACTION_MARKER = set()
+
+_NEGATIVES = {"minus"}
+
+_NUMBER_CONNECTORS = {"og"}
+
+_COMMA = {"komma"}
+
 # Numbers below 1 million are written in one word in Danish, yielding very
 # long words
 # In some circumstances it may better to seperate individual words
@@ -133,115 +196,6 @@ _FRACTION_STRING_DA = {
 
 # _EXTRA_SPACE_DA = " "
 _EXTRA_SPACE_DA = ""
-
-
-def extract_number_da(text, short_scale=True, ordinals=False):
-    """
-    This function prepares the given text for parsing by making
-    numbers consistent, getting rid of contractions, etc.
-    Args:
-        text (str): the string to normalize
-    Returns:
-        (int) or (float): The value of extracted number
-
-
-    undefined articles cannot be suppressed in German:
-    'ein Pferd' means 'one horse' and 'a horse'
-
-    """
-    # TODO: short_scale and ordinals don't do anything here.
-    # The parameters are present in the function signature for API compatibility
-    # reasons.
-
-    text = text.lower()
-    aWords = text.split()
-    aWords = [word for word in aWords if
-              word not in ["den", "det"]]
-    and_pass = False
-    valPreAnd = False
-    val = False
-    count = 0
-    while count < len(aWords):
-        word = aWords[count]
-        if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = float(word)
-        elif is_fractional_da(word):
-            val = is_fractional_da(word)
-        elif is_ordinal_da(word):
-            val = is_ordinal_da(word)
-        else:
-            if word in _DA_NUMBERS:
-                val = _DA_NUMBERS[word]
-                if count < (len(aWords) - 1):
-                    wordNext = aWords[count + 1]
-                else:
-                    wordNext = ""
-                valNext = is_fractional_da(wordNext)
-
-                if valNext:
-                    val = val * valNext
-                    aWords[count + 1] = ""
-
-        if not val:
-            # look for fractions like "2/3"
-            aPieces = word.split('/')
-            # if (len(aPieces) == 2 and is_numeric(aPieces[0])
-            #   and is_numeric(aPieces[1])):
-            if look_for_fractions(aPieces):
-                val = float(aPieces[0]) / float(aPieces[1])
-            elif and_pass:
-                # added to value, quit here
-                val = valPreAnd
-                break
-            else:
-                count += 1
-                continue
-
-        aWords[count] = ""
-
-        if and_pass:
-            aWords[count - 1] = ''  # remove "og"
-            val += valPreAnd
-        elif count + 1 < len(aWords) and aWords[count + 1] == 'og':
-            and_pass = True
-            valPreAnd = val
-            val = False
-            count += 2
-            continue
-        elif count + 2 < len(aWords) and aWords[count + 2] == 'og':
-            and_pass = True
-            valPreAnd = val
-            val = False
-            count += 3
-            continue
-
-        break
-
-    return val or False
-
-
-def is_fractional_da(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    if input_str.lower().startswith("halv"):
-        return 0.5
-
-    if input_str.lower() == "trediedel":
-        return 1.0 / 3
-    elif input_str.endswith('del'):
-        input_str = input_str[:len(input_str) - 3]  # e.g. "fünftel"
-        if input_str.lower() in _DA_NUMBERS:
-            return 1.0 / (_DA_NUMBERS[input_str.lower()])
-
-    return False
 
 
 def is_ordinal_da(input_str):
@@ -491,3 +445,358 @@ def pronounce_ordinal_da(number):
             return pronounce_number_da(number) + "nde"
         else:
             return pronounce_number_da(number) + "ende"
+
+
+def numbers_to_digits_da(text, short_scale=False,
+                               ordinals=False, fractions=True):
+    """
+    Convert words in a string into their equivalent numbers.
+    Args:
+        text str:
+        short_scale boolean: True if short scale numberres should be used.
+        ordinals boolean: True if ordinals (e.g. first, second, third) should
+                          be parsed to their number values (1, 2, 3...)
+    Returns:
+        str
+        The original text, with numbers subbed in where appropriate.
+    """
+    tokens = tokenize(text)
+    numbers_to_replace = \
+        _extract_numbers_with_text_da(tokens, short_scale, ordinals, fractions)
+    numbers_to_replace.sort(key=lambda number: number.start_index)
+
+    results = []
+    for token in tokens:
+        if not numbers_to_replace or \
+                token.index < numbers_to_replace[0].start_index:
+            results.append(token.word)
+        else:
+            if numbers_to_replace and \
+                    token.index == numbers_to_replace[0].start_index:
+                results.append(str(numbers_to_replace[0].value))
+            if numbers_to_replace and \
+                    token.index == numbers_to_replace[0].end_index:
+                numbers_to_replace.pop(0)
+
+    return ' '.join(results)
+
+
+def _extract_numbers_with_text_da(tokens, short_scale=False,
+                                  ordinals=False, fractions=True):
+    """
+    Extract all numbers from a list of Tokens, with the words that
+    represent them.
+
+    Args:
+        [Token]: The tokens to parse.
+        short_scale bool: True if short scale numbers should be used, False for
+                          long scale. True by default.
+        ordinals bool: True if ordinal words (first, second, third, etc) should
+                       be parsed.
+        fractional_numbers bool: True if we should look for fractions and
+                                 decimals.
+
+    Returns:
+        [ReplaceableNumber]: A list of tuples, each containing a number and a
+                         string.
+
+    """
+    placeholder = "<placeholder>"  # inserted to maintain correct indices
+    results = []
+    while True:
+        to_replace = _extract_number_with_text_da(tokens, short_scale, ordinals)
+
+        if not to_replace:
+            break
+
+        if isinstance(to_replace.value, float) and not fractions:
+            pass
+        else:
+            results.append(to_replace)
+
+        tokens = [
+            t if not
+            to_replace.start_index <= t.index <= to_replace.end_index
+            else
+            Token(placeholder, t.index) for t in tokens
+        ]
+    results.sort(key=lambda n: n.start_index)
+    return results
+
+
+def _extract_number_with_text_da(tokens, short_scale=False, ordinals=False):
+    """
+    This function extracts a number from a list of Tokens.
+
+    Args:
+        tokens str: the string to normalize
+        short_scale (bool): use short scale if True, long scale if False
+        ordinals (bool): consider ordinal numbers
+        fractional_numbers (bool): True if we should look for fractions and
+                                   decimals.
+    Returns:
+        ReplaceableNumber
+
+    """
+    number, tokens = _extract_number_with_text_da_helper(tokens, short_scale, ordinals)
+    return ReplaceableNumber(number, tokens)
+
+
+def _extract_number_with_text_da_helper(tokens, short_scale, ordinals):
+    """
+    Helper for _extract_number_with_text_da.
+
+    Args:
+        tokens [Token]:
+        short_scale boolean:
+        ordinals boolean:
+        fractional_numbers boolean:
+    Returns:
+        int or float, [Tokens]
+    """
+    if ordinals:
+        for token in tokens:
+            ordinal = is_ordinal_da(token.word)
+            if ordinal:
+                return ordinal, [token]
+
+    return _extract_real_number_with_text_da(tokens, short_scale)
+
+
+def _extract_real_number_with_text_da(tokens, short_scale):
+    """
+    This is handling real numbers.
+
+    Args:
+        tokens [Token]:
+        short_scale boolean:
+    Returns:
+        int or float, [Tokens]
+        The value parsed, and tokens that it corresponds to.
+    """
+    number_words = []
+    val = _val = _current_val = None
+    _comma = False
+    to_sum = []
+
+    for idx, token in enumerate(tokens):
+
+        _prev_val = _current_val
+        _current_val = None
+
+        word = token.word
+
+        if word in _NUMBER_CONNECTORS and not number_words:
+            continue
+        if word in (_NEGATIVES | _NUMBER_CONNECTORS | _COMMA):
+            number_words.append(token)
+            if word in _COMMA:
+                _comma = token
+                _current_val = _val or _prev_val
+            continue
+
+        prev_word = tokens[idx - 1].word if idx > 0 else ""
+        next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
+
+        if word not in _STRING_LONG_SCALE and \
+                word not in _DA_NUMBERS and \
+                word not in _MULTIPLIER and \
+                not is_numeric_da(word) and \
+                not is_fractional_da(word):
+            words_only = [token.word for token in number_words]
+            if _val is not None:
+                to_sum.append(_val)
+            if to_sum:
+                val = sum(to_sum)
+
+            if number_words and (not all([w in _ARTICLES | _NEGATIVES
+                                          | _NUMBER_CONNECTORS for w in words_only])
+                                 or str(val) == number_words[-1].word):
+                break
+            else:
+                number_words.clear()
+                to_sum.clear()
+                val = _val = _prev_val = None
+            continue
+        elif word not in _MULTIPLIER \
+                and prev_word not in _MULTIPLIER \
+                and prev_word not in _NUMBER_CONNECTORS \
+                and prev_word not in _NEGATIVES \
+                and prev_word not in _COMMA \
+                and prev_word not in _STRING_LONG_SCALE \
+                and prev_word not in _DA_NUMBERS \
+                and not is_ordinal_da(word) \
+                and not is_numeric_da(prev_word) \
+                and not is_fractional_da(prev_word):
+            number_words = [token]
+        else:
+            number_words.append(token)
+
+        # is this word already a number or a word of a number?
+        _val = _current_val = is_number_da(word)
+
+        # is this a negative number?
+        if _current_val is not None and prev_word in _NEGATIVES:
+            _val = 0 - _current_val
+
+        # is the prev word a number and should we multiply it?
+        if _prev_val is not None and (word in _MULTIPLIER or \
+                                      word in _ARTICLES):
+            to_sum.append(_prev_val * _current_val or _current_val)
+            _val = _current_val = None
+
+        # fraction handling
+        _fraction_val = is_fractional_da(word, short_scale=short_scale)
+        if _fraction_val:
+            if _prev_val is not None and prev_word not in _ARTICLES and \
+                    word not in _STRING_FRACTION_DA:  # sammensat brøk
+                _val = _prev_val + _fraction_val
+                if prev_word not in _NUMBER_CONNECTORS and tokens[idx - 1] not in number_words:
+                    number_words.append(tokens[idx - 1])
+            elif _prev_val is not None:
+                _val = _prev_val * _fraction_val
+                if tokens[idx - 1] not in number_words:
+                    number_words.append(tokens[idx - 1])
+            else:
+                _val = _fraction_val
+            _current_val = _val
+
+        # directly following numbers without relation
+        if (is_numeric_da(prev_word) or prev_word in _DA_NUMBERS) \
+                and not _fraction_val and not is_fractional_da(next_word) and not to_sum:
+            val = _prev_val
+            number_words.pop(-1)
+            break
+
+        # TODO: handle spoken time, eg. "kvart over otte" ("quarter past eight"), "fem i ni"...
+
+        # spoken decimals
+        if _current_val is not None and _comma:
+            # to_sum = [ 1, 0.2, 0.04,...]
+            to_sum.append(_current_val if _current_val >= 10 else (_current_val) / (
+                                                                          10 ** (token.index - _comma.index)))
+            _val = _current_val = None
+
+        if _current_val is not None and next_word in (_NUMBER_CONNECTORS | _COMMA | {""}):
+            to_sum.append(_val or _current_val)
+            _val = _current_val = None
+
+        if not next_word and number_words:
+            val = sum(to_sum) or _val
+
+    return val, number_words
+
+
+def is_fractional_da(input_str, short_scale=False):
+    """
+    This function takes the given text and checks if it is a fraction.
+    Args:
+        input_str (str): the string to check if fractional
+        short_scale (bool): use short scale if True, long scale if False
+    Returns:
+        (bool) or (float): False if not a fraction, otherwise the fraction
+    """
+    # account for different numerators, e.g. totrediedele
+
+    input_str = input_str.lower()
+    numerator = 1
+    prev_number = 0
+    denominator = False
+    remainder = ""
+
+    # first check if is a fraction containing a char (eg "2/3")
+    _bucket = input_str.split('/')
+    if look_for_fractions(_bucket):
+        numerator = float(_bucket[0])
+        denominator = float(_bucket[1])
+
+    if not denominator:
+        for fraction in sorted(_STRING_FRACTION_DA.keys(),
+                               key=lambda x: len(x),
+                               reverse=True):
+            if fraction in input_str and not denominator:
+                denominator = _STRING_FRACTION_DA.get(fraction)
+                remainder = input_str.replace(fraction, "")
+                break
+
+        if remainder:
+            if not _DA_NUMBERS.get(remainder, False):
+                # acount for eineindrittel
+                for numstring, number in _DA_NUMBERS.items():
+                    if remainder.endswith(numstring):
+                        prev_number = _DA_NUMBERS.get(
+                            remainder.replace(numstring, "", 1), 0)
+                        numerator = number
+                        break
+                else:
+                    return False
+            else:
+                numerator = _DA_NUMBERS.get(remainder)
+
+    if denominator:
+        return prev_number + (numerator / denominator)
+    else:
+        return False
+
+
+def is_number_da(word: str):
+    if is_numeric_da(word):
+        if word.isdigit():
+            return int(word)
+        else:
+            return float(word)
+    elif word in _DA_NUMBERS:
+        return _DA_NUMBERS.get(word)
+    elif word in _STRING_LONG_SCALE:
+        return _STRING_LONG_SCALE.get(word)
+
+    return None
+
+
+def is_numeric_da(input_str):
+    """
+    Takes in a string and tests to see if it is a number.
+
+    Args:
+        text (str): string to test if a number
+    Returns:
+        (bool): True if a number, else False
+    """
+    # da float("1.") = 1.0
+    if input_str.endswith('.'):
+        return False
+    try:
+        float(input_str)
+        return True
+    except ValueError:
+        return False
+
+
+def extract_number_da(text, short_scale=False, ordinals=False):
+    """
+    This function extracts a number from a text string
+
+    Args:
+        text (str): the string to normalize
+        short_scale (bool): use short scale if True, long scale if False
+        ordinals (bool): consider ordinal numbers
+    Returns:
+        (int) or (float) or False: The extracted number or False if no number
+                                   was found
+    """
+    numbers = _extract_numbers_with_text_da(tokenize(text.lower()),
+                                            short_scale, ordinals)
+    # if query ordinals only consider ordinals
+    if ordinals:
+        numbers = list(filter(lambda x: isinstance(x.value, str)
+                                        and x.value.endswith("."),
+                              numbers))
+
+    number = numbers[0].value if numbers else None
+
+    if number:
+        number = float(number)
+        if number.is_integer():
+            number = int(number)
+
+    return number

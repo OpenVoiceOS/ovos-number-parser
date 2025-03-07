@@ -4,7 +4,7 @@ from unicode_rbnf import RbnfEngine, FormatPurpose
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_ca import numbers_to_digits_ca, pronounce_number_ca, is_fractional_ca, extract_number_ca
 from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, extract_number_cs
-from ovos_number_parser.numbers_da import is_fractional_da, is_ordinal_da, pronounce_number_da, \
+from ovos_number_parser.numbers_da import numbers_to_digits_da, pronounce_number_da, is_fractional_da, is_ordinal_da, \
     pronounce_ordinal_da, extract_number_da
 from ovos_number_parser.numbers_de import numbers_to_digits_de, pronounce_number_de, pronounce_ordinal_de, \
     is_ordinal_de, is_fractional_de, extract_number_de
@@ -47,6 +47,8 @@ def numbers_to_digits(utterance: str, lang: str) -> str:
         return numbers_to_digits_gl(utterance)
     if lang.startswith("cs"):
         return numbers_to_digits_cs(utterance)
+    if lang.startswith("da"):
+        return numbers_to_digits_da(utterance)
     if lang.startswith("de"):
         return numbers_to_digits_de(utterance)
     if lang.startswith("en"):
