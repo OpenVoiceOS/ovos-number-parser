@@ -377,10 +377,8 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             if scale_level == 1:
                 result += 'tusinde' + _EXTRA_SPACE_DA
             if scale_level >= 2:
-                result += "og" + _NUM_POWERS_OF_TEN[scale_level]
+                result += ' ' + _NUM_POWERS_OF_TEN[scale_level]
             if scale_level >= 2:
-                if scale_level % 2 == 0:
-                    result += "er"  # MillionER
                 result += "er "  # MilliardER, MillioneER
 
         num = floor(num / 1000)
