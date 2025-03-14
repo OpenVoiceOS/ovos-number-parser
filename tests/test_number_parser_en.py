@@ -1,5 +1,5 @@
 import unittest
-from ovos_number_parser.numbers_en import numbers_to_digits_en, pronounce_number_en, pronounce_number_en
+from ovos_number_parser.numbers_en import numbers_to_digits_en, pronounce_number_en
 
 
 class TestNumberParserEN(unittest.TestCase):
