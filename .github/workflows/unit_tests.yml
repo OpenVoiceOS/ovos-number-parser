@@ -42,8 +42,8 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt install python3-dev python3-unicode-rbnf
-          python -m pip install build wheel
+          sudo apt install python3-dev
+          python -m pip install build wheel unicode-rbnf
       - name: Install core repo
         run: |
           pip install -e .[extras]
