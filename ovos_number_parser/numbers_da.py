@@ -40,7 +40,7 @@ _DA_NUMBERS = {
     'niogtyve': 29,
     'tredive': 30,
     'enogtredive': 31,
-    'fyrrre': 40,
+    'fyrre': 40,
     'halvtres': 50,
     'tres': 60,
     'halvfjers': 70,
@@ -255,7 +255,7 @@ def is_ordinal_da(input_str):
 def nice_number_da(number, speech=True, denominators=range(1, 21)):
     """ Danish helper for nice_number
     This function formats a float to human understandable functions. Like
-    4.5 becomes "4 einhalb" for speech and "4 1/2" for text
+    4.5 becomes "4 en halv" for speech and "4 1/2" for text
     Args:
         number (int or float): the float to format
         speech (bool): format for speech (True) or display (False)
@@ -377,10 +377,8 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             if scale_level == 1:
                 result += 'tusinde' + _EXTRA_SPACE_DA
             if scale_level >= 2:
-                result += "og" + _NUM_POWERS_OF_TEN[scale_level]
+                result += ' ' + _NUM_POWERS_OF_TEN[scale_level]
             if scale_level >= 2:
-                if scale_level % 2 == 0:
-                    result += "er"  # MillionER
                 result += "er "  # MilliardER, MillioneER
 
         num = floor(num / 1000)
