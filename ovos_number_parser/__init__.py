@@ -33,13 +33,18 @@ from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
 
 def numbers_to_digits(utterance: str, lang: str, scale: Scale = Scale.LONG) -> str:
     """
-    Replace written numbers in text with their digit equivalents.
-
-    Args:
-        utterance (str): Input string possibly containing written numbers.
-
+    Convert written numbers in a text string to their digit representations for the specified language and numerical scale.
+    
+    Parameters:
+        utterance (str): Text potentially containing written numbers.
+        lang (str): Language code used to determine parsing rules.
+        scale (Scale, optional): Numerical scale (long or short) for languages that distinguish between them.
+    
     Returns:
-        str: Text with written numbers replaced by digits.
+        str: The input text with written numbers replaced by their digit equivalents.
+    
+    Raises:
+        NotImplementedError: If the specified language is not supported.
     """
     if lang.startswith("az"):
         return numbers_to_digits_az(utterance)
@@ -77,21 +82,25 @@ def pronounce_number(number: Union[int, float], lang: str,
                      digits: DigitPronunciation = DigitPronunciation.FULL_NUMBER,
                      gender: GrammaticalGender = GrammaticalGender.MASCULINE) -> str:
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5' would be 'five'
-
-    Args:
-        number: the number to pronounce
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-        places (int): number of decimal places to express, default 3
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool) : convert and pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
+    Return the spoken representation of a number in the specified language.
+     
+    Converts a numeric value to its pronounced form, supporting various languages, decimal precision, scale (short or long), scientific notation, ordinal forms, digit pronunciation styles, and grammatical gender where applicable. Falls back to Unicode RBNF for unsupported languages.
+     
+    Parameters:
+        number (int or float): The number to pronounce.
+        lang (str): BCP-47 language code specifying the language for pronunciation.
+        places (int, optional): Number of decimal places to include (default is 3).
+        short_scale (bool, optional): Whether to use the short scale for large numbers (default is True).
+        scientific (bool, optional): If True, pronounce the number in scientific notation.
+        ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one").
+        digits (DigitPronunciation, optional): Style for pronouncing digits (default is FULL_NUMBER).
+        gender (GrammaticalGender, optional): Grammatical gender for languages that require it (default is MASCULINE).
+     
     Returns:
-        (str): The pronounced number
+        str: The pronounced form of the number.
+     
+    Raises:
+        NotImplementedError: If the specified language is not supported.
     """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("en"):
@@ -148,17 +157,17 @@ def pronounce_number(number: Union[int, float], lang: str,
 
 def pronounce_fraction(fraction_word: str, lang: str, scale: Scale = Scale.LONG) -> str:
     """
-    Pronounces a fraction string.
-    Example: '1/2' -> 'one half', '3/2' -> 'three halves'
-
-    Args:
-        fraction_word: the fraction to pronounce
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-        scale (Scale): Numerical scale to use (SHORT or LONG). Defaults to LONG.
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
+    Return the spoken form of a fraction string (e.g., "1/2" as "one half") for the specified language and numerical scale.
+    
+    Parameters:
+        fraction_word (str): The fraction to pronounce (e.g., "3/2").
+        scale (Scale, optional): Numerical scale to use (SHORT or LONG). Defaults to LONG.
+    
     Returns:
-        (str): The pronounced number
+        str: The pronounced fraction.
+    
+    Raises:
+        NotImplementedError: If the specified language is not supported.
     """
     if lang.startswith("pt"):
         variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
@@ -171,18 +180,19 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
                       short_scale: bool = True,
                       gender: GrammaticalGender = GrammaticalGender.MASCULINE) -> str:
     """
-    Convert an ordinal number to it's spoken equivalent
-
-    For example, '5' would be 'fifth'
-
-    Args:
-        number: the number to pronounce
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
+    Return the spoken ordinal form of a number in the specified language.
+      
+    Parameters:
+        number (int or float): The number to convert to its ordinal spoken equivalent.
+        lang (str): BCP-47 language code specifying the language for pronunciation.
+        short_scale (bool, optional): Whether to use the short (True) or long (False) scale for large numbers. Defaults to True.
+        gender (GrammaticalGender, optional): Grammatical gender to use for languages that require it. Defaults to masculine.
+      
     Returns:
-        (str): The pronounced number
+        str: The ordinal number pronounced in the specified language.
+      
+    Raises:
+        NotImplementedError: If the language is not supported.
     """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("pt"):
