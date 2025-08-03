@@ -197,9 +197,12 @@ class TestIsFractionalPt(unittest.TestCase):
 
     def test_compound_fractions(self):
         """Test compound fraction forms like 'onze avos'."""
-        self.assertEqual(is_fractional_pt("onze"), 1.0 / 11)
-        self.assertEqual(is_fractional_pt("doze"), 1.0 / 12)
-        self.assertEqual(is_fractional_pt("treze"), 1.0 / 13)
+        self.assertEqual(is_fractional_pt("onze avos"), 1.0 / 11)
+        self.assertEqual(is_fractional_pt("doze avos"), 1.0 / 12)
+        self.assertEqual(is_fractional_pt("treze avos"), 1.0 / 13)
+        self.assertFalse(is_fractional_pt("onze"))
+        self.assertFalse(is_fractional_pt("doze"))
+        self.assertFalse(is_fractional_pt("treze"))
 
     def test_case_insensitive(self):
         """Test case insensitive matching."""

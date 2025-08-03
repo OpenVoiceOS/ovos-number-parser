@@ -420,7 +420,7 @@ def is_fractional_pt(
     # Use a dynamic lookup instead of a hardcoded list
     for den, word in fraction_map.items():
         # Handle cases like "onze avos", so we check for the whole word
-        if input_str == word.split()[0] or input_str == word:
+        if input_str == word:
             return 1.0 / den
 
     # Special case for "meia" as a female form of "meio" (1/2)

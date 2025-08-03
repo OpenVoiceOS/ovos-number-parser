@@ -8,15 +8,16 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(numbers_to_digits_en('three billions'), '3000000000.0')
         self.assertEqual(numbers_to_digits_en('two point five'), '2.5')
         self.assertEqual(numbers_to_digits_en('two point forty two'), '2.42')
+        self.assertEqual(numbers_to_digits_en('march fifth two thousand twenty five', ordinals=False),
+                         'march 0.2 2025')
+        self.assertEqual(numbers_to_digits_en('march fifth', ordinals=True),
+                         'march 5')
 
     @unittest.expectedFailure
     def test_failures_numbers_to_digits_en(self):
-        # TODO: fix the ordinal handling! The 2 tests below actually fails
-        self.assertEqual(numbers_to_digits_en('march fifth two thousand twenty five', ordinals=False),
-                         'march fifth 2025')
+        # TODO: fix me
         self.assertEqual(numbers_to_digits_en('march fifth two thousand twenty five', ordinals=True),
-                         'march 0.2 2025')
-        # TODO: fix the scenario below!
+                         'march 5 2025')
         self.assertEqual(numbers_to_digits_en('two point four two'), '2.42')
 
     def test_pronounce_number_en(self):

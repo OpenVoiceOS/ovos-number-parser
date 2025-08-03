@@ -1,6 +1,5 @@
 import unittest
-
-from ovos_number_parser.numbers_da import numbers_to_digits_da, pronounce_number_da
+from ovos_number_parser.numbers_da import numbers_to_digits_da, pronounce_number_da, pronounce_ordinal_da
 
 
 class TestNumberParserDA(unittest.TestCase):
@@ -15,8 +14,8 @@ class TestNumberParserDA(unittest.TestCase):
 
     def test_pronounce_number_da(self):
         self.assertEqual(pronounce_number_da(3840285766987249),
-                         'tre billiarder ottehundredefyrre billioner tohundredefemogfirs milliarder '
-                         'syvhundredeseksogtres millioner nihundredesyvogfirstusindetohundredeniogfyrre')
+            'tre billiarder ottehundredefyrre billioner tohundredefemogfirs milliarder '
+            'syvhundredeseksogtres millioner nihundredesyvogfirstusindetohundredeniogfyrre')
         # test endings, singular vs plural
         self.assertEqual(pronounce_number_da(1000000), 'en million ')
         self.assertEqual(pronounce_number_da(2000000), 'to millioner ')
