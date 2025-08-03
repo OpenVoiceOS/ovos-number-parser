@@ -302,18 +302,18 @@ _STRING_LONG_ORDINAL_AZ = invert_dict(_LONG_ORDINAL_AZ)
 def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
-                        Convert a number to its spoken Azerbaijani equivalent, supporting cardinal, ordinal, decimal, and scientific forms.
-                        
-                        Parameters:
-                            number (float or int): The number to pronounce.
-                            places (int, optional): Maximum number of decimal places to speak (default is 2).
-                            short_scale (bool, optional): Use short scale (True) or long scale (False) for large numbers.
-                            scientific (bool, optional): Pronounce the number in scientific notation if True.
-                            ordinals (bool, optional): Pronounce in ordinal form (e.g., "first" instead of "one") if True.
-                        
-                        Returns:
-                            str: The Azerbaijani spoken representation of the number.
-                        """
+    Convert a number to its spoken Azerbaijani equivalent, supporting cardinal, ordinal, decimal, and scientific forms.
+    
+    Parameters:
+        number (float or int): The number to pronounce.
+        places (int, optional): Maximum number of decimal places to speak (default is 2).
+        short_scale (bool, optional): Use short scale (True) or long scale (False) for large numbers.
+        scientific (bool, optional): Pronounce the number in scientific notation if True.
+        ordinals (bool, optional): Pronounce in ordinal form (e.g., "first" instead of "one") if True.
+    
+    Returns:
+        str: The Azerbaijani spoken representation of the number.
+    """
     num = number
     # deal with infinity
     if num == float("inf"):
