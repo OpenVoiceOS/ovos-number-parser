@@ -571,7 +571,7 @@ def pronounce_number_pt(
         #  pronounce decimals either as a whole number or digit by digit
         if decimal_part_str:
             if digits == DigitPronunciation.FULL_NUMBER:
-                decimal_pronunciation_parts.append(_pronounce_up_to_999(int(decimal_part_str), variant))
+                decimal_pronunciation_parts.append(_pronounce_up_to_999(int(decimal_part_str[:3]), variant))
             else:
                 for digit in decimal_part_str:
                     decimal_pronunciation_parts.append(_pronounce_up_to_999(int(digit), variant))
