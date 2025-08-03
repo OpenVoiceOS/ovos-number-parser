@@ -147,7 +147,7 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Scale = Scale.LONG)
         fraction_word: the fraction to pronounce
         lang (str, optional): an optional BCP-47 language code, if omitted
                               the default language will be used.
-        short_scale (bool) : use short (True) or long scale (False)
+        scale (Scale): Numerical scale to use (SHORT or LONG). Defaults to LONG.
             https://en.wikipedia.org/wiki/Names_of_large_numbers
     Returns:
         (str): The pronounced number
