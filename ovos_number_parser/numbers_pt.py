@@ -530,18 +530,18 @@ def pronounce_number_pt(
         gender: GrammaticalGender = GrammaticalGender.MASCULINE
 ) -> str:
     """
-        Return the full Portuguese pronunciation of a number, supporting cardinal and ordinal forms, decimals, grammatical gender, and both Brazilian and European Portuguese variants.
-        
-        Parameters:
-            number (int or float): The number to pronounce.
-            places (int): Number of decimal places to include for floats.
-            ordinals (bool): If True, pronounce as an ordinal number.
-            digits (DigitPronunciation): Determines whether decimal parts are pronounced as a whole number or digit by digit.
-            gender (GrammaticalGender): Grammatical gender for ordinal numbers.
-        
-        Returns:
-            str: The number expressed as a Portuguese phrase.
-        """
+    Return the full Portuguese pronunciation of a number, supporting cardinal and ordinal forms, decimals, grammatical gender, and both Brazilian and European Portuguese variants.
+    
+    Parameters:
+        number (int or float): The number to pronounce.
+        places (int): Number of decimal places to include for floats.
+        ordinals (bool): If True, pronounce as an ordinal number.
+        digits (DigitPronunciation): Determines whether decimal parts are pronounced as a whole number or digit by digit.
+        gender (GrammaticalGender): Grammatical gender for ordinal numbers.
+    
+    Returns:
+        str: The number expressed as a Portuguese phrase.
+    """
     if not isinstance(number, (int, float)):
         raise TypeError("Number must be an int or float.")
 
