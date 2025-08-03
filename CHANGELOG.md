@@ -1,12 +1,20 @@
 # Changelog
 
-## [0.2.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.2.0a1) (2025-02-27)
+## [0.4.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.4.0a1) (2025-08-03)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.1.0...0.2.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.3.3a1...0.4.0a1)
 
 **Merged pull requests:**
 
-- feat: fallback parser [\#15](https://github.com/OpenVoiceOS/ovos-number-parser/pull/15) ([JarbasAl](https://github.com/JarbasAl))
+- feat: pronounce\_digits [\#25](https://github.com/OpenVoiceOS/ovos-number-parser/pull/25) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.3.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.3.3a1) (2025-08-03)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.3.2...0.3.3a1)
+
+**Merged pull requests:**
+
+- fix: improve PT number handling [\#21](https://github.com/OpenVoiceOS/ovos-number-parser/pull/21) ([JarbasAl](https://github.com/JarbasAl))
 
 
 
