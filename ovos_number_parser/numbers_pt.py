@@ -535,6 +535,8 @@ def pronounce_number_pt(
     Parameters:
         number (int or float): The number to pronounce.
         places (int): Number of decimal places to include for floats.
+        scale (Scale): Numerical scale to use (short or long).
+        variant (PortugueseVariant): Portuguese language variant for pronunciation.
         ordinals (bool): If True, pronounce as an ordinal number.
         digits (DigitPronunciation): Determines whether decimal parts are pronounced as a whole number or digit by digit.
         gender (GrammaticalGender): Grammatical gender for ordinal numbers.
