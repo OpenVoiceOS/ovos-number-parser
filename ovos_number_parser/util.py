@@ -18,6 +18,15 @@ class Scale(str, Enum):
     SHORT = "short"
     LONG = "long"
 
+
+class GrammaticalGender(str, Enum):
+    """
+    Defines the grammatical gender for number pronunciation.
+    """
+    MASCULINE = "masculine"
+    FEMININE = "feminine"
+
+
 class ReplaceableNumber:
     """
     Similar to Token, this class is used in number parsing.
