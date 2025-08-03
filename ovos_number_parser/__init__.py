@@ -76,21 +76,21 @@ def numbers_to_digits(utterance: str, lang: str, scale: Scale = Scale.LONG) -> s
 def pronounce_number(number: Union[int, float], lang: str, places: int = 2, short_scale: bool = True,
                      scientific: bool = False, ordinals: bool = False) -> str:
     """
-                     Return the spoken representation of a number in the specified language.
-                     
-                     Parameters:
-                         number (int or float): The numeric value to pronounce.
-                         places (int, optional): Number of decimal places to include in the pronunciation. Defaults to 2.
-                         short_scale (bool, optional): Whether to use the short scale (e.g., billion = 10^9) or long scale (e.g., billion = 10^12) for large numbers. Defaults to True.
-                         scientific (bool, optional): If True, pronounce the number in scientific notation. Defaults to False.
-                         ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one"). Defaults to False.
-                     
-                     Returns:
-                         str: The number pronounced in the target language.
-                     
-                     Raises:
-                         NotImplementedError: If the specified language is not supported or fallback formatting fails.
-                     """
+    Return the spoken representation of a number in the specified language.
+     
+    Parameters:
+        number (int or float): The numeric value to pronounce.
+        places (int, optional): Number of decimal places to include in the pronunciation. Defaults to 2.
+        short_scale (bool, optional): Whether to use the short scale (e.g., billion = 10^9) or long scale (e.g., billion = 10^12) for large numbers. Defaults to True.
+        scientific (bool, optional): If True, pronounce the number in scientific notation. Defaults to False.
+        ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one"). Defaults to False.
+     
+    Returns:
+        str: The number pronounced in the target language.
+     
+    Raises:
+        NotImplementedError: If the specified language is not supported or fallback formatting fails.
+    """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("en"):
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
