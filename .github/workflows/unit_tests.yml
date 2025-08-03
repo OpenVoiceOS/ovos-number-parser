@@ -13,28 +13,17 @@ on:
       - 'CHANGELOG.md'
       - 'MANIFEST.in'
       - 'README.md'
-  push:
-    branches:
-      - master
-    paths-ignore:
-      - 'ovos_number_parser/version.py'
-      - '.github/**'
-      - '.gitignore'
-      - 'LICENSE'
-      - 'CHANGELOG.md'
-      - 'MANIFEST.in'
-      - 'README.md'
   workflow_dispatch:
 
 jobs:
   unit_tests:
     strategy:
-      max-parallel: 2
+      max-parallel: 3
       matrix:
-        python-version: [ 3.9, "3.10" ]
+        python-version: [ "3.10", "3.11", "3.12" ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
@@ -46,18 +35,11 @@ jobs:
           python -m pip install build wheel unicode-rbnf
       - name: Install core repo
         run: |
-          pip install -e .[extras]
+          pip install -e .
       - name: Install test dependencies
         run: |
           pip install pytest pytest-timeout pytest-cov
       - name: Run unittests
         run: |
-          pytest --cov=ovos_utils --cov-report xml tests/
-          # NOTE: additional pytest invocations should also add the --cov-append flag
-          #       or they will overwrite previous invocations' coverage reports
-          #       (for an example, see OVOS Skill Manager's workflow)
-      - name: Upload coverage
-        if: "${{ matrix.python-version == '3.9' }}"
-        env:
-          CODECOV_TOKEN: ${{secrets.CODECOV_TOKEN}}
-        uses: codecov/codecov-action@v2
+          pytest --cov=ovos_number_parser --cov-report xml tests
+

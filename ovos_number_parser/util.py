@@ -1,5 +1,5 @@
 from collections import namedtuple
-
+from enum import Enum
 from quebra_frases import word_tokenize
 
 # Token is intended to be used in the number processing functions in
@@ -7,6 +7,24 @@ from quebra_frases import word_tokenize
 # text. To ensure things parse correctly, we need to know where text came
 # from in the original input, hence this nametuple.
 Token = namedtuple('Token', 'word index')
+
+
+class Scale(str, Enum):
+    """
+    Defines the numerical scale to be used.
+    - SHORT: Short scale (e.g., billion = 10^9).
+    - LONG: Long scale (e.g., billion = 10^12).
+    """
+    SHORT = "short"
+    LONG = "long"
+
+
+class GrammaticalGender(str, Enum):
+    """
+    Defines the grammatical gender for number pronunciation.
+    """
+    MASCULINE = "masculine"
+    FEMININE = "feminine"
 
 
 class ReplaceableNumber:
@@ -36,9 +54,18 @@ class ReplaceableNumber:
 
     @property
     def text(self):
-        return ' '.join([t.word for t in self.tokens])
+        """
+        Return the concatenated text represented by the tokens, separated by spaces.
+        """
+        return ' '.join([str(t.word) for t in self.tokens if t.word])
 
     def __setattr__(self, key, value):
+        """
+        Prevent modification of existing attributes, allowing only new attributes to be set.
+
+        Raises:
+            Exception: If attempting to modify an attribute that already exists.
+        """
         try:
             getattr(self, key)
         except AttributeError:
@@ -115,14 +142,14 @@ def invert_dict(original):
 
 def is_numeric(input_str):
     """
-    Takes in a string and tests to see if it is a number.
-    Args:
-        text (str): string to test if a number
+    Return True if the input string represents a valid number, otherwise False.
+
+    Parameters:
+        input_str (str): The string to test for numeric value.
+
     Returns:
-        (bool): True if a number, else False
-
+        bool: True if the string can be converted to a float, False otherwise.
     """
-
     try:
         float(input_str)
         return True

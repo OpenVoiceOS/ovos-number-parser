@@ -36,7 +36,7 @@ fractional and ordinal numbers, and more.
 | `it` (Italian)          | ✅                | 🚧                | ✅              | ❌                 |
 | `nl` (Dutch)            | ✅                | ✅                 | ✅              | ✅                 |
 | `pl` (Polish)           | ✅                | 🚧                 | ✅              | ✅                 |
-| `pt` (Portuguese)       | ✅                | 🚧                 | ✅              | 🚧                 |
+| `pt` (Portuguese)       | ✅                | ✅                  | ✅              | ✅                |
 | `ru` (Russian)          | ✅                | 🚧                 | ✅              | ✅                 |
 | `sv` (Swedish)          | ✅                | ✅                 | ✅              | ❌                 |
 | `sl` (Slovenian)        | ✅                | 🚧                 | ❌              | ❌                 |
