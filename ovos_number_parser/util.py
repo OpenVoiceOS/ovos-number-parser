@@ -25,6 +25,12 @@ class GrammaticalGender(str, Enum):
     """
     MASCULINE = "masculine"
     FEMININE = "feminine"
+    NEUTRAL = "neutral"
+
+
+class DigitPronunciation(str, Enum):
+    DIGIT_BY_DIGIT = "digit"
+    FULL_NUMBER = "number"
 
 
 class ReplaceableNumber:
