@@ -15,7 +15,7 @@
 #
 from collections import OrderedDict
 
-from ovos_number_parser.util import (invert_dict, tokenize, look_for_fractions,
+from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber)
 
 _NUM_STRING_AZ = {
@@ -297,6 +297,46 @@ _SPOKEN_EXTRA_NUM_AZ = {
 
 _STRING_SHORT_ORDINAL_AZ = invert_dict(_SHORT_ORDINAL_AZ)
 _STRING_LONG_ORDINAL_AZ = invert_dict(_LONG_ORDINAL_AZ)
+
+
+def nice_number_az(number, speech=True, denominators=range(1, 21)):
+    """ Azerbaijani helper for nice_number
+
+    This function formats a float to human understandable functions. Like
+    4.5 becomes "4 yarım" for speech and "4 1/2" for text
+
+    Args:
+        number (int or float): the float to format
+        speech (bool): format for speech (True) or display (False)
+        denominators (iter of ints): denominators to use, default [1 .. 20]
+    Returns:
+        (str): The formatted string.
+    """
+
+    result = convert_to_mixed_fraction(number, denominators)
+    if not result:
+        # Give up, just represent as a 3 decimal number
+        return str(round(number, 3))
+
+    whole, num, den = result
+
+    if not speech:
+        if num == 0:
+            # TODO: Number grouping?  E.g. "1,000,000"
+            return str(whole)
+        else:
+            return '{} {}/{}'.format(whole, num, den)
+
+    if num == 0:
+        return str(whole)
+    den_str = _FRACTION_STRING_AZ[den]
+    if whole == 0:
+        if den == 2:
+            return 'yarım'
+        return '{} {}'.format(den_str, num)
+    if den == 2:
+        return '{} yarım'.format(whole)
+    return '{} və {} {}'.format(whole, den_str, num)
 
 
 def pronounce_number_az(number, places=2, short_scale=True, scientific=False,

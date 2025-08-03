@@ -15,7 +15,7 @@
 #
 from collections import OrderedDict
 
-from ovos_number_parser.util import is_numeric, look_for_fractions, \
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
     invert_dict, ReplaceableNumber, partition_list, tokenize, Token
 
 _NUM_STRING_RU = {
@@ -354,6 +354,60 @@ _WORDS_NIGHT_RU = ["ночь", "ночью"]
 
 _STRING_SHORT_ORDINAL_RU = invert_dict(_SHORT_ORDINAL_RU)
 _STRING_LONG_ORDINAL_RU = invert_dict(_LONG_ORDINAL_RU)
+
+
+def nice_number_ru(number, speech=True, denominators=range(1, 21)):
+    """ English helper for nice_number
+
+    This function formats a float to human understandable functions. Like
+    4.5 becomes "4 and a half" for speech and "4 1/2" for text
+
+    Args:
+        number (int or float): the float to format
+        speech (bool): format for speech (True) or display (False)
+        denominators (iter of ints): denominators to use, default [1 .. 20]
+    Returns:
+        (str): The formatted string.
+    """
+
+    result = convert_to_mixed_fraction(number, denominators)
+    if not result:
+        # Give up, just represent as a 3 decimal number
+        return str(round(number, 3))
+
+    whole, num, den = result
+
+    if not speech:
+        if num == 0:
+            # TODO: Number grouping?  E.g. "1,000,000"
+            return str(whole)
+        else:
+            return '{} {}/{}'.format(whole, num, den)
+
+    if num == 0:
+        return str(whole)
+    den_str = _FRACTION_STRING_RU[den]
+    if whole == 0:
+        if num == 1 and den <= 4:
+            return_string = '{}'.format(den_str)
+        else:
+            return_string = '{} {}'.format(num, den_str)
+    elif num == 1 and den == 2:
+        return_string = '{} с половиной'.format(whole)
+    else:
+        return_string = '{} и {} {}'.format(whole, num, den_str)
+    if 2 <= den <= 4:
+        if 2 <= num <= 4:
+            return_string = return_string[:-1] + 'и'
+        elif num > 4:
+            return_string = return_string[:-1] + 'ей'
+    elif den >= 5:
+        if 2 <= num <= 4:
+            return_string = return_string[:-2] + 'ые'
+        elif num > 4:
+            return_string = return_string[:-2] + 'ых'
+
+    return return_string
 
 
 def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,

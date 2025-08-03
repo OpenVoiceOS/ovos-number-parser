@@ -1,6 +1,7 @@
 from typing import List
 
-from ovos_number_parser.util import look_for_fractions, is_numeric, tokenize, Token
+from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
+                                     is_numeric, tokenize, Token)
 
 _NUMBERS_CA = {
     "zero": 0,
@@ -166,6 +167,60 @@ _HUNDREDS_CA = {
     "cents": 100,
     "centes": 100
 }
+
+
+def nice_number_ca(number, speech, denominators=range(1, 21)):
+    """ Catalan helper for nice_number
+
+    This function formats a float to human understandable functions. Like
+    4.5 becomes "4 i mig" for speech and "4 1/2" for text
+
+    Args:
+        number (int or float): the float to format
+        speech (bool): format for speech (True) or display (False)
+        denominators (iter of ints): denominators to use, default [1 .. 20]
+    Returns:
+        (str): The formatted string.
+    """
+
+    result = convert_to_mixed_fraction(number, denominators)
+    if not result:
+        # Give up, just represent as a 3 decimal number
+        return str(round(number, 3))
+
+    whole, num, den = result
+
+    if not speech:
+        if num == 0:
+            # TODO: Number grouping?  E.g. "1,000,000"
+            return str(whole)
+        else:
+            return '{} {}/{}'.format(whole, num, den)
+
+    if num == 0:
+        return str(whole)
+    # denominador
+    den_str = _FRACTION_STRING_CA[den]
+    # fraccions
+    if whole == 0:
+        if num == 1:
+            # un desè
+            return_string = 'un {}'.format(den_str)
+        else:
+            # tres mig
+            return_string = '{} {}'.format(num, den_str)
+    # inteiros >10
+    elif num == 1:
+        # trenta-un
+        return_string = '{}-{}'.format(whole, den_str)
+    # inteiros >10 com fracções
+    else:
+        # vint i 3 desens
+        return_string = '{} i {} {}'.format(whole, num, den_str)
+    # plural
+    if num > 1:
+        return_string += 's'
+    return return_string
 
 
 def pronounce_number_ca(number, places=2):

@@ -15,7 +15,7 @@
 import re
 from collections import OrderedDict
 
-from ovos_number_parser.util import (look_for_fractions, invert_dict,
+from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions, invert_dict,
                                      is_numeric, tokenize, partition_list, Token, ReplaceableNumber)
 
 _NUM_STRING_UK = {
@@ -375,6 +375,58 @@ _WORDS_NIGHT_UK = ["ніч", "вночі"]
 
 _STRING_SHORT_ORDINAL_UK = invert_dict(_SHORT_ORDINAL_UK)
 _STRING_LONG_ORDINAL_UK = invert_dict(_LONG_ORDINAL_UK)
+
+
+def nice_number_uk(number, speech=True, denominators=range(1, 21)):
+    """ Ukrainian helper for nice_number
+
+    This function formats a float to human understandable functions. Like
+    4.5 becomes "4 and a half" for speech and "4 1/2" for text
+
+    Args:
+        number (int or float): the float to format
+        speech (bool): format for speech (True) or display (False)
+        denominators (iter of ints): denominators to use, default [1 .. 20]
+    Returns:
+        (str): The formatted string.
+    """
+
+    result = convert_to_mixed_fraction(number, denominators)
+    if not result:
+        # Give up, just represent as a 3 decimal number
+        return str(round(number, 3))
+
+    whole, num, den = result
+
+    if not speech:
+        if num == 0:
+            return str(whole)
+        else:
+            return '{} {}/{}'.format(whole, num, den)
+
+    if num == 0:
+        return str(whole)
+    den_str = _FRACTION_STRING_UK[den]
+
+    if whole == 0:
+        return_string = '{} {}'.format(num, den_str)
+    elif num == 1 and den == 2:
+        return_string = '{} з половиною'.format(whole)
+    else:
+        return_string = '{} і {} {}'.format(whole, num, den_str)
+    if 2 <= den <= 4:
+        if 2 <= num <= 4:
+            return_string = return_string[:-1] + 'і'
+        elif num > 4:
+            return_string = return_string[:-1] + 'ій'
+    elif den >= 5:
+        if 2 <= num <= 4:
+            return_string = return_string[:-1] + 'і'
+        elif num > 4:
+            return_string = return_string[:-1] + 'их'
+
+    return return_string
+
 
 def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):

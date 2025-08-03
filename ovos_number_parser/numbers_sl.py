@@ -1,5 +1,7 @@
 from collections import OrderedDict
 
+from ovos_number_parser.util import (convert_to_mixed_fraction)
+
 _NUM_STRING_SL = {
     0: 'nič',
     1: 'ena',
@@ -147,6 +149,53 @@ _SHORT_ORDINAL_SL = {
 }
 _SHORT_ORDINAL_SL.update(_ORDINAL_BASE_SL)
 
+
+def nice_number_sl(number, speech=True, denominators=None):
+    """ Slovenian helper for nice_number
+
+    This function formats a float to human understandable functions. Like
+    4.5 becomes "2 in polovica" for speech and "4 1/2" for text
+
+    Args:
+        number (int or float): the float to format
+        speech (bool): format for speech (True) or display (False)
+        denominators (iter of ints): denominators to use, default [1 .. 20]
+    Returns:
+        (str): The formatted string.
+    """
+    if denominators is None:
+        denominators = range(1, 21)
+    result = convert_to_mixed_fraction(number, denominators)
+    if not result:
+        # Give up, just represent as a 3 decimal number
+        return str(round(number, 3))
+
+    whole, num, den = result
+
+    if not speech:
+        if num == 0:
+            return str(whole)
+        else:
+            return '{} {}/{}'.format(whole, num, den)
+
+    if num == 0:
+        return str(whole)
+    den_str = _FRACTION_STRING_SL[den]
+    if whole == 0:
+        return_string = '{} {}'.format(num, den_str)
+    else:
+        return_string = '{} in {} {}'.format(whole, num, den_str)
+
+    if num % 100 == 1:
+        pass
+    elif num % 100 == 2:
+        return_string = return_string[:-1] + 'i'
+    elif num % 100 == 3 or num % 100 == 4:
+        return_string = return_string[:-1] + 'e'
+    else:
+        return_string = return_string[:-1]
+
+    return return_string
 
 
 def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,

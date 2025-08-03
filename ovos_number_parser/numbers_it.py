@@ -1,6 +1,6 @@
 import collections
 
-from ovos_number_parser.util import is_numeric, look_for_fractions
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions
 
 _SHORT_ORDINAL_STRING_IT = {
     1: 'primo',
@@ -696,6 +696,62 @@ def extract_number_it(text, short_scale=False, ordinals=False):
             val = val + addend
     return val
 
+
+def nice_number_it(number, speech=True, denominators=range(1, 21)):
+    """ Italian helper for nice_number
+
+    This function formats a float to human understandable functions. Like
+    4.5 becomes "4 e un mezz" for speech and "4 1/2" for text
+
+    Args:
+        number (int or float): the float to format
+        speech (bool): format for speech (True) or display (False)
+        denominators (iter of ints): denominators to use, default [1 .. 20]
+    Returns:
+        (str): The formatted string.
+    """
+
+    result = convert_to_mixed_fraction(number, denominators)
+    if not result:
+        # Give up, just represent as a 3 decimal number
+        return str(round(number, 3))
+
+    whole, num, den = result
+
+    if not speech:
+        if num == 0:
+            return str(whole)
+        else:
+            return '{} {}/{}'.format(whole, num, den)
+
+    if num == 0:
+        return str(whole)
+    # denominatore
+    den_str = _FRACTION_STRING_IT[den]
+    # frazione
+    if whole == 0:
+        if num == 1:
+            # un decimo
+            return_string = 'un {}'.format(den_str)
+        else:
+            # tre mezzi
+            return_string = '{} {}'.format(num, den_str)
+    # interi  >10
+    elif num == 1:
+        # trenta e un
+        return_string = '{} e un {}'.format(whole, den_str)
+    # interi >10 con frazioni
+    else:
+        # venti e 3 decimi
+        return_string = '{} e {} {}'.format(whole, num, den_str)
+
+    # gestisce il plurale del denominatore
+    if num > 1:
+        return_string += 'i'
+    else:
+        return_string += 'o'
+
+    return return_string
 
 
 def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
