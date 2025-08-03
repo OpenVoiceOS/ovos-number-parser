@@ -396,7 +396,11 @@ class TestPronounceNumberPt(unittest.TestCase):
         self.assertFalse(result.startswith("um mil"))
 
     def test_places_parameter(self):
-        """Test decimal places parameter."""
+        """
+        Test that the `places` parameter in `pronounce_number_pt` correctly limits the number of decimal places pronounced when using digit-by-digit pronunciation.
+        
+        Ensures that specifying different values for `places` produces valid string outputs without errors.
+        """
         result1 = pronounce_number_pt(1.23456, places=2, digits=DigitPronunciation.DIGIT_BY_DIGIT)
         result2 = pronounce_number_pt(1.23456, places=5, digits=DigitPronunciation.DIGIT_BY_DIGIT)
         # Both should work without error
