@@ -1,4 +1,3 @@
-from ovos_number_parser.util import (convert_to_mixed_fraction)
 from math import floor
 _NUM_STRING_HU = {
     0: 'nulla',
@@ -82,51 +81,6 @@ def _get_vocal_type_hu(word):
     if vowels_high != 0 and vowels_low != 0:
         return 2                                   # 2: type is mixed
     return 0 if vowels_high == 0 else 1            # 0: type is low, 1: is high
-
-
-def nice_number_hu(number, speech=True, denominators=range(1, 21)):
-    """ Hungarian helper for nice_number
-
-    This function formats a float to human understandable functions. Like
-    4.5 becomes "4 és fél" for speech and "4 1/2" for text
-
-    Args:
-        number (int or float): the float to format
-        speech (bool): format for speech (True) or display (False)
-        denominators (iter of ints): denominators to use, default [1 .. 20]
-    Returns:
-        (str): The formatted string.
-    """
-
-    result = convert_to_mixed_fraction(number, denominators)
-    if not result:
-        # Give up, just represent as a 3 decimal number
-        return str(round(number, 3)).replace(".", ",")
-
-    whole, num, den = result
-
-    if not speech:
-        if num == 0:
-            # TODO: Number grouping?  E.g. "1,000,000"
-            return str(whole)
-        else:
-            return '{} {}/{}'.format(whole, num, den)
-
-    if num == 0:
-        return str(whole)
-    den_str = _FRACTION_STRING_HU[den]
-    if whole == 0:
-        if num == 1:
-            one = 'egy ' if den != 2 else ''
-            return_string = '{}{}'.format(one, den_str)
-        else:
-            return_string = '{} {}'.format(num, den_str)
-    elif num == 1:
-        pointOne = 'egész egy' if den != 2 else 'és'
-        return_string = '{} {} {}'.format(whole, pointOne, den_str)
-    else:
-        return_string = '{} egész {} {}'.format(whole, num, den_str)
-    return return_string
 
 
 def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,

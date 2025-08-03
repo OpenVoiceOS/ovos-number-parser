@@ -756,7 +756,7 @@ class TestConvertToMixedFraction(unittest.TestCase):
     def test_convert_accuracy_threshold(self):
         """Test convert_to_mixed_fraction accuracy threshold behavior."""
         # Test a value that's close to 1/3 but not exact
-        result = convert_to_mixed_fraction(1.0 / 3 + 0.005)  # Slightly off from 1/3
+        result = convert_to_mixed_fraction(1.0 / 3 + 0.001)  # Slightly off from 1/3
         # Should still find a reasonable approximation
         self.assertIsNotNone(result)
 

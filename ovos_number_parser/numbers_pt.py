@@ -54,6 +54,10 @@ _FRACTION_STRING_PT: Dict[int, str] = {
     20: 'vigésimo', 30: 'trigésimo', 100: 'centésimo', 1000: 'milésimo'
 }
 
+_FEMALE_NUMS = {
+    "uma": 1,
+    "duas": 2
+}
 
 # --- Ordinal Pronunciation Dictionaries (Masculine Base) ---
 # These dictionaries are for masculine forms. The feminine form
@@ -167,22 +171,25 @@ _SCALES: Dict[Scale, Dict[PortugueseVariant, List[Tuple[int, str, str]]]] = {
 
 # Mapping of number words to their integer values. This is dynamically built
 # from the base dictionaries to ensure consistency and variant support.
-_NUMBERS_BR = {
-    **{v: k for k, v in _UNITS.items()},
-    **{v: k for k, v in _TENS_BR.items()},
-    **{v: k for k, v in _HUNDREDS.items()},
-    **{s_name: val for val, s_name, _ in _SCALES[Scale.SHORT][PortugueseVariant.BR]},
-    **{p_name: val for val, _, p_name in _SCALES[Scale.SHORT][PortugueseVariant.BR]},
-    "cento": 100
-}
-_NUMBERS_PT = {
+_NUMBERS_BASE = {
+    **_FEMALE_NUMS,
     **{v: k for k, v in _UNITS.items()},
     **{v: k for k, v in _TENS_PT.items()},
+    **{v: k for k, v in _TENS_BR.items()},
     **{v: k for k, v in _HUNDREDS.items()},
-    **{s_name: val for val, s_name, _ in _SCALES[Scale.SHORT][PortugueseVariant.PT]},
-    **{p_name: val for val, _, p_name in _SCALES[Scale.SHORT][PortugueseVariant.PT]},
     "cento": 100
 }
+
+def get_number_map(scale: Scale = Scale.LONG,
+                   variant: PortugueseVariant = PortugueseVariant.PT):
+    return {
+        **_NUMBERS_BASE,
+        **{s_name: val for val, s_name, _ in _SCALES[scale][variant]},
+        **{p_name: val for val, _, p_name in _SCALES[scale][variant]}
+    }
+
+_NUMBERS_BR = get_number_map(Scale.SHORT, PortugueseVariant.BR)
+_NUMBERS_PT = get_number_map(Scale.LONG, PortugueseVariant.PT)
 
 _ORDINAL_WORDS_MASC = {
     **{v: k for k, v in _ORDINAL_UNITS_MASC.items()},
@@ -412,23 +419,28 @@ def extract_number_pt(
     Returns:
         Extracted number as int or float, or False if no number was found.
     """
-    # Use variant-specific dictionaries
-    numbers_map = _NUMBERS_BR if variant == PortugueseVariant.BR else _NUMBERS_PT
+    numbers_map = get_number_map(scale, variant)
     scales_map = _SCALES[scale][variant]
 
     clean_text = text.lower().replace('-', ' ')
-    tokens = [t for t in clean_text.split() if t not in ['e', 'uma', 'um']]
+    tokens = [t for t in clean_text.split() if t != "e"]
 
     result = 0
     current_number = 0
-    i = 0
+    number_consumed = False
 
-    while i < len(tokens):
-        token = tokens[i]
-
+    for i, token in enumerate(tokens):
+        if token is None:
+            continue # consumed in previous idx
+        next_token = tokens[i+1] if i < len(tokens) - 1 else None
+        next_digit = numbers_map.get(next_token) if next_token else None
         val = numbers_map.get(token)
         if val is not None:
-            current_number += val
+            if next_digit and  next_digit > val:
+                tokens[i+1] = None
+                current_number += val * next_digit
+            else:
+                current_number += val
         elif ordinals and is_ordinal_pt(token):
             token = _swap_gender(token, GrammaticalGender.MASCULINE)
             current_number += _ORDINAL_WORDS_MASC[token]
@@ -436,6 +448,7 @@ def extract_number_pt(
             fraction = is_fractional_pt(token)
             result += current_number + fraction
             current_number = 0
+            number_consumed = True
         else:
             # Handle large scales like milhão, bilhão
             found_scale = False
@@ -446,23 +459,25 @@ def extract_number_pt(
                     result += current_number * scale_val
                     current_number = 0
                     found_scale = True
+                    number_consumed = True
                     break
             if not found_scale:
                 if token in ["ponto", "virgula", "vírgula", ".", ","]:
-                    decimal_part_str = re.sub(r'[^0-9]', '', ' '.join(tokens[i + 1:]))
-                    if decimal_part_str:
-                        result += current_number + float(f"0.{decimal_part_str}")
+                    decimal_str = ''.join(
+                        str(numbers_map.get(t, '')) for t in tokens[i+1:]
+                        if t in numbers_map
+                    )
+                    if decimal_str:
+                        result += current_number + float(f"0.{decimal_str}")
+                        number_consumed = True
                     current_number = 0
                     break
-        i += 1
 
-    result += current_number
+    if not number_consumed:
+        result += current_number
 
-    # check for a valid number extraction
-    if result > 0:
-        return result
+    return result if result > 0 else False
 
-    return False
 
 
 def pronounce_number_pt(
@@ -514,7 +529,7 @@ def pronounce_number_pt(
         for digit in decimal_part_str:
             decimal_pronunciation_parts.append(_pronounce_up_to_999(int(digit), variant))
 
-        decimal_pronunciation = " ".join(decimal_pronunciation_parts)
+        decimal_pronunciation = " ".join(decimal_pronunciation_parts) or "zero"
         decimal_word = "vírgula"
         return f"{int_pronunciation} {decimal_word} {decimal_pronunciation}"
 
@@ -536,12 +551,13 @@ def pronounce_number_pt(
     remainder = n % scale_val
 
     # Pronounce the 'count' part of the number
-    count_pronunciation = pronounce_number_pt(count, places, scale, variant)
     scale_word = s_name if count == 1 else p_name
-    count_str = f"{count_pronunciation} {scale_word}"
+    if count == 1 and scale_word == "mil":
+        count_str = scale_word
+    else:
+        count_pronunciation = pronounce_number_pt(count, places, scale, variant)
+        count_str = f"{count_pronunciation} {scale_word}"
 
-    if count_str.startswith("um mil "):
-        count_str = count_str[3:]  # HACK
     # If there's no remainder, we're done
     if remainder == 0:
         return count_str
@@ -578,7 +594,7 @@ def numbers_to_digits_pt(
     words = tokenize(utterance)
     output = []
     i = 0
-    NUMBERS = {**_NUMBERS_BR, **_NUMBERS_PT}
+    NUMBERS = get_number_map(scale, variant)
     while i < len(words):
         # Look for the start of a number span
         if words[i] in NUMBERS:
@@ -716,6 +732,16 @@ if __name__ == "__main__":
     print(f"'a milésima vez' -> {extract_number_pt('a milésima vez', ordinals=True)}")
     print(f"'a primeira vez' -> {extract_number_pt('a primeira vez', ordinals=True)}")
     print(f"'a sexagésima quarta vez' -> {extract_number_pt('a sexagésima quarta vez', ordinals=True)}")
+
+    print("\n--- Testing Cardinal Extraction ---")
+    print(f"'um' -> {extract_number_pt('um')}")
+    print(f"'uma' -> {extract_number_pt('uma')}")
+    print(f"'vinte e um' -> {extract_number_pt('vinte e um')}")
+    print(f"'um milhão' -> {extract_number_pt('um milhão')}")
+    print(f"'dois milhões e quinhentos' -> {extract_number_pt('dois milhões e quinhentos')}")
+    print(f"'mil e vinte e três' -> {extract_number_pt('mil e vinte e três')}")
+    print(f"'trinta e cinco vírgula quatro' -> {extract_number_pt('trinta e cinco vírgula quatro')}")
+
 
     print("\n--- Testing Fractions ---")
     print(f"1/2: {pronounce_fraction_pt('1/2')}")

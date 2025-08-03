@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
+from ovos_number_parser.util import (invert_dict, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber)
 
 
@@ -945,54 +945,6 @@ def _text_cs_inflection_normalize(word, arg):
             word = "prosinec"
 
     return word
-
-
-def nice_number_cs(number, speech=True, denominators=range(1, 21)):
-    """ English helper for nice_number
-
-    This function formats a float to human understandable functions. Like
-    4.5 becomes "4 and a half" for speech and "4 1/2" for text
-
-    Args:
-        number (int or float): the float to format
-        speech (bool): format for speech (True) or display (False)
-        denominators (iter of ints): denominators to use, default [1 .. 20]
-    Returns:
-        (str): The formatted string.
-    """
-
-    result = convert_to_mixed_fraction(number, denominators)
-    if not result:
-        # Give up, just represent as a 3 decimal number
-        return str(round(number, 3))
-
-    whole, num, den = result
-
-    if not speech:
-        if num == 0:
-            # TODO: Number grouping?  E.g. "1,000,000"
-            return str(whole)
-        else:
-            return '{} {}/{}'.format(whole, num, den)
-
-    if num == 0:
-        return str(whole)
-    den_str = _FRACTION_STRING_CS[den]
-    if whole == 0:
-        if num == 1:
-            return_string = '{}'.format(den_str)
-        else:
-            return_string = '{} {}'.format(num, den_str)
-    elif num == 1:
-        return_string = '{} a {}'.format(whole, den_str)
-    else:
-        return_string = '{} a {} {}'.format(whole, num, den_str)
-    if num > 4:
-        return_string = return_string[:-1]
-    elif num > 1:
-        return_string = return_string[:-1] + 'y'
-
-    return return_string
 
 
 def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,

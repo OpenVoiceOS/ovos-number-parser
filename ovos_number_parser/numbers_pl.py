@@ -15,7 +15,7 @@
 #
 from collections import OrderedDict
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
+from ovos_number_parser.util import is_numeric, look_for_fractions, \
     invert_dict, ReplaceableNumber, partition_list, tokenize, Token
 
 _NUM_STRING_PL = {
@@ -261,47 +261,6 @@ _ALT_ORDINALS_PL = {
     80: 'osiemdziesięcio',
     90: 'dziewięćdziesięcio',
 }
-
-
-def nice_number_pl(number, speech=True, denominators=range(1, 21)):
-    """ English helper for nice_number
-
-    This function formats a float to human understandable functions. Like
-    4.5 becomes "4 and a half" for speech and "4 1/2" for text
-
-    Args:
-        number (int or float): the float to format
-        speech (bool): format for speech (True) or display (False)
-        denominators (iter of ints): denominators to use, default [1 .. 20]
-    Returns:
-        (str): The formatted string.
-    """
-
-    result = convert_to_mixed_fraction(number, denominators)
-    if not result:
-        # Give up, just represent as a 3 decimal number
-        return str(round(number, 3))
-
-    whole, num, den = result
-
-    if not speech:
-        if num == 0:
-            # TODO: Number grouping?  E.g. "1,000,000"
-            return str(whole)
-        else:
-            return '{} {}/{}'.format(whole, num, den)
-
-    if num == 0:
-        return str(whole)
-    den_str = _FRACTION_STRING_PL[den]
-    if whole == 0:
-        return_string = '{} {}'.format(num, den_str)
-    else:
-        return_string = '{} i {} {}'.format(whole, num, den_str)
-    if num > 1:
-        return_string = return_string[:-1] + 'e'
-    return return_string
-
 
 def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
                         ordinals=False, scientific_run=False):

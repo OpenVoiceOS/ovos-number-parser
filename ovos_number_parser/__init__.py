@@ -25,9 +25,8 @@ from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number
 from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
     is_fractional_sv
 from ovos_number_parser.numbers_uk import numbers_to_digits_uk, pronounce_number_uk, extract_number_uk, is_fractional_uk
-from ovos_number_parser.numbers_sl import nice_number_sl, pronounce_number_sl
-from ovos_number_parser.numbers_gl import (nice_number_gl, pronounce_number_gl, extract_number_gl,
-                                           is_fractional_gl, numbers_to_digits_gl)
+from ovos_number_parser.numbers_sl import pronounce_number_sl
+from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl, is_fractional_gl, numbers_to_digits_gl
 
 
 def numbers_to_digits(utterance: str, lang: str, scale: Scale = Scale.LONG) -> str:

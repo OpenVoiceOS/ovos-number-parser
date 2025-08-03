@@ -16,7 +16,7 @@
 #
 from collections import OrderedDict
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
+from ovos_number_parser.util import (invert_dict, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber)
 
 _ARTICLES_EN = {'a', 'an', 'the'}

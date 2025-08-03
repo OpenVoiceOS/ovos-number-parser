@@ -1,5 +1,4 @@
-from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
-                                     is_numeric)
+from ovos_number_parser.util import look_for_fractions, is_numeric
 
 _NUM_STRING_EU = {
     "zero": 0,
@@ -104,71 +103,6 @@ FRACTION_STRING_EU = {
     19: 'hemeretziren',
     20: 'hogeiren'
 }
-
-
-def nice_number_eu(number, speech=True, denominators=range(1, 21)):
-    """ Euskara helper for nice_number
-
-    This function formats a float to human understandable functions. Like
-    4.5 becomes "4 eta erdi" for speech and "4 1/2" for text
-
-    Args:
-        number (int or float): the float to format
-        speech (bool): format for speech (True) or display (False)
-        denominators (iter of ints): denominators to use, default [1 .. 20]
-    Returns:
-        (str): The formatted string.
-    """
-    strNumber = ""
-    whole = 0
-    num = 0
-    den = 0
-
-    result = convert_to_mixed_fraction(number, denominators)
-
-    if not result:
-        # Give up, just represent as a 3 decimal number
-        whole = round(number, 3)
-    else:
-        whole, num, den = result
-
-    if not speech:
-        if num == 0:
-            strNumber = '{:,}'.format(whole)
-            strNumber = strNumber.replace(",", " ")
-            strNumber = strNumber.replace(".", ",")
-            return strNumber
-        else:
-            return '{} {}/{}'.format(whole, num, den)
-    else:
-        if num == 0:
-            # if the number is not a fraction, nothing to do
-            strNumber = str(whole)
-            strNumber = strNumber.replace(".", ",")
-            return strNumber
-        den_str = FRACTION_STRING_EU[den]
-        # if it is not an integer
-        if whole == 0:
-            # if there is no whole number
-            if num == 1:
-                # if numerator is 1, return "un medio", for example
-                strNumber = '{} bat'.format(den_str)
-            else:
-                # else return "cuatro tercios", for example
-                strNumber = '{} {}'.format(num, den_str)
-        elif num == 1:
-            # if there is a whole number and numerator is 1
-            if den == 2:
-                # if denominator is 2, return "1 y medio", for example
-                strNumber = '{} eta {}'.format(whole, den_str)
-            else:
-                # else return "1 y 1 tercio", for example
-                strNumber = '{} eta {} bat'.format(whole, den_str)
-        else:
-            # else return "2 y 3 cuarto", for example
-            strNumber = '{} eta {} {}'.format(whole, num, den_str)
-
-    return strNumber
 
 
 def pronounce_number_eu(num, places=2):

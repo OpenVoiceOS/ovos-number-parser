@@ -226,13 +226,13 @@ class TestExtractNumberPt(unittest.TestCase):
     def test_simple_numbers_br(self):
         """Test extraction of simple numbers in BR variant."""
         self.assertEqual(extract_number_pt("dezesseis", variant=PortugueseVariant.BR), 16)
-        self.assertEqual(extract_number_pt("vinte e um", variant=PortugueseVariant.BR), 21)  # TODO Failing
+        self.assertEqual(extract_number_pt("vinte e um", variant=PortugueseVariant.BR), 21)
         self.assertEqual(extract_number_pt("cem", variant=PortugueseVariant.BR), 100)
 
     def test_simple_numbers_pt(self):
         """Test extraction of simple numbers in PT variant."""
         self.assertEqual(extract_number_pt("dezasseis", variant=PortugueseVariant.PT), 16)
-        self.assertEqual(extract_number_pt("vinte e um", variant=PortugueseVariant.PT), 21)  # TODO Failing
+        self.assertEqual(extract_number_pt("vinte e um", variant=PortugueseVariant.PT), 21)
         self.assertEqual(extract_number_pt("cem", variant=PortugueseVariant.PT), 100)
 
     def test_large_numbers_short_scale_br(self):
@@ -242,14 +242,16 @@ class TestExtractNumberPt(unittest.TestCase):
 
     def test_large_numbers_short_scale_pt(self):
         """Test extraction of large numbers in short scale PT."""
-        self.assertEqual(extract_number_pt("um milhão", scale=Scale.SHORT, variant=PortugueseVariant.PT), 1000000)
-        self.assertEqual(extract_number_pt("um bilião", scale=Scale.SHORT, variant=PortugueseVariant.PT), 1000000000)
+        self.assertEqual(extract_number_pt("um milhão", scale=Scale.SHORT, variant=PortugueseVariant.PT), 1e6)
+        self.assertEqual(extract_number_pt("um bilião", scale=Scale.SHORT, variant=PortugueseVariant.PT), 1e9)
+        self.assertEqual(extract_number_pt("um trilião", scale=Scale.SHORT, variant=PortugueseVariant.PT), 1e12)
 
     def test_large_numbers_long_scale(self):
         """Test extraction of large numbers in long scale."""
-        # TODO use scientific notation so i dont need to count zeros
-        self.assertEqual(extract_number_pt("um milhão", scale=Scale.LONG, variant=PortugueseVariant.PT), 1000000)
-        self.assertEqual(extract_number_pt("um bilião", scale=Scale.LONG, variant=PortugueseVariant.PT), 1000000000000)
+        # TODO - failing
+        self.assertEqual(extract_number_pt("um milhão", scale=Scale.LONG, variant=PortugueseVariant.PT), 1e6)
+        self.assertEqual(extract_number_pt("um bilião", scale=Scale.LONG, variant=PortugueseVariant.PT), 1e12)
+        self.assertEqual(extract_number_pt("um trilião", scale=Scale.LONG, variant=PortugueseVariant.PT), 1e18)
 
     def test_complex_numbers(self):
         """Test extraction of complex number phrases."""
@@ -272,11 +274,11 @@ class TestExtractNumberPt(unittest.TestCase):
     def test_case_insensitive(self):
         """Test case insensitive extraction."""
         self.assertEqual(extract_number_pt("DEZESSEIS", variant=PortugueseVariant.BR), 16)
-        self.assertEqual(extract_number_pt("Vinte E Um", variant=PortugueseVariant.BR), 21)  # TODO failing
+        self.assertEqual(extract_number_pt("Vinte E Um", variant=PortugueseVariant.BR), 21)
 
     def test_hyphen_handling(self):
         """Test hyphen handling in text."""
-        self.assertEqual(extract_number_pt("vinte-e-um", variant=PortugueseVariant.BR), 21)  # TODO failing
+        self.assertEqual(extract_number_pt("vinte-e-um", variant=PortugueseVariant.BR), 21)
 
     def test_no_number_found(self):
         """Test when no number is found in text."""
@@ -286,7 +288,7 @@ class TestExtractNumberPt(unittest.TestCase):
 
     def test_multiple_scales(self):
         """Test numbers with multiple scale words."""
-        self.assertEqual(extract_number_pt("dois milhões trezentos mil"), 2300000)  # TODO - failing 1001302
+        self.assertEqual(extract_number_pt("dois milhões trezentos mil"), 2300000)
 
     def test_edge_cases(self):
         """Test edge cases."""
@@ -384,10 +386,9 @@ class TestPronounceNumberPt(unittest.TestCase):
         result = pronounce_number_pt(1100)
         self.assertIn("e", result)  # Should have conjunction for multiple of 100
 
-    def test_mil_hack(self):
-        """Test the 'um mil' hack."""
+    def test_mil(self):
+        """Test 'um mil' """
         result = pronounce_number_pt(1000)
-        print(result)
         # Should not start with "um mil" but just "mil"
         self.assertFalse(result.startswith("um mil"))
 
@@ -580,7 +581,7 @@ class TestIntegrationScenarios(unittest.TestCase):
             # Convert number to text
             text = pronounce_number_pt(num, variant=PortugueseVariant.BR)
             # Convert text back to number
-            extracted = extract_number_pt(text, variant=PortugueseVariant.BR)  # TODO returning False
+            extracted = extract_number_pt(text, variant=PortugueseVariant.BR)
             self.assertEqual(extracted, num, f"Round-trip failed for {num}: {text} -> {extracted}")
 
     def test_variant_consistency(self):
@@ -602,12 +603,12 @@ class TestIntegrationScenarios(unittest.TestCase):
         """Test that different scales work consistently."""
         large_numbers = [1000000, 1000000000]
 
-        # TODO got 1001000
         for num in large_numbers:
             for scale in [Scale.SHORT, Scale.LONG]:
                 for variant in [PortugueseVariant.BR, PortugueseVariant.PT]:
                     text = pronounce_number_pt(num, scale=scale, variant=variant)
                     extracted = extract_number_pt(text, scale=scale, variant=variant)
+                    print(text, extracted)
                     self.assertEqual(extracted, num,
                                      f"Scale consistency failed: {num} with {scale} and {variant}")
 
