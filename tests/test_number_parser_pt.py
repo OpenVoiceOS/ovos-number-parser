@@ -18,7 +18,7 @@ from ovos_number_parser.numbers_pt import (
     _NUMBERS_BR,
     _NUMBERS_PT
 )
-from ovos_number_parser.util import Scale
+from ovos_number_parser.util import DigitPronunciation, Scale
 
 
 class TestPortugueseVariant(unittest.TestCase):
@@ -396,9 +396,13 @@ class TestPronounceNumberPt(unittest.TestCase):
         self.assertFalse(result.startswith("um mil"))
 
     def test_places_parameter(self):
-        """Test decimal places parameter."""
-        result1 = pronounce_number_pt(1.23456, places=2)
-        result2 = pronounce_number_pt(1.23456, places=5)
+        """
+        Test that the `places` parameter in `pronounce_number_pt` correctly limits the number of decimal places pronounced when using digit-by-digit pronunciation.
+        
+        Ensures that specifying different values for `places` produces valid string outputs without errors.
+        """
+        result1 = pronounce_number_pt(1.23456, places=2, digits=DigitPronunciation.DIGIT_BY_DIGIT)
+        result2 = pronounce_number_pt(1.23456, places=5, digits=DigitPronunciation.DIGIT_BY_DIGIT)
         # Both should work without error
         self.assertIsInstance(result1, str)
         self.assertIsInstance(result2, str)

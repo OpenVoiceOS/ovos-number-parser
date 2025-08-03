@@ -1,7 +1,7 @@
 from typing import Union
 
-from ovos_number_parser.util import Scale, GrammaticalGender
 from unicode_rbnf import RbnfEngine, FormatPurpose
+
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_ca import numbers_to_digits_ca, pronounce_number_ca, is_fractional_ca, extract_number_ca
 from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, extract_number_cs
@@ -15,29 +15,36 @@ from ovos_number_parser.numbers_es import numbers_to_digits_es, pronounce_number
 from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu
 from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa
 from ovos_number_parser.numbers_fr import (pronounce_number_fr, extract_number_fr, is_fractional_fr)
+from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl, is_fractional_gl, numbers_to_digits_gl
 from ovos_number_parser.numbers_hu import pronounce_number_hu, pronounce_ordinal_hu
 from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, is_fractional_it)
 from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
     extract_number_nl, is_fractional_nl
 from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, is_fractional_pl
-from ovos_number_parser.numbers_pt import PortugueseVariant, pronounce_fraction_pt, numbers_to_digits_pt, pronounce_number_pt, is_fractional_pt, extract_number_pt, pronounce_ordinal_pt, is_ordinal_pt
+from ovos_number_parser.numbers_pt import PortugueseVariant, pronounce_fraction_pt, numbers_to_digits_pt, \
+    pronounce_number_pt, is_fractional_pt, extract_number_pt, pronounce_ordinal_pt, is_ordinal_pt
 from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru
+from ovos_number_parser.numbers_sl import pronounce_number_sl
 from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
     is_fractional_sv
 from ovos_number_parser.numbers_uk import numbers_to_digits_uk, pronounce_number_uk, extract_number_uk, is_fractional_uk
-from ovos_number_parser.numbers_sl import pronounce_number_sl
-from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl, is_fractional_gl, numbers_to_digits_gl
+from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
 
 
 def numbers_to_digits(utterance: str, lang: str, scale: Scale = Scale.LONG) -> str:
     """
-    Replace written numbers in text with their digit equivalents.
-
-    Args:
-        utterance (str): Input string possibly containing written numbers.
-
+    Convert written numbers in a text string to their digit representations for the specified language and numerical scale.
+    
+    Parameters:
+        utterance (str): Text potentially containing written numbers.
+        lang (str): Language code used to determine parsing rules.
+        scale (Scale, optional): Numerical scale (long or short) for languages that distinguish between them.
+    
     Returns:
-        str: Text with written numbers replaced by digits.
+        str: The input text with written numbers replaced by their digit equivalents.
+    
+    Raises:
+        NotImplementedError: If the specified language is not supported.
     """
     if lang.startswith("az"):
         return numbers_to_digits_az(utterance)
@@ -68,24 +75,32 @@ def numbers_to_digits(utterance: str, lang: str, scale: Scale = Scale.LONG) -> s
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
-def pronounce_number(number: Union[int, float], lang: str, places: int = 2, short_scale: bool = True,
-                     scientific: bool = False, ordinals: bool = False) -> str:
+def pronounce_number(number: Union[int, float], lang: str,
+                     places: int = 3,
+                     short_scale: bool = True,
+                     scientific: bool = False, ordinals: bool = False,
+                     digits: DigitPronunciation = DigitPronunciation.FULL_NUMBER,
+                     gender: GrammaticalGender = GrammaticalGender.MASCULINE) -> str:
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5' would be 'five'
-
-    Args:
-        number: the number to pronounce
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-        places (int): number of decimal places to express, default 2
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool) : convert and pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
+    Return the spoken representation of a number in the specified language.
+     
+    Converts a numeric value to its pronounced form, supporting various languages, decimal precision, scale (short or long), scientific notation, ordinal forms, digit pronunciation styles, and grammatical gender where applicable. Falls back to Unicode RBNF for unsupported languages.
+     
+    Parameters:
+        number (int or float): The number to pronounce.
+        lang (str): BCP-47 language code specifying the language for pronunciation.
+        places (int, optional): Number of decimal places to include (default is 3).
+        short_scale (bool, optional): Whether to use the short scale for large numbers (default is True).
+        scientific (bool, optional): If True, pronounce the number in scientific notation.
+        ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one").
+        digits (DigitPronunciation, optional): Style for pronouncing digits (default is FULL_NUMBER).
+        gender (GrammaticalGender, optional): Grammatical gender for languages that require it (default is MASCULINE).
+     
     Returns:
-        (str): The pronounced number
+        str: The pronounced form of the number.
+     
+    Raises:
+        NotImplementedError: If the specified language is not supported.
     """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("en"):
@@ -120,7 +135,9 @@ def pronounce_number(number: Union[int, float], lang: str, places: int = 2, shor
         return pronounce_number_pl(number, places, short_scale, scientific, ordinals)
     if lang.startswith("pt"):
         variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
-        return pronounce_number_pt(number, places, scale, variant, ordinals)
+        return pronounce_number_pt(number, places, scale=scale,
+                                   variant=variant, ordinals=ordinals,
+                                   digits=digits, gender=gender)
     if lang.startswith("ru"):
         return pronounce_number_ru(number, places, short_scale, scientific, ordinals)
     if lang.startswith("sl"):
@@ -140,17 +157,17 @@ def pronounce_number(number: Union[int, float], lang: str, places: int = 2, shor
 
 def pronounce_fraction(fraction_word: str, lang: str, scale: Scale = Scale.LONG) -> str:
     """
-    Pronounces a fraction string.
-    Example: '1/2' -> 'one half', '3/2' -> 'three halves'
-
-    Args:
-        fraction_word: the fraction to pronounce
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-        scale (Scale): Numerical scale to use (SHORT or LONG). Defaults to LONG.
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
+    Return the spoken form of a fraction string (e.g., "1/2" as "one half") for the specified language and numerical scale.
+    
+    Parameters:
+        fraction_word (str): The fraction to pronounce (e.g., "3/2").
+        scale (Scale, optional): Numerical scale to use (SHORT or LONG). Defaults to LONG.
+    
     Returns:
-        (str): The pronounced number
+        str: The pronounced fraction.
+    
+    Raises:
+        NotImplementedError: If the specified language is not supported.
     """
     if lang.startswith("pt"):
         variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
@@ -159,25 +176,28 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Scale = Scale.LONG)
         raise NotImplementedError(f"unsupported language: {lang}")
 
 
-def pronounce_ordinal(number: Union[int, float], lang: str, short_scale: bool = True) -> str:
+def pronounce_ordinal(number: Union[int, float], lang: str,
+                      short_scale: bool = True,
+                      gender: GrammaticalGender = GrammaticalGender.MASCULINE) -> str:
     """
-    Convert an ordinal number to it's spoken equivalent
-
-    For example, '5' would be 'fifth'
-
-    Args:
-        number: the number to pronounce
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
+    Return the spoken ordinal form of a number in the specified language.
+      
+    Parameters:
+        number (int or float): The number to convert to its ordinal spoken equivalent.
+        lang (str): BCP-47 language code specifying the language for pronunciation.
+        short_scale (bool, optional): Whether to use the short (True) or long (False) scale for large numbers. Defaults to True.
+        gender (GrammaticalGender, optional): Grammatical gender to use for languages that require it. Defaults to masculine.
+      
     Returns:
-        (str): The pronounced number
+        str: The ordinal number pronounced in the specified language.
+      
+    Raises:
+        NotImplementedError: If the language is not supported.
     """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("pt"):
         variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
-        return pronounce_ordinal_pt(number, scale=scale, variant=variant)
+        return pronounce_ordinal_pt(number, scale=scale, variant=variant, gender=gender)
     if lang.startswith("da"):
         return pronounce_ordinal_da(number)
     if lang.startswith("de"):

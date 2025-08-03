@@ -2,10 +2,10 @@ import re
 from enum import Enum
 from typing import List, Union, Dict, Tuple
 
-from ovos_number_parser.util import Scale, GrammaticalGender
+from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
 
 
-class PortugueseVariant(Enum):
+class PortugueseVariant(str, Enum):
     """
     Defines the Portuguese variant for spelling.
     - BR: Brazilian Portuguese (e.g., bilhão, dezesseis).
@@ -526,19 +526,21 @@ def pronounce_number_pt(
         scale: Scale = Scale.LONG,
         variant: PortugueseVariant = PortugueseVariant.PT,
         ordinals: bool = False,
+        digits: DigitPronunciation = DigitPronunciation.FULL_NUMBER,
         gender: GrammaticalGender = GrammaticalGender.MASCULINE
 ) -> str:
     """
-    Return the full Portuguese pronunciation of a number, supporting cardinal and ordinal forms, decimals, large scales, grammatical gender, and both Brazilian and European Portuguese variants.
-
+    Return the full Portuguese pronunciation of a number, supporting cardinal and ordinal forms, decimals, grammatical gender, and both Brazilian and European Portuguese variants.
+    
     Parameters:
         number (int or float): The number to pronounce.
         places (int): Number of decimal places to include for floats.
         scale (Scale): Numerical scale to use (short or long).
         variant (PortugueseVariant): Portuguese language variant for pronunciation.
         ordinals (bool): If True, pronounce as an ordinal number.
+        digits (DigitPronunciation): Determines whether decimal parts are pronounced as a whole number or digit by digit.
         gender (GrammaticalGender): Grammatical gender for ordinal numbers.
-
+    
     Returns:
         str: The number expressed as a Portuguese phrase.
     """
@@ -566,8 +568,13 @@ def pronounce_number_pt(
         int_pronunciation = pronounce_number_pt(integer_part, places, scale, variant)
 
         decimal_pronunciation_parts = []
-        for digit in decimal_part_str:
-            decimal_pronunciation_parts.append(_pronounce_up_to_999(int(digit), variant))
+        #  pronounce decimals either as a whole number or digit by digit
+        if decimal_part_str:
+            if digits == DigitPronunciation.FULL_NUMBER:
+                decimal_pronunciation_parts.append(_pronounce_up_to_999(int(decimal_part_str), variant))
+            else:
+                for digit in decimal_part_str:
+                    decimal_pronunciation_parts.append(_pronounce_up_to_999(int(digit), variant))
 
         decimal_pronunciation = " ".join(decimal_pronunciation_parts) or "zero"
         decimal_word = "vírgula"
