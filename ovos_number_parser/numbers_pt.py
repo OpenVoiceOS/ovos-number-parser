@@ -505,7 +505,7 @@ def pronounce_number_pt(
         decimal_part_str = f"{number:.{places}f}".split('.')[1].rstrip("0")
 
         # Handle cases where the decimal part rounds to zero
-        if int(decimal_part_str) == 0:
+        if decimal_part_str and int(decimal_part_str) == 0:
             return pronounce_number_pt(integer_part, places, scale, variant)
 
         int_pronunciation = pronounce_number_pt(integer_part, places, scale, variant)

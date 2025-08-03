@@ -1,4 +1,5 @@
 import unittest
+
 from ovos_number_parser.numbers_en import numbers_to_digits_en, pronounce_number_en
 
 
@@ -20,8 +21,8 @@ class TestNumberParserEN(unittest.TestCase):
 
     def test_pronounce_number_en(self):
         self.assertEqual(pronounce_number_en(3840285766987249),
-            'three quadrillion, eight hundred and forty trillion, two hundred and eighty five billion, seven hundred '
-            'and sixty six million, nine hundred and eighty seven thousand, two hundred and forty nine')
+                         'three quadrillion, eight hundred and forty trillion, two hundred and eighty five billion, seven hundred '
+                         'and sixty six million, nine hundred and eighty seven thousand, two hundred and forty nine')
 
 
 if __name__ == "__main__":

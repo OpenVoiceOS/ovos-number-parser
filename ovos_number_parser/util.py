@@ -54,7 +54,7 @@ class ReplaceableNumber:
 
     @property
     def text(self):
-        return ' '.join([t.word for t in self.tokens])
+        return ' '.join([str(t.word) for t in self.tokens if t.word])
 
     def __setattr__(self, key, value):
         try:
@@ -140,7 +140,6 @@ def is_numeric(input_str):
         (bool): True if a number, else False
 
     """
-
     try:
         float(input_str)
         return True
