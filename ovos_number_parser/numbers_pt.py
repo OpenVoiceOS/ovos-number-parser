@@ -1,7 +1,8 @@
 import re
-from typing import List, Union, Dict, Tuple
 from enum import Enum
-from ovos_number_parser.util import Scale, Token, convert_to_mixed_fraction, is_numeric, look_for_fractions
+from typing import List, Union, Dict, Tuple
+
+from ovos_number_parser.util import Scale
 
 
 class PortugueseVariant(Enum):
@@ -53,49 +54,48 @@ _FRACTION_STRING_PT: Dict[int, str] = {
     20: 'vigésimo', 30: 'trigésimo', 100: 'centésimo', 1000: 'milésimo'
 }
 
-
 # --- Scale Definitions ---
 # Structure: (value, singular_name, plural_name)
 # Ordered from largest to smallest.
 _SCALES: Dict[Scale, Dict[PortugueseVariant, List[Tuple[int, str, str]]]] = {
     Scale.SHORT: {
         PortugueseVariant.BR: [
-            (10**21, "sextilhão", "sextilhões"),
-            (10**18, "quintilhão", "quintilhões"),
-            (10**15, "quadrilhão", "quadrilhões"),
-            (10**12, "trilhão", "trilhões"),
-            (10**9, "bilhão", "bilhões"),
-            (10**6, "milhão", "milhões"),
-            (10**3, "mil", "mil")
+            (10 ** 21, "sextilhão", "sextilhões"),
+            (10 ** 18, "quintilhão", "quintilhões"),
+            (10 ** 15, "quadrilhão", "quadrilhões"),
+            (10 ** 12, "trilhão", "trilhões"),
+            (10 ** 9, "bilhão", "bilhões"),
+            (10 ** 6, "milhão", "milhões"),
+            (10 ** 3, "mil", "mil")
         ],
         PortugueseVariant.PT: [
-            (10**21, "sextilião", "sextiliões"),
-            (10**18, "quintilião", "quintiliões"),
-            (10**15, "quatrilião", "quatriliões"),
-            (10**12, "trilião", "triliões"),
-            (10**9, "bilião", "biliões"),
-            (10**6, "milhão", "milhões"),
-            (10**3, "mil", "mil")
+            (10 ** 21, "sextilião", "sextiliões"),
+            (10 ** 18, "quintilião", "quintiliões"),
+            (10 ** 15, "quatrilião", "quatriliões"),
+            (10 ** 12, "trilião", "triliões"),
+            (10 ** 9, "bilião", "biliões"),
+            (10 ** 6, "milhão", "milhões"),
+            (10 ** 3, "mil", "mil")
         ]
     },
     Scale.LONG: {
         PortugueseVariant.BR: [
-            (10**36, "sextilhão", "sextilhões"),
-            (10**30, "quintilhão", "quintilhões"),
-            (10**24, "quatrilhão", "quatrilhões"),
-            (10**18, "trilhão", "trilhões"),
-            (10**12, "bilhão", "bilhões"),
-            (10**6, "milhão", "milhões"),
-            (10**3, "mil", "mil")
+            (10 ** 36, "sextilhão", "sextilhões"),
+            (10 ** 30, "quintilhão", "quintilhões"),
+            (10 ** 24, "quatrilhão", "quatrilhões"),
+            (10 ** 18, "trilhão", "trilhões"),
+            (10 ** 12, "bilhão", "bilhões"),
+            (10 ** 6, "milhão", "milhões"),
+            (10 ** 3, "mil", "mil")
         ],
         PortugueseVariant.PT: [
-            (10**36, "sextilião", "sextiliões"),
-            (10**30, "quintilião", "quintiliões"),
-            (10**24, "quatrilião", "quatriliões"),
-            (10**18, "trilião", "triliões"),
-            (10**12, "bilião", "biliões"),
-            (10**6, "milhão", "milhões"),
-            (10**3, "mil", "mil")
+            (10 ** 36, "sextilião", "sextiliões"),
+            (10 ** 30, "quintilião", "quintiliões"),
+            (10 ** 24, "quatrilião", "quatriliões"),
+            (10 ** 18, "trilião", "triliões"),
+            (10 ** 12, "bilião", "biliões"),
+            (10 ** 6, "milhão", "milhões"),
+            (10 ** 3, "mil", "mil")
         ]
     }
 }
@@ -118,63 +118,6 @@ _NUMBERS_PT = {
     **{p_name: val for val, _, p_name in _SCALES[Scale.SHORT][PortugueseVariant.PT]},
     "cento": 100
 }
-
-
-def nice_number_pt(
-        number: Union[int, float],
-        speech: bool,
-        denominators: range = range(1, 21)
-) -> str:
-    """
-    Format a number into a human-readable Portuguese string with fraction support.
-
-    Args:
-        number: Number to convert.
-        speech: If True, return a phrase for TTS; if False, return a fraction string.
-        denominators: Allowed denominators for the fraction part.
-
-    Returns:
-        A string representation of the number.
-    """
-    result = convert_to_mixed_fraction(number, denominators)
-    if not result:
-        return str(round(number, 3))
-
-    whole, num, den = result
-    fraction_map = _FRACTION_STRING_PT
-
-    if not speech:
-        if num == 0:
-            return str(whole)
-        else:
-            return '{} {}/{}'.format(whole, num, den)
-
-    if num == 0:
-        return str(whole)
-
-    den_str = fraction_map.get(den)
-    if not den_str:
-        den_str = f'{den} avos'
-
-    # Handle singular/plural
-    if num > 1 and "avos" in den_str:
-        den_str = den_str.replace("avo", "avos")
-    elif num == 1 and den == 2:
-        den_str = 'meio'
-
-    if whole == 0:
-        # This part handles cases like "dois terços"
-        if speech:
-            num = pronounce_number_pt(int(num))
-        return f'{num} {den_str}'
-    else:
-        if speech:
-            whole = pronounce_number_pt(int(whole))
-        # Handle the case where the numerator is 1 to avoid "4 e 1 meio"
-        if num == 1 and den == 2:
-            return f'{whole} e meio'
-        # The original code would output "4 e 1 meio" if we didn't handle this
-        return f'{whole} e {num} {den_str}'
 
 
 def _pronounce_up_to_999(
@@ -262,32 +205,32 @@ def is_fractional_pt(
 
 def extract_number_pt(
         text: str,
-        short_scale: bool = True,
         ordinals: bool = False,
-        variant: PortugueseVariant = PortugueseVariant.BR
+        scale: Scale = Scale.LONG,
+        variant: PortugueseVariant = PortugueseVariant.PT
 ) -> Union[int, float, bool]:
     """
     Extract a number from a Portuguese phrase.
 
     Args:
         text: Input text with a potential number phrase.
-        short_scale: Whether to use short scale (True) or long scale (False).
+        scale: Whether to use short scale or long scale.
         ordinals: Whether to consider ordinals (not implemented).
         variant: Portuguese variant to use.
 
     Returns:
         Extracted number as int or float, or False if no number was found.
     """
+    # TODO - handle ordinals
     # Use variant-specific dictionaries
     numbers_map = _NUMBERS_BR if variant == PortugueseVariant.BR else _NUMBERS_PT
-    scales_map = _SCALES[Scale.SHORT if short_scale else Scale.LONG][variant]
+    scales_map = _SCALES[scale][variant]
 
     clean_text = text.lower().replace('-', ' ')
     tokens = [t for t in clean_text.split() if t not in ['e', 'uma', 'um']]
 
     result = 0
     current_number = 0
-    scale_multiplier = 1
 
     for token in tokens:
         val = numbers_map.get(token)
@@ -313,7 +256,7 @@ def extract_number_pt(
                 if token in ["ponto", "virgula", "vírgula", ".", ","]:
                     # This is a simplified approach, a more robust parser would be needed
                     # but this handles simple cases after a number.
-                    decimal_part_str = re.sub(r'[^0-9]', '', ' '.join(tokens[tokens.index(token)+1:]))
+                    decimal_part_str = re.sub(r'[^0-9]', '', ' '.join(tokens[tokens.index(token) + 1:]))
                     if decimal_part_str:
                         result += current_number + float(f"0.{decimal_part_str}")
                     current_number = 0
@@ -330,8 +273,9 @@ def extract_number_pt(
 def pronounce_number_pt(
         number: Union[int, float],
         places: int = 5,
-        scale: Scale = Scale.SHORT,
-        variant: PortugueseVariant = PortugueseVariant.BR
+        scale: Scale = Scale.LONG,
+        variant: PortugueseVariant = PortugueseVariant.PT,
+        ordinals: bool = False  # pronounce as ordinal instead of cardinal
 ) -> str:
     """
     Convert a number to its full Portuguese pronunciation.
@@ -370,7 +314,7 @@ def pronounce_number_pt(
             decimal_pronunciation_parts.append(_pronounce_up_to_999(int(digit), variant))
 
         decimal_pronunciation = " ".join(decimal_pronunciation_parts)
-        decimal_word = "vírgula" if variant == PortugueseVariant.PT else "vírgula" # Both use vírgula
+        decimal_word = "vírgula" if variant == PortugueseVariant.PT else "vírgula"  # Both use vírgula
         return f"{int_pronunciation} {decimal_word} {decimal_pronunciation}"
 
     # --- Integer Pronunciation Logic ---
@@ -411,9 +355,11 @@ def pronounce_number_pt(
     else:
         return f"{count_str} {remainder_str}"
 
+
 def numbers_to_digits_pt(
-    utterance: str,
-    variant: PortugueseVariant = PortugueseVariant.BR
+        utterance: str,
+        scale: Scale = Scale.LONG,
+        variant: PortugueseVariant = PortugueseVariant.PT
 ) -> str:
     """
     Replace written numbers in text with their digit equivalents,
@@ -491,6 +437,33 @@ def tokenize(utterance: str) -> List[str]:
 
     return tokens
 
+
+def pronounce_fraction_pt(word: str,
+                          scale: Scale = Scale.LONG,
+                          variant: PortugueseVariant = PortugueseVariant.PT) -> str:
+    """
+    Pronounces a fraction string.
+    Example: '1/2' -> 'one half', '3/2' -> 'three halves'
+    """
+    n1, n2 = word.split("/")
+    n1_int, n2_int = int(n1), int(n2)
+
+    # Pronounce the denominator (second number) as an ordinal, and pluralize it if needed.
+    if n2_int in _FRACTION_STRING_PT:
+        denom = _FRACTION_STRING_PT[n2_int]
+        if n1_int != 1:
+            denom += "s" # plural
+    else:
+        # For other numbers
+        denom = pronounce_number_pt(n2_int, scale=scale, variant=variant)
+        if n1_int > 1:  # plural
+            denom += " avos"
+
+    # Pronounce the numerator (first number) as a cardinal.
+    num = pronounce_number_pt(n1_int, scale=scale, variant=variant)
+    return f"{num} {denom}"
+
+
 if __name__ == "__main__":
     print("--- Testing Pronunciation (Short Scale, BR Variant) ---")
     print(f"1,234,567: {pronounce_number_pt(1_234_567, scale=Scale.SHORT, variant=PortugueseVariant.BR)}")
@@ -501,7 +474,8 @@ if __name__ == "__main__":
     print(f"1,000,000: {pronounce_number_pt(1_000_000, scale=Scale.LONG, variant=PortugueseVariant.PT)}")
     print(f"1,000,100: {pronounce_number_pt(1_000_100, scale=Scale.LONG, variant=PortugueseVariant.PT)}")
     print(f"1,000,000,000: {pronounce_number_pt(1_000_000_000, scale=Scale.LONG, variant=PortugueseVariant.PT)}")
-    print(f"1,000,000,000,000: {pronounce_number_pt(1_000_000_000_000, scale=Scale.LONG, variant=PortugueseVariant.PT)}")
+    print(
+        f"1,000,000,000,000: {pronounce_number_pt(1_000_000_000_000, scale=Scale.LONG, variant=PortugueseVariant.PT)}")
     print(f"2,500,000,000: {pronounce_number_pt(2_500_000_000, scale=Scale.LONG, variant=PortugueseVariant.PT)}")
     print(f"2,500,123,456: {pronounce_number_pt(2_500_123_456, scale=Scale.LONG, variant=PortugueseVariant.PT)}")
     print(f"16: {pronounce_number_pt(16, variant=PortugueseVariant.PT)}")
@@ -513,12 +487,6 @@ if __name__ == "__main__":
     print(f"2001: {pronounce_number_pt(2001)}")
     print(f"123.456789: {pronounce_number_pt(123.456789)}")
 
-    print("\n--- Testing nice_number_pt (BR) ---")
-    print(f"nice_number_pt(4.5, speech=True): {nice_number_pt(4.5, True)}")
-    print(f"nice_number_pt(4.5, speech=False): {nice_number_pt(4.5, False)}")
-    print(f"nice_number_pt(0.25, speech=True): {nice_number_pt(0.25, True)}")
-    print(f"nice_number_pt(0.333, speech=True): {nice_number_pt(0.333, True)}")
-
     print("\n--- Testing numbers_to_digits_pt (BR) ---")
     print(f"'quinhentos e cinquenta' -> '{numbers_to_digits_pt('quinhentos e cinquenta')}'")
     print(f"'um milhão' -> '{numbers_to_digits_pt('um milhão')}'")
@@ -526,8 +494,17 @@ if __name__ == "__main__":
     print(f"'há duzentos e cinquenta carros' -> '{numbers_to_digits_pt('há duzentos e cinquenta carros')}'")
 
     print("\n--- Testing numbers_to_digits_pt (PT) ---")
-    print(f"'quinhentos e cinquenta' -> '{numbers_to_digits_pt('quinhentos e cinquenta', variant=PortugueseVariant.PT)}'")
+    print(
+        f"'quinhentos e cinquenta' -> '{numbers_to_digits_pt('quinhentos e cinquenta', variant=PortugueseVariant.PT)}'")
     print(f"'um milhão' -> '{numbers_to_digits_pt('um milhão', variant=PortugueseVariant.PT)}'")
     print(f"'dezasseis' -> '{numbers_to_digits_pt('dezasseis', variant=PortugueseVariant.PT)}'")
     print(f"123.456789: {pronounce_number_pt(123.456789)}")
 
+
+    print(pronounce_fraction_pt("1/2"))
+    print(pronounce_fraction_pt("2/2"))
+    print(pronounce_fraction_pt("5/2"))
+    print(pronounce_fraction_pt("5/3"))
+    print(pronounce_fraction_pt("5/4"))
+    print(pronounce_fraction_pt("7/5"))
+    print(pronounce_fraction_pt("0/20"))

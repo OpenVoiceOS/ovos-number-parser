@@ -20,7 +20,7 @@ from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_i
 from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
     extract_number_nl, is_fractional_nl
 from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, is_fractional_pl
-from ovos_number_parser.numbers_pt import PortugueseVariant, numbers_to_digits_pt, pronounce_number_pt, is_fractional_pt, extract_number_pt
+from ovos_number_parser.numbers_pt import PortugueseVariant, pronounce_fraction_pt, numbers_to_digits_pt, pronounce_number_pt, is_fractional_pt, extract_number_pt
 from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru
 from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
     is_fractional_sv
@@ -137,6 +137,28 @@ def pronounce_number(number: Union[int, float], lang: str, places: int = 2, shor
         return engine.format_number(number, fmt).text
     except Exception as err:
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
+
+
+def pronounce_fraction(fraction_word: str, lang: str, short_scale: bool = True) -> str:
+    """
+    Pronounces a fraction string.
+    Example: '1/2' -> 'one half', '3/2' -> 'three halves'
+
+    Args:
+        fraction_word: the fraction to pronounce
+        lang (str, optional): an optional BCP-47 language code, if omitted
+                              the default language will be used.
+        short_scale (bool) : use short (True) or long scale (False)
+            https://en.wikipedia.org/wiki/Names_of_large_numbers
+    Returns:
+        (str): The pronounced number
+    """
+    scale = Scale.SHORT if short_scale else  Scale.LONG
+    if lang.startswith("pt"):
+        variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
+        return pronounce_fraction_pt(fraction_word, scale=scale, variant=variant)
+    else:
+        raise NotImplementedError(f"unsupported language: {lang}")
 
 
 def pronounce_ordinal(number: Union[int, float], lang: str, short_scale: bool = True) -> str:
