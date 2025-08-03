@@ -82,26 +82,26 @@ def pronounce_number(number: Union[int, float], lang: str,
                      digits: DigitPronunciation = DigitPronunciation.FULL_NUMBER,
                      gender: GrammaticalGender = GrammaticalGender.MASCULINE) -> str:
     """
-                     Return the spoken representation of a number in the specified language.
-                     
-                     Converts a numeric value to its pronounced form, supporting various languages, decimal precision, scale (short or long), scientific notation, ordinal forms, digit pronunciation styles, and grammatical gender where applicable. Falls back to Unicode RBNF for unsupported languages.
-                     
-                     Parameters:
-                         number (int or float): The number to pronounce.
-                         lang (str): BCP-47 language code specifying the language for pronunciation.
-                         places (int, optional): Number of decimal places to include (default is 3).
-                         short_scale (bool, optional): Whether to use the short scale for large numbers (default is True).
-                         scientific (bool, optional): If True, pronounce the number in scientific notation.
-                         ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one").
-                         digits (DigitPronunciation, optional): Style for pronouncing digits (default is FULL_NUMBER).
-                         gender (GrammaticalGender, optional): Grammatical gender for languages that require it (default is MASCULINE).
-                     
-                     Returns:
-                         str: The pronounced form of the number.
-                     
-                     Raises:
-                         NotImplementedError: If the specified language is not supported.
-                     """
+    Return the spoken representation of a number in the specified language.
+     
+    Converts a numeric value to its pronounced form, supporting various languages, decimal precision, scale (short or long), scientific notation, ordinal forms, digit pronunciation styles, and grammatical gender where applicable. Falls back to Unicode RBNF for unsupported languages.
+     
+    Parameters:
+        number (int or float): The number to pronounce.
+        lang (str): BCP-47 language code specifying the language for pronunciation.
+        places (int, optional): Number of decimal places to include (default is 3).
+        short_scale (bool, optional): Whether to use the short scale for large numbers (default is True).
+        scientific (bool, optional): If True, pronounce the number in scientific notation.
+        ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one").
+        digits (DigitPronunciation, optional): Style for pronouncing digits (default is FULL_NUMBER).
+        gender (GrammaticalGender, optional): Grammatical gender for languages that require it (default is MASCULINE).
+     
+    Returns:
+        str: The pronounced form of the number.
+     
+    Raises:
+        NotImplementedError: If the specified language is not supported.
+    """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("en"):
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
@@ -180,20 +180,20 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
                       short_scale: bool = True,
                       gender: GrammaticalGender = GrammaticalGender.MASCULINE) -> str:
     """
-                      Return the spoken ordinal form of a number in the specified language.
-                      
-                      Parameters:
-                          number (int or float): The number to convert to its ordinal spoken equivalent.
-                          lang (str): BCP-47 language code specifying the language for pronunciation.
-                          short_scale (bool, optional): Whether to use the short (True) or long (False) scale for large numbers. Defaults to True.
-                          gender (GrammaticalGender, optional): Grammatical gender to use for languages that require it. Defaults to masculine.
-                      
-                      Returns:
-                          str: The ordinal number pronounced in the specified language.
-                      
-                      Raises:
-                          NotImplementedError: If the language is not supported.
-                      """
+    Return the spoken ordinal form of a number in the specified language.
+      
+    Parameters:
+        number (int or float): The number to convert to its ordinal spoken equivalent.
+        lang (str): BCP-47 language code specifying the language for pronunciation.
+        short_scale (bool, optional): Whether to use the short (True) or long (False) scale for large numbers. Defaults to True.
+        gender (GrammaticalGender, optional): Grammatical gender to use for languages that require it. Defaults to masculine.
+      
+    Returns:
+        str: The ordinal number pronounced in the specified language.
+      
+    Raises:
+        NotImplementedError: If the language is not supported.
+    """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("pt"):
         variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
