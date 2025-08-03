@@ -1,5 +1,5 @@
 from collections import namedtuple
-
+from enum import Enum
 from quebra_frases import word_tokenize
 
 # Token is intended to be used in the number processing functions in
@@ -8,6 +8,15 @@ from quebra_frases import word_tokenize
 # from in the original input, hence this nametuple.
 Token = namedtuple('Token', 'word index')
 
+
+class Scale(str, Enum):
+    """
+    Defines the numerical scale to be used.
+    - SHORT: Short scale (e.g., billion = 10^9).
+    - LONG: Long scale (e.g., billion = 10^12).
+    """
+    SHORT = "short"
+    LONG = "long"
 
 class ReplaceableNumber:
     """

@@ -1,5 +1,6 @@
 from typing import Union
 
+from ovos_number_parser.util import Scale
 from unicode_rbnf import RbnfEngine, FormatPurpose
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_ca import numbers_to_digits_ca, pronounce_number_ca, is_fractional_ca, extract_number_ca
@@ -19,7 +20,7 @@ from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_i
 from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
     extract_number_nl, is_fractional_nl
 from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, is_fractional_pl
-from ovos_number_parser.numbers_pt import numbers_to_digits_pt, pronounce_number_pt, is_fractional_pt, extract_number_pt
+from ovos_number_parser.numbers_pt import PortugueseVariant, numbers_to_digits_pt, pronounce_number_pt, is_fractional_pt, extract_number_pt
 from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru
 from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
     is_fractional_sv
@@ -87,6 +88,7 @@ def pronounce_number(number: Union[int, float], lang: str, places: int = 2, shor
     Returns:
         (str): The pronounced number
     """
+    scale = Scale.SHORT if short_scale else  Scale.LONG
     if lang.startswith("en"):
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
     if lang.startswith("az"):
@@ -118,7 +120,8 @@ def pronounce_number(number: Union[int, float], lang: str, places: int = 2, shor
     if lang.startswith("pl"):
         return pronounce_number_pl(number, places, short_scale, scientific, ordinals)
     if lang.startswith("pt"):
-        return pronounce_number_pt(number, places)
+        variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
+        return pronounce_number_pt(number, places, scale, variant)
     if lang.startswith("ru"):
         return pronounce_number_ru(number, places, short_scale, scientific, ordinals)
     if lang.startswith("sl"):
@@ -270,7 +273,7 @@ def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[
     if lang.startswith("pl"):
         return is_fractional_pl(input_str, short_scale)
     if lang.startswith("pt"):
-        return is_fractional_pt(input_str, short_scale)
+        return is_fractional_pt(input_str)
     if lang.startswith("ru"):
         return is_fractional_ru(input_str, short_scale)
     if lang.startswith("sv"):
