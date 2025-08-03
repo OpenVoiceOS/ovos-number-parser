@@ -14,6 +14,11 @@ class TestNumberParserDA(unittest.TestCase):
         self.assertEqual(numbers_to_digits_da('to komma fire to'), '2.42')
 
     def test_pronounce_number_da(self):
+        """
+        Test the Danish pronunciation of large numbers and correct singular/plural forms.
+        
+        Verifies that `pronounce_number_da` returns the expected Danish spoken representation for very large numbers and distinguishes between singular and plural forms for "million."
+        """
         self.assertEqual(pronounce_number_da(3840285766987249),
                          'tre billiarder ottehundredefyrre billioner tohundredefemogfirs milliarder '
                          'syvhundredeseksogtres millioner nihundredesyvogfirstusindetohundredeniogfyrre')

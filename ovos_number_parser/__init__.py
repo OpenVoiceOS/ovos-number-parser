@@ -31,13 +31,18 @@ from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl
 
 def numbers_to_digits(utterance: str, lang: str, scale: Scale = Scale.LONG) -> str:
     """
-    Replace written numbers in text with their digit equivalents.
-
-    Args:
-        utterance (str): Input string possibly containing written numbers.
-
+    Converts written numbers in a text string to their digit equivalents for the specified language.
+    
+    Parameters:
+        utterance (str): The input text potentially containing written numbers.
+        lang (str): The language code used to determine parsing rules.
+        scale (Scale, optional): The numerical scale (short or long) to use for languages that support it. Defaults to Scale.LONG.
+    
     Returns:
-        str: Text with written numbers replaced by digits.
+        str: The input text with written numbers replaced by digits.
+    
+    Raises:
+        NotImplementedError: If the specified language is not supported.
     """
     if lang.startswith("az"):
         return numbers_to_digits_az(utterance)
@@ -71,22 +76,21 @@ def numbers_to_digits(utterance: str, lang: str, scale: Scale = Scale.LONG) -> s
 def pronounce_number(number: Union[int, float], lang: str, places: int = 2, short_scale: bool = True,
                      scientific: bool = False, ordinals: bool = False) -> str:
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5' would be 'five'
-
-    Args:
-        number: the number to pronounce
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-        places (int): number of decimal places to express, default 2
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool) : convert and pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
-    Returns:
-        (str): The pronounced number
-    """
+                     Return the spoken representation of a number in the specified language.
+                     
+                     Parameters:
+                         number (int or float): The numeric value to pronounce.
+                         places (int, optional): Number of decimal places to include in the pronunciation. Defaults to 2.
+                         short_scale (bool, optional): Whether to use the short scale (e.g., billion = 10^9) or long scale (e.g., billion = 10^12) for large numbers. Defaults to True.
+                         scientific (bool, optional): If True, pronounce the number in scientific notation. Defaults to False.
+                         ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one"). Defaults to False.
+                     
+                     Returns:
+                         str: The number pronounced in the target language.
+                     
+                     Raises:
+                         NotImplementedError: If the specified language is not supported or fallback formatting fails.
+                     """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("en"):
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
@@ -140,17 +144,17 @@ def pronounce_number(number: Union[int, float], lang: str, places: int = 2, shor
 
 def pronounce_fraction(fraction_word: str, lang: str, scale: Scale = Scale.LONG) -> str:
     """
-    Pronounces a fraction string.
-    Example: '1/2' -> 'one half', '3/2' -> 'three halves'
-
-    Args:
-        fraction_word: the fraction to pronounce
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
+    Return the spoken form of a fraction string in the specified language.
+    
+    Currently supports only Portuguese variants; raises NotImplementedError for other languages.
+    
+    Parameters:
+        fraction_word (str): The fraction to pronounce (e.g., "1/2", "3/2").
+        lang (str): BCP-47 language code specifying the language.
+        scale (Scale, optional): Scale type for large numbers (default is Scale.LONG).
+    
     Returns:
-        (str): The pronounced number
+        str: The pronounced fraction.
     """
     if lang.startswith("pt"):
         variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
@@ -161,18 +165,20 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Scale = Scale.LONG)
 
 def pronounce_ordinal(number: Union[int, float], lang: str, short_scale: bool = True) -> str:
     """
-    Convert an ordinal number to it's spoken equivalent
-
-    For example, '5' would be 'fifth'
-
-    Args:
-        number: the number to pronounce
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
+    Return the spoken form of an ordinal number in the specified language.
+    
+    Converts a numeric value to its ordinal word equivalent (e.g., 5 → "fifth") using language-specific pronunciation logic or Unicode RBNF fallback. Supports both short and long scale naming conventions.
+    
+    Parameters:
+        number (int or float): The ordinal number to pronounce.
+        lang (str): BCP-47 language code specifying the target language.
+        short_scale (bool, optional): If True, use short scale naming; if False, use long scale.
+    
     Returns:
-        (str): The pronounced number
+        str: The pronounced ordinal number.
+    
+    Raises:
+        NotImplementedError: If the specified language is unsupported or fallback fails.
     """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("pt"):
@@ -198,22 +204,18 @@ def pronounce_ordinal(number: Union[int, float], lang: str, short_scale: bool = 
 
 
 def extract_number(text: str, lang: str, short_scale: bool = True, ordinals: bool = False) -> Union[int, float, bool]:
-    """Takes in a string and extracts a number.
-
-    Assumes only 1 number is in the string, does NOT handle multiple numbers
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): Use "short scale" or "long scale" for large
-            numbers -- over a million.  The default is short scale, which
-            is now common in most English speaking countries.
-            See https://en.wikipedia.org/wiki/Names_of_large_numbers
-        ordinals (bool): consider ordinal numbers, e.g. third=3 instead of 1/3
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
+    """
+    Extracts a single number from the given text string in the specified language.
+    
+    Considers ordinal numbers if specified. Only one number is extracted; multiple numbers in the input are not handled. Returns the extracted number as an integer or float, or `False` if no number is found. Raises `NotImplementedError` for unsupported languages.
+    
+    Parameters:
+        text (str): Input string from which to extract a number.
+        short_scale (bool): If True, uses the short scale for large numbers (e.g., billion = 10^9); if False, uses the long scale.
+        ordinals (bool): If True, recognizes ordinal numbers (e.g., "third" as 3).
+    
     Returns:
-        (int, float or False): The number extracted or False if the input
-                               text contains no numbers
+        int, float, or bool: The extracted number, or False if no number is found.
     """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("en"):
@@ -258,19 +260,14 @@ def extract_number(text: str, lang: str, short_scale: bool = True, ordinals: boo
 
 def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[bool, float]:
     """
-    This function takes the given text and checks if it is a fraction.
-    Used by most of the number exractors.
-
-    Will return False on phrases that *contain* a fraction. Only detects
-    exact matches. To pull a fraction from a string, see extract_number()
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
+    Determine if the input string exactly matches a fractional number in the specified language.
+    
     Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
+        float: The fractional value if the input is an exact match.
+        bool: False if the input is not an exact fractional number.
+        
+    Raises:
+        NotImplementedError: If the specified language is unsupported.
     """
     if lang.startswith("en"):
         return is_fractional_en(input_str, short_scale)
@@ -311,15 +308,14 @@ def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[
 
 def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
     """
-    This function takes the given text and checks if it is an ordinal number.
-
-    Args:
-        input_str (str): the string to check if ordinal
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
+    Determine if the input string represents an ordinal number in the specified language.
+    
     Returns:
-        (bool) or (float): False if not an ordinal, otherwise the number
-        corresponding to the ordinal
+        float: The numeric value of the ordinal if recognized.
+        bool: False if the input is not an ordinal.
+        
+    Raises:
+        NotImplementedError: If the language is not supported.
     """
     if lang.startswith("pt"):
         return is_ordinal_pt(input_str)

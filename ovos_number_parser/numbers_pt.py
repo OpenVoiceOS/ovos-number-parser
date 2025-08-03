@@ -182,7 +182,17 @@ _NUMBERS_BASE = {
 
 def get_number_map(scale: Scale = Scale.LONG,
                    variant: PortugueseVariant = PortugueseVariant.PT):
-    return {
+    """
+                   Return a dictionary mapping Portuguese number words, including scale names, to their integer values for the specified scale and language variant.
+                   
+                   Parameters:
+                   	scale (Scale): The numerical scale to use (short or long).
+                   	variant (PortugueseVariant): The Portuguese language variant (Brazilian or European).
+                   
+                   Returns:
+                   	dict: Mapping of Portuguese number words (units, tens, hundreds, scale names) to their corresponding integer values.
+                   """
+                   return {
         **_NUMBERS_BASE,
         **{s_name: val for val, s_name, _ in _SCALES[scale][variant]},
         **{p_name: val for val, _, p_name in _SCALES[scale][variant]}
@@ -201,7 +211,14 @@ _ORDINAL_WORDS_MASC = {
 
 def _swap_gender(word: str, gender: GrammaticalGender) -> str:
     """
-    Swaps the final 'o' with 'a' for feminine gender.
+    Convert a Portuguese word between masculine and feminine grammatical gender by adjusting its ending.
+    
+    Parameters:
+        word (str): The word to convert.
+        gender (GrammaticalGender): The target grammatical gender.
+    
+    Returns:
+        str: The word with its ending swapped to match the specified gender, if applicable; otherwise, the original word.
     """
     if gender == GrammaticalGender.FEMININE and word.endswith('o'):
         return word[:-1] + 'a'
@@ -219,15 +236,18 @@ def _pronounce_up_to_999(
         variant: PortugueseVariant = PortugueseVariant.BR
 ) -> str:
     """
-    Pronounce an integer between 0 and 999 in Portuguese.
-
-    Args:
-        n: The integer to pronounce (0 <= n <= 999).
-        variant: Portuguese variant (BR or PT).
-
-    Returns:
-        The number pronounced in words.
-    """
+        Returns the Portuguese cardinal pronunciation of an integer from 0 to 999, using the specified language variant.
+        
+        Parameters:
+            n (int): Integer to pronounce (must be between 0 and 999).
+            variant (PortugueseVariant, optional): Portuguese variant (Brazilian or European). Defaults to Brazilian.
+        
+        Returns:
+            str: The number pronounced in Portuguese words.
+        
+        Raises:
+            ValueError: If n is not in the range 0 to 999.
+        """
     if not 0 <= n <= 999:
         raise ValueError("Number must be between 0 and 999.")
     if n == 0:
@@ -267,8 +287,17 @@ def _pronounce_ordinal_up_to_999(
         variant: PortugueseVariant = PortugueseVariant.PT
 ) -> str:
     """
-    Pronounce an integer between 0 and 999 as an ordinal.
-    """
+        Returns the Portuguese ordinal word for an integer between 0 and 999, adjusting for grammatical gender and language variant.
+        
+        Parameters:
+            n (int): The integer to convert (must be between 0 and 999).
+        
+        Returns:
+            str: The ordinal representation of the number in Portuguese.
+        
+        Raises:
+            ValueError: If n is not between 0 and 999.
+        """
     if not 0 <= n <= 999:
         raise ValueError("Number must be between 0 and 999.")
     if n == 0:
@@ -312,8 +341,20 @@ def pronounce_ordinal_pt(
         variant: PortugueseVariant = PortugueseVariant.PT
 ) -> str:
     """
-    Pronounce a number as an ordinal in Portuguese.
-    """
+        Return the ordinal pronunciation of a number in Portuguese, supporting grammatical gender, scale (short or long), and language variant (Brazilian or European Portuguese).
+        
+        Parameters:
+            number (int or float): The number to pronounce as an ordinal.
+            gender (GrammaticalGender, optional): The grammatical gender for the ordinal form (masculine or feminine).
+            scale (Scale, optional): The numerical scale to use (short or long).
+            variant (PortugueseVariant, optional): The Portuguese variant (Brazilian or European).
+        
+        Returns:
+            str: The ordinal pronunciation of the number in Portuguese.
+        
+        Raises:
+            TypeError: If `number` is not an int or float.
+        """
     if not isinstance(number, (int, float)):
         raise TypeError("Number must be an int or float.")
     if number == 0:
@@ -360,14 +401,11 @@ def is_fractional_pt(
         input_str: str
 ) -> Union[float, bool]:
     """
-    Determine if a string represents a known fractional word in Portuguese.
-
-    Args:
-        input_str: String potentially containing a fractional number.
-
-    Returns:
-        The float value of the fraction, or False if not a recognized fraction.
-    """
+        Checks if the input string corresponds to a recognized Portuguese fractional word.
+        
+        Returns:
+            The fractional value as a float if recognized (e.g., 0.5 for "meio" or "meia"); otherwise, False.
+        """
     input_str = input_str.lower().strip()
     fraction_map = _FRACTION_STRING_PT
 
@@ -394,8 +432,10 @@ def is_fractional_pt(
 
 def is_ordinal_pt(input_str: str) -> bool:
     """
-    Check if a string represents an ordinal number in Portuguese.
-    handles multi-word ordinals by using `extract_number_pt` internally.
+    Determine if a string is a Portuguese ordinal word.
+    
+    Returns:
+        bool: True if the input string is recognized as a Portuguese ordinal, otherwise False.
     """
     input_str = _swap_gender(input_str, GrammaticalGender.MASCULINE)
     return input_str in _ORDINAL_WORDS_MASC
@@ -408,17 +448,17 @@ def extract_number_pt(
         variant: PortugueseVariant = PortugueseVariant.PT
 ) -> Union[int, float, bool]:
     """
-    Extract a number from a Portuguese phrase.
-
-    Args:
-        text: Input text with a potential number phrase.
-        scale: Whether to use short scale or long scale.
-        ordinals: Whether to consider ordinals.
-        variant: Portuguese variant to use.
-
-    Returns:
-        Extracted number as int or float, or False if no number was found.
-    """
+        Extracts a numeric value from a Portuguese text phrase, supporting cardinals, ordinals, fractions, and large scales.
+        
+        Parameters:
+            text (str): The input phrase potentially containing a number.
+            ordinals (bool): If True, recognizes ordinal words as numbers.
+            scale (Scale): Specifies whether to use the short or long numerical scale.
+            variant (PortugueseVariant): Specifies the Portuguese language variant (BR or PT).
+        
+        Returns:
+            int or float: The extracted number if found; otherwise, False.
+        """
     numbers_map = get_number_map(scale, variant)
     scales_map = _SCALES[scale][variant]
 
@@ -489,19 +529,19 @@ def pronounce_number_pt(
         gender: GrammaticalGender = GrammaticalGender.MASCULINE
 ) -> str:
     """
-    Convert a number to its full Portuguese pronunciation.
-
-    Args:
-        number: Number to pronounce.
-        places: Number of decimal places to include.
-        scale: Whether to use short or long numerical scale.
-        variant: Portuguese variant for pronunciation.
-        ordinals: If True, pronounce as an ordinal number.
-        gender: Gender for ordinal numbers ('masculine' or 'feminine').
-
-    Returns:
-        Number expressed as a Portuguese phrase.
-    """
+        Return the full Portuguese pronunciation of a number, supporting cardinal and ordinal forms, decimals, large scales, grammatical gender, and both Brazilian and European Portuguese variants.
+        
+        Parameters:
+            number (int or float): The number to pronounce.
+            places (int): Number of decimal places to include for floats.
+            scale (Scale): Numerical scale to use (short or long).
+            variant (PortugueseVariant): Portuguese language variant for pronunciation.
+            ordinals (bool): If True, pronounce as an ordinal number.
+            gender (GrammaticalGender): Grammatical gender for ordinal numbers.
+        
+        Returns:
+            str: The number expressed as a Portuguese phrase.
+        """
     if not isinstance(number, (int, float)):
         raise TypeError("Number must be an int or float.")
 
@@ -579,18 +619,18 @@ def numbers_to_digits_pt(
         variant: PortugueseVariant = PortugueseVariant.PT
 ) -> str:
     """
-    Replace written numbers in text with their digit equivalents,
-    preserving all non-numeric context.
-
-    This  function first identifies consecutive number spans, including the
-    joiner word 'e', and then replaces each span.
-
-    Args:
-        utterance (str): Input string possibly containing written numbers.
-        variant (PortugueseVariant): The Portuguese variant to use.
-    Returns:
-        str: Text with written numbers replaced by digits.
-    """
+        Converts written Portuguese numbers in a text string to their digit equivalents, preserving all other text.
+        
+        Identifies spans of number words (including the joiner "e"), extracts their numeric values, and replaces them with digit strings. Non-number words and context are left unchanged.
+        
+        Parameters:
+            utterance (str): Input text possibly containing written Portuguese numbers.
+            scale (Scale, optional): Numerical scale (short or long) to interpret large numbers. Defaults to Scale.LONG.
+            variant (PortugueseVariant, optional): Portuguese language variant (BR or PT). Defaults to PortugueseVariant.PT.
+        
+        Returns:
+            str: The input text with written numbers replaced by their digit representations.
+        """
     words = tokenize(utterance)
     output = []
     i = 0
@@ -631,13 +671,10 @@ def numbers_to_digits_pt(
 
 def tokenize(utterance: str) -> List[str]:
     """
-    Tokenize a Portuguese utterance by separating punctuation and words.
-
-    Args:
-        utterance: The text to tokenize.
-
+    Splits a Portuguese text string into a list of tokens, separating words and punctuation.
+    
     Returns:
-        List of tokens (words or punctuation).
+        A list of tokens, where each token is a word or punctuation mark from the input string.
     """
     # Split things like 12%
     utterance = re.sub(r"([0-9]+)([\%])", r"\1 \2", utterance)
@@ -659,9 +696,16 @@ def pronounce_fraction_pt(word: str,
                           scale: Scale = Scale.LONG,
                           variant: PortugueseVariant = PortugueseVariant.PT) -> str:
     """
-    Pronounces a fraction string.
-    Example: '1/2' -> 'one half', '3/2' -> 'three halves'
-    """
+                          Return the Portuguese pronunciation of a fraction given as a string (e.g., "1/2").
+                          
+                          The numerator is pronounced as a cardinal number, and the denominator as an ordinal or fraction name, pluralized if appropriate. For denominators not in the known fraction list, the denominator is pronounced as a cardinal number followed by "avos" if plural.
+                          
+                          Parameters:
+                              word (str): Fraction in the form "numerator/denominator" (e.g., "3/4").
+                          
+                          Returns:
+                              str: The Portuguese pronunciation of the fraction.
+                          """
     n1, n2 = word.split("/")
     n1_int, n2_int = int(n1), int(n2)
 

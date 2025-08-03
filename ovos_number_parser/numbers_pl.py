@@ -265,20 +265,20 @@ _ALT_ORDINALS_PL = {
 def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
                         ordinals=False, scientific_run=False):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'five point two'
-
-    Args:
-        num(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool): pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
-    Returns:
-        (str): The pronounced number
-    """
+                        Convert a number to its spoken Polish equivalent.
+                        
+                        Supports pronunciation of integers, decimals, ordinals, and scientific notation, including large numbers using short or long scale naming. Handles negative values and special cases like infinity. Ordinal and scientific forms are available via parameters.
+                        
+                        Parameters:
+                            num (float or int): The number to pronounce.
+                            places (int, optional): Maximum number of decimal places to speak (default: 2).
+                            short_scale (bool, optional): Use short (True) or long (False) scale for large numbers.
+                            scientific (bool, optional): Pronounce the number in scientific notation.
+                            ordinals (bool, optional): Pronounce the number as an ordinal (e.g., "first" instead of "one").
+                        
+                        Returns:
+                            str: The Polish spoken representation of the number.
+                        """
     # deal with infinity
     if num == float("inf"):
         return "nieskończoność"

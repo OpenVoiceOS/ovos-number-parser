@@ -463,6 +463,16 @@ def extract_number_es(text, short_scale=True, ordinals=False):
 def _es_number_parse(words, i):
     # TODO Not parsing 'cero'
 
+    """
+    Parse a sequence of Spanish number words from a list starting at a given index.
+    
+    Parameters:
+        words (list of str): Tokenized Spanish words to parse.
+        i (int): Starting index in the list.
+    
+    Returns:
+        tuple: (parsed_number, next_index) if a valid number is found, otherwise None.
+    """
     def es_cte(i, s):
         if i < len(words) and s == words[i]:
             return s, i + 1
@@ -541,15 +551,16 @@ def _es_number_parse(words, i):
 
 def pronounce_number_es(number, places=2):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'cinco coma dos'
-
-    Args:
-        num(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
+    Return the Spanish spoken equivalent of a number less than 100.
+    
+    Handles negative numbers, special pronunciation rules for numbers 21–29, and constructs compound numbers above 30. For decimal numbers, uses "coma" as the separator and pronounces each decimal digit individually, up to the specified number of places.
+    
+    Parameters:
+        number (float or int): The number to pronounce (must be less than 100 in absolute value).
+        places (int): Maximum number of decimal places to pronounce.
+    
     Returns:
-        (str): The pronounced number
+        str: The Spanish pronunciation of the number.
     """
     if abs(number) >= 100:
         # TODO: Soporta a números por encima de 100

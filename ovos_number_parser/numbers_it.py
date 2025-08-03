@@ -517,19 +517,17 @@ def _extract_number_long_it(word):
 
 def extract_number_it(text, short_scale=False, ordinals=False):
     """
-    This function extracts a number from a text string,
-    handles pronunciations in long scale and short scale
-
-    https://en.wikipedia.org/wiki/Names_of_large_numbers
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
+    Extracts a numeric value from an Italian text string.
+    
+    Supports both short and long scale naming conventions, as well as ordinal and fractional numbers. Handles complex Italian numeric expressions, including negation, multipliers, fractions, and decimals. Returns the extracted number as an int or float, or False if no number is found.
+    
+    Parameters:
+        text (str): The Italian text to parse for a number.
+        short_scale (bool): If True, uses short scale naming for large numbers; otherwise, uses long scale.
+        ordinals (bool): If True, interprets ordinal words as integers (e.g., "terzo" as 3); otherwise, as fractions (e.g., "terzo" as 1/3).
+    
     Returns:
-        (int) or (float) or False: The extracted number or False if no number
-                                   was found
-
+        int or float or bool: The extracted number, or False if no number is found.
     """
 
     text = text.lower()
@@ -700,19 +698,18 @@ def extract_number_it(text, short_scale=False, ordinals=False):
 
 def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
     """
-    Convert a number to it's spoken equivalent
-    adapted to italian fron en version
-
-    For example, '5.2' would return 'cinque virgola due'
-
-    Args:
-        num(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool): pronounce in scientific notation
+    Convert a number into its spoken Italian representation.
+    
+    Supports both short and long scale naming conventions, as well as scientific notation. Handles negative numbers, large numbers, and decimal fractions, pronouncing them according to Italian linguistic rules.
+    
+    Parameters:
+        number (int or float): The number to pronounce.
+        places (int, optional): Maximum number of decimal places to pronounce (default is 2).
+        short_scale (bool, optional): If True, use short scale naming for large numbers; otherwise, use long scale (default is False).
+        scientific (bool, optional): If True, pronounce the number in scientific notation (default is False).
+    
     Returns:
-        (str): The pronounced number
+        str: The Italian spoken form of the number.
     """
     num = number
     # gestione infinito

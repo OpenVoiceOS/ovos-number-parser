@@ -107,15 +107,16 @@ FRACTION_STRING_EU = {
 
 def pronounce_number_eu(num, places=2):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'bost koma bi'
-
-    Args:
-        num(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
+    Return the Basque spoken equivalent of a number less than 10,000.
+    
+    Converts an integer or float into its Basque pronunciation, including handling of negative numbers and decimal parts (up to the specified number of decimal places). For numbers 10,000 or greater, returns the number as a string without conversion.
+    
+    Parameters:
+        num (float or int): The number to pronounce (must be less than 10,000 in absolute value).
+        places (int): Maximum number of decimal places to pronounce.
+    
     Returns:
-        (str): The pronounced number
+        str: The Basque pronunciation of the number.
     """
     if abs(num) >= 10000:
         # TODO: Soporta a números por encima de 1000

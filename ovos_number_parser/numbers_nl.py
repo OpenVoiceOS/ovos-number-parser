@@ -330,20 +330,17 @@ _EXTRA_SPACE_NL = ""
 def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'five point two'
-
-    Args:
-        number(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool): pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
-    Returns:
-        (str): The pronounced number
-    """
+                        Convert a number to its spoken Dutch equivalent.
+                        
+                        Handles whole numbers, negative values, and decimals by pronouncing each part in Dutch. For decimals, digits after the decimal point are pronounced individually. Large numbers are pronounced using appropriate Dutch scale words. If the number is too large to pronounce, returns the number as a string.
+                        
+                        Parameters:
+                            number (float or int): The number to pronounce.
+                            places (int, optional): Maximum number of decimal places to pronounce (default is 2).
+                        
+                        Returns:
+                            str: The Dutch spoken representation of the number.
+                        """
 
     # TODO short_scale, scientific and ordinals
     # currently ignored

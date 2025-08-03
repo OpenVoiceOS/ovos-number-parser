@@ -235,20 +235,17 @@ _COMMA = {"komma", "comma", "punkt"}
 def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'five point two'
-
-    Args:
-        number(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool): pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
-    Returns:
-        (str): The pronounced number
-    """
+                        Convert a number to its spoken German equivalent.
+                        
+                        Handles integers and decimals (up to a specified number of decimal places), including negative numbers and numbers up to 10^24. Returns the German pronunciation as a string, using long scale naming for large numbers. Decimal parts are pronounced digit by digit after "Komma". Ordinal, scientific, and short scale options are currently ignored.
+                        
+                        Parameters:
+                            number (float or int): The number to pronounce.
+                            places (int): Maximum number of decimal places to pronounce (default is 2).
+                        
+                        Returns:
+                            str: The German spoken form of the number.
+                        """
 
     # TODO short_scale, scientific and ordinals
     # currently ignored

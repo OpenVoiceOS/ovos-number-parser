@@ -210,19 +210,14 @@ def extract_numbers_fa(text, short_scale=True, ordinals=False):
 
 def extract_number_fa(text, ordinals=False):
     """
-    This function extracts a number from a text string,
-    handles pronunciations in long scale and short scale
-
-    https://en.wikipedia.org/wiki/Names_of_large_numbers
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
+    Extracts the first number found in a Persian text string.
+    
+    Parameters:
+        text (str): Input text to search for a number.
+        ordinals (bool): If True, extracts ordinal numbers as integers (e.g., "third" as 3).
+    
     Returns:
-        (int) or (float) or False: The extracted number or False if no number
-                                   was found
-
+        int or float or bool: The first extracted number as int or float, or False if no number is found.
     """
     x = extract_numbers_fa(text, ordinals=ordinals)
     if (len(x) == 0):
@@ -231,6 +226,16 @@ def extract_number_fa(text, ordinals=False):
 
 
 def _float2tuple(value, _precision):
+    """
+    Split a float into its integer part, fractional part as an integer, and the effective precision.
+    
+    Parameters:
+        value (float): The number to split.
+        _precision (int): The number of decimal places to consider for the fractional part.
+    
+    Returns:
+        tuple: A tuple containing the integer part, the fractional part as an integer, and the adjusted precision after trimming trailing zeros.
+    """
     pre = int(value)
 
     post = abs(value - pre) * 10 ** _precision

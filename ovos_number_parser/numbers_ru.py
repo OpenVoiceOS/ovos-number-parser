@@ -359,20 +359,20 @@ _STRING_LONG_ORDINAL_RU = invert_dict(_LONG_ORDINAL_RU)
 def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'five point two'
-
-    Args:
-        number(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool): pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
-    Returns:
-        (str): The pronounced number
-    """
+                        Convert a number to its spoken Russian equivalent.
+                        
+                        Handles integers, decimals, negative numbers, and scientific notation, with support for both short and long scale naming and optional ordinal forms. For decimals, pronounces each digit after the decimal point individually. For scientific notation, constructs the phrase using powers of ten. Returns "бесконечность" for infinity.
+                        
+                        Parameters:
+                            number (float or int): The number to pronounce.
+                            places (int): Maximum number of decimal places to pronounce (default is 2).
+                            short_scale (bool): If True, use short scale naming for large numbers; if False, use long scale.
+                            scientific (bool): If True, pronounce the number in scientific notation.
+                            ordinals (bool): If True, pronounce the number as an ordinal (e.g., "первый" for "one").
+                        
+                        Returns:
+                            str: The Russian spoken representation of the number.
+                        """
     num = number
     # deal with infinity
     if num == float("inf"):

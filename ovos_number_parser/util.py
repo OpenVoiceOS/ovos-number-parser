@@ -54,9 +54,18 @@ class ReplaceableNumber:
 
     @property
     def text(self):
+        """
+        Return the concatenated text represented by the tokens, separated by spaces.
+        """
         return ' '.join([str(t.word) for t in self.tokens if t.word])
 
     def __setattr__(self, key, value):
+        """
+        Prevent modification of existing attributes, allowing only new attributes to be set.
+        
+        Raises:
+            Exception: If attempting to modify an attribute that already exists.
+        """
         try:
             getattr(self, key)
         except AttributeError:
@@ -133,12 +142,13 @@ def invert_dict(original):
 
 def is_numeric(input_str):
     """
-    Takes in a string and tests to see if it is a number.
-    Args:
-        text (str): string to test if a number
+    Return True if the input string represents a valid number, otherwise False.
+    
+    Parameters:
+        input_str (str): The string to test for numeric value.
+    
     Returns:
-        (bool): True if a number, else False
-
+        bool: True if the string can be converted to a float, False otherwise.
     """
     try:
         float(input_str)

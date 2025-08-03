@@ -20,6 +20,9 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(numbers_to_digits_en('two point four two'), '2.42')
 
     def test_pronounce_number_en(self):
+        """
+        Tests that `pronounce_number_en` correctly converts a large integer into its full English pronunciation with appropriate scale words.
+        """
         self.assertEqual(pronounce_number_en(3840285766987249),
                          'three quadrillion, eight hundred and forty trillion, two hundred and eighty five billion, seven hundred '
                          'and sixty six million, nine hundred and eighty seven thousand, two hundred and forty nine')

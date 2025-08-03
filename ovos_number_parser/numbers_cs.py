@@ -838,18 +838,16 @@ def is_fractional_cs(input_str, short_scale=True):
 
 def _text_cs_inflection_normalize(word, arg):
     """
-    Czech Inflection normalizer.
-
-    This try to normalize known inflection. This function is called
-    from multiple places, each one is defined with arg.
-
-    Args:
-        word [Word]
-        arg [Int]
-
+    Normalize Czech word inflections for numbers, time units, and dates.
+    
+    Depending on the context specified by `arg`, this function standardizes known Czech inflected forms to their base forms. Used for consistent parsing of numbers and time-related expressions.
+    
+    Parameters:
+        word (str): The Czech word to normalize.
+        arg (int): Context selector; 1 for number normalization, 2 for time/date normalization.
+    
     Returns:
-        word [Word]
-
+        str: The normalized Czech word.
     """
     if arg == 1:  # _extract_whole_number_with_text_cs
         # Number one (jedna)
@@ -950,20 +948,18 @@ def _text_cs_inflection_normalize(word, arg):
 def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'five point two'
-
-    Args:
-        num(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool): pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
-    Returns:
-        (str): The pronounced number
-    """
+                        Return the Czech spoken equivalent of a number, supporting decimals, ordinals, and large numbers.
+                        
+                        Parameters:
+                            number (float or int): The number to pronounce.
+                            places (int, optional): Maximum number of decimal places to pronounce (default is 2).
+                            short_scale (bool, optional): Use short scale (True) or long scale (False) for large numbers.
+                            scientific (bool, optional): Pronounce the number in scientific notation if True.
+                            ordinals (bool, optional): Pronounce the number as an ordinal (e.g., "first" instead of "one").
+                        
+                        Returns:
+                            str: The Czech pronunciation of the number, including support for negative values, scientific notation, ordinals, and decimals.
+                        """
     num = number
     # deal with infinity
     if num == float("inf"):

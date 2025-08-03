@@ -102,15 +102,14 @@ _FRACTION_STRING_FR = {
 
 def pronounce_number_fr(number, places=2):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'cinq virgule deux'
-
-    Args:
-        num(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
+    Return the spoken French representation of a number less than 100, including optional decimal places.
+    
+    Parameters:
+        number (float or int): The number to pronounce (must be less than 100 in absolute value).
+        places (int): Maximum number of decimal digits to pronounce after the decimal point.
+    
     Returns:
-        (str): The pronounced number
+        str: The number pronounced in French words. For numbers 100 or greater, returns the number as a string.
     """
     if abs(number) >= 100:
         # TODO: Support for numbers over 100

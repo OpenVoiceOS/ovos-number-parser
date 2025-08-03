@@ -455,6 +455,16 @@ def extract_number_gl(text, short_scale=True, ordinals=False):
 def _gl_number_parse(words, i):
     # TODO Not parsing 'cero'
 
+    """
+    Parse a sequence of Galician number words starting at a given index.
+    
+    Parameters:
+        words (list of str): Tokenized Galician words to parse.
+        i (int): Starting index in the list of words.
+    
+    Returns:
+        tuple: (numeric_value, next_index) if a valid number is parsed, otherwise None.
+    """
     def gl_cte(i, s):
         if i < len(words) and s == words[i]:
             return s, i + 1
@@ -532,15 +542,14 @@ def _gl_number_parse(words, i):
 
 def pronounce_number_gl(number, places=2):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'cinco coma dous'
-
-    Args:
-        num(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
+    Return the spoken Galician representation of a number less than 100.
+    
+    Parameters:
+        number (float or int): The number to pronounce (must be less than 100 in absolute value).
+        places (int): Maximum number of decimal places to include in the pronunciation.
+    
     Returns:
-        (str): The pronounced number
+        str: The Galician spoken form of the number, using "coma" for the decimal separator and "menos" for negatives.
     """
     if abs(number) >= 100:
         # TODO: Soporta a números por encima de 100

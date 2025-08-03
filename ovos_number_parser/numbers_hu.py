@@ -76,6 +76,12 @@ _EXTRA_SPACE_HU = ""
 
 def _get_vocal_type_hu(word):
     # checks the vocal attributes of a word
+    """
+    Determine the vowel harmony type of a Hungarian word.
+    
+    Returns:
+        int: 0 if the word contains only low vowels, 1 if only high vowels, 2 if both (mixed).
+    """
     vowels_high = len([char for char in word if char in 'eéiíöőüű'])
     vowels_low = len([char for char in word if char in 'aáoóuú'])
     if vowels_high != 0 and vowels_low != 0:
@@ -86,20 +92,17 @@ def _get_vocal_type_hu(word):
 def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'five point two'
-
-    Args:
-        number(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool): pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
-    Returns:
-        (str): The pronounced number
-    """
+                        Convert a number to its spoken Hungarian equivalent as a cardinal number.
+                        
+                        Handles integers and floats, including negative numbers and zero. For floats, pronounces the whole part, inserts "egész" (whole), and then pronounces the fractional part with the appropriate Hungarian fractional suffix (e.g., 'tized' for tenths, 'század' for hundredths). For very large numbers (≥ 10^24), returns the number as a string. Ignores the `short_scale`, `scientific`, and `ordinals` parameters.
+                        
+                        Parameters:
+                            number (int or float): The number to pronounce.
+                            places (int): Maximum number of decimal places to pronounce (default is 2).
+                        
+                        Returns:
+                            str: The pronounced Hungarian representation of the number.
+                        """
 
     # TODO short_scale, scientific and ordinals
     # currently ignored

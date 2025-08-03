@@ -199,18 +199,15 @@ _EXTRA_SPACE_DA = ""
 
 def is_ordinal_da(input_str):
     """
-    This function takes the given text and checks if it is an ordinal number.
-
-    Args:
-        input_str (str): the string to check if ordinal
+    Determine if a given Danish word represents an ordinal number.
+    
+    Checks for both regular and irregular Danish ordinal forms, returning the corresponding numeric value if recognized. Returns False if the input is not an ordinal.
+     
+    Parameters:
+        input_str (str): The word to check for ordinal form.
+    
     Returns:
-        (bool) or (float): False if not an ordinal, otherwise the number
-        corresponding to the ordinal
-
-    ordinals for 1, 3, 7 and 8 are irregular
-
-    only works for ordinals corresponding to the numbers in _DA_NUMBERS
-
+        int or bool: The numeric value of the ordinal if recognized, otherwise False.
     """
 
     lowerstr = input_str.lower()
@@ -254,20 +251,17 @@ def is_ordinal_da(input_str):
 def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'five point two'
-
-    Args:
-        number(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool): pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
-    Returns:
-        (str): The pronounced number
-    """
+                        Convert a number to its spoken Danish equivalent.
+                        
+                        Handles integers and decimals, pronouncing whole numbers, negative values, and fractional parts using Danish number words. For decimals, pronounces each digit after "komma". Large numbers are pronounced using Danish scale words up to sextillion. Ignores `short_scale`, `scientific`, and `ordinals` parameters.
+                        
+                        Parameters:
+                            number (float or int): The number to pronounce.
+                            places (int): Maximum number of decimal places to pronounce (default is 2).
+                        
+                        Returns:
+                            str: The Danish spoken representation of the number.
+                        """
 
     # TODO short_scale, scientific and ordinals
     # currently ignored

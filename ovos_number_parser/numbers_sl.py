@@ -152,20 +152,20 @@ _SHORT_ORDINAL_SL.update(_ORDINAL_BASE_SL)
 def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'pet celih dve'
-
-    Args:
-        num(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool): pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
-    Returns:
-        (str): The pronounced number
-    """
+                        Convert a number to its spoken Slovenian equivalent.
+                        
+                        Supports pronunciation of integers, decimals, large numbers (using short or long scale), scientific notation, and ordinal forms. Handles special cases such as infinity and negative numbers, and applies Slovenian grammatical rules for number words and fractions.
+                        
+                        Parameters:
+                            num (float or int): The number to pronounce.
+                            places (int, optional): Maximum number of decimal places to pronounce (default is 2).
+                            short_scale (bool, optional): If True, use short scale for large numbers; if False, use long scale.
+                            scientific (bool, optional): If True, pronounce the number in scientific notation.
+                            ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one").
+                        
+                        Returns:
+                            str: The Slovenian spoken form of the number.
+                        """
     # deal with infinity
     if num == float("inf"):
         return "neskončno"

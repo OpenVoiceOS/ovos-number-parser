@@ -379,20 +379,20 @@ _STRING_LONG_ORDINAL_UK = invert_dict(_LONG_ORDINAL_UK)
 def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'five point two'
-
-    Args:
-        number(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-        short_scale (bool) : use short (True) or long scale (False)
-            https://en.wikipedia.org/wiki/Names_of_large_numbers
-        scientific (bool): pronounce in scientific notation
-        ordinals (bool): pronounce in ordinal form "first" instead of "one"
-    Returns:
-        (str): The pronounced number
-    """
+                        Convert a number to its spoken Ukrainian equivalent.
+                        
+                        Supports cardinal and ordinal forms, scientific notation, and both short and long scale naming conventions for large numbers. Handles negative values, infinity, and decimal fractions up to a specified number of places.
+                        
+                        Parameters:
+                            number (float or int): The number to pronounce.
+                            places (int, optional): Maximum number of decimal places to pronounce (default is 2).
+                            short_scale (bool, optional): If True, use short scale for large numbers (e.g., billion = 10^9); if False, use long scale (e.g., billion = 10^12).
+                            scientific (bool, optional): If True, pronounce the number in scientific notation.
+                            ordinals (bool, optional): If True, pronounce the number in ordinal form (e.g., "перший" for "one").
+                        
+                        Returns:
+                            str: The Ukrainian spoken representation of the number.
+                        """
     num = number
     # deal with infinity
     if num == float("inf"):

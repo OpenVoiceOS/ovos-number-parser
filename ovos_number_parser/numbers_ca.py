@@ -170,13 +170,14 @@ _HUNDREDS_CA = {
 
 def pronounce_number_ca(number, places=2):
     """
-    Convert a number to it's spoken equivalent
-     For example, '5.2' would return 'cinc coma dos'
-     Args:
-        number(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
+    Return the spoken Catalan representation of a number less than 100.
+    
+    Parameters:
+        number (float or int): The number to pronounce. Must be less than 100 in absolute value.
+        places (int): Maximum number of decimal places to pronounce.
+    
     Returns:
-        (str): The pronounced number
+        str: The number pronounced in Catalan words. For numbers 100 or greater, returns the number as a string.
     """
     if abs(number) >= 100:
         # TODO: Support n > 100
