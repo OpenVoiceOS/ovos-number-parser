@@ -222,18 +222,23 @@ def _swap_gender(word: str, gender: GrammaticalGender) -> str:
     """
     if gender == GrammaticalGender.FEMININE and word.endswith('o'):
         return word[:-1] + 'a'
+    elif gender == GrammaticalGender.MASCULINE and word.endswith('ma'):
+        return word[:-1]
     elif gender == GrammaticalGender.MASCULINE and word.endswith('a'):
         return word[:-1] + 'o'
     elif gender == GrammaticalGender.FEMININE and word.endswith('os'):
         return word[:-2] + 'as'
     elif gender == GrammaticalGender.MASCULINE and word.endswith('as'):
         return word[:-2] + 'os'
+    elif gender == GrammaticalGender.FEMININE and word.endswith('m'):
+        return word + 'a'
     return word
 
 
 def _pronounce_up_to_999(
         n: int,
-        variant: PortugueseVariant = PortugueseVariant.BR
+        variant: PortugueseVariant = PortugueseVariant.PT,
+        gender: GrammaticalGender = GrammaticalGender.MASCULINE
 ) -> str:
     """
     Returns the Portuguese cardinal pronunciation of an integer from 0 to 999, using the specified language variant.
@@ -248,6 +253,13 @@ def _pronounce_up_to_999(
     Raises:
         ValueError: If n is not in the range 0 to 999.
     """
+    # special cases for feminine 1 and 2  "uma", "duas"
+    if gender == GrammaticalGender.FEMININE:
+        if n == 1:
+            return "uma"
+        if n == 2:
+            return "duas"
+
     if not 0 <= n <= 999:
         raise ValueError("Number must be between 0 and 999.")
     if n == 0:
@@ -530,17 +542,16 @@ def pronounce_number_pt(
         gender: GrammaticalGender = GrammaticalGender.MASCULINE
 ) -> str:
     """
-    Return the full Portuguese pronunciation of a number, supporting cardinal and ordinal forms, decimals, grammatical gender, and both Brazilian and European Portuguese variants.
-    
+    Return the full Portuguese pronunciation of a number, supporting cardinal and ordinal forms, decimals, large scales, grammatical gender, and both Brazilian and European Portuguese variants.
+
     Parameters:
         number (int or float): The number to pronounce.
         places (int): Number of decimal places to include for floats.
         scale (Scale): Numerical scale to use (short or long).
         variant (PortugueseVariant): Portuguese language variant for pronunciation.
         ordinals (bool): If True, pronounce as an ordinal number.
-        digits (DigitPronunciation): Determines whether decimal parts are pronounced as a whole number or digit by digit.
         gender (GrammaticalGender): Grammatical gender for ordinal numbers.
-    
+
     Returns:
         str: The number expressed as a Portuguese phrase.
     """
@@ -554,27 +565,31 @@ def pronounce_number_pt(
         return "zero"
 
     if number < 0:
-        return f"menos {pronounce_number_pt(abs(number), places, scale, variant)}"
+        return f"menos {pronounce_number_pt(abs(number), places, scale=scale, variant=variant, digits=digits, gender=gender)}"
 
     # Handle decimals
-    if isinstance(number, float):
+    if "." in str(number):
         integer_part = int(number)
         decimal_part_str = f"{number:.{places}f}".split('.')[1].rstrip("0")
 
         # Handle cases where the decimal part rounds to zero
         if decimal_part_str and int(decimal_part_str) == 0:
-            return pronounce_number_pt(integer_part, places, scale, variant)
+            return pronounce_number_pt(integer_part, places,
+                                       scale=scale, variant=variant,
+                                       digits=digits, gender=gender)
 
-        int_pronunciation = pronounce_number_pt(integer_part, places, scale, variant)
+        int_pronunciation = pronounce_number_pt(integer_part, places,
+                                                scale=scale, variant=variant,
+                                                digits=digits, gender=gender)
 
         decimal_pronunciation_parts = []
         #  pronounce decimals either as a whole number or digit by digit
         if decimal_part_str:
             if digits == DigitPronunciation.FULL_NUMBER:
-                decimal_pronunciation_parts.append(_pronounce_up_to_999(int(decimal_part_str[:3]), variant))
+                decimal_pronunciation_parts.append(_pronounce_up_to_999(int(decimal_part_str[:3]), variant, gender))
             else:
                 for digit in decimal_part_str:
-                    decimal_pronunciation_parts.append(_pronounce_up_to_999(int(digit), variant))
+                    decimal_pronunciation_parts.append(_pronounce_up_to_999(int(digit), variant, gender))
 
         decimal_pronunciation = " ".join(decimal_pronunciation_parts) or "zero"
         decimal_word = "vírgula"
@@ -585,7 +600,7 @@ def pronounce_number_pt(
 
     # Base case for recursion: numbers less than 1000
     if n < 1000:
-        return _pronounce_up_to_999(n, variant)
+        return _pronounce_up_to_999(n, variant, gender)
 
     scale_definitions = _SCALES[scale][variant]
 
