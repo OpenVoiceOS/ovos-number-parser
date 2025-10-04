@@ -1,12 +1,12 @@
 # Changelog
 
-## [0.4.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.4.1a1) (2025-08-04)
+## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.0a1) (2025-10-04)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.4.0...0.4.1a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.4.2...0.5.0a1)
 
 **Merged pull requests:**
 
-- fix: pt number grammatical gender [\#29](https://github.com/OpenVoiceOS/ovos-number-parser/pull/29) ([JarbasAl](https://github.com/JarbasAl))
+- feat: mwl support [\#33](https://github.com/OpenVoiceOS/ovos-number-parser/pull/33) ([JarbasAl](https://github.com/JarbasAl))
 
 
 
