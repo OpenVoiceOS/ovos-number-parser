@@ -37,6 +37,7 @@ fractional and ordinal numbers, and more.
 | `nl` (Dutch)            | ✅                | ✅                 | ✅              | ✅                 |
 | `pl` (Polish)           | ✅                | 🚧                 | ✅              | ✅                 |
 | `pt` (Portuguese)       | ✅                | ✅                  | ✅              | ✅                |
+| `mwl` (Mirandese)       | ✅                | ✅                  | ✅              | ✅                |
 | `ru` (Russian)          | ✅                | 🚧                 | ✅              | ✅                 |
 | `sv` (Swedish)          | ✅                | ✅                 | ✅              | ❌                 |
 | `sl` (Slovenian)        | ✅                | 🚧                 | ❌              | ❌                 |

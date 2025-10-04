@@ -23,6 +23,8 @@ from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number
 from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, is_fractional_pl
 from ovos_number_parser.numbers_pt import PortugueseVariant, pronounce_fraction_pt, numbers_to_digits_pt, \
     pronounce_number_pt, is_fractional_pt, extract_number_pt, pronounce_ordinal_pt, is_ordinal_pt
+from ovos_number_parser.numbers_mwl import pronounce_fraction_mwl, numbers_to_digits_mwl, \
+    pronounce_number_mwl, is_fractional_mwl, extract_number_mwl, pronounce_ordinal_mwl, is_ordinal_mwl
 from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru
 from ovos_number_parser.numbers_sl import pronounce_number_sl
 from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
@@ -68,6 +70,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Scale = Scale.LONG) -> s
         return numbers_to_digits_pl(utterance)
     if lang.startswith("pt"):
         return numbers_to_digits_pt(utterance, scale=scale)
+    if lang.startswith("mwl"):
+        return numbers_to_digits_mwl(utterance, scale=scale)
     if lang.startswith("ru"):
         return numbers_to_digits_ru(utterance)
     if lang.startswith("uk"):
@@ -138,6 +142,10 @@ def pronounce_number(number: Union[int, float], lang: str,
         return pronounce_number_pt(number, places, scale=scale,
                                    variant=variant, ordinals=ordinals,
                                    digits=digits, gender=gender)
+    if lang.startswith("mwl"):
+        return pronounce_number_mwl(number, places,
+                                   scale=scale, ordinals=ordinals,
+                                   digits=digits, gender=gender)
     if lang.startswith("ru"):
         return pronounce_number_ru(number, places, short_scale, scientific, ordinals)
     if lang.startswith("sl"):
@@ -172,6 +180,8 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Scale = Scale.LONG)
     if lang.startswith("pt"):
         variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
         return pronounce_fraction_pt(fraction_word, scale=scale, variant=variant)
+    elif lang.startswith("mwl"):
+        return pronounce_fraction_mwl(fraction_word, scale=scale)
     else:
         raise NotImplementedError(f"unsupported language: {lang}")
 
@@ -198,6 +208,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     if lang.startswith("pt"):
         variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
         return pronounce_ordinal_pt(number, scale=scale, variant=variant, gender=gender)
+    if lang.startswith("mwl"):
+        return pronounce_ordinal_mwl(number, scale=scale, gender=gender)
     if lang.startswith("da"):
         return pronounce_ordinal_da(number)
     if lang.startswith("de"):
@@ -267,6 +279,8 @@ def extract_number(text: str, lang: str, short_scale: bool = True, ordinals: boo
     if lang.startswith("pt"):
         variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
         return extract_number_pt(text, scale=scale, ordinals=ordinals, variant=variant)
+    if lang.startswith("mwl"):
+        return extract_number_mwl(text, scale=scale, ordinals=ordinals)
     if lang.startswith("ru"):
         return extract_number_ru(text, short_scale, ordinals)
     if lang.startswith("sv"):
@@ -320,6 +334,8 @@ def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[
         return is_fractional_pl(input_str, short_scale)
     if lang.startswith("pt"):
         return is_fractional_pt(input_str)
+    if lang.startswith("mwl"):
+        return is_fractional_mwl(input_str)
     if lang.startswith("ru"):
         return is_fractional_ru(input_str, short_scale)
     if lang.startswith("sv"):
@@ -343,6 +359,8 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
     """
     if lang.startswith("pt"):
         return is_ordinal_pt(input_str)
+    if lang.startswith("mwl"):
+        return is_ordinal_mwl(input_str)
     if lang.startswith("en"):
         return is_ordinal_en(input_str)
     if lang.startswith("de"):
