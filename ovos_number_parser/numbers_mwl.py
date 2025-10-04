@@ -20,6 +20,9 @@ _TENS_MWL: Dict[int, str] = {
     20: 'binte', 30: 'trinta', 40: 'quarenta', 50: 'cinquenta', 60: 'sessenta',
     70: 'setenta', 80: 'uitenta', 90: 'nobenta'
 }
+_TENS_ALT_MWL: Dict[int, str] = {
+    16: 'dezasseis', 17: 'dezassiete', 18: 'dezuito', 19: 'dezanuobe',
+}
 
 _HUNDREDS: Dict[int, str] = {
     100: 'cien', 200: 'duzientos', 300: 'trezientos', 400: 'quatrocientos',
@@ -107,6 +110,7 @@ _NUMBERS_BASE = {
     **_FEMALE_NUMS,
     **{v: k for k, v in _UNITS.items()},
     **{v: k for k, v in _TENS_MWL.items()},
+    **{v: k for k, v in _TENS_ALT_MWL.items()},
     **{v: k for k, v in _HUNDREDS.items()},
     "cento": 100
 }
@@ -159,7 +163,6 @@ def _pronounce_up_to_999(
         return "cem"
 
     parts = []
-    tens_map = _TENS_MWL
 
     # Hundreds
     if n >= 100:
@@ -167,18 +170,18 @@ def _pronounce_up_to_999(
         parts.append("cento" if hundred == 100 else _HUNDREDS[hundred])
         n %= 100
         if n > 0:
-            parts.append("e")
+            parts.append("i")
 
     # Tens and Units
     if n > 0:
         if n < 20:
-            parts.append(tens_map.get(n) or _UNITS.get(n, ""))
+            parts.append(_TENS_MWL.get(n) or _UNITS.get(n, ""))
         else:
             ten = n // 10 * 10
             unit = n % 10
-            parts.append(tens_map[ten])
+            parts.append(_TENS_MWL[ten])
             if unit > 0:
-                parts.append("e")
+                parts.append("i")
                 parts.append(_UNITS[unit])
 
     return " ".join(parts)
@@ -357,11 +360,12 @@ def extract_number_mwl(
     Returns:
         int or float: The extracted number if found; otherwise, False.
     """
+    text = text.replace("bint'i", "binte i")
     numbers_map = get_number_map(scale)
     scales_map = _SCALES[scale]
 
     clean_text = text.lower().replace('-', ' ')
-    tokens = [t for t in clean_text.split() if t != "e"]
+    tokens = [t for t in clean_text.split() if t != "i"]
 
     result = 0
     current_number = 0
@@ -511,7 +515,7 @@ def pronounce_number_mwl(
     # Pronounce the remainder and join with the correct conjunction
     remainder_str = pronounce_number_mwl(remainder, places, scale)
 
-    # Conjunction logic: add "e" if the remainder is the last group and is
+    # Conjunction logic: add "i" if the remainder is the last group and is
     # less than 100 or a multiple of 100.
     if remainder < 100 or (remainder < 1000 and remainder % 100 == 0):
         return f"{count_str} e {remainder_str}"
@@ -526,7 +530,7 @@ def numbers_to_digits_mwl(
     """
     Converts written Mirandese numbers in a text string to their digit equivalents, preserving all other text.
 
-    Identifies spans of number words (including the joiner "e"), extracts their numeric values, and replaces them with digit strings. Non-number words and context are left unchanged.
+    Identifies spans of number words (including the joiner "i"), extracts their numeric values, and replaces them with digit strings. Non-number words and context are left unchanged.
 
     Parameters:
         utterance (str): Input text possibly containing written Mirandese numbers.
@@ -535,6 +539,7 @@ def numbers_to_digits_mwl(
     Returns:
         str: The input text with written numbers replaced by their digit representations.
     """
+    utterance = utterance.replace("bint'i", "binte i")
     words = tokenize(utterance)
     output = []
     i = 0
@@ -546,7 +551,7 @@ def numbers_to_digits_mwl(
             number_span_words = []
             j = i
             # Continue the span as long as we find number words or the joiner 'e'
-            while j < len(words) and (words[j] in NUMBERS or words[j] == "e"):
+            while j < len(words) and (words[j] in NUMBERS or words[j] == "i"):
                 number_span_words.append(words[j])
                 j += 1
 
@@ -561,7 +566,7 @@ def numbers_to_digits_mwl(
                 i = j
             else:
                 # If the span doesn't form a valid number, treat the first word as non-numeric
-                # and move to the next word. This handles cases like "e" at the beginning of a sentence.
+                # and move to the next word. This handles cases like "i" at the beginning of a sentence.
                 output.append(words[i])
                 i += 1
         else:
@@ -587,6 +592,7 @@ def pronounce_fraction_mwl(word: str, scale: Scale = Scale.LONG) -> str:
     Returns:
         str: The Mirandese pronunciation of the fraction.
     """
+    word = word.replace("bint'i", "binte i")
     n1, n2 = word.split("/")
     n1_int, n2_int = int(n1), int(n2)
 
@@ -655,7 +661,7 @@ if __name__ == "__main__":
     print("\n--- Testing Cardinal Extraction ---")
     print(f"'un' -> {extract_number_mwl('un')}")
     print(f"'una' -> {extract_number_mwl('una')}")
-    print(f"'binte e un' -> {extract_number_mwl('binte e un')}")
+    print(f"'bint'i un' ->", extract_number_mwl(" 	bint'i un"))
     print(f"'un milhon' -> {extract_number_mwl('un milhon')}")
     print(f"'dous milhones e quinhentos' -> {extract_number_mwl('dous milhones e quinhentos')}")
     print(f"'mil e binte e trés' -> {extract_number_mwl('mil e binte e trés')}")
