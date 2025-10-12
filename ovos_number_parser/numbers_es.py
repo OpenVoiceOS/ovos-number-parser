@@ -216,7 +216,7 @@ _SHORT_SCALE_ES = OrderedDict([
     (1e453, "quinquagintacentillones"),
     (1e483, "sexagintacentillones"),
     (1e513, "septuagintacentillones"),
-    (1e543, "ctogintacentillones"),
+    (1e543, "octogintacentillones"),
     (1e573, "nonagintacentillones"),
     (1e603, "ducentillones"),
     (1e903, "trecentillones"),
