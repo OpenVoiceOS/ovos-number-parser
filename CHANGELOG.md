@@ -1,20 +1,12 @@
 # Changelog
 
-## [0.5.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.1a1) (2025-10-12)
+## [0.5.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.2a1) (2025-10-12)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.5.0a1...0.5.1a1)
-
-**Merged pull requests:**
-
-- fix: mwl [\#35](https://github.com/OpenVoiceOS/ovos-number-parser/pull/35) ([JarbasAl](https://github.com/JarbasAl))
-
-## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.0a1) (2025-10-04)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.4.2...0.5.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.5.1...0.5.2a1)
 
 **Merged pull requests:**
 
-- feat: mwl support [\#33](https://github.com/OpenVoiceOS/ovos-number-parser/pull/33) ([JarbasAl](https://github.com/JarbasAl))
+- numbers in spanish and catalan over 100 + small fixes [\#31](https://github.com/OpenVoiceOS/ovos-number-parser/pull/31) ([c-armentano](https://github.com/c-armentano))
 
 
 
