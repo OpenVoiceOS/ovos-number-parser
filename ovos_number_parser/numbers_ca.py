@@ -191,7 +191,7 @@ _SHORT_SCALE_CA = collections.OrderedDict([
     (1e15, "quadrilions"),
     (1e18, "quintilions"),
     (1e21, "sextilions"),
-    (1e42, "septilions"),
+    (1e24, "septilions"),
     (1e27, "octilions"),
     (1e30, "nonilions"),
     (1e33, "decilions"),
