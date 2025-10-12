@@ -49,7 +49,7 @@ _FRACTION_STRING_M_MWL: Dict[int, str] = {
 }
 _FRACTION_STRING_F_MWL: Dict[int, str] = {
     k: v[:-1] + "a"
-    for k, v in _FRACTION_STRING_M_MWL.items() if v.endswith("0")
+    for k, v in _FRACTION_STRING_M_MWL.items() if v.endswith("o")
 }
 _FRACTION_STRING_MWL: Dict[int, str] = {
     **_FRACTION_STRING_M_MWL, **_FRACTION_STRING_F_MWL
