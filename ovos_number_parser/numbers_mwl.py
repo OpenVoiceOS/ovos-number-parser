@@ -42,9 +42,9 @@ _HUNDREDS_ALT: Dict[int, str] = {
 _FRACTION_STRING_M_MWL: Dict[int, str] = {
     2: 'meio', 3: 'tércio', 4: 'quarto', 5: 'quinto', 6: 'sesto',
     7: 'sétimo', 8: 'uitabo', 9: 'nono', 10: 'décimo',
-    11: 'onze avos', 12: 'doze avos', 13: 'treze avos', 14: 'catorze avos',
-    15: 'quinze avos', 16: 'dezasseis avos', 17: 'dezassete avos',
-    18: 'dezoito avos', 19: 'dezanove avos',
+    11: 'onze abos', 12: 'doze abos', 13: 'treze abos', 14: 'catorze abos',
+    15: 'quinze abos', 16: 'dezasseis abos', 17: 'dezassete abos',
+    18: 'dezoito abos', 19: 'dezanuobe abos',
     20: 'bigésimo', 30: 'trigésimo', 100: 'centésimo', 1000: 'milésimo'
 }
 _FRACTION_STRING_F_MWL: Dict[int, str] = {
@@ -371,7 +371,7 @@ def is_fractional_mwl(
 
     # Use a dynamic lookup instead of a hardcoded list
     for den, word in fraction_map.items():
-        # Handle cases like "onze avos", so we check for the whole word
+        # Handle cases like "onze abos", so we check for the whole word
         if input_str == word:
             return 1.0 / den
 
@@ -632,7 +632,7 @@ def pronounce_fraction_mwl(word: str, scale: Scale = Scale.LONG) -> str:
     """
     Return the Mirandese pronunciation of a fraction given as a string (e.g., "1/2").
 
-    The numerator is pronounced as a cardinal number, and the denominator as an ordinal or fraction name, pluralized if appropriate. For denominators not in the known fraction list, the denominator is pronounced as a cardinal number followed by "avos" if plural.
+    The numerator is pronounced as a cardinal number, and the denominator as an ordinal or fraction name, pluralized if appropriate. For denominators not in the known fraction list, the denominator is pronounced as a cardinal number followed by "abos" if plural.
 
     Parameters:
         word (str): Fraction in the form "numerator/denominator" (e.g., "3/4").
@@ -653,7 +653,7 @@ def pronounce_fraction_mwl(word: str, scale: Scale = Scale.LONG) -> str:
         # For other numbers
         denom = pronounce_number_mwl(n2_int, scale=scale)
         if n1_int > 1:  # plural
-            denom += " avos"
+            denom += " abos"
 
     # Pronounce the numerator (first number) as a cardinal.
     num = pronounce_number_mwl(n1_int, scale=scale)
@@ -696,27 +696,27 @@ if __name__ == "__main__":
     print(f"'duzientos i cinquenta' -> '{numbers_to_digits_mwl('duzientos i cinquenta')}'")
     print(f"'un milhon' -> '{numbers_to_digits_mwl('un milhon')}'")
     print(f"'zasseis' -> '{numbers_to_digits_mwl('zasseis')}'")
-    print(f"'há duzientos i cinquenta carros' -> '{numbers_to_digits_mwl('há duzientos i cinquenta carros')}'")
+    print(f"'hai duzientos i cinquenta carros' -> '{numbers_to_digits_mwl('hai duzientos i cinquenta carros')}'")
 
     print("\n--- Testing Ordinal Extraction ---")
-    print(f"'o segundo carro' -> {extract_number_mwl('o segundo carro', ordinals=True)}")
+    print(f"'l segundo carro' -> {extract_number_mwl('l segundo carro', ordinals=True)}")
     print(f"'purmerio lugar' -> {extract_number_mwl('purmerio lugar', ordinals=True)}")
-    print(f"'o milésimo dia' -> {extract_number_mwl('o milésimo dia', ordinals=True)}")
-    print(f"'a milésima vez' -> {extract_number_mwl('a milésima vez', ordinals=True)}")
-    print(f"'a purmeria vez' -> {extract_number_mwl('a purmeria vez', ordinals=True)}")
-    print(f"'a sessagésima quarta vez' -> {extract_number_mwl('a sessagésima quarta vez', ordinals=True)}")
+    print(f"'l milésimo die' -> {extract_number_mwl('l milésimo dia', ordinals=True)}")
+    print(f"'la milésima beç' -> {extract_number_mwl('la milésima beç', ordinals=True)}")
+    print(f"'la purmeria beç' -> {extract_number_mwl('la purmeria beç', ordinals=True)}")
+    print(f"'la sessagésima quarta beç' -> {extract_number_mwl('la sessagésima quarta beç', ordinals=True)}")
 
     print("\n--- Testing Cardinal Extraction ---")
     print(f"'un' -> {extract_number_mwl('un')}")
     print(f"'ũa' -> {extract_number_mwl('ũa')}")
-    print(f"'bint'i un' ->", extract_number_mwl(" 	bint'i un"))
-    print(f"'bint'i ũa' ->", extract_number_mwl(" 	bint'i ũa"))
-    print(f"'bint'i dous' ->", extract_number_mwl(" 	bint'i dous"))
-    print(f"'bint'i dues' ->", extract_number_mwl(" 	bint'i dues"))
+    print(f"'bint'i un' ->", extract_number_mwl("bint'i un"))
+    print(f"'bint'i ũa' ->", extract_number_mwl("bint'i ũa"))
+    print(f"'bint'i dous' ->", extract_number_mwl("bint'i dous"))
+    print(f"'bint'i dues' ->", extract_number_mwl("bint'i dues"))
     print(f"'un milhon' -> {extract_number_mwl('un milhon')}")
-    print(f"'dous milhones e quinhentos' -> {extract_number_mwl('dous milhones e quinhentos')}")
-    print(f"'mil e binte e trés' -> {extract_number_mwl('mil e binte e trés')}")
-    print(f"'trinta e cinco vírgula quatro' -> {extract_number_mwl('trinta e cinco vírgula quatro')}")
+    print(f"'dous milhones e quinhentos' -> {extract_number_mwl('dous milhones i quinhentos')}")
+    print(f"'mil i binte i trés' -> {extract_number_mwl('mil i binte i trés')}")
+    print(f"'trinta i cinco bírgula quatro' -> {extract_number_mwl('trinta i cinco bírgula quatro')}")
 
     print("\n--- Testing Fractions ---")
     print(f"1/2: {pronounce_fraction_mwl('1/2')}")
