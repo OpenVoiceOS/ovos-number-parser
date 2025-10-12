@@ -1,11 +1,9 @@
 from typing import List, Union, Dict, Tuple
 
+from ovos_number_parser.numbers_pt import tokenize, _swap_gender  # consider implementing a mwl version if needed
 from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
 
-from ovos_number_parser.numbers_pt import tokenize, _swap_gender  # consider implementing a mwl version if needed
-
-
-DECIMAL_MARKERS = ["ponto", "virgula", "vírgula", ".", ","]
+DECIMAL_MARKERS = ["ponto", "birgula", "bírgula", ".", ","]
 
 # --- Base Pronunciation Dictionaries ---
 
@@ -29,19 +27,37 @@ _HUNDREDS: Dict[int, str] = {
     500: 'quinhentos', 600: 'seiscientos', 700: 'sietecientos',
     800: 'uitocientos', 900: 'nuobecientos'
 }
+_HUNDREDS_ALT: Dict[int, str] = {
+    100: 'un ciento',
+    200: 'dous cientos',
+    300: 'trés cientos',
+    400: 'quatro cientos',
+    500: 'cinco cientos',
+    600: 'seis cientos',
+    700: 'siete cientos',
+    800: 'uito cientos',
+    900: 'nuobe cientos'
+}
 
-_FRACTION_STRING_MWL: Dict[int, str] = {
-    2: 'meio', 3: 'terço', 4: 'quarto', 5: 'quinto', 6: 'sesto',
+_FRACTION_STRING_M_MWL: Dict[int, str] = {
+    2: 'meio', 3: 'tércio', 4: 'quarto', 5: 'quinto', 6: 'sesto',
     7: 'sétimo', 8: 'uitabo', 9: 'nono', 10: 'décimo',
-    11: 'onze avos', 12: 'doze avos', 13: 'treze avos', 14: 'catorze avos',
-    15: 'quinze avos', 16: 'dezasseis avos', 17: 'dezassete avos',
-    18: 'dezoito avos', 19: 'dezanove avos',
+    11: 'onze abos', 12: 'doze abos', 13: 'treze abos', 14: 'catorze abos',
+    15: 'quinze abos', 16: 'dezasseis abos', 17: 'dezassete abos',
+    18: 'dezoito abos', 19: 'dezanuobe abos',
     20: 'bigésimo', 30: 'trigésimo', 100: 'centésimo', 1000: 'milésimo'
+}
+_FRACTION_STRING_F_MWL: Dict[int, str] = {
+    k: v[:-1] + "a"
+    for k, v in _FRACTION_STRING_M_MWL.items() if v.endswith("o")
+}
+_FRACTION_STRING_MWL: Dict[int, str] = {
+    **_FRACTION_STRING_M_MWL, **_FRACTION_STRING_F_MWL
 }
 
 _FEMALE_NUMS = {
-    "una": 1,
-    "duas": 2
+    "ũa": 1,
+    "dues": 2
 }
 
 # --- Ordinal Pronunciation Dictionaries (Masculine Base) ---
@@ -50,17 +66,29 @@ _ORDINAL_UNITS_MASC: Dict[int, str] = {
     1: 'purmerio', 2: 'segundo', 3: 'terceiro', 4: 'quarto', 5: 'quinto',
     6: 'sesto', 7: 'sétimo', 8: 'uitabo', 9: 'nono'
 }
+_ORDINAL_UNITS_FEM: Dict[int, str] = {
+    k: v[:-1] + "a"
+    for k, v in _ORDINAL_UNITS_MASC.items()
+}
 
 _ORDINAL_TENS_MASC: Dict[int, str] = {
     10: 'décimo', 20: 'bigésimo', 30: 'trigésimo', 40: 'quadragésimo',
     50: 'quinquagésimo', 60: 'sessagésimo', 70: 'setuagésimo',
     80: 'uctogésimo', 90: 'nonagésimo'
 }
+_ORDINAL_TENS_FEM: Dict[int, str] = {
+    k: v[:-1] + "a"
+    for k, v in _ORDINAL_TENS_MASC.items()
+}
 
 _ORDINAL_HUNDREDS_MASC: Dict[int, str] = {
     100: 'centésimo', 200: 'ducentésimo', 300: 'tricentésimo',
     400: 'quadringentésimo', 500: 'quingentésimo', 600: 'seiscentésimo',
     700: 'setingentésimo', 800: 'uctingentésimo', 900: 'noningentésimo'
+}
+_ORDINAL_HUNDREDS_FEM: Dict[int, str] = {
+    k: v[:-1] + "a"
+    for k, v in _ORDINAL_HUNDREDS_MASC.items()
 }
 
 _ORDINAL_SCALES_MASC: Dict[Scale, List[Tuple[int, str]]] = {
@@ -82,6 +110,14 @@ _ORDINAL_SCALES_MASC: Dict[Scale, List[Tuple[int, str]]] = {
         (10 ** 6, "milionésimo"),
         (10 ** 3, "milésimo")
     ]
+}
+
+_ORDINAL_SCALES_FEM: Dict[Scale, List[Tuple[int, str]]] = {
+    Scale.SHORT: [(k, v[:-1] + "a")
+                  for k, v in _ORDINAL_SCALES_MASC[Scale.SHORT]],
+    Scale.LONG: [(k, v[:-1] + "a")
+                 for k, v in _ORDINAL_SCALES_MASC[Scale.LONG]],
+
 }
 
 _SCALES: Dict[Scale, List[Tuple[int, str, str]]] = {
@@ -112,8 +148,10 @@ _NUMBERS_BASE = {
     **{v: k for k, v in _TENS_MWL.items()},
     **{v: k for k, v in _TENS_ALT_MWL.items()},
     **{v: k for k, v in _HUNDREDS.items()},
-    "cento": 100
+    **{v: k for k, v in _HUNDREDS_ALT.items()},
+    "ciento": 100
 }
+
 
 def get_number_map(scale: Scale = Scale.LONG):
     return {
@@ -122,8 +160,8 @@ def get_number_map(scale: Scale = Scale.LONG):
         **{p_name: val for val, _, p_name in _SCALES[scale]}
     }
 
-_NUMBERS_MWL = get_number_map()
 
+_NUMBERS_MWL = get_number_map()
 
 _ORDINAL_WORDS_MASC = {
     **{v: k for k, v in _ORDINAL_UNITS_MASC.items()},
@@ -131,6 +169,17 @@ _ORDINAL_WORDS_MASC = {
     **{v: k for k, v in _ORDINAL_HUNDREDS_MASC.items()},
     **{s_name: val for val, s_name in _ORDINAL_SCALES_MASC[Scale.SHORT]},
 }
+_ORDINAL_WORDS_FEM = {
+    **{v: k for k, v in _ORDINAL_UNITS_FEM.items()},
+    **{v: k for k, v in _ORDINAL_TENS_FEM.items()},
+    **{v: k for k, v in _ORDINAL_HUNDREDS_FEM.items()},
+    **{s_name: val for val, s_name in _ORDINAL_SCALES_FEM[Scale.SHORT]},
+}
+_ORDINAL_WORDS = {
+    **_ORDINAL_WORDS_FEM,
+    **_ORDINAL_WORDS_MASC,
+}
+
 
 def _pronounce_up_to_999(
         n: int,
@@ -148,26 +197,26 @@ def _pronounce_up_to_999(
     Raises:
         ValueError: If n is not in the range 0 to 999.
     """
-    # special cases for feminine 1 and 2  "uma", "duas"
+    # special cases for feminine 1 and 2  "ũa", "dues"
     if gender == GrammaticalGender.FEMININE:
         if n == 1:
-            return "uma"
+            return "ũa"
         if n == 2:
-            return "duas"
+            return "dues"
 
     if not 0 <= n <= 999:
         raise ValueError("Number must be between 0 and 999.")
     if n == 0:
         return "zero"
     if n == 100:
-        return "cem"
+        return "cien"
 
     parts = []
 
     # Hundreds
     if n >= 100:
         hundred = n // 100 * 100
-        parts.append("cento" if hundred == 100 else _HUNDREDS[hundred])
+        parts.append("ciento" if hundred == 100 else _HUNDREDS_ALT[hundred])
         n %= 100
         if n > 0:
             parts.append("i")
@@ -322,7 +371,7 @@ def is_fractional_mwl(
 
     # Use a dynamic lookup instead of a hardcoded list
     for den, word in fraction_map.items():
-        # Handle cases like "onze avos", so we check for the whole word
+        # Handle cases like "onze abos", so we check for the whole word
         if input_str == word:
             return 1.0 / den
 
@@ -340,8 +389,7 @@ def is_ordinal_mwl(input_str: str) -> bool:
     Returns:
         bool: True if the input string is recognized as a Mirandese ordinal, otherwise False.
     """
-    input_str = _swap_gender(input_str, GrammaticalGender.MASCULINE)
-    return input_str in _ORDINAL_WORDS_MASC
+    return input_str in _ORDINAL_WORDS
 
 
 def extract_number_mwl(
@@ -373,19 +421,18 @@ def extract_number_mwl(
 
     for i, token in enumerate(tokens):
         if token is None:
-            continue # consumed in previous idx
-        next_token = tokens[i+1] if i < len(tokens) - 1 else None
+            continue  # consumed in previous idx
+        next_token = tokens[i + 1] if i < len(tokens) - 1 else None
         next_digit = numbers_map.get(next_token) if next_token else None
         val = numbers_map.get(token)
         if val is not None:
-            if next_digit and  next_digit > val:
-                tokens[i+1] = None
+            if next_digit and next_digit > val:
+                tokens[i + 1] = None
                 current_number += val * next_digit
             else:
                 current_number += val
         elif ordinals and is_ordinal_mwl(token):
-            token = _swap_gender(token, GrammaticalGender.MASCULINE)
-            current_number += _ORDINAL_WORDS_MASC[token]
+            current_number += _ORDINAL_WORDS[token]
         elif is_fractional_mwl(token):
             fraction = is_fractional_mwl(token)
             result += current_number + fraction
@@ -406,7 +453,7 @@ def extract_number_mwl(
             if not found_scale:
                 if token in DECIMAL_MARKERS:
                     decimal_str = ''.join(
-                        str(numbers_map.get(t, '')) for t in tokens[i+1:]
+                        str(numbers_map.get(t, '')) for t in tokens[i + 1:]
                         if t in numbers_map
                     )
                     if decimal_str:
@@ -419,7 +466,6 @@ def extract_number_mwl(
         result += current_number
 
     return result if result > 0 else False
-
 
 
 def pronounce_number_mwl(
@@ -463,12 +509,12 @@ def pronounce_number_mwl(
         # Handle cases where the decimal part rounds to zero
         if decimal_part_str and int(decimal_part_str) == 0:
             return pronounce_number_mwl(integer_part, places,
-                                       scale=scale,
-                                       digits=digits, gender=gender)
+                                        scale=scale,
+                                        digits=digits, gender=gender)
 
         int_pronunciation = pronounce_number_mwl(integer_part, places,
-                                                scale=scale,
-                                                digits=digits, gender=gender)
+                                                 scale=scale,
+                                                 digits=digits, gender=gender)
 
         decimal_pronunciation_parts = []
         #  pronounce decimals either as a whole number or digit by digit
@@ -480,7 +526,7 @@ def pronounce_number_mwl(
                     decimal_pronunciation_parts.append(_pronounce_up_to_999(int(digit), gender))
 
         decimal_pronunciation = " ".join(decimal_pronunciation_parts) or "zero"
-        decimal_word = "vírgula"
+        decimal_word = "bírgula"
         return f"{int_pronunciation} {decimal_word} {decimal_pronunciation}"
 
     # --- Integer Pronunciation Logic ---
@@ -540,6 +586,10 @@ def numbers_to_digits_mwl(
         str: The input text with written numbers replaced by their digit representations.
     """
     utterance = utterance.replace("bint'i", "binte i")
+    for n, v in _HUNDREDS_ALT.items():
+        # normalize alternative multi-word spelling to single word
+        utterance = utterance.replace(v, _HUNDREDS[n])
+
     words = tokenize(utterance)
     output = []
     i = 0
@@ -578,13 +628,11 @@ def numbers_to_digits_mwl(
     return " ".join(output)
 
 
-
-
 def pronounce_fraction_mwl(word: str, scale: Scale = Scale.LONG) -> str:
     """
     Return the Mirandese pronunciation of a fraction given as a string (e.g., "1/2").
 
-    The numerator is pronounced as a cardinal number, and the denominator as an ordinal or fraction name, pluralized if appropriate. For denominators not in the known fraction list, the denominator is pronounced as a cardinal number followed by "avos" if plural.
+    The numerator is pronounced as a cardinal number, and the denominator as an ordinal or fraction name, pluralized if appropriate. For denominators not in the known fraction list, the denominator is pronounced as a cardinal number followed by "abos" if plural.
 
     Parameters:
         word (str): Fraction in the form "numerator/denominator" (e.g., "3/4").
@@ -600,12 +648,12 @@ def pronounce_fraction_mwl(word: str, scale: Scale = Scale.LONG) -> str:
     if n2_int in _FRACTION_STRING_MWL:
         denom = _FRACTION_STRING_MWL[n2_int]
         if n1_int != 1:
-            denom += "s" # plural
+            denom += "s"  # plural
     else:
         # For other numbers
         denom = pronounce_number_mwl(n2_int, scale=scale)
         if n1_int > 1:  # plural
-            denom += " avos"
+            denom += " abos"
 
     # Pronounce the numerator (first number) as a cardinal.
     num = pronounce_number_mwl(n1_int, scale=scale)
@@ -645,27 +693,30 @@ if __name__ == "__main__":
     print(f"1,000,000,000,000th (long): {pronounce_number_mwl(1_000_000_000_000, ordinals=True, scale=Scale.LONG)}")
 
     print("\n--- Testing numbers_to_digits_mwl ---")
-    print(f"'duzientos e cinquenta' -> '{numbers_to_digits_mwl('duzientos e cinquenta')}'")
+    print(f"'duzientos i cinquenta' -> '{numbers_to_digits_mwl('duzientos i cinquenta')}'")
     print(f"'un milhon' -> '{numbers_to_digits_mwl('un milhon')}'")
     print(f"'zasseis' -> '{numbers_to_digits_mwl('zasseis')}'")
-    print(f"'há duzientos e cinquenta carros' -> '{numbers_to_digits_mwl('há duzientos e cinquenta carros')}'")
+    print(f"'hai duzientos i cinquenta carros' -> '{numbers_to_digits_mwl('hai duzientos i cinquenta carros')}'")
 
     print("\n--- Testing Ordinal Extraction ---")
-    print(f"'o segundo carro' -> {extract_number_mwl('o segundo carro', ordinals=True)}")
+    print(f"'l segundo carro' -> {extract_number_mwl('l segundo carro', ordinals=True)}")
     print(f"'purmerio lugar' -> {extract_number_mwl('purmerio lugar', ordinals=True)}")
-    print(f"'o milésimo dia' -> {extract_number_mwl('o milésimo dia', ordinals=True)}")
-    print(f"'a milésima vez' -> {extract_number_mwl('a milésima vez', ordinals=True)}")
-    print(f"'a purmeria vez' -> {extract_number_mwl('a purmeria vez', ordinals=True)}")
-    print(f"'a sessagésima quarta vez' -> {extract_number_mwl('a sessagésima quarta vez', ordinals=True)}")
+    print(f"'l milésimo die' -> {extract_number_mwl('l milésimo dia', ordinals=True)}")
+    print(f"'la milésima beç' -> {extract_number_mwl('la milésima beç', ordinals=True)}")
+    print(f"'la purmeria beç' -> {extract_number_mwl('la purmeria beç', ordinals=True)}")
+    print(f"'la sessagésima quarta beç' -> {extract_number_mwl('la sessagésima quarta beç', ordinals=True)}")
 
     print("\n--- Testing Cardinal Extraction ---")
     print(f"'un' -> {extract_number_mwl('un')}")
-    print(f"'una' -> {extract_number_mwl('una')}")
-    print(f"'bint'i un' ->", extract_number_mwl(" 	bint'i un"))
+    print(f"'ũa' -> {extract_number_mwl('ũa')}")
+    print(f"'bint'i un' ->", extract_number_mwl("bint'i un"))
+    print(f"'bint'i ũa' ->", extract_number_mwl("bint'i ũa"))
+    print(f"'bint'i dous' ->", extract_number_mwl("bint'i dous"))
+    print(f"'bint'i dues' ->", extract_number_mwl("bint'i dues"))
     print(f"'un milhon' -> {extract_number_mwl('un milhon')}")
-    print(f"'dous milhones e quinhentos' -> {extract_number_mwl('dous milhones e quinhentos')}")
-    print(f"'mil e binte e trés' -> {extract_number_mwl('mil e binte e trés')}")
-    print(f"'trinta e cinco vírgula quatro' -> {extract_number_mwl('trinta e cinco vírgula quatro')}")
+    print(f"'dous milhones e quinhentos' -> {extract_number_mwl('dous milhones i quinhentos')}")
+    print(f"'mil i binte i trés' -> {extract_number_mwl('mil i binte i trés')}")
+    print(f"'trinta i cinco bírgula quatro' -> {extract_number_mwl('trinta i cinco bírgula quatro')}")
 
     print("\n--- Testing Fractions ---")
     print(f"1/2: {pronounce_fraction_mwl('1/2')}")
@@ -675,4 +726,3 @@ if __name__ == "__main__":
     print(f"5/4: {pronounce_fraction_mwl('5/4')}")
     print(f"7/5: {pronounce_fraction_mwl('7/5')}")
     print(f"0/20: {pronounce_fraction_mwl('0/20')}")
-
