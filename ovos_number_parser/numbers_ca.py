@@ -1,4 +1,5 @@
 from typing import List
+import collections
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
                                      is_numeric, tokenize, Token)
@@ -122,6 +123,140 @@ _NUM_STRING_CA = {
     90: 'noranta'
 }
 
+# source: https://ca.wikipedia.org/wiki/Escales_curta_i_llarga
+_LONG_SCALE_CA = collections.OrderedDict([
+    (100, 'cent'),
+    (1000, 'mil'),
+    (1000000, 'milions'),
+    (1e9, "miliards"),
+    (1e12, "bilions"),
+    (1e15, "biliards"),
+    (1e18, "trilions"),
+    (1e21, "triliards"),
+    (1e24, "quadrilions"),
+    (1e27, "quadriliards"),
+    (1e30, "quintilions"),
+    (1e33, "quintiliards"),
+    (1e36, "sextilió"),
+    (1e39, "sextiliard"),
+    (1e42, "septilió"),
+    (1e45, "septiliard"),
+    (1e48, "octilió"),
+    (1e51, "octiliards"),
+    (1e54, "nonilió"),
+    (1e57, "noniliards"),
+    (1e60, "decilió"),
+    (1e63, "deciliard"),
+    (1e66, "undecilió"),
+    (1e69, "undeciliard"),
+    (1e72, "duodecilió"),
+    (1e75, "duodeciliard"),
+    (1e78, "tredecilió"),
+    (1e81, "tredeciliard"),
+    (1e84, "quattuordecilió"),
+    (1e87, "quattuordeciliard"),
+    (1e90, "quindecilió"),
+    (1e93, "quindeciliard"),
+    (1e96, "sexdecilió"),
+    (1e99, "sexdeciliard"),
+    (1e102, "septendecilió"),
+    (1e105, "septendeciliard"),
+    (1e108, "octodecilió"),
+    (1e111, "octodeciliard"),
+    (1e114, "novemdecilió"),
+    (1e117, "novemdeciliard"),
+    (1e120, "vigintilions"),
+    (1e123, "vigintiliard"),
+
+    (1e306, "unquinquagintilió"),
+    (1e312, "duoquinquagintilió"),
+    (1e360, "sexagintilió"),
+    (1e363, "sexagintiliard"),
+    (1e420, "septuagintilió"),
+    (1e423, "septuagintiliard"),
+    (1e480, "octogintilió"),
+    (1e483, "octogintilliard"),
+    (1e540, "nonagintilió"),
+    (1e543, "nonagintiliard"),
+    (1e600, "centilió"),
+    (1e603, "centiliard")
+])
+
+_SHORT_SCALE_CA = collections.OrderedDict([
+    (100, 'cent'),
+    (1000, 'mil'),
+    (1000000, 'milions'),
+    (1e9, 'bilions'),
+    (1e12, "trilions"),
+    (1e15, "quadrilions"),
+    (1e18, "quintilions"),
+    (1e21, "sextilions"),
+    (1e24, "septilions"),
+    (1e27, "octilions"),
+    (1e30, "nonilions"),
+    (1e33, "decilions"),
+    (1e36, "undecilions"),
+    (1e39, "duodecilions"),
+    (1e42, "tredecilions"),
+    (1e45, "quattordecilions"),
+    (1e48, "quindecilions"),
+    (1e51, "sexdecilions"),
+    (1e54, "septendecilions"),
+    (1e57, "octodecilions"),
+    (1e60, "novemdecilions"),
+    (1e63, "vigintilions"),
+    (1e66, "unvigintilions"),
+    (1e69, "duovigintilions"),
+    (1e72, "tresvigintilions"),
+    (1e75, "quattuorvigintilions"),
+    (1e78, "quinquavigintilions"),
+    (1e81, "sexvigintilions"),
+    (1e84, "septemvigintilions"),
+    (1e87, "octovigintilions"),
+    (1e90, "novemvigintilions"),
+    (1e93, "trigintilions"),
+    (1e96, "untrigintilions"),
+    (1e99, "duotrigintilions"),
+    (1e102, "trestrigintilions"),
+    (1e105, "quattuortrigintilions"),
+    (1e108, "quinquatrigintilions"),
+    (1e111, "sestrigintilions"),
+    (1e114, "septentrigintilions"),
+    (1e117, "octotrigintilions"),
+    (1e120, "noventrigintilions"),
+    (1e123, "quadragintilions"),
+    (1e153, "quinquagintilions"),
+    (1e183, "sexagintilions"),
+    (1e213, "septuagintilions"),
+    (1e243, "octogintilions"),
+    (1e273, "nonagintilions"),
+    (1e303, "centilions"),
+    (1e306, "uncentilions"),
+    (1e309, "duocentilions"),
+    (1e312, "trescentilions"),
+    (1e333, "decicentilions"),
+    (1e336, "undecicentilions"),
+    (1e363, "viginticentilions"),
+    (1e366, "unviginticentilions"),
+    (1e393, "trigintacentilions"),
+    (1e423, "quadragintacentilions"),
+    (1e453, "quinquagintacentilions"),
+    (1e483, "sexagintacentilions"),
+    (1e513, "septuagintacentilions"),
+    (1e543, "octogintacentilions"),
+    (1e573, "nonagintacentilions"),
+    (1e603, "ducentilions"),
+    (1e903, "trecentilions"),
+    (1e1203, "quadringentilions"),
+    (1e1503, "quingentilions"),
+    (1e1803, "sescentilions"),
+    (1e2103, "septingentilions"),
+    (1e2403, "octingentilions"),
+    (1e2703, "nongentilions"),
+    (1e3003, "milinilions")
+])
+
+
 _TENS_CA = {
     "vint": 20,
     "trenta": 30,
@@ -207,52 +342,155 @@ def nice_number_ca(number, speech, denominators=range(1, 21)):
             # un desè
             return_string = 'un {}'.format(den_str)
         else:
-            # tres mig
+            # quatre cinquens
             return_string = '{} {}'.format(num, den_str)
-    # inteiros >10
-    elif num == 1:
-        # trenta-un
-        return_string = '{}-{}'.format(whole, den_str)
-    # inteiros >10 com fracções
+    
     else:
         # vint i 3 desens
         return_string = '{} i {} {}'.format(whole, num, den_str)
     # plural
     if num > 1:
-        return_string += 's'
+        if return_string[-1] == "è":
+           return_string =  return_string[:-1] + "ens"
+        else:
+            return_string += 's'
     return return_string
 
 
-def pronounce_number_ca(number, places=2):
+def pronounce_number_ca(number, places=2, short_scale=False, scientific=False):
     """
     Convert a number to it's spoken equivalent
      For example, '5.2' would return 'cinc coma dos'
      Args:
-        number(float or int): the number to pronounce (under 100)
+        number(float or int): the number to pronounce
         places(int): maximum decimal places to speak
     Returns:
         (str): The pronounced number
     """
-    if abs(number) >= 100:
-        # TODO: Support n > 100
-        return str(number)
-
+    
     result = ""
     if number < 0:
         result = "menys "
     number = abs(number)
 
-    if number >= 20:
-        tens = int(number - int(number) % 10)
-        ones = int(number - tens)
-        result += _NUM_STRING_CA[tens]
-        if ones > 0:
-            if tens == 20:
-                result += "-i-" + _NUM_STRING_CA[ones]
-            else:
-                result += "-" + _NUM_STRING_CA[ones]
+    if number == float("inf"):
+        return "infinit"
+    elif number == float("-inf"):
+        return "menys infinit"
+
+    number_names = _NUM_STRING_CA.copy()
+
+    if short_scale:
+        number_names.update(_SHORT_SCALE_CA)
     else:
-        result += _NUM_STRING_CA[int(number)]
+        number_names.update(_LONG_SCALE_CA)      
+
+    digits = [number_names[n] for n in range(0, 20)]
+
+    tens = [number_names[n] for n in range(10, 100, 10)]
+
+    if short_scale==True:
+        hundreds = [_SHORT_SCALE_CA[n] for n in _SHORT_SCALE_CA.keys()]
+    else:
+        hundreds = [_LONG_SCALE_CA[n] for n in _LONG_SCALE_CA.keys()]
+    
+        
+    
+    if number in number_names: # check for a direct match 
+        result += number_names[number]
+    else:
+        def _sub_thousand(n):
+            assert 0 <= n <= 999
+            if n <= 19:
+                return digits[n]
+            elif n <= 99:
+                q, r = divmod(n, 10)
+                _deci = tens[q - 1]
+                _unit = r
+                _partial = _deci
+                if _unit > 0:
+                    if _deci == "vint":
+                        _partial = _partial + "-i-" + number_names[_unit]
+                    else:
+                        _partial = _partial + "-" + number_names[_unit]
+                return _partial
+            else:
+                q, r = divmod(n, 100)
+                if q == 1:
+                    _partial = "cent"
+                else:
+                    _partial = digits[q] + "-cents"
+                _partial += (
+                    " " + _sub_thousand(r) if r else "")  # separa centenars
+                return _partial
+
+        def _short_scale(n):
+            if n >= max(_SHORT_SCALE_CA.keys()):
+                return "número extremadament gran"
+            n = int(n)
+            assert 0 <= n
+            res = []
+            for i, z in enumerate(_split_by(n, 1000)):
+                if not z:
+                    continue
+                number = _sub_thousand(z)
+                if i:
+                    number += " "  # separa ordres de magnitud
+                    number += hundreds[i]
+                    if number == "un mil":
+                        number = "mil"
+                res.append(number)
+
+            return " ".join(reversed(res))
+
+        def _split_by(n, split=1000):
+            assert 0 <= n
+            res = []
+            while n:
+                n, r = divmod(n, split)
+                res.append(r)
+            return res
+
+        def _long_scale(n):
+            if n >= max(_LONG_SCALE_CA.keys()):
+                return "número extremadament gran"
+            n = int(n)
+            assert 0 <= n
+            res = []
+            for i, z in enumerate(_split_by(n, 1000000)):
+                if not z:
+                    continue
+                number = pronounce_number_ca(z, places, True, scientific)
+                # strip off the comma after the thousand
+                if i:
+                    # plus one as we skip 'thousand'
+                    # (and 'hundred', but this is excluded by index value)
+                    number = number.replace(',', '')
+                    number += " " + hundreds[i + 1]
+                res.append(number)
+            return " ".join(reversed(res))
+
+        if short_scale:
+            result += _short_scale(number)
+        else:
+            result += _long_scale(number)
+
+    big_nums = [_LONG_SCALE_CA[a] for a in _LONG_SCALE_CA]
+    if result in big_nums:
+        if result[-3:] == "rds":
+            result = "un " + result[:-1]
+        elif result[-3:] == "ons":
+            result = "un " + result[:-3] + "ó"
+    if len(result.split(" ")) > 1 and result.split(" ")[0] == "un":
+        big_num = result.split(" ")[1]
+        if big_num in big_nums:
+            new_big_num = big_num
+            if big_num[-3:] == "rds":
+                new_big_num = big_num[:-1]
+
+            elif big_num[-3:] == "ons":
+                new_big_num = big_num[:-3] + "ó"             
+            result = result.replace(big_num, new_big_num)
 
     # Deal with decimal part, in Catalan is commonly used the comma
     # instead the dot. Decimal part can be written both with comma
