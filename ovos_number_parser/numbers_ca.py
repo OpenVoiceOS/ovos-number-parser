@@ -243,7 +243,7 @@ _SHORT_SCALE_CA = collections.OrderedDict([
     (1e453, "quinquagintacentilions"),
     (1e483, "sexagintacentilions"),
     (1e513, "septuagintacentilions"),
-    (1e543, "ctogintacentilions"),
+    (1e543, "octogintacentilions"),
     (1e573, "nonagintacentilions"),
     (1e603, "ducentilions"),
     (1e903, "trecentilions"),
