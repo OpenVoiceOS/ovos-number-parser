@@ -38,6 +38,7 @@ fractional and ordinal numbers, and more.
 | `pl` (Polish)           | ✅                | 🚧                 | ✅              | ✅                 |
 | `pt` (Portuguese)       | ✅                | ✅                  | ✅              | ✅                |
 | `mwl` (Mirandese)       | ✅                | ✅                  | ✅              | ✅                |
+| `ast` (Asturian)        | ✅                | ✅                  | ✅              | ✅                |
 | `ru` (Russian)          | ✅                | 🚧                 | ✅              | ✅                 |
 | `sv` (Swedish)          | ✅                | ✅                 | ✅              | ❌                 |
 | `sl` (Slovenian)        | ✅                | 🚧                 | ❌              | ❌                 |
