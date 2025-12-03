@@ -1,12 +1,39 @@
-from collections import namedtuple
+from dataclasses import dataclass
 from enum import Enum
+from typing import List, Dict, Union, Any, Tuple, Optional
+
 from quebra_frases import word_tokenize
 
-# Token is intended to be used in the number processing functions in
-# this module. The parsing requires slicing and dividing of the original
-# text. To ensure things parse correctly, we need to know where text came
-# from in the original input, hence this nametuple.
-Token = namedtuple('Token', 'word index')
+
+@dataclass
+class Token:
+    word: str
+    index: int
+
+    def __iter__(self):
+        yield self.word
+        yield self.index
+
+    def __getitem__(self, item):
+        if item == 0:
+            return self.word
+        elif item == 1:
+            return self.index
+        raise IndexError
+
+    def __setattr__(self, key, value):
+        """
+        Prevent modification of existing attributes, allowing only new attributes to be set.
+
+        Raises:
+            Exception: If attempting to modify an attribute that already exists.
+        """
+        try:
+            getattr(self, key)
+        except AttributeError:
+            super().__setattr__(key, value)
+        else:
+            raise AttributeError("Immutable!")
 
 
 class Scale(str, Enum):
@@ -33,6 +60,7 @@ class DigitPronunciation(str, Enum):
     FULL_NUMBER = "number"
 
 
+@dataclass
 class ReplaceableNumber:
     """
     Similar to Token, this class is used in number parsing.
@@ -42,24 +70,22 @@ class ReplaceableNumber:
     In other words, it is the text, and the number that can replace it in
     the string.
     """
+    value: Union[int, float]
+    tokens: List[Token]
 
-    def __init__(self, value, tokens: [Token]):
-        self.value = value
-        self.tokens = tokens
-
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.value is not None and self.value is not False)
 
     @property
-    def start_index(self):
+    def start_index(self) -> int:
         return self.tokens[0].index
 
     @property
-    def end_index(self):
+    def end_index(self) -> int:
         return self.tokens[-1].index
 
     @property
-    def text(self):
+    def text(self) -> str:
         """
         Return the concatenated text represented by the tokens, separated by spaces.
         """
@@ -87,7 +113,7 @@ class ReplaceableNumber:
                                       t=self.tokens)
 
 
-def tokenize(text):
+def tokenize(text) -> List[Token]:
     """
     Generate a list of token object, given a string.
     Args:
@@ -97,11 +123,10 @@ def tokenize(text):
         [Token]
 
     """
-    return [Token(word, index)
-            for index, word in enumerate(word_tokenize(text))]
+    return [Token(word, index) for index, word in enumerate(word_tokenize(text))]
 
 
-def partition_list(items, split_on):
+def partition_list(items, split_on) -> List[Any]:
     """
     Partition a list of items.
 
@@ -131,7 +156,7 @@ def partition_list(items, split_on):
     return list(filter(lambda x: len(x) != 0, splits))
 
 
-def invert_dict(original):
+def invert_dict(original: Dict[Any, Any]) -> Dict[Any, Any]:
     """
     Produce a dictionary with the keys and values
     inverted, relative to the dict passed in.
@@ -146,7 +171,7 @@ def invert_dict(original):
     return {value: key for key, value in original.items()}
 
 
-def is_numeric(input_str):
+def is_numeric(input_str: str) -> bool:
     """
     Return True if the input string represents a valid number, otherwise False.
 
@@ -163,7 +188,7 @@ def is_numeric(input_str):
         return False
 
 
-def look_for_fractions(split_list):
+def look_for_fractions(split_list: List[str]) -> bool:
     """"
     This function takes a list made by fraction & determines if a fraction.
 
@@ -181,7 +206,7 @@ def look_for_fractions(split_list):
     return False
 
 
-def convert_to_mixed_fraction(number, denominators=range(1, 21)):
+def convert_to_mixed_fraction(number: Union[int, float], denominators=range(1, 21)) -> Optional[Tuple[int, int, int]]:
     """
     Convert floats to components of a mixed fraction representation
 
