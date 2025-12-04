@@ -50,7 +50,7 @@ def numbers_to_digits(utterance: str, lang: str, scale: Scale = Scale.LONG) -> s
     if lang.startswith("az"):
         return numbers_to_digits_az(utterance)
     if lang.startswith("ast"):
-        return numbers_to_digits_ast(utterance)
+        return AST.numbers_to_digits(utterance)
     if lang.startswith("ca"):
         return numbers_to_digits_ca(utterance)
     if lang.startswith("gl"):
@@ -70,9 +70,9 @@ def numbers_to_digits(utterance: str, lang: str, scale: Scale = Scale.LONG) -> s
     if lang.startswith("pl"):
         return numbers_to_digits_pl(utterance)
     if lang.startswith("pt"):
-        return numbers_to_digits_pt(utterance, scale=scale)
+        return PT_PT.numbers_to_digits(utterance, scale=scale)
     if lang.startswith("mwl"):
-        return numbers_to_digits_mwl(utterance, scale=scale)
+        return MWL.numbers_to_digits(utterance, scale=scale)
     if lang.startswith("ru"):
         return numbers_to_digits_ru(utterance)
     if lang.startswith("uk"):
