@@ -419,39 +419,51 @@ class RomanceNumberExtractor:
         clean_text = text.lower().replace('-', ' ')
         tokens = [t for t in clean_text.split() if t not in self.vocab.JOIN_WORD]
 
-        result = 0
-        current_number = 0
+        result = None
+        current_number = None
         number_consumed = False
+        is_negative = False
 
         for i, token in enumerate(tokens):
             if token is None:
                 continue  # consumed in previous idx
+            prev_token = tokens[i - 1] if i > 0 else None
             next_token = tokens[i + 1] if i < len(tokens) - 1 else None
             next_digit = numbers_map.get(next_token) if next_token else None
             val = numbers_map.get(token)
             if val is not None:
-                if next_digit and next_digit > val:
+                current_number = current_number or 0
+                result = result or 0
+                if prev_token in self.vocab.NEGATIVE_SIGN:
+                    is_negative = True
+                if next_digit and next_digit > abs(val):
                     tokens[i + 1] = None
                     current_number += val * next_digit
                 else:
                     current_number += val
             elif ordinals and self.is_ordinal(token):
               #  token = self.vocab.swap_gender(token, GrammaticalGender.MASCULINE)
+                current_number = current_number or 0
+                result = result or 0
                 current_number += ordinals_map[token]
             elif self.is_fractional(token):
+                current_number = current_number or 0
+                result = result or 0
                 fraction = self.is_fractional(token)
                 result += current_number + fraction
-                current_number = 0
+                current_number = None
                 number_consumed = True
             else:
                 # Handle large scales like milhão, bilhão
                 found_scale = False
                 for scale_val, w  in scales_map.items():
                     if token == w or token == self.vocab.pluralize(w):
-                        if current_number == 0:
+                        current_number = current_number or 0
+                        result = result or 0
+                        if current_number is None:
                             current_number = 1
                         result += current_number * scale_val
-                        current_number = 0
+                        current_number = None
                         found_scale = True
                         number_consumed = True
                         break
@@ -459,6 +471,8 @@ class RomanceNumberExtractor:
                 # Handle decimal numbers
                 if not found_scale:
                     if token in self.vocab.DECIMAL_MARKER:
+                        current_number = current_number or 0
+                        result = result or 0
                         decimal_str = ''.join(
                             str(numbers_map.get(t, '')) for t in tokens[i + 1:]
                             if t in numbers_map
@@ -466,13 +480,16 @@ class RomanceNumberExtractor:
                         if decimal_str:
                             result += current_number + float(f"0.{decimal_str}")
                             number_consumed = True
-                        current_number = 0
+                        current_number = None
                         break
 
-        if not number_consumed:
+        if not number_consumed and current_number:
+            result = result or 0
             result += current_number
 
-        return result if result > 0 else False
+        if result and is_negative:
+            result = -result
+        return result if result is not None else False
 
     def numbers_to_digits(self,
                           utterance: str,

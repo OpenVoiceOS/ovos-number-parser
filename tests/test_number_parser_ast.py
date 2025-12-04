@@ -76,14 +76,9 @@ class TestFractionsAst(unittest.TestCase):
         self.assertAlmostEqual(AST.is_fractional("mediu"), 0.5)
         self.assertAlmostEqual(AST.is_fractional("terciu"), 1/3)
 
-    @unittest.skip("TODO - fix me")
-    def test_fraction_variants(self):
-        self.assertAlmostEqual(AST.is_fractional("medios"), 0.5)
-        self.assertAlmostEqual(AST.is_fractional("cuartos"), 1/4)
-
-    @unittest.skip("TODO - fix me")
-    def test_compound_fraction_phrase(self):
-        self.assertAlmostEqual(AST.extract_number("tres cuartos"), 3 * (1/4))
+    def test_fraction_plurals(self):
+        self.assertAlmostEqual(AST.is_fractional("medius"), 0.5)
+        self.assertAlmostEqual(AST.is_fractional("cuartus"), 1/4)
 
     def test_fraction_pronounce(self):
         result = AST.pronounce_fraction("1/4")
@@ -91,7 +86,7 @@ class TestFractionsAst(unittest.TestCase):
         self.assertIn("cuartu", result)
         result2 = AST.pronounce_fraction("3/4")
         self.assertIn("tres", result2)
-        self.assertIn("cuartus", result2 if "cuartus" in result2 else "cuartus?")
+        self.assertIn("cuartus", result2)
 
 
 # ============================================================
@@ -112,7 +107,7 @@ class TestExtractAST(unittest.TestCase):
         self.assertEqual(AST.extract_number("mil"), 1000)
         self.assertEqual(AST.extract_number("mil doscientos trenta y cuatro"), 1234)
 
-    def test_millón(self):
+    def test_million(self):
         self.assertEqual(AST.extract_number("un millón"), 1_000_000)
 
     def test_million_plus(self):
@@ -122,7 +117,6 @@ class TestExtractAST(unittest.TestCase):
     def test_fraction_phrase(self):
         self.assertAlmostEqual(AST.extract_number("tres cuartos"), 0.75)
 
-    @unittest.skip("TODO - fix me")
     def test_negative(self):
         self.assertEqual(AST.extract_number("menos cinco"), -5)
 
@@ -201,7 +195,6 @@ class TestIntegrationAST(unittest.TestCase):
         self.assertIn("punto", res)
         self.assertIn("un", res)
 
-    @unittest.skip("TODO - fix me")
     def test_negative(self):
         text = AST.pronounce_number(-234)
         self.assertTrue(text.startswith("menos"))

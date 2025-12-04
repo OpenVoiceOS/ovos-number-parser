@@ -611,6 +611,12 @@ class TestIntegrationScenarios(unittest.TestCase):
         except Exception as e:
             self.fail(f"Large number pronunciation failed: {e}")
 
+    def test_negative(self):
+        text = PT_PT.pronounce_number(-234)
+        self.assertTrue(text.startswith("menos"))
+        self.assertEqual(PT_PT.extract_number(text), -234) # -234 != -166
+
+        self.assertEqual(PT_BR.extract_number("menos cinco"), -5)
 
 if __name__ == '__main__':
     unittest.main()
