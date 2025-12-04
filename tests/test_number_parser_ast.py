@@ -1,15 +1,7 @@
 import unittest
 
-from ovos_number_parser.util import Scale, GrammaticalGender
-from ovos_number_parser.numbers_ast import (
-    AST,
-    pronounce_number_ast,
-    pronounce_ordinal_ast,
-    is_fractional_ast,
-    pronounce_fraction_ast,
-    extract_number_ast,
-    numbers_to_digits_ast
-)
+from ovos_number_parser.util import GrammaticalGender
+from ovos_number_parser.numbers_ast import AST
 
 # ============================================================
 # Dictionaries
@@ -41,37 +33,37 @@ class TestDictionaries(unittest.TestCase):
 
 
 # ============================================================
-# Pronounce up to 999 (through pronounce_number_ast)
+# Pronounce up to 999 (through AST.pronounce_number)
 # ============================================================
 
 class TestPronounceUpTo999_AST(unittest.TestCase):
 
     def test_zero(self):
-        self.assertEqual(pronounce_number_ast(0), "cero")
+        self.assertEqual(AST.pronounce_number(0), "cero")
 
     def test_units(self):
-        self.assertEqual(pronounce_number_ast(1), "un")
-        self.assertEqual(pronounce_number_ast(5), "cinco")
+        self.assertEqual(AST.pronounce_number(1), "un")
+        self.assertEqual(AST.pronounce_number(5), "cinco")
 
     def test_teens(self):
-        self.assertEqual(pronounce_number_ast(16), "dieciséis")
-        self.assertEqual(pronounce_number_ast(18), "dieciocho")
+        self.assertEqual(AST.pronounce_number(16), "dieciséis")
+        self.assertEqual(AST.pronounce_number(18), "dieciocho")
 
     def test_composite_20s(self):
-        self.assertEqual(pronounce_number_ast(21), "ventiuno")
-        self.assertEqual(pronounce_number_ast(29), "ventinueve")
+        self.assertEqual(AST.pronounce_number(21), "ventiuno")
+        self.assertEqual(AST.pronounce_number(29), "ventinueve")
 
     def test_tens_and_units(self):
-        self.assertEqual(pronounce_number_ast(35), "trenta y cinco")
-        self.assertEqual(pronounce_number_ast(47), "cuarenta y siete")
+        self.assertEqual(AST.pronounce_number(35), "trenta y cinco")
+        self.assertEqual(AST.pronounce_number(47), "cuarenta y siete")
 
     def test_hundreds_exact(self):
-        self.assertEqual(pronounce_number_ast(100), "cien")
-        self.assertEqual(pronounce_number_ast(500), "quinientos")
+        self.assertEqual(AST.pronounce_number(100), "cien")
+        self.assertEqual(AST.pronounce_number(500), "quinientos")
 
     def test_hundreds_with_remainder(self):
-        self.assertEqual(pronounce_number_ast(101), "ciento un")
-        self.assertEqual(pronounce_number_ast(234), "doscientos trenta y cuatro")
+        self.assertEqual(AST.pronounce_number(101), "ciento un")
+        self.assertEqual(AST.pronounce_number(234), "doscientos trenta y cuatro")
 
 
 # ============================================================
@@ -81,23 +73,23 @@ class TestPronounceUpTo999_AST(unittest.TestCase):
 class TestFractionsAst(unittest.TestCase):
 
     def test_basic_fraction_words(self):
-        self.assertAlmostEqual(is_fractional_ast("mediu"), 0.5)
-        self.assertAlmostEqual(is_fractional_ast("terciu"), 1/3)
+        self.assertAlmostEqual(AST.is_fractional("mediu"), 0.5)
+        self.assertAlmostEqual(AST.is_fractional("terciu"), 1/3)
 
     @unittest.skip("TODO - fix me")
     def test_fraction_variants(self):
-        self.assertAlmostEqual(is_fractional_ast("medios"), 0.5)
-        self.assertAlmostEqual(is_fractional_ast("cuartos"), 1/4)
+        self.assertAlmostEqual(AST.is_fractional("medios"), 0.5)
+        self.assertAlmostEqual(AST.is_fractional("cuartos"), 1/4)
 
     @unittest.skip("TODO - fix me")
     def test_compound_fraction_phrase(self):
-        self.assertAlmostEqual(extract_number_ast("tres cuartos"), 3 * (1/4))
+        self.assertAlmostEqual(AST.extract_number("tres cuartos"), 3 * (1/4))
 
     def test_fraction_pronounce(self):
-        result = pronounce_fraction_ast("1/4")
+        result = AST.pronounce_fraction("1/4")
         self.assertIn("un", result)
         self.assertIn("cuartu", result)
-        result2 = pronounce_fraction_ast("3/4")
+        result2 = AST.pronounce_fraction("3/4")
         self.assertIn("tres", result2)
         self.assertIn("cuartus", result2 if "cuartus" in result2 else "cuartus?")
 
@@ -109,34 +101,34 @@ class TestFractionsAst(unittest.TestCase):
 class TestExtractAST(unittest.TestCase):
 
     def test_simple(self):
-        self.assertEqual(extract_number_ast("dieciséis"), 16)
-        self.assertEqual(extract_number_ast("ventiuno"), 21)
+        self.assertEqual(AST.extract_number("dieciséis"), 16)
+        self.assertEqual(AST.extract_number("ventiuno"), 21)
 
     def test_hundreds(self):
-        self.assertEqual(extract_number_ast("ciento un"), 101)
-        self.assertEqual(extract_number_ast("doscientos trenta y cuatro"), 234)
+        self.assertEqual(AST.extract_number("ciento un"), 101)
+        self.assertEqual(AST.extract_number("doscientos trenta y cuatro"), 234)
 
     def test_scale_thousand(self):
-        self.assertEqual(extract_number_ast("mil"), 1000)
-        self.assertEqual(extract_number_ast("mil doscientos trenta y cuatro"), 1234)
+        self.assertEqual(AST.extract_number("mil"), 1000)
+        self.assertEqual(AST.extract_number("mil doscientos trenta y cuatro"), 1234)
 
     def test_millón(self):
-        self.assertEqual(extract_number_ast("un millón"), 1_000_000)
+        self.assertEqual(AST.extract_number("un millón"), 1_000_000)
 
     def test_million_plus(self):
-        self.assertEqual(extract_number_ast("dos millones trescientos"), 2_000_300)
+        self.assertEqual(AST.extract_number("dos millones trescientos"), 2_000_300)
 
     @unittest.skip("TODO - fix me")
     def test_fraction_phrase(self):
-        self.assertAlmostEqual(extract_number_ast("tres cuartos"), 0.75)
+        self.assertAlmostEqual(AST.extract_number("tres cuartos"), 0.75)
 
     @unittest.skip("TODO - fix me")
     def test_negative(self):
-        self.assertEqual(extract_number_ast("menos cinco"), -5)
+        self.assertEqual(AST.extract_number("menos cinco"), -5)
 
     def test_no_number(self):
-        self.assertFalse(extract_number_ast("nada aquí"))
-        self.assertFalse(extract_number_ast("palabres"))
+        self.assertFalse(AST.extract_number("nada aquí"))
+        self.assertFalse(AST.extract_number("palabres"))
 
 
 # ============================================================
@@ -146,20 +138,20 @@ class TestExtractAST(unittest.TestCase):
 class TestOrdinalsAST(unittest.TestCase):
 
     def test_basic_ordinals(self):
-        self.assertEqual(pronounce_ordinal_ast(1), "primeru")
-        self.assertEqual(pronounce_ordinal_ast(1, gender=GrammaticalGender.FEMININE), "primera")
+        self.assertEqual(AST.pronounce_ordinal(1), "primeru")
+        self.assertEqual(AST.pronounce_ordinal(1, gender=GrammaticalGender.FEMININE), "primera")
 
     def test_teens_ordinal(self):
-        self.assertIn("décimu", pronounce_ordinal_ast(12))
+        self.assertIn("décimu", AST.pronounce_ordinal(12))
 
     def test_tens_ordinal(self):
-        self.assertEqual(pronounce_ordinal_ast(20), "ventésimu")
+        self.assertEqual(AST.pronounce_ordinal(20), "ventésimu")
 
     def test_composed_ordinal(self):
-        self.assertEqual(pronounce_ordinal_ast(23), "ventésimu terceru")
+        self.assertEqual(AST.pronounce_ordinal(23), "ventésimu terceru")
 
     def test_hundredth(self):
-        self.assertEqual(pronounce_ordinal_ast(100), "centésimu")
+        self.assertEqual(AST.pronounce_ordinal(100), "centésimu")
 
 
 # ============================================================
@@ -169,20 +161,20 @@ class TestOrdinalsAST(unittest.TestCase):
 class TestNumbersToDigitsAST(unittest.TestCase):
 
     def test_simple(self):
-        self.assertEqual(numbers_to_digits_ast("dieciséis"), "16")
-        self.assertEqual(numbers_to_digits_ast("ventiuno"), "21")
+        self.assertEqual(AST.numbers_to_digits("dieciséis"), "16")
+        self.assertEqual(AST.numbers_to_digits("ventiuno"), "21")
 
     def test_phrase(self):
-        result = numbers_to_digits_ast("hai dos millones cincuenta persones")
+        result = AST.numbers_to_digits("hai dos millones cincuenta persones")
         self.assertIn("2000050", result)
 
     def test_mixed(self):
-        result = numbers_to_digits_ast("merquei ventiuno panes")
+        result = AST.numbers_to_digits("merquei ventiuno panes")
         self.assertEqual(result, "merquei 21 panes")
 
     def test_no_number(self):
         original = "nada equí"
-        self.assertEqual(numbers_to_digits_ast(original), original)
+        self.assertEqual(AST.numbers_to_digits(original), original)
 
 
 # ============================================================
@@ -194,26 +186,26 @@ class TestIntegrationAST(unittest.TestCase):
     def test_round_trip(self):
         nums = [1, 16, 21, 35, 100, 234 , 1000, 1234]
         for n in nums:
-            text = pronounce_number_ast(n)
-            extracted = extract_number_ast(text)
+            text = AST.pronounce_number(n)
+            extracted = AST.extract_number(text)
             self.assertEqual(extracted, n)
 
     @unittest.skip("TODO - fix me")
     def test_large_numbers(self):
-        text = pronounce_number_ast(1_234_567)
-        extracted = extract_number_ast(text)
+        text = AST.pronounce_number(1_234_567)
+        extracted = AST.extract_number(text)
         self.assertEqual(extracted, 1_234_567)
 
     def test_decimals(self):
-        res = pronounce_number_ast(1.234)
+        res = AST.pronounce_number(1.234)
         self.assertIn("punto", res)
         self.assertIn("un", res)
 
     @unittest.skip("TODO - fix me")
     def test_negative(self):
-        text = pronounce_number_ast(-234)
+        text = AST.pronounce_number(-234)
         self.assertTrue(text.startswith("menos"))
-        self.assertEqual(extract_number_ast(text), -234)
+        self.assertEqual(AST.extract_number(text), -234)
 
 
 if __name__ == "__main__":

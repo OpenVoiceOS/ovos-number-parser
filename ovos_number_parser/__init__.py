@@ -12,8 +12,7 @@ from ovos_number_parser.numbers_de import numbers_to_digits_de, pronounce_number
 from ovos_number_parser.numbers_en import numbers_to_digits_en, is_ordinal_en, pronounce_number_en, extract_number_en, \
     is_fractional_en
 from ovos_number_parser.numbers_es import numbers_to_digits_es, pronounce_number_es, extract_number_es, is_fractional_es
-from ovos_number_parser.numbers_ast import (numbers_to_digits_ast, pronounce_number_ast, extract_number_ast,
-                                            is_fractional_ast, is_ordinal_ast, pronounce_fraction_ast, pronounce_ordinal_ast)
+from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu
 from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa
 from ovos_number_parser.numbers_fr import (pronounce_number_fr, extract_number_fr, is_fractional_fr)
@@ -23,10 +22,8 @@ from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_i
 from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
     extract_number_nl, is_fractional_nl
 from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, is_fractional_pl
-from ovos_number_parser.numbers_pt import PortugueseVariant, pronounce_fraction_pt, numbers_to_digits_pt, \
-    pronounce_number_pt, is_fractional_pt, extract_number_pt, pronounce_ordinal_pt, is_ordinal_pt
-from ovos_number_parser.numbers_mwl import pronounce_fraction_mwl, numbers_to_digits_mwl, \
-    pronounce_number_mwl, is_fractional_mwl, extract_number_mwl, pronounce_ordinal_mwl, is_ordinal_mwl
+from ovos_number_parser.numbers_pt import PortugueseVariant, PT_PT, PT_BR
+from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru
 from ovos_number_parser.numbers_sl import pronounce_number_sl
 from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
@@ -118,7 +115,7 @@ def pronounce_number(number: Union[int, float], lang: str,
     if lang.startswith("ca"):
         return pronounce_number_ca(number, places)
     if lang.startswith("ast"):
-        return pronounce_number_ast(number, places)
+        return AST.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("cs"):
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
     if lang.startswith("da"):
@@ -144,14 +141,11 @@ def pronounce_number(number: Union[int, float], lang: str,
     if lang.startswith("pl"):
         return pronounce_number_pl(number, places, short_scale, scientific, ordinals)
     if lang.startswith("pt"):
-        variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
-        return pronounce_number_pt(number, places, scale=scale,
-                                   variant=variant, ordinals=ordinals,
-                                   digits=digits, gender=gender)
+        if "br" in lang.lower():
+            return PT_BR.pronounce_number(number, places, scale, ordinals, digits, gender)
+        return PT_PT.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("mwl"):
-        return pronounce_number_mwl(number, places,
-                                   scale=scale, ordinals=ordinals,
-                                   digits=digits, gender=gender)
+        return MWL.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("ru"):
         return pronounce_number_ru(number, places, short_scale, scientific, ordinals)
     if lang.startswith("sl"):
@@ -184,12 +178,12 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Scale = Scale.LONG)
         NotImplementedError: If the specified language is not supported.
     """
     if lang.startswith("pt"):
-        variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
-        return pronounce_fraction_pt(fraction_word, scale=scale, variant=variant)
+        return PT_BR.pronounce_fraction(fraction_word, scale=scale) if "br" in lang.lower() \
+            else  PT_PT.pronounce_fraction(fraction_word, scale=scale)
     elif lang.startswith("ast"):
-        return pronounce_fraction_ast(fraction_word, scale=scale)
+        return AST.pronounce_fraction(fraction_word, scale=scale)
     elif lang.startswith("mwl"):
-        return pronounce_fraction_mwl(fraction_word, scale=scale)
+        return MWL.pronounce_fraction(fraction_word, scale=scale)
     else:
         raise NotImplementedError(f"unsupported language: {lang}")
 
@@ -214,12 +208,12 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("pt"):
-        variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
-        return pronounce_ordinal_pt(number, scale=scale, variant=variant, gender=gender)
+        return PT_BR.pronounce_ordinal(number, scale=scale, gender=gender) if "br" in lang.lower() \
+            else  PT_PT.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang.startswith("mwl"):
-        return pronounce_ordinal_mwl(number, scale=scale, gender=gender)
+        return MWL.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang.startswith("ast"):
-        return pronounce_ordinal_ast(number, scale=scale, gender=gender)
+        return AST.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang.startswith("da"):
         return pronounce_ordinal_da(number)
     if lang.startswith("de"):
@@ -287,12 +281,12 @@ def extract_number(text: str, lang: str, short_scale: bool = True, ordinals: boo
     if lang.startswith("pl"):
         return extract_number_pl(text, short_scale, ordinals)
     if lang.startswith("pt"):
-        variant = PortugueseVariant.BR if "br" in lang.lower() else PortugueseVariant.PT
-        return extract_number_pt(text, scale=scale, ordinals=ordinals, variant=variant)
+        return PT_BR.extract_number(text, scale=scale, ordinals=ordinals)  if "br" in lang.lower() \
+            else PT_PT.extract_number(text, scale=scale, ordinals=ordinals)
     if lang.startswith("mwl"):
-        return extract_number_mwl(text, scale=scale, ordinals=ordinals)
+        return MWL.extract_number(text, scale=scale, ordinals=ordinals)
     if lang.startswith("ast"):
-        return extract_number_ast(text, scale=scale, ordinals=ordinals)
+        return AST.extract_number(text, scale=scale, ordinals=ordinals)
     if lang.startswith("ru"):
         return extract_number_ru(text, short_scale, ordinals)
     if lang.startswith("sv"):
@@ -345,11 +339,11 @@ def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[
     if lang.startswith("pl"):
         return is_fractional_pl(input_str, short_scale)
     if lang.startswith("pt"):
-        return is_fractional_pt(input_str)
+        return PT_PT.is_fractional(input_str)
     if lang.startswith("mwl"):
-        return is_fractional_mwl(input_str)
+        return MWL.is_fractional(input_str)
     if lang.startswith("ast"):
-        return is_fractional_ast(input_str)
+        return AST.is_fractional(input_str)
     if lang.startswith("ru"):
         return is_fractional_ru(input_str, short_scale)
     if lang.startswith("sv"):
@@ -372,11 +366,11 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         corresponding to the ordinal
     """
     if lang.startswith("pt"):
-        return is_ordinal_pt(input_str)
+        return PT_PT.is_ordinal(input_str)
     if lang.startswith("mwl"):
-        return is_ordinal_mwl(input_str)
+        return MWL.is_ordinal(input_str)
     if lang.startswith("ast"):
-        return is_ordinal_ast(input_str)
+        return AST.is_ordinal(input_str)
     if lang.startswith("en"):
         return is_ordinal_en(input_str)
     if lang.startswith("de"):

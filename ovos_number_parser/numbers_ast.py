@@ -1,6 +1,4 @@
-from ovos_number_parser.util import (Scale, GrammaticalGender, DigitPronunciation,
-                                     NumberVocabulary, RomanceNumberExtractor)
-from typing import Union
+from ovos_number_parser.util import (Scale, GrammaticalGender, NumberVocabulary, RomanceNumberExtractor)
 
 
 def swap_gender_ast(word: str, gender: GrammaticalGender) -> str:
@@ -180,150 +178,28 @@ AST = RomanceNumberExtractor(AST)
 
 
 
-def pronounce_ordinal_ast(
-        number: Union[int, float],
-        gender: GrammaticalGender = GrammaticalGender.MASCULINE,
-        scale: Scale = Scale.LONG
-) -> str:
-    """
-    Return the ordinal pronunciation of a number in Portuguese, supporting grammatical gender, scale (short or long), and language variant (Brazilian or European Portuguese).
-
-    Parameters:
-        number (int or float): The number to pronounce as an ordinal.
-        gender (GrammaticalGender, optional): The grammatical gender for the ordinal form (masculine or feminine).
-        scale (Scale, optional): The numerical scale to use (short or long).
-
-    Returns:
-        str: The ordinal pronunciation of the number in Portuguese.
-
-    Raises:
-        TypeError: If `number` is not an int or float.
-    """
-    return AST.pronounce_ordinal(number, gender, scale)
-
-
-def is_fractional_ast(
-        input_str: str
-) -> Union[float, bool]:
-    """
-    Checks if the input string corresponds to a recognized Portuguese fractional word.
-
-    Returns:
-        The fractional value as a float if recognized (e.g., 0.5 for "meio" or "meia"); otherwise, False.
-    """
-    return AST.is_fractional(input_str)
-
-
-def is_ordinal_ast(input_str: str) -> bool:
-    """
-    Determine if a string is a Portuguese ordinal word.
-
-    Returns:
-        bool: True if the input string is recognized as a Portuguese ordinal, otherwise False.
-    """
-    return AST.is_ordinal(input_str)
-
-
-def extract_number_ast(
-        text: str,
-        ordinals: bool = False,
-        scale: Scale = Scale.LONG,
-) -> Union[int, float, bool]:
-    """
-    Extracts a numeric value from a Portuguese text phrase, supporting cardinals, ordinals, fractions, and large scales.
-
-    Parameters:
-        text (str): The input phrase potentially containing a number.
-        ordinals (bool): If True, recognizes ordinal words as numbers.
-        scale (Scale): Specifies whether to use the short or long numerical scale.
-
-    Returns:
-        int or float: The extracted number if found; otherwise, False.
-    """
-    return AST.extract_number(text, ordinals, scale)
-
-
-def pronounce_number_ast(
-        number: Union[int, float],
-        places: int = 5,
-        scale: Scale = Scale.LONG,
-        ordinals: bool = False,
-        digits: DigitPronunciation = DigitPronunciation.FULL_NUMBER,
-        gender: GrammaticalGender = GrammaticalGender.MASCULINE
-) -> str:
-    """
-    Return the full Portuguese pronunciation of a number, supporting cardinal and ordinal forms, decimals, large scales, grammatical gender, and both Brazilian and European Portuguese variants.
-
-    Parameters:
-        number (int or float): The number to pronounce.
-        places (int): Number of decimal places to include for floats.
-        scale (Scale): Numerical scale to use (short or long).
-        ordinals (bool): If True, pronounce as an ordinal number.
-        gender (GrammaticalGender): Grammatical gender for ordinal numbers.
-
-    Returns:
-        str: The number expressed as a Portuguese phrase.
-    """
-    return AST.pronounce_number(number, places, scale, ordinals, digits, gender)
-
-
-def numbers_to_digits_ast(
-        utterance: str,
-        scale: Scale = Scale.LONG
-) -> str:
-    """
-    Converts written Portuguese numbers in a text string to their digit equivalents, preserving all other text.
-
-    Identifies spans of number words (including the joiner "y"), extracts their numeric values, and replaces them with digit strings. Non-number words and context are left unchanged.
-
-    Parameters:
-        utterance (str): Input text possibly containing written Portuguese numbers.
-        scale (Scale, optional): Numerical scale (short or long) to interpret large numbers. Defaults to Scale.LONG.
-
-    Returns:
-        str: The input text with written numbers replaced by their digit representations.
-    """
-    return AST.numbers_to_digits(utterance, scale)
-
-
-
-def pronounce_fraction_ast(word: str, scale: Scale = Scale.LONG) -> str:
-    """
-    Return the Portuguese pronunciation of a fraction given as a string (e.g., "1/2").
-
-    The numerator is pronounced as a cardinal number, and the denominator as an ordinal or fraction name, pluralized if appropriate. For denominators not in the known fraction list, the denominator is pronounced as a cardinal number followed by "avos" if plural.
-
-    Parameters:
-        word (str): Fraction in the form "numerator/denominator" (e.g., "3/4").
-
-    Returns:
-        str: The Portuguese pronunciation of the fraction.
-    """
-    return AST.pronounce_fraction(word, scale)
-
-
 
 if __name__ == '__main__':
     print('--- Asturian number tests ---')
-    print('16 ->', pronounce_number_ast(16))
-    print('21 ->', pronounce_number_ast(21))
-    print('35 ->', pronounce_number_ast(35))
-    print('101 ->', pronounce_number_ast(101))
-    print('1,234 ->', pronounce_number_ast(1234))
-    print('1,000,000 ->', pronounce_number_ast(1_000_000))
+    print('16 ->', AST.pronounce_number(16))
+    print('21 ->',  AST.pronounce_number(21))
+    print('35 ->',  AST.pronounce_number(35))
+    print('101 ->',  AST.pronounce_number(101))
+    print('1,234 ->',  AST.pronounce_number(1234))
+    print('1,000,000 ->',  AST.pronounce_number(1_000_000))
 
     print('\n--- Ordinals ---')
-    print('1st (m):', pronounce_ordinal_ast(1))
-    print('1st (f):', pronounce_ordinal_ast(1, GrammaticalGender.FEMININE))
-    print('23rd (m):', pronounce_ordinal_ast(23))
-    print('100th:', pronounce_ordinal_ast(100))
+    print('1st (m):',  AST.pronounce_ordinal(1))
+    print('1st (f):',  AST.pronounce_ordinal(1, GrammaticalGender.FEMININE))
+    print('23rd (m):',  AST.pronounce_ordinal(23))
+    print('100th:',  AST.pronounce_ordinal(100))
 
     print('\n--- Extraction ---')
-    print("'un millón' ->", extract_number_ast('un millón'))
-    print("'dos millones trescientos' ->", extract_number_ast('dos millones trescientos'))
-    print("'ventiuno' ->", extract_number_ast('ventiuno'))
-    print("'tres cuartos' (fraction word) ->", extract_number_ast('tres cuartos'))
+    print("'un millón' ->",  AST.extract_number('un millón'))
+    print("'dos millones trescientos' ->",  AST.extract_number('dos millones trescientos'))
+    print("'ventiuno' ->",  AST.extract_number('ventiuno'))
+    print("'tres cuartos' (fraction word) ->",  AST.extract_number('tres cuartos'))
 
-    print('\n--- numbers_to_digits_ast ---')
-    print(numbers_to_digits_ast('hai dos millones cincuenta persoas'))
-    print(numbers_to_digits_ast('merquei ventiuno panes'))
+    print('\n--- numbers_to_digits ---')
+    print( AST.numbers_to_digits('hai dos millones cincuenta persoas'))
+    print( AST.numbers_to_digits('merquei ventiuno panes'))

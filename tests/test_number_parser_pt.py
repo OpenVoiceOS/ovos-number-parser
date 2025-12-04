@@ -2,11 +2,6 @@ import unittest
 
 from ovos_number_parser.numbers_pt import (
     PortugueseVariant,
-    is_fractional_pt,
-    extract_number_pt,
-    pronounce_number_pt,
-    numbers_to_digits_pt,
-    pronounce_fraction_pt,
     PT_PT, PT_BR
 )
 from ovos_number_parser.util import DigitPronunciation, Scale
@@ -87,354 +82,354 @@ class TestDictionaries(unittest.TestCase):
 
 
 class TestPronounceUpTo999(unittest.TestCase):
-    """Test pronounce_number_pt function."""
+    """Test PT_PT.pronounce_number function."""
 
     def test_zero(self):
         """Test pronunciation of zero."""
-        result = pronounce_number_pt(0)
+        result = PT_PT.pronounce_number(0)
         self.assertEqual(result, "zero")
 
     def test_single_digits_br(self):
         """Test pronunciation of single digits in BR variant."""
-        self.assertEqual(pronounce_number_pt(1, variant=PortugueseVariant.BR), "um")
-        self.assertEqual(pronounce_number_pt(5, variant=PortugueseVariant.BR), "cinco")
-        self.assertEqual(pronounce_number_pt(9, variant=PortugueseVariant.BR), "nove")
+        self.assertEqual(PT_BR.pronounce_number(1), "um")
+        self.assertEqual(PT_BR.pronounce_number(5), "cinco")
+        self.assertEqual(PT_BR.pronounce_number(9), "nove")
 
     def test_single_digits_pt(self):
         """Test pronunciation of single digits in PT variant."""
-        self.assertEqual(pronounce_number_pt(1, variant=PortugueseVariant.PT), "um")
-        self.assertEqual(pronounce_number_pt(5, variant=PortugueseVariant.PT), "cinco")
-        self.assertEqual(pronounce_number_pt(9, variant=PortugueseVariant.PT), "nove")
+        self.assertEqual(PT_PT.pronounce_number(1), "um")
+        self.assertEqual(PT_PT.pronounce_number(5), "cinco")
+        self.assertEqual(PT_PT.pronounce_number(9), "nove")
 
     def test_teens_br(self):
         """Test pronunciation of teens in BR variant."""
-        self.assertEqual(pronounce_number_pt(16, variant=PortugueseVariant.BR), "dezesseis")
-        self.assertEqual(pronounce_number_pt(17, variant=PortugueseVariant.BR), "dezessete")
-        self.assertEqual(pronounce_number_pt(19, variant=PortugueseVariant.BR), "dezenove")
+        self.assertEqual(PT_BR.pronounce_number(16), "dezesseis")
+        self.assertEqual(PT_BR.pronounce_number(17), "dezessete")
+        self.assertEqual(PT_BR.pronounce_number(19), "dezenove")
 
     def test_teens_pt(self):
         """Test pronunciation of teens in PT variant."""
-        self.assertEqual(pronounce_number_pt(16, variant=PortugueseVariant.PT), "dezasseis")
-        self.assertEqual(pronounce_number_pt(17, variant=PortugueseVariant.PT), "dezassete")
-        self.assertEqual(pronounce_number_pt(19, variant=PortugueseVariant.PT), "dezanove")
+        self.assertEqual(PT_PT.pronounce_number(16), "dezasseis")
+        self.assertEqual(PT_PT.pronounce_number(17), "dezassete")
+        self.assertEqual(PT_PT.pronounce_number(19), "dezanove")
 
     def test_tens(self):
         """Test pronunciation of tens."""
-        self.assertEqual(pronounce_number_pt(20), "vinte")
-        self.assertEqual(pronounce_number_pt(30), "trinta")
-        self.assertEqual(pronounce_number_pt(90), "noventa")
+        self.assertEqual(PT_PT.pronounce_number(20), "vinte")
+        self.assertEqual(PT_PT.pronounce_number(30), "trinta")
+        self.assertEqual(PT_PT.pronounce_number(90), "noventa")
 
     def test_tens_with_units(self):
         """Test pronunciation of tens with units."""
-        self.assertEqual(pronounce_number_pt(21), "vinte e um")
-        self.assertEqual(pronounce_number_pt(35), "trinta e cinco")
-        self.assertEqual(pronounce_number_pt(99), "noventa e nove")
+        self.assertEqual(PT_PT.pronounce_number(21), "vinte e um")
+        self.assertEqual(PT_PT.pronounce_number(35), "trinta e cinco")
+        self.assertEqual(PT_PT.pronounce_number(99), "noventa e nove")
 
     def test_exact_hundred(self):
         """Test pronunciation of exact hundred."""
-        self.assertEqual(pronounce_number_pt(100), "cem")
+        self.assertEqual(PT_PT.pronounce_number(100), "cem")
 
     def test_hundreds_with_remainder(self):
         """Test pronunciation of hundreds with remainder."""
-        self.assertEqual(pronounce_number_pt(101), "cento e um")
-        self.assertEqual(pronounce_number_pt(123), "cento e vinte e três")
-        self.assertEqual(pronounce_number_pt(200), "duzentos")
-        self.assertEqual(pronounce_number_pt(234), "duzentos e trinta e quatro")
+        self.assertEqual(PT_PT.pronounce_number(101), "cento e um")
+        self.assertEqual(PT_PT.pronounce_number(123), "cento e vinte e três")
+        self.assertEqual(PT_PT.pronounce_number(200), "duzentos")
+        self.assertEqual(PT_PT.pronounce_number(234), "duzentos e trinta e quatro")
 
     def test_complex_numbers(self):
         """Test pronunciation of complex numbers."""
-        self.assertEqual(pronounce_number_pt(567), "quinhentos e sessenta e sete")
-        self.assertEqual(pronounce_number_pt(999), "novecentos e noventa e nove")
+        self.assertEqual(PT_PT.pronounce_number(567), "quinhentos e sessenta e sete")
+        self.assertEqual(PT_PT.pronounce_number(999), "novecentos e noventa e nove")
 
 
 class TestIsFractionalPt(unittest.TestCase):
-    """Test is_fractional_pt function."""
+    """Test PT_PT.is_fractional function."""
 
     def test_basic_fractions(self):
         """Test basic fraction recognition."""
-        self.assertEqual(is_fractional_pt("meio"), 0.5)
-        self.assertEqual(is_fractional_pt("terço"), 1.0 / 3)
-        self.assertEqual(is_fractional_pt("quarto"), 0.25)
+        self.assertEqual(PT_PT.is_fractional("meio"), 0.5)
+        self.assertEqual(PT_PT.is_fractional("terço"), 1.0 / 3)
+        self.assertEqual(PT_PT.is_fractional("quarto"), 0.25)
 
     def test_meia_variant(self):
         """Test 'meia' as variant of 'meio'."""
-        self.assertEqual(is_fractional_pt("meia"), 0.5)
+        self.assertEqual(PT_PT.is_fractional("meia"), 0.5)
 
     def test_plural_forms(self):
         """Test plural forms of fractions."""
-        self.assertEqual(is_fractional_pt("meios"), 0.5)
-        self.assertEqual(is_fractional_pt("terços"), 1.0 / 3)
-        self.assertEqual(is_fractional_pt("quartos"), 0.25)
+        self.assertEqual(PT_PT.is_fractional("meios"), 0.5)
+        self.assertEqual(PT_PT.is_fractional("terços"), 1.0 / 3)
+        self.assertEqual(PT_PT.is_fractional("quartos"), 0.25)
 
     def test_special_fractions(self):
         """Test special fraction forms."""
-        self.assertEqual(is_fractional_pt("décimo"), 0.1)
-        self.assertEqual(is_fractional_pt("vigésimo"), 0.05)
-        self.assertEqual(is_fractional_pt("centésimo"), 0.01)
+        self.assertEqual(PT_PT.is_fractional("décimo"), 0.1)
+        self.assertEqual(PT_PT.is_fractional("vigésimo"), 0.05)
+        self.assertEqual(PT_PT.is_fractional("centésimo"), 0.01)
 
     def test_compound_fractions(self):
         """Test compound fraction forms like 'onze avos'."""
-        self.assertEqual(is_fractional_pt("onze avos"), 1.0 / 11)
-        self.assertEqual(is_fractional_pt("doze avos"), 1.0 / 12)
-        self.assertEqual(is_fractional_pt("treze avos"), 1.0 / 13)
-        self.assertFalse(is_fractional_pt("onze"))
-        self.assertFalse(is_fractional_pt("doze"))
-        self.assertFalse(is_fractional_pt("treze"))
+        self.assertEqual(PT_PT.is_fractional("onze avos"), 1.0 / 11)
+        self.assertEqual(PT_PT.is_fractional("doze avos"), 1.0 / 12)
+        self.assertEqual(PT_PT.is_fractional("treze avos"), 1.0 / 13)
+        self.assertFalse(PT_PT.is_fractional("onze"))
+        self.assertFalse(PT_PT.is_fractional("doze"))
+        self.assertFalse(PT_PT.is_fractional("treze"))
 
     def test_case_insensitive(self):
         """Test case insensitive matching."""
-        self.assertEqual(is_fractional_pt("MEIO"), 0.5)
-        self.assertEqual(is_fractional_pt("Terço"), 1.0 / 3)
-        self.assertEqual(is_fractional_pt("MEIA"), 0.5)
+        self.assertEqual(PT_PT.is_fractional("MEIO"), 0.5)
+        self.assertEqual(PT_PT.is_fractional("Terço"), 1.0 / 3)
+        self.assertEqual(PT_PT.is_fractional("MEIA"), 0.5)
 
     def test_whitespace_handling(self):
         """Test whitespace handling."""
-        self.assertEqual(is_fractional_pt("  meio  "), 0.5)
-        self.assertEqual(is_fractional_pt("\tterço\n"), 1.0 / 3)
+        self.assertEqual(PT_PT.is_fractional("  meio  "), 0.5)
+        self.assertEqual(PT_PT.is_fractional("\tterço\n"), 1.0 / 3)
 
     def test_non_fractions(self):
         """Test non-fraction strings return False."""
-        self.assertFalse(is_fractional_pt("palavra"))
-        self.assertFalse(is_fractional_pt("número"))
-        self.assertFalse(is_fractional_pt(""))
-        self.assertFalse(is_fractional_pt("123"))
+        self.assertFalse(PT_PT.is_fractional("palavra"))
+        self.assertFalse(PT_PT.is_fractional("número"))
+        self.assertFalse(PT_PT.is_fractional(""))
+        self.assertFalse(PT_PT.is_fractional("123"))
 
 
 class TestExtractNumberPt(unittest.TestCase):
-    """Test extract_number_pt function."""
+    """Test PT_PT.extract_number function."""
 
     def test_simple_numbers_br(self):
         """Test extraction of simple numbers in BR variant."""
-        self.assertEqual(extract_number_pt("dezesseis", variant=PortugueseVariant.BR), 16)
-        self.assertEqual(extract_number_pt("vinte e um", variant=PortugueseVariant.BR), 21)
-        self.assertEqual(extract_number_pt("cem", variant=PortugueseVariant.BR), 100)
+        self.assertEqual(PT_BR.extract_number("dezesseis"), 16)
+        self.assertEqual(PT_BR.extract_number("vinte e um"), 21)
+        self.assertEqual(PT_BR.extract_number("cem"), 100)
 
     def test_simple_numbers_pt(self):
         """Test extraction of simple numbers in PT variant."""
-        self.assertEqual(extract_number_pt("dezasseis", variant=PortugueseVariant.PT), 16)
-        self.assertEqual(extract_number_pt("vinte e um", variant=PortugueseVariant.PT), 21)
-        self.assertEqual(extract_number_pt("cem", variant=PortugueseVariant.PT), 100)
+        self.assertEqual(PT_PT.extract_number("dezasseis"), 16)
+        self.assertEqual(PT_PT.extract_number("vinte e um"), 21)
+        self.assertEqual(PT_PT.extract_number("cem"), 100)
 
     def test_large_numbers_short_scale_br(self):
         """Test extraction of large numbers in short scale BR."""
-        self.assertEqual(extract_number_pt("um milhão", scale=Scale.SHORT, variant=PortugueseVariant.BR), 1000000)
-        self.assertEqual(extract_number_pt("um bilhão", scale=Scale.SHORT, variant=PortugueseVariant.BR), 1000000000)
+        self.assertEqual(PT_BR.extract_number("um milhão", scale=Scale.SHORT), 1000000)
+        self.assertEqual(PT_BR.extract_number("um bilhão", scale=Scale.SHORT), 1000000000)
 
     def test_large_numbers_short_scale_pt(self):
         """Test extraction of large numbers in short scale PT."""
-        self.assertEqual(extract_number_pt("um milhão", scale=Scale.SHORT, variant=PortugueseVariant.PT), 1e6)
-        self.assertEqual(extract_number_pt("um bilião", scale=Scale.SHORT, variant=PortugueseVariant.PT), 1e9)
-        self.assertEqual(extract_number_pt("um trilião", scale=Scale.SHORT, variant=PortugueseVariant.PT), 1e12)
+        self.assertEqual(PT_PT.extract_number("um milhão", scale=Scale.SHORT), 1e6)
+        self.assertEqual(PT_PT.extract_number("um bilião", scale=Scale.SHORT), 1e9)
+        self.assertEqual(PT_PT.extract_number("um trilião", scale=Scale.SHORT), 1e12)
 
     def test_large_numbers_long_scale(self):
         """Test extraction of large numbers in long scale."""
-        self.assertEqual(extract_number_pt("um milhão", scale=Scale.LONG, variant=PortugueseVariant.PT), 1e6)
-        self.assertEqual(extract_number_pt("um bilião", scale=Scale.LONG, variant=PortugueseVariant.PT), 1e12)
-        self.assertEqual(extract_number_pt("um trilião", scale=Scale.LONG, variant=PortugueseVariant.PT), 1e18)
+        self.assertEqual(PT_PT.extract_number("um milhão", scale=Scale.LONG), 1e6)
+        self.assertEqual(PT_PT.extract_number("um bilião", scale=Scale.LONG), 1e12)
+        self.assertEqual(PT_PT.extract_number("um trilião", scale=Scale.LONG), 1e18)
 
     def test_complex_numbers(self):
         """Test extraction of complex number phrases."""
-        self.assertEqual(extract_number_pt("duzentos e cinquenta e três"), 253)
-        self.assertEqual(extract_number_pt("mil quinhentos e quarenta e dois"), 1542)
+        self.assertEqual(PT_PT.extract_number("duzentos e cinquenta e três"), 253)
+        self.assertEqual(PT_PT.extract_number("mil quinhentos e quarenta e dois"), 1542)
 
     def test_fractions_in_text(self):
         """Test extraction of fractions from text."""
-        result = extract_number_pt("dois e meio")
+        result = PT_PT.extract_number("dois e meio")
         self.assertAlmostEqual(result, 2.5, places=5)
 
     def test_decimal_handling(self):
         """Test decimal number handling."""
         # Note: This tests the simplified decimal approach
-        result = extract_number_pt("dez ponto cinco")
+        result = PT_PT.extract_number("dez ponto cinco")
         # The function should handle this but may need specific formatting
         if result:
             self.assertIsInstance(result, (int, float))
 
     def test_case_insensitive(self):
         """Test case insensitive extraction."""
-        self.assertEqual(extract_number_pt("DEZESSEIS", variant=PortugueseVariant.BR), 16)
-        self.assertEqual(extract_number_pt("Vinte E Um", variant=PortugueseVariant.BR), 21)
+        self.assertEqual(PT_BR.extract_number("DEZESSEIS"), 16)
+        self.assertEqual(PT_BR.extract_number("Vinte E Um"), 21)
 
     def test_hyphen_handling(self):
         """Test hyphen handling in text."""
-        self.assertEqual(extract_number_pt("vinte-e-um", variant=PortugueseVariant.BR), 21)
+        self.assertEqual(PT_BR.extract_number("vinte-e-um"), 21)
 
     def test_no_number_found(self):
         """Test when no number is found in text."""
-        self.assertFalse(extract_number_pt("apenas palavras"))
-        self.assertFalse(extract_number_pt(""))
-        self.assertFalse(extract_number_pt("xyz"))
+        self.assertFalse(PT_PT.extract_number("apenas palavras"))
+        self.assertFalse(PT_PT.extract_number(""))
+        self.assertFalse(PT_PT.extract_number("xyz"))
 
     def test_multiple_scales(self):
         """Test numbers with multiple scale words."""
-        self.assertEqual(extract_number_pt("dois milhões trezentos mil"), 2300000)
+        self.assertEqual(PT_PT.extract_number("dois milhões trezentos mil"), 2300000)
 
     def test_edge_cases(self):
         """Test edge cases."""
-        self.assertEqual(extract_number_pt("zero"), 0)
-        self.assertEqual(extract_number_pt("mil"), 1000)
+        self.assertEqual(PT_PT.extract_number("zero"), 0)
+        self.assertEqual(PT_PT.extract_number("mil"), 1000)
 
 
 class TestPronounceNumberPt(unittest.TestCase):
-    """Test pronounce_number_pt function."""
+    """Test PT_PT.pronounce_number function."""
 
     def test_type_validation(self):
         """Test type validation."""
         with self.assertRaises(TypeError):
-            pronounce_number_pt("not a number")
+            PT_PT.pronounce_number("not a number")
         with self.assertRaises(TypeError):
-            pronounce_number_pt(None)
+            PT_PT.pronounce_number(None)
 
     def test_zero(self):
         """Test pronunciation of zero."""
-        self.assertEqual(pronounce_number_pt(0), "zero")
+        self.assertEqual(PT_PT.pronounce_number(0), "zero")
 
     def test_negative_numbers(self):
         """Test pronunciation of negative numbers."""
-        result = pronounce_number_pt(-5)
+        result = PT_PT.pronounce_number(-5)
         self.assertTrue(result.startswith("menos"))
         self.assertIn("cinco", result)
 
     def test_simple_integers(self):
         """Test pronunciation of simple integers."""
-        self.assertEqual(pronounce_number_pt(1), "um")
-        self.assertEqual(pronounce_number_pt(16, variant=PortugueseVariant.BR), "dezesseis")
-        self.assertEqual(pronounce_number_pt(16, variant=PortugueseVariant.PT), "dezasseis")
+        self.assertEqual(PT_PT.pronounce_number(1), "um")
+        self.assertEqual(PT_BR.pronounce_number(16), "dezesseis")
+        self.assertEqual(PT_PT.pronounce_number(16), "dezasseis")
 
     def test_hundreds(self):
         """Test pronunciation of hundreds."""
-        self.assertEqual(pronounce_number_pt(100), "cem")
-        self.assertEqual(pronounce_number_pt(200), "duzentos")
-        self.assertEqual(pronounce_number_pt(123), "cento e vinte e três")
+        self.assertEqual(PT_PT.pronounce_number(100), "cem")
+        self.assertEqual(PT_PT.pronounce_number(200), "duzentos")
+        self.assertEqual(PT_PT.pronounce_number(123), "cento e vinte e três")
 
     def test_thousands(self):
         """Test pronunciation of thousands."""
-        result = pronounce_number_pt(1000)
+        result = PT_PT.pronounce_number(1000)
         self.assertIn("mil", result)
 
-        result = pronounce_number_pt(2500)
+        result = PT_PT.pronounce_number(2500)
         self.assertIn("mil", result)
         self.assertIn("quinhentos", result)
 
     def test_millions_short_scale_br(self):
         """Test pronunciation of millions in short scale BR."""
-        result = pronounce_number_pt(1000000, scale=Scale.SHORT, variant=PortugueseVariant.BR)
+        result = PT_BR.pronounce_number(1000000, scale=Scale.SHORT)
         self.assertIn("milhão", result)
 
-        result = pronounce_number_pt(1000000000, scale=Scale.SHORT, variant=PortugueseVariant.BR)
+        result = PT_BR.pronounce_number(1000000000, scale=Scale.SHORT)
         self.assertIn("bilhão", result)
 
     def test_millions_short_scale_pt(self):
         """Test pronunciation of millions in short scale PT."""
-        result = pronounce_number_pt(1000000, scale=Scale.SHORT, variant=PortugueseVariant.PT)
+        result = PT_PT.pronounce_number(1000000, scale=Scale.SHORT)
         self.assertIn("milhão", result)
 
-        result = pronounce_number_pt(1000000000, scale=Scale.SHORT, variant=PortugueseVariant.PT)
+        result = PT_PT.pronounce_number(1000000000, scale=Scale.SHORT)
         self.assertIn("bilião", result)
 
     def test_millions_long_scale(self):
         """Test pronunciation of millions in long scale."""
-        result = pronounce_number_pt(1000000, scale=Scale.LONG, variant=PortugueseVariant.PT)
+        result = PT_PT.pronounce_number(1000000, scale=Scale.LONG)
         self.assertIn("milhão", result)
 
-        result = pronounce_number_pt(1000000000000, scale=Scale.LONG, variant=PortugueseVariant.PT)
+        result = PT_PT.pronounce_number(1000000000000, scale=Scale.LONG)
         self.assertIn("bilião", result)
 
     def test_decimal_numbers(self):
         """Test pronunciation of decimal numbers."""
-        result = pronounce_number_pt(1.5)
+        result = PT_PT.pronounce_number(1.5)
         self.assertIn("vírgula", result)
         self.assertIn("um", result)
         self.assertIn("cinco", result)
 
     def test_significant_digits(self):
         """Test pronunciation of decimal places and rounding"""
-        self.assertEqual(pronounce_number_pt(123.456789, places=1),
+        self.assertEqual(PT_PT.pronounce_number(123.456789, places=1),
                          "cento e vinte e três vírgula cinco")
-        self.assertEqual(pronounce_number_pt(123.456789, places=2),
+        self.assertEqual(PT_PT.pronounce_number(123.456789, places=2),
                          "cento e vinte e três vírgula quarenta e seis")
-        self.assertEqual(pronounce_number_pt(123.456789, places=3),
+        self.assertEqual(PT_PT.pronounce_number(123.456789, places=3),
                          "cento e vinte e três vírgula quatrocentos e cinquenta e sete")
-        self.assertEqual(pronounce_number_pt(123.456789, places=4),
+        self.assertEqual(PT_PT.pronounce_number(123.456789, places=4),
                          "cento e vinte e três vírgula quatro mil quinhentos e sessenta e oito")
-        self.assertEqual(pronounce_number_pt(123.456789, places=5),
+        self.assertEqual(PT_PT.pronounce_number(123.456789, places=5),
                          "cento e vinte e três vírgula quarenta e cinco mil seiscentos e setenta e nove")
 
     def test_leading_zeros(self):
         """Test pronunciation of decimal numbers."""
         # no rounding to significant digit when we have leading zeros
-        self.assertEqual(pronounce_number_pt(10.05),
+        self.assertEqual(PT_PT.pronounce_number(10.05),
                          "dez vírgula zero cinco")
-        self.assertEqual(pronounce_number_pt(10.005),
+        self.assertEqual(PT_PT.pronounce_number(10.005),
                          "dez vírgula zero zero cinco")
-        self.assertEqual(pronounce_number_pt(10.0005),
+        self.assertEqual(PT_PT.pronounce_number(10.0005),
                          "dez vírgula zero zero zero cinco")
-        self.assertEqual(pronounce_number_pt(10.0000005),
+        self.assertEqual(PT_PT.pronounce_number(10.0000005),
                          "dez vírgula zero zero zero zero zero zero cinco")
-        self.assertEqual(pronounce_number_pt(10.00000056),
+        self.assertEqual(PT_PT.pronounce_number(10.00000056),
                          "dez vírgula zero zero zero zero zero zero seis")
 
     @unittest.skip("TODO - do we want it to behave like this? currently not implemented")
     def test_decimal_edge_cases(self):
         """Test edge cases for decimal numbers."""
         # Test when decimal part rounds to zero, should we read the significant digits?
-        result = pronounce_number_pt(1.0)
+        result = PT_PT.pronounce_number(1.0)
         self.assertEqual(result, "um vírgula zero")
-        result = pronounce_number_pt(1.00)
+        result = PT_PT.pronounce_number(1.00)
         self.assertEqual(result, "um vírgula zero zero")
-        result = pronounce_number_pt(1.000)
+        result = PT_PT.pronounce_number(1.000)
         self.assertEqual(result, "um vírgula zero zero zero")
 
     def test_conjunction_logic(self):
         """Test conjunction logic for complex numbers."""
-        result = pronounce_number_pt(1001)
+        result = PT_PT.pronounce_number(1001)
         self.assertIn("e", result)  # Should have conjunction for small remainder
 
-        result = pronounce_number_pt(1100)
+        result = PT_PT.pronounce_number(1100)
         self.assertIn("e", result)  # Should have conjunction for multiple of 100
 
     def test_mil(self):
         """Test 'um mil' """
-        result = pronounce_number_pt(1000)
+        result = PT_PT.pronounce_number(1000)
         # Should not start with "um mil" but just "mil"
         self.assertFalse(result.startswith("um mil"))
 
     def test_places_parameter(self):
         """
-        Test that the `places` parameter in `pronounce_number_pt` correctly limits the number of decimal places pronounced when using digit-by-digit pronunciation.
+        Test that the `places` parameter in `PT_PT.pronounce_number` correctly limits the number of decimal places pronounced when using digit-by-digit pronunciation.
         
         Ensures that specifying different values for `places` produces valid string outputs without errors.
         """
-        result1 = pronounce_number_pt(1.23456, places=2, digits=DigitPronunciation.DIGIT_BY_DIGIT)
-        result2 = pronounce_number_pt(1.23456, places=5, digits=DigitPronunciation.DIGIT_BY_DIGIT)
+        result1 = PT_PT.pronounce_number(1.23456, places=2, digits=DigitPronunciation.DIGIT_BY_DIGIT)
+        result2 = PT_PT.pronounce_number(1.23456, places=5, digits=DigitPronunciation.DIGIT_BY_DIGIT)
         # Both should work without error
         self.assertIsInstance(result1, str)
         self.assertIsInstance(result2, str)
 
 
 class TestNumbersToDigitsPt(unittest.TestCase):
-    """Test numbers_to_digits_pt function."""
+    """Test PT_PT.numbers_to_digits function."""
 
     def test_simple_replacement(self):
         """Test simple number word replacement."""
-        self.assertEqual(numbers_to_digits_pt("dezesseis", variant=PortugueseVariant.BR), "16")
-        self.assertEqual(numbers_to_digits_pt("dezasseis", variant=PortugueseVariant.PT), "16")
+        self.assertEqual(PT_PT.numbers_to_digits("dezesseis"), "16")
+        self.assertEqual(PT_PT.numbers_to_digits("dezasseis"), "16")
 
     def test_complex_numbers(self):
         """Test complex number phrase replacement."""
-        result = numbers_to_digits_pt("duzentos e cinquenta e três")
+        result = PT_PT.numbers_to_digits("duzentos e cinquenta e três")
         self.assertEqual(result, "253")
 
     def test_mixed_text(self):
         """Test text with mixed words and numbers."""
-        result = numbers_to_digits_pt("há duzentos e cinquenta carros")
+        result = PT_PT.numbers_to_digits("há duzentos e cinquenta carros")
         self.assertIn("250", result)
         self.assertIn("há", result)
         self.assertIn("carros", result)
 
     def test_multiple_numbers(self):
         """Test text with multiple separate numbers."""
-        result = numbers_to_digits_pt("dez carros e cinco pessoas")
+        result = PT_PT.numbers_to_digits("dez carros e cinco pessoas")
         self.assertIn("10", result)
         self.assertIn("5", result)
         self.assertIn("carros", result)
@@ -443,95 +438,95 @@ class TestNumbersToDigitsPt(unittest.TestCase):
     def test_no_numbers(self):
         """Test text with no numbers."""
         original = "apenas palavras normais"
-        result = numbers_to_digits_pt(original)
+        result = PT_PT.numbers_to_digits(original)
         self.assertEqual(result, original)
 
     def test_edge_cases(self):
         """Test edge cases."""
         # Empty string
-        self.assertEqual(numbers_to_digits_pt(""), "")
+        self.assertEqual(PT_PT.numbers_to_digits(""), "")
 
         # Single word
-        self.assertEqual(numbers_to_digits_pt("cinco"), "5")
+        self.assertEqual(PT_PT.numbers_to_digits("cinco"), "5")
 
         # Just conjunction
-        self.assertEqual(numbers_to_digits_pt("e"), "e")
+        self.assertEqual(PT_PT.numbers_to_digits("e"), "e")
 
     def test_variant_differences(self):
         """Test that variants produce different results where expected."""
-        br_result = numbers_to_digits_pt("dezesseis", variant=PortugueseVariant.BR)
-        pt_result = numbers_to_digits_pt("dezasseis", variant=PortugueseVariant.PT)
+        br_result = PT_BR.numbers_to_digits("dezesseis")
+        pt_result = PT_PT.numbers_to_digits("dezasseis")
         self.assertEqual(br_result, "16")
         self.assertEqual(pt_result, "16")
 
 
 class TestPronounceFractionPt(unittest.TestCase):
-    """Test pronounce_fraction_pt function."""
+    """Test PT_PT.pronounce_fraction function."""
 
     def test_simple_fractions(self):
         """Test pronunciation of simple fractions."""
-        result = pronounce_fraction_pt("1/2")
+        result = PT_PT.pronounce_fraction("1/2")
         self.assertIn("um", result)
         self.assertIn("meio", result)
 
-        result = pronounce_fraction_pt("1/3")
+        result = PT_PT.pronounce_fraction("1/3")
         self.assertIn("um", result)
         self.assertIn("terço", result)
 
     def test_plural_fractions(self):
         """Test pronunciation of plural fractions."""
-        result = pronounce_fraction_pt("2/3")
+        result = PT_PT.pronounce_fraction("2/3")
         self.assertIn("dois", result)
         self.assertIn("terços", result)
 
-        result = pronounce_fraction_pt("3/4")
+        result = PT_PT.pronounce_fraction("3/4")
         self.assertIn("três", result)
         self.assertIn("quartos", result)
 
     def test_zero_division(self):
         """Test pronunciation of plural fractions."""
-        result = pronounce_fraction_pt("0/0")
+        result = PT_PT.pronounce_fraction("0/0")
         self.assertIn("zero", result)
         self.assertIn(PT_PT.vocab.DIVIDED_BY_ZERO, result)
 
     def test_large_denominators(self):
         """Test fractions with large denominators."""
-        result = pronounce_fraction_pt("1/7")
+        result = PT_PT.pronounce_fraction("1/7")
         self.assertIn("um", result)
         self.assertIn("sétimo", result)
 
-        result = pronounce_fraction_pt("5/7")
+        result = PT_PT.pronounce_fraction("5/7")
         self.assertIn("cinco", result)
         self.assertIn("sétimos", result)
 
     def test_unknown_denominators(self):
         """Test fractions with denominators not in predefined list."""
-        result = pronounce_fraction_pt("1/13")
+        result = PT_PT.pronounce_fraction("1/13")
         self.assertIn("um", result)
         # Should use "avos" for unknown denominators
 
-        result = pronounce_fraction_pt("2/13")
+        result = PT_PT.pronounce_fraction("2/13")
         self.assertIn("dois", result)
         self.assertIn("avos", result)
 
     def test_variant_differences(self):
         """Test variant differences in fraction pronunciation."""
-        br_result = pronounce_fraction_pt("1/16", variant=PortugueseVariant.BR)
-        pt_result = pronounce_fraction_pt("1/16", variant=PortugueseVariant.PT)
+        br_result = PT_BR.pronounce_fraction("1/16")
+        pt_result = PT_PT.pronounce_fraction("1/16")
         # Both should work, may have slight differences in underlying number pronunciation
         self.assertIsInstance(br_result, str)
         self.assertIsInstance(pt_result, str)
 
     def test_scale_parameter(self):
         """Test scale parameter in fraction pronunciation."""
-        result_short = pronounce_fraction_pt("1/1000000", scale=Scale.SHORT)
-        result_long = pronounce_fraction_pt("1/1000000", scale=Scale.LONG)
+        result_short = PT_PT.pronounce_fraction("1/1000000", scale=Scale.SHORT)
+        result_long = PT_PT.pronounce_fraction("1/1000000", scale=Scale.LONG)
         self.assertIsInstance(result_short, str)
         self.assertIsInstance(result_long, str)
 
     def test_zero_numerator(self):
         """Test fractions with zero numerator."""
-        result = pronounce_fraction_pt("0/5")
+        result = PT_PT.pronounce_fraction("0/5")
         self.assertIn("zero", result)
 
 
@@ -544,9 +539,9 @@ class TestIntegrationScenarios(unittest.TestCase):
 
         for num in test_numbers:
             # Convert number to text
-            text = pronounce_number_pt(num, variant=PortugueseVariant.BR)
+            text = PT_BR.pronounce_number(num)
             # Convert text back to number
-            extracted = extract_number_pt(text, variant=PortugueseVariant.BR)
+            extracted = PT_BR.extract_number(text)
             self.assertEqual(extracted, num, f"Round-trip failed for {num}: {text} -> {extracted}")
 
     def test_variant_consistency(self):
@@ -555,13 +550,13 @@ class TestIntegrationScenarios(unittest.TestCase):
 
         for num in test_numbers:
             # Test BR variant
-            br_text = pronounce_number_pt(num, variant=PortugueseVariant.BR)
-            br_extracted = extract_number_pt(br_text, variant=PortugueseVariant.BR)
+            br_text = PT_BR.pronounce_number(num)
+            br_extracted = PT_BR.extract_number(br_text)
             self.assertEqual(br_extracted, num)
 
             # Test PT variant
-            pt_text = pronounce_number_pt(num, variant=PortugueseVariant.PT)
-            pt_extracted = extract_number_pt(pt_text, variant=PortugueseVariant.PT)
+            pt_text = PT_PT.pronounce_number(num)
+            pt_extracted = PT_PT.extract_number(pt_text)
             self.assertEqual(pt_extracted, num)
 
     def test_scale_consistency(self):
@@ -570,15 +565,15 @@ class TestIntegrationScenarios(unittest.TestCase):
 
         for num in large_numbers:
             for scale in [Scale.SHORT, Scale.LONG]:
-                for variant in [PortugueseVariant.BR, PortugueseVariant.PT]:
-                    text = pronounce_number_pt(num, scale=scale, variant=variant)
-                    extracted = extract_number_pt(text, scale=scale, variant=variant)
+                for variant in [PT_PT, PT_BR]:
+                    text = variant.pronounce_number(num, scale=scale)
+                    extracted = variant.extract_number(text, scale=scale)
                     print(text, extracted)
                     self.assertEqual(extracted, num,
-                                     f"Scale consistency failed: {num} with {scale} and {variant}")
+                                     f"Scale consistency failed: {num} with {scale} and {variant.vocab.LANG}")
 
     def test_numbers_to_digits_integration(self):
-        """Test integration with numbers_to_digits_pt."""
+        """Test integration with PT_PT.numbers_to_digits."""
         test_phrases = [
             "há duzentos e cinquenta carros",
             "comprei dezesseis livros",
@@ -586,7 +581,7 @@ class TestIntegrationScenarios(unittest.TestCase):
         ]
 
         for phrase in test_phrases:
-            result = numbers_to_digits_pt(phrase, variant=PortugueseVariant.BR)
+            result = PT_BR.numbers_to_digits(phrase)
             # Should contain digits and preserve non-number words
             self.assertIsInstance(result, str)
             self.assertTrue(any(char.isdigit() for char in result))
@@ -597,12 +592,12 @@ class TestIntegrationScenarios(unittest.TestCase):
         invalid_inputs = ["", "   ", "xyz123", "palavra-palavra"]
 
         for invalid_input in invalid_inputs:
-            # extract_number_pt should return False for invalid input
-            result = extract_number_pt(invalid_input)
+            # PT_PT.extract_number should return False for invalid input
+            result = PT_PT.extract_number(invalid_input)
             self.assertFalse(result)
 
-            # numbers_to_digits_pt should handle gracefully
-            result = numbers_to_digits_pt(invalid_input)
+            # PT_PT.numbers_to_digits should handle gracefully
+            result = PT_PT.numbers_to_digits(invalid_input)
             self.assertIsInstance(result, str)
 
     def test_large_number_limits(self):
@@ -611,7 +606,7 @@ class TestIntegrationScenarios(unittest.TestCase):
 
         # Should not raise exceptions
         try:
-            result = pronounce_number_pt(very_large)
+            result = PT_PT.pronounce_number(very_large)
             self.assertIsInstance(result, str)
         except Exception as e:
             self.fail(f"Large number pronunciation failed: {e}")
