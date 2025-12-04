@@ -7,9 +7,9 @@ def swap_gender_ast(word: str, gender: GrammaticalGender) -> str:
     For Asturian, ordinals typically end in -u (masc.) and -a (fem.).
     """
     if gender == GrammaticalGender.FEMININE:
-        if word.endswith('u'):
-            return word[:-1] + 'a'
         if word.endswith('imu'):
+            return word[:-1] + 'a'
+        if word.endswith('u'):
             return word[:-1] + 'a'
     else:
         if word.endswith('a'):
@@ -18,10 +18,9 @@ def swap_gender_ast(word: str, gender: GrammaticalGender) -> str:
 
 
 def pluralize_ast(word: str):
-    # TODO - is this accurate?
     if word.endswith("ón"):
         return word[:-2] + "ones"
-    if not word.endswith("u"):
+    if word.endswith("u"):
         return word[:-1] + "os"
     if not word.endswith("s"):
         return word + "s"
