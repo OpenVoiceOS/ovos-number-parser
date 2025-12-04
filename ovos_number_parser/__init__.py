@@ -87,26 +87,24 @@ def pronounce_number(number: Union[int, float], lang: str,
                      digits: DigitPronunciation = DigitPronunciation.FULL_NUMBER,
                      gender: GrammaticalGender = GrammaticalGender.MASCULINE) -> str:
     """
-    Return the spoken representation of a number in the specified language.
-     
-    Converts a numeric value to its pronounced form, supporting various languages, decimal precision, scale (short or long), scientific notation, ordinal forms, digit pronunciation styles, and grammatical gender where applicable. Falls back to Unicode RBNF for unsupported languages.
-     
-    Parameters:
-        number (int or float): The number to pronounce.
-        lang (str): BCP-47 language code specifying the language for pronunciation.
-        places (int, optional): Number of decimal places to include (default is 3).
-        short_scale (bool, optional): Whether to use the short scale for large numbers (default is True).
-        scientific (bool, optional): If True, pronounce the number in scientific notation.
-        ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one").
-        digits (DigitPronunciation, optional): Style for pronouncing digits (default is FULL_NUMBER).
-        gender (GrammaticalGender, optional): Grammatical gender for languages that require it (default is MASCULINE).
-     
-    Returns:
-        str: The pronounced form of the number.
-     
-    Raises:
-        NotImplementedError: If the specified language is not supported.
-    """
+                     Produce the spoken form of a number in the specified language.
+                     
+                     Parameters:
+                         number (int | float): Number to be pronounced.
+                         lang (str): BCP-47 language code selecting the pronunciation language/variant.
+                         places (int): Maximum decimal places to include for fractional numbers (default 3).
+                         short_scale (bool): Use short scale naming for large numbers when True, long scale when False.
+                         scientific (bool): If True, format/pronounce the number in scientific notation when appropriate.
+                         ordinals (bool): If True, produce the ordinal form (e.g., "first" instead of "one").
+                         digits (DigitPronunciation): Controls how individual digits are spoken (e.g., full numbers vs digit-by-digit).
+                         gender (GrammaticalGender): Grammatical gender to use for languages that require gendered forms.
+                     
+                     Returns:
+                         str: The pronounced representation of the number in the target language.
+                     
+                     Raises:
+                         NotImplementedError: If no implementation or fallback is available for the requested language.
+                     """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("en"):
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
@@ -165,10 +163,11 @@ def pronounce_number(number: Union[int, float], lang: str,
 
 def pronounce_fraction(fraction_word: str, lang: str, scale: Scale = Scale.LONG) -> str:
     """
-    Return the spoken form of a fraction string (e.g., "1/2" as "one half") for the specified language and numerical scale.
+    Produce the spoken form of a fraction (e.g., "3/2" -> "three halves") for the given language and numerical scale.
     
     Parameters:
-        fraction_word (str): The fraction to pronounce (e.g., "3/2").
+        fraction_word (str): Fraction in "numerator/denominator" form.
+        lang (str): Language code; supports Portuguese variants ("pt" with "br" for PT_BR or PT_PT), Asturian ("ast"), and Mirandese ("mwl").
         scale (Scale, optional): Numerical scale to use (SHORT or LONG). Defaults to LONG.
     
     Returns:
@@ -192,20 +191,20 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
                       short_scale: bool = True,
                       gender: GrammaticalGender = GrammaticalGender.MASCULINE) -> str:
     """
-    Return the spoken ordinal form of a number in the specified language.
-      
-    Parameters:
-        number (int or float): The number to convert to its ordinal spoken equivalent.
-        lang (str): BCP-47 language code specifying the language for pronunciation.
-        short_scale (bool, optional): Whether to use the short (True) or long (False) scale for large numbers. Defaults to True.
-        gender (GrammaticalGender, optional): Grammatical gender to use for languages that require it. Defaults to masculine.
-      
-    Returns:
-        str: The ordinal number pronounced in the specified language.
-      
-    Raises:
-        NotImplementedError: If the language is not supported.
-    """
+                      Produce the spoken ordinal form of a number in the specified language.
+                      
+                      Parameters:
+                          number (int | float): Number to convert to its ordinal spoken form.
+                          lang (str): BCP-47 language code specifying the target language (may include region variants, e.g., "pt-BR").
+                          short_scale (bool): Use short scale for large number names when True, long scale when False.
+                          gender (GrammaticalGender): Grammatical gender to use for languages that inflect ordinals by gender.
+                      
+                      Returns:
+                          str: The ordinal pronunciation of the number in the requested language.
+                      
+                      Raises:
+                          NotImplementedError: If the language is not supported and no fallback is available.
+                      """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("pt"):
         return PT_BR.pronounce_ordinal(number, scale=scale, gender=gender) if "br" in lang.lower() \
@@ -234,22 +233,22 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
 
 
 def extract_number(text: str, lang: str, short_scale: bool = True, ordinals: bool = False) -> Union[int, float, bool]:
-    """Takes in a string and extracts a number.
-
-    Assumes only 1 number is in the string, does NOT handle multiple numbers
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): Use "short scale" or "long scale" for large
-            numbers -- over a million.  The default is short scale, which
-            is now common in most English speaking countries.
-            See https://en.wikipedia.org/wiki/Names_of_large_numbers
-        ordinals (bool): consider ordinal numbers, e.g. third=3 instead of 1/3
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
+    """
+    Extracts a single numeric value from a text string for a given language.
+    
+    Parses the input text and returns the numeric value represented by the first (and assumed only) number in the string. Language-specific parsing rules are applied; use `short_scale=False` to interpret large-number names using the long scale. If `ordinals` is True, ordinal words (e.g., "third") are interpreted as their corresponding numbers.
+    
+    Parameters:
+        text (str): The string to extract a number from.
+        lang (str): BCP-47 language code used to select language-specific parsing.
+        short_scale (bool): When True (default), interpret large-number names using the short scale; when False, use the long scale.
+        ordinals (bool): When True, treat ordinal words as numbers (e.g., "third" -> 3).
+    
     Returns:
-        (int, float or False): The number extracted or False if the input
-                               text contains no numbers
+        int, float, or bool: The extracted number as an int or float, or `False` if no number is found.
+    
+    Raises:
+        NotImplementedError: If the specified language is not supported.
     """
     scale = Scale.SHORT if short_scale else Scale.LONG  # TODO migrate function kwarg to accept Scale enum
     if lang.startswith("en"):
@@ -298,19 +297,15 @@ def extract_number(text: str, lang: str, short_scale: bool = True, ordinals: boo
 
 def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[bool, float]:
     """
-    This function takes the given text and checks if it is a fraction.
-    Used by most of the number exractors.
-
-    Will return False on phrases that *contain* a fraction. Only detects
-    exact matches. To pull a fraction from a string, see extract_number()
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
+    Determine whether the input string exactly represents a fraction for the given language.
+    
+    Parameters:
+        input_str (str): Text to check for an exact fractional representation.
+        lang (str): BCP-47 language code used to select language-specific parsing rules.
+        short_scale (bool): Use short scale when interpreting large-number names; True for short scale, False for long scale.
+    
     Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
+        Union[bool, float]: `False` if the input is not an exact fraction; otherwise the numeric value of the fraction as a `float`.
     """
     if lang.startswith("en"):
         return is_fractional_en(input_str, short_scale)
@@ -355,15 +350,14 @@ def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[
 
 def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
     """
-    This function takes the given text and checks if it is an ordinal number.
-
-    Args:
-        input_str (str): the string to check if ordinal
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
+    Determine whether a string represents an ordinal and return its numeric value.
+    
+    Parameters:
+        input_str (str): Text to evaluate for ordinal form.
+        lang (str): BCP-47 language code used to interpret the input.
+    
     Returns:
-        (bool) or (float): False if not an ordinal, otherwise the number
-        corresponding to the ordinal
+        Union[bool, float]: The numeric value of the ordinal if recognized, `False` otherwise.
     """
     if lang.startswith("pt"):
         return PT_PT.is_ordinal(input_str)

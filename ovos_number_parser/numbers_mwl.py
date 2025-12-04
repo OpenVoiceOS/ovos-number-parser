@@ -5,6 +5,17 @@ import warnings
 
 
 def swap_gender_mwl(word: str, gender: GrammaticalGender) -> str:
+    """
+    Adjusts an MWL word to match the specified grammatical gender.
+    
+    Transforms a number-related or gendered word into the requested GrammaticalGender using a set of explicit mappings and general morphing rules (e.g., final-letter and suffix adjustments). If no rule applies, returns the original word unchanged.
+    
+    Parameters:
+        gender (GrammaticalGender): Target grammatical gender to apply to the word.
+    
+    Returns:
+        str: The input word modified to reflect the requested gender; unchanged if no rule applies.
+    """
     if word == "un" and gender == GrammaticalGender.FEMININE:
         return "ũa"
     elif word == "ũa" and gender == GrammaticalGender.MASCULINE:
@@ -32,6 +43,20 @@ def swap_gender_mwl(word: str, gender: GrammaticalGender) -> str:
 
 def pluralize_mwl(word: str):
     # TODO - is this accurate?
+    """
+    Return the plural form of an MWL word following simple MWL pluralization rules.
+    
+    Rules:
+    - If the word ends with "on", append "es".
+    - If the word does not already end with "s", append "s".
+    - Otherwise, return the word unchanged.
+    
+    Parameters:
+        word (str): Singular MWL word to pluralize.
+    
+    Returns:
+        str: The pluralized form of `word`.
+    """
     if word.endswith("on"):
         return word + "es"
     if not word.endswith("s"):
@@ -236,8 +261,18 @@ def pronounce_ordinal_mwl(
         scale: Scale = Scale.LONG
 ) -> str:
     """
-    DEPRECATED
-    """
+        Pronounce an ordinal number using the MWL (Romance-like) number vocabulary.
+        
+        This function is deprecated; use RomanceNumberExtractor.pronounce_ordinal with the MWL NumberVocabulary instance instead.
+        
+        Parameters:
+            number (int | float): The numeric value to convert to an ordinal word.
+            gender (GrammaticalGender): Grammatical gender to apply to the ordinal form.
+            scale (Scale): Number scale to use for large-number names (SHORT or LONG).
+        
+        Returns:
+            str: The ordinal word for `number` in MWL adjusted for `gender` and `scale`.
+        """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
@@ -250,8 +285,16 @@ def is_fractional_mwl(
         input_str: str
 ) -> Union[float, bool]:
     """
-    DEPRECATED
-    """
+        Identify whether a string expresses a fractional number in MWL and return its numeric value.
+        
+        Deprecated: emits a DeprecationWarning; use the corresponding method on the MWL RomanceNumberExtractor/NumberVocabulary objects instead.
+        
+        Parameters:
+            input_str (str): The MWL text to analyze for a fractional expression.
+        
+        Returns:
+            float | bool: `float` representing the fraction's numeric value if recognized, `False` otherwise.
+        """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
@@ -262,7 +305,12 @@ def is_fractional_mwl(
 
 def is_ordinal_mwl(input_str: str) -> bool:
     """
-    DEPRECATED
+    Check whether a string represents an ordinal number in MWL.
+    
+    Deprecated: wrapper that emits a DeprecationWarning and forwards to the MWL RomanceNumberExtractor.
+    
+    Returns:
+        `true` if the input string is an ordinal in MWL, `false` otherwise.
     """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
@@ -278,8 +326,19 @@ def extract_number_mwl(
         scale: Scale = Scale.LONG,
 ) -> Union[int, float, bool]:
     """
-    DEPRECATED
-    """
+        Extract a numeric value from MWL text.
+        
+        Parameters:
+            text (str): Input string containing a number in MWL orthography.
+            ordinals (bool): If true, recognize and parse ordinal forms.
+            scale (Scale): Scale system to use when interpreting large-number names (SHORT or LONG).
+        
+        Returns:
+            int or float if a numeric value is found; `False` if no number could be extracted.
+        
+        Deprecated:
+            Use RomanceNumberExtractor.extract_number with a NumberVocabulary configured for MWL instead.
+        """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
@@ -297,8 +356,21 @@ def pronounce_number_mwl(
         gender: GrammaticalGender = GrammaticalGender.MASCULINE
 ) -> str:
     """
-    DEPRECATED
-    """
+        Pronounces a number in the MWL (Romance/Esperanto-like) number vocabulary.
+        
+        Deprecated: use RomanceNumberExtractor and NumberVocabulary directly instead.
+        
+        Parameters:
+            number (int | float): The number to pronounce.
+            places (int): Maximum decimal places to include when pronouncing fractional numbers.
+            scale (Scale): Scale to use for large numbers (SHORT or LONG).
+            ordinals (bool): If True, produce an ordinal form instead of a cardinal form.
+            digits (DigitPronunciation): How to pronounce individual digits (e.g., as a full number or digit-by-digit).
+            gender (GrammaticalGender): Grammatical gender to apply for gendered number forms.
+        
+        Returns:
+            str: The MWL pronunciation of the provided number (cardinal or ordinal as requested).
+        """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
@@ -312,8 +384,17 @@ def numbers_to_digits_mwl(
         scale: Scale = Scale.LONG
 ) -> str:
     """
-    DEPRECATED
-    """
+        Convert MWL-language number words in an utterance into numeric digits.
+        
+        Deprecated: use RomanceNumberExtractor and NumberVocabulary directly.
+        
+        Parameters:
+            utterance (str): Text potentially containing MWL number words.
+            scale (Scale): Scale to interpret large-number words (e.g., Scale.LONG or Scale.SHORT).
+        
+        Returns:
+            str: The input utterance with MWL number words replaced by their digit equivalents.
+        """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
@@ -325,7 +406,17 @@ def numbers_to_digits_mwl(
 
 def pronounce_fraction_mwl(word: str, scale: Scale = Scale.LONG) -> str:
     """
-    DEPRECATED
+    Deprecated wrapper that returns the pronunciation of a fractional expression in MWL.
+    
+    Parameters:
+        word (str): Fractional expression or fraction word to pronounce (e.g., "1/2", "mez").
+        scale (Scale): Scale system to use for large-number terms (e.g., Scale.LONG or Scale.SHORT).
+    
+    Returns:
+        str: The MWL pronunciation of the given fraction.
+    
+    Notes:
+        Emits a DeprecationWarning; prefer using the RomanceNumberExtractor/NumberVocabulary API directly.
     """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",

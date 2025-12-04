@@ -30,7 +30,9 @@ class TestDictionaries(unittest.TestCase):
         self.assertEqual(set(PT_PT.vocab.UNITS.keys()), set(expected_keys))
 
     def test_tens_br_completeness(self):
-        """Test that _TENS_BR contains all expected numbers."""
+        """
+        Verify PT_BR.vocab.TENS contains keys for 10–19 and every multiple of 10 from 20 to 90.
+        """
         expected_keys = list(range(10, 20)) + list(range(20, 100, 10))
         self.assertEqual(set(PT_BR.vocab.TENS.keys()), set(expected_keys))
 

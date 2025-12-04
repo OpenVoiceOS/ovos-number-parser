@@ -18,14 +18,16 @@ class PortugueseVariant(str, Enum):
 
 def swap_gender_pt(word: str, gender: GrammaticalGender) -> str:
     """
-    Convert a Portuguese word between masculine and feminine grammatical gender by adjusting its ending.
-
+    Convert a Portuguese word to the specified grammatical gender by adjusting its ending.
+    
+    Performs common ending transformations (e.g., -o → -a, -os ↔ -as, -m → -ma) and handles the irregular pair "dois"/"duas"; returns the original word if no rule applies.
+    
     Parameters:
-        word (str): The word to convert.
-        gender (GrammaticalGender): The target grammatical gender.
-
+        word (str): The input Portuguese word to transform.
+        gender (GrammaticalGender): Target grammatical gender.
+    
     Returns:
-        str: The word with its ending swapped to match the specified gender, if applicable; otherwise, the original word.
+        str: The word modified to match the target gender, or the original word if no transformation is applicable.
     """
     if word == "dois" and gender == GrammaticalGender.FEMININE:
         return "duas"
@@ -48,6 +50,17 @@ def swap_gender_pt(word: str, gender: GrammaticalGender) -> str:
 
 
 def pluralize_pt(word: str):
+    """
+    Return the plural form of a Portuguese word using simple orthographic rules.
+    
+    Converts words ending with "ão" to "ões". If the word does not end with "s", appends "s". Otherwise returns the original word unchanged.
+    
+    Parameters:
+        word (str): A Portuguese word in singular form.
+    
+    Returns:
+        str: The pluralized form of the input word.
+    """
     if word.endswith("ão"):
         return word[:-2] + "ões"
     if not word.endswith("s"):
@@ -302,20 +315,20 @@ def pronounce_ordinal_pt(
         variant: PortugueseVariant = PortugueseVariant.PT
 ) -> str:
     """
-    Return the ordinal pronunciation of a number in Portuguese, supporting grammatical gender, scale (short or long), and language variant (Brazilian or European Portuguese).
-
-    Parameters:
-        number (int or float): The number to pronounce as an ordinal.
-        gender (GrammaticalGender, optional): The grammatical gender for the ordinal form (masculine or feminine).
-        scale (Scale, optional): The numerical scale to use (short or long).
-        variant (PortugueseVariant, optional): The Portuguese variant (Brazilian or European).
-
-    Returns:
-        str: The ordinal pronunciation of the number in Portuguese.
-
-    Raises:
-        TypeError: If `number` is not an int or float.
-    """
+        Pronounces a number as a Portuguese ordinal.
+        
+        Parameters:
+            number (int | float): Number to pronounce as an ordinal.
+            gender (GrammaticalGender, optional): Target grammatical gender for the ordinal form.
+            scale (Scale, optional): Numerical scale to use (short or long).
+            variant (PortugueseVariant, optional): Portuguese variant to use (`PT` for European, `BR` for Brazilian).
+        
+        Returns:
+            str: Ordinal pronunciation in Portuguese matching the specified gender, scale, and variant.
+        
+        Note:
+            Emits a DeprecationWarning indicating migration to the extractor/vocabulary API.
+        """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
@@ -330,8 +343,13 @@ def is_fractional_pt(
         input_str: str
 ) -> Union[float, bool]:
     """
-    DEPRECATED
-    """
+        Check whether a Portuguese numeric string represents a fractional number and return its numeric value.
+        
+        Deprecated: use RomanceNumberExtractor and NumberVocabulary directly instead.
+        
+        Returns:
+            float: The fractional value parsed from the input if it represents a fraction, `False` otherwise.
+        """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
@@ -342,7 +360,12 @@ def is_fractional_pt(
 
 def is_ordinal_pt(input_str: str) -> bool:
     """
-    DEPRECATED
+    Determine whether a Portuguese text token represents an ordinal number.
+    
+    Deprecated: migrate to RomanceNumberExtractor.is_ordinal via the PT_PT or PT_BR vocabularies.
+    
+    Returns:
+        True if input_str is an ordinal expression in Portuguese, False otherwise.
     """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
@@ -359,8 +382,19 @@ def extract_number_pt(
         variant: PortugueseVariant = PortugueseVariant.PT
 ) -> Union[int, float, bool]:
     """
-    DEPRECATED
-    """
+        Extract a number from a Portuguese text string.
+        
+        This function is deprecated; it delegates to the RomanceNumberExtractor instances for European (PT) or Brazilian (BR) Portuguese and will warn on use. It parses the input text and returns the numeric value represented by cardinal or, if requested, ordinal words.
+        
+        Parameters:
+            text (str): Input Portuguese text to parse for a number.
+            ordinals (bool): If True, interpret and extract ordinal numbers (e.g., "primeiro" -> 1).
+            scale (Scale): Number scale to use for large-number names (e.g., Scale.LONG or Scale.SHORT).
+            variant (PortugueseVariant): Language variant to use: PortugueseVariant.PT for European Portuguese or PortugueseVariant.BR for Brazilian Portuguese.
+        
+        Returns:
+            int or float or bool: The extracted numeric value as an int or float, or `False` if no number could be extracted.
+        """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
@@ -381,8 +415,22 @@ def pronounce_number_pt(
         gender: GrammaticalGender = GrammaticalGender.MASCULINE
 ) -> str:
     """
-    DEPRECATED
-    """
+        Pronounce a number in Portuguese according to the selected regional variant.
+        
+        Deprecated: use RomanceNumberExtractor with a NumberVocabulary (e.g., PT_PT or PT_BR) instead.
+        
+        Parameters:
+            number (int | float): Number to pronounce.
+            places (int): Maximum decimal places to include when pronouncing fractional numbers.
+            scale (Scale): Scale system to use for large numbers (short or long).
+            variant (PortugueseVariant): Regional variant to use (`PT` for pt-PT, `BR` for pt-BR).
+            ordinals (bool): If true, produce an ordinal form (e.g., "primeiro") instead of a cardinal.
+            digits (DigitPronunciation): How to pronounce sequences of digits (e.g., full number, groupwise).
+            gender (GrammaticalGender): Grammatical gender for gendered forms (masculine or feminine).
+        
+        Returns:
+            str: The Portuguese pronunciation/spelling of the given number.
+        """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
@@ -399,8 +447,18 @@ def numbers_to_digits_pt(
         variant: PortugueseVariant = PortugueseVariant.PT
 ) -> str:
     """
-    DEPRECATED
-    """
+        Deprecated wrapper that converts Portuguese number words in an utterance into numeric digits, delegating to the selected Portuguese variant.
+        
+        This function is deprecated; use RomanceNumberExtractor and NumberVocabulary directly.
+        
+        Parameters:
+            utterance (str): Text containing Portuguese number words to convert.
+            scale (Scale): Scale to use for large-number interpretation (e.g., long or short scale).
+            variant (PortugueseVariant): Portuguese variant to target (`PT` for European, `BR` for Brazilian).
+        
+        Returns:
+            str: The utterance with number words replaced by their digit representations.
+        """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
@@ -416,8 +474,18 @@ def pronounce_fraction_pt(word: str,
                           scale: Scale = Scale.LONG,
                           variant: PortugueseVariant = PortugueseVariant.PT) -> str:
     """
-    DEPRECATED
-    """
+                          Pronounce a Portuguese fractional expression using the specified scale and variant. 
+                          
+                          Deprecated: migrate to RomanceNumberExtractor.pronounce_fraction with an appropriate NumberVocabulary instead.
+                          
+                          Parameters:
+                              word (str): Fractional expression to pronounce (for example a numeric fraction or fraction word).
+                              scale (Scale): Numerical scale to use for naming large units.
+                              variant (PortugueseVariant): Portuguese variant to use (`PT` for European, `BR` for Brazilian).
+                          
+                          Returns:
+                              str: The fraction rendered as a Portuguese spoken string.
+                          """
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,

@@ -13,6 +13,11 @@ class TestDictionaries(unittest.TestCase):
         self.assertEqual(set(AST.vocab.UNITS.keys()), set(range(0, 10)))
 
     def test_tens_contains_expected(self):
+        """
+        Verify that AST.vocab.TENS contains keys for 10–19 and the multiples of 10 from 20 to 90.
+        
+        This test builds the expected set of teen numbers (10–19) and tens (20, 30, ..., 90) and asserts each is present as a key in AST.vocab.TENS.
+        """
         expected = list(range(10, 20)) + list(range(20, 100, 10))
         for i in expected:
             self.assertIn(i, set(AST.vocab.TENS.keys()))

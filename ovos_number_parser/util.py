@@ -10,10 +10,29 @@ class Token:
     index: int
 
     def __iter__(self):
+        """
+        Allow tuple-style unpacking of the Token by yielding the token's word followed by its index.
+        
+        Yields:
+            str: The token's word.
+            int: The token's index.
+        """
         yield self.word
         yield self.index
 
     def __getitem__(self, item):
+        """
+        Provide index-based access to the token: index 0 yields the token's word and index 1 yields its index.
+        
+        Parameters:
+            item (int): The index to access; use 0 for the token's word and 1 for the token's index.
+        
+        Returns:
+            The token's word (str) when `item` is 0, or the token's index (int) when `item` is 1.
+        
+        Raises:
+            IndexError: If `item` is not 0 or 1.
+        """
         if item == 0:
             return self.word
         elif item == 1:
@@ -22,10 +41,10 @@ class Token:
 
     def __setattr__(self, key, value):
         """
-        Prevent modification of existing attributes, allowing only new attributes to be set.
-
+        Prevent modification of existing attributes; allow setting new attributes only.
+        
         Raises:
-            Exception: If attempting to modify an attribute that already exists.
+            AttributeError: If an attribute with the given name already exists on the instance.
         """
         try:
             getattr(self, key)
@@ -73,20 +92,43 @@ class ReplaceableNumber:
     tokens: List[Token]
 
     def __bool__(self) -> bool:
+        """
+        Determine the truthiness of this object based on its stored numeric value.
+        
+        Returns:
+            True if the stored value is neither `None` nor `False`, `False` otherwise.
+        """
         return bool(self.value is not None and self.value is not False)
 
     @property
     def start_index(self) -> int:
+        """
+        Index of the first token in the replaceable number span.
+        
+        Returns:
+            int: The index of the first token in `tokens`.
+        """
         return self.tokens[0].index
 
     @property
     def end_index(self) -> int:
+        """
+        Index of the last token in the stored token sequence.
+        
+        Returns:
+            int: The index of the final Token in `self.tokens`.
+        """
         return self.tokens[-1].index
 
     @property
     def text(self) -> str:
         """
-        Return the concatenated text represented by the tokens, separated by spaces.
+        Concatenate the token words into a single space-separated string.
+        
+        Skips tokens whose `word` is falsy (empty or None).
+        
+        Returns:
+            text (str): The tokens' words joined with single spaces.
         """
         return ' '.join([str(t.word) for t in self.tokens if t.word])
 
@@ -108,16 +150,27 @@ class ReplaceableNumber:
         return "({v}, {t})".format(v=self.value, t=self.tokens)
 
     def __repr__(self):
+        """
+        Return the canonical developer-facing string representation of the instance.
+        
+        Returns:
+            str: A string formatted as "ClassName(value, tokens)", where `ClassName` is the instance's class name, `value` is the stored numeric value, and `tokens` is the list of associated Token objects.
+        """
         return "{n}({v}, {t})".format(n=self.__class__.__name__, v=self.value,
                                       t=self.tokens)
 
 
 def word_tokenize(utterance: str) -> List[str]:
     """
-    Splits a Portuguese text string into a list of tokens, separating words and punctuation.
-
+    Split Portuguese text into tokens, separating words, numbers, and punctuation.
+    
+    Handles percent signs (e.g., "12%"), hash-number sequences (e.g., "#1"), and splits hyphenated alphabetic words (e.g., "amo-te") while preserving numeric ranges like "1-2". Removes a trailing lone hyphen if present.
+    
+    Parameters:
+        utterance (str): Input text to tokenize.
+    
     Returns:
-        A list of tokens, where each token is a word or punctuation mark from the input string.
+        List[str]: Tokens extracted from the input, where each token is a word, number, or punctuation fragment.
     """
     # Split things like 12%
     utterance = re.sub(r"([0-9]+)([\%])", r"\1 \2", utterance)
@@ -137,33 +190,30 @@ def word_tokenize(utterance: str) -> List[str]:
 
 def tokenize(text: str) -> List[Token]:
     """
-    Generate a list of token object, given a string.
-    Args:
-        text str: Text to tokenize.
-
+    Convert a string into a list of Token objects representing sequential tokens.
+    
+    Parameters:
+        text (str): Input text to tokenize.
+    
     Returns:
-        [Token]
-
+        List[Token]: Tokens in original order; each Token.word is the token string and Token.index is its position.
     """
     return [Token(word, index) for index, word in enumerate(word_tokenize(text))]
 
 
 def partition_list(items: List[Any], split_on: Any) -> List[List[Any]]:
     """
-    Partition a list of items.
-
-    Works similarly to str.partition
-
-    Args:
-        items:
-        split_on callable:
-            Should return a boolean. Each item will be passed to
-            this callable in succession, and partitions will be
-            created any time it returns True.
-
+    Partition a list into sublists, splitting whenever a predicate matches an item.
+    
+    Parameters:
+        items (List[Any]): Sequence of items to partition.
+        split_on (Callable[[Any], bool]): Predicate called for each item; when it returns True,
+            the current partition is ended, the matching item starts its own partition, and a new
+            partition begins afterwards.
+    
     Returns:
-        [[any]]
-
+        List[List[Any]]: Non-empty partitions of the input list in order. The item for which
+        `split_on` is True appears as a single-item partition.
     """
     splits = []
     current_split = []
@@ -180,28 +230,20 @@ def partition_list(items: List[Any], split_on: Any) -> List[List[Any]]:
 
 def invert_dict(original: Dict[Any, Any]) -> Dict[Any, Any]:
     """
-    Produce a dictionary with the keys and values
-    inverted, relative to the dict passed in.
-
-    Args:
-        original dict: The dict like object to invert
-
+    Invert the keys and values of a mapping.
+    
     Returns:
-        dict
-
+        dict: A new dictionary mapping each value from `original` to its corresponding key. If a value appears multiple times in `original`, the mapping for the last key encountered is retained. Note: values must be hashable to serve as dict keys.
     """
     return {value: key for key, value in original.items()}
 
 
 def is_numeric(input_str: str) -> bool:
     """
-    Return True if the input string represents a valid number, otherwise False.
-
-    Parameters:
-        input_str (str): The string to test for numeric value.
-
+    Check whether a string represents a numeric value.
+    
     Returns:
-        bool: True if the string can be converted to a float, False otherwise.
+        `True` if the string can be converted to a float, `False` otherwise.
     """
     try:
         float(input_str)
@@ -211,14 +253,14 @@ def is_numeric(input_str: str) -> bool:
 
 
 def look_for_fractions(split_list: List[str]) -> bool:
-    """"
-    This function takes a list made by fraction & determines if a fraction.
-
-    Args:
-        split_list (list): list created by splitting on '/'
+    """
+    Determine whether the provided two-element list represents a simple numeric fraction.
+    
+    Parameters:
+        split_list (List[str]): List produced by splitting a string on '/'.
+    
     Returns:
-        (bool): False if not a fraction, otherwise True
-
+        bool: `True` if the list has exactly two elements and both are numeric strings, `False` otherwise.
     """
 
     if len(split_list) == 2:
@@ -230,17 +272,19 @@ def look_for_fractions(split_list: List[str]) -> bool:
 
 def convert_to_mixed_fraction(number: Union[int, float], denominators=range(1, 21)) -> Optional[Tuple[int, int, int]]:
     """
-    Convert floats to components of a mixed fraction representation
-
-    Returns the closest fractional representation using the
-    provided denominators.  For example, 4.500002 would become
-    the whole number 4, the numerator 1 and the denominator 2
-
-    Args:
-        number (float): number for convert
-        denominators (iter of ints): denominators to use, default [1 .. 20]
+    Convert a number to a mixed fraction using the provided denominators.
+    
+    If the input is an integer, returns (whole, 0, 1). Otherwise attempts to represent
+    the fractional part as numerator/denominator for one of the given denominators.
+    Matching uses a tolerance of 0.01 when comparing the fractional product to an integer.
+    
+    Parameters:
+        number (int | float): Value to convert.
+        denominators (Iterable[int]): Sequence of denominators to try (default range(1, 21)).
+    
     Returns:
-        whole, numerator, denominator (int): Integers of the mixed fraction
+        Optional[Tuple[int, int, int]]: (whole, numerator, denominator) if a match is found;
+        otherwise `None`.
     """
     int_number = int(number)
     if int_number == number:
@@ -306,6 +350,15 @@ class NumberVocabulary:
     singularize: Callable[[str], str] = lambda word: word
 
     def get_number_strings(self, scale: Scale = Scale.LONG) -> Dict[str, int]:
+        """
+        Builds a mapping from spoken number words to their integer values for the specified scale.
+        
+        Parameters:
+            scale (Scale): Choose Scale.SHORT to use short-scale names (thousand, million, ...), otherwise Scale.LONG.
+        
+        Returns:
+            Dict[str, int]: A dictionary where keys are number word forms (including alternate spellings, feminine variants, plural forms, and the optional hundred particle) and values are their corresponding integer values.
+        """
         SCALES = self.SHORT_SCALE if scale == Scale.SHORT else self.LONG_SCALE
         male = {
             **self.ALT_SPELLINGS,
@@ -330,6 +383,15 @@ class NumberVocabulary:
         }
 
     def get_ordinal_strings(self, scale: Scale = Scale.LONG) -> Dict[str, int]:
+        """
+        Builds a mapping of ordinal word forms to their numeric values including masculine, feminine, and plural variants.
+        
+        Parameters:
+            scale (Scale): Which scale set to include for large-number ordinals (SHORT or LONG).
+        
+        Returns:
+            Dict[str, int]: A dictionary mapping ordinal words (masculine, feminine, and plural forms) to their integer values.
+        """
         SCALES = self.ORDINAL_SHORT_SCALE if scale == Scale.SHORT else self.ORDINAL_LONG_SCALE
         male = {
             **{v: k for k, v in self.ORDINAL_UNITS.items()},
@@ -350,6 +412,12 @@ class NumberVocabulary:
         }
 
     def get_fraction_strings(self) -> Dict[str, int]:
+        """
+        Builds a mapping of fraction words (masculine, feminine, and plural forms) to their denominator values.
+        
+        Returns:
+            dict: Mapping from fraction word (str) to denominator (int), e.g. "half" -> 2.
+        """
         male = {v: k for k, v in self.FRACTION.items()}
         female = {v: k for k, v in self.FRACTION_FEMALE.items()}
         plural = {self.pluralize(k): v for k, v in male.items()}
@@ -364,14 +432,24 @@ class RomanceNumberExtractor:
     """vocabulary based number parser that should work for most romance-like languages"""
 
     def __init__(self, vocab: NumberVocabulary):
+        """
+        Create a RomanceNumberExtractor configured with the provided number vocabulary.
+        
+        Parameters:
+            vocab (NumberVocabulary): Language-specific vocabulary and configuration used for parsing, formatting, and pronouncing numbers.
+        """
         self.vocab = vocab
 
     def is_ordinal(self, input_str: str, scale: Optional[Scale] = None) -> bool:
         """
-        Determine if a string is a Portuguese ordinal word.
-
+        Check whether a string is a recognized ordinal word.
+        
+        Parameters:
+            input_str (str): Word to test for ordinal recognition.
+            scale (Optional[Scale]): Scale to use when resolving ordinal forms; defaults to the vocabulary's DEFAULT_SCALE.
+        
         Returns:
-            bool: True if the input string is recognized as a Portuguese ordinal, otherwise False.
+            `true` if the input is an ordinal word, `false` otherwise.
         """
         scale = scale or self.vocab.DEFAULT_SCALE
         ordinals_map = self.vocab.get_ordinal_strings(scale)
@@ -379,10 +457,10 @@ class RomanceNumberExtractor:
 
     def is_fractional(self, input_str: str) -> Union[float, bool]:
         """
-        Checks if the input string corresponds to a recognized Portuguese fractional word.
-
+        Determine whether a string corresponds to a known fractional word.
+        
         Returns:
-            The fractional value as a float if recognized; otherwise, False.
+            The fractional value as a float (e.g., 0.5 for a denominator of 2) if the input matches a known fraction, `False` otherwise.
         """
         fractions_map = self.vocab.get_fraction_strings()
         input_str = input_str.lower().strip()
@@ -400,16 +478,19 @@ class RomanceNumberExtractor:
                        scale: Scale = None,
                        ) -> Union[int, float, bool]:
         """
-        Extracts a numeric value from a text phrase, supporting cardinals, ordinals, fractions, and large scales.
-
-        Parameters:
-            text (str): The input phrase potentially containing a number.
-            ordinals (bool): If True, recognizes ordinal words as numbers.
-            scale (Scale): Specifies whether to use the short or long numerical scale.
-
-        Returns:
-            int or float: The extracted number if found; otherwise, False.
-        """
+                       Extract a numeric value from a Portuguese text phrase.
+                       
+                       Recognizes cardinal numbers, fractional forms, decimal markers, and large-scale words (e.g., milhão, bilhão); when `ordinals` is True also recognizes ordinal words. Hyphenated words are normalized and join words are ignored during parsing.
+                       
+                       Parameters:
+                           text (str): Input phrase that may contain a number.
+                           ordinals (bool): If True, treat ordinal words as numeric values.
+                           scale (Scale): Which numerical scale to use (short or long); defaults to the vocabulary's DEFAULT_SCALE.
+                       
+                       Returns:
+                           int or float: The parsed numeric value when a number is found.
+                           bool: `False` if no numeric value could be extracted.
+                       """
         scale = scale or self.vocab.DEFAULT_SCALE
         numbers_map = self.vocab.get_number_strings(scale)
         ordinals_map = self.vocab.get_ordinal_strings(scale)
@@ -555,18 +636,19 @@ class RomanceNumberExtractor:
                          gender: GrammaticalGender = GrammaticalGender.MASCULINE
                          ) -> str:
         """
-        Return the full pronunciation of a number, supporting cardinal and ordinal forms, decimals, large scales, grammatical gender, and both Brazilian and European Portuguese variants.
-
-        Parameters:
-            number (int or float): The number to pronounce.
-            places (int): Number of decimal places to include for floats.
-            scale (Scale): Numerical scale to use (short or long).
-            ordinals (bool): If True, pronounce as an ordinal number.
-            gender (GrammaticalGender): Grammatical gender for ordinal numbers.
-
-        Returns:
-            str: The number expressed as a phrase.
-        """
+                         Produce the spoken Portuguese phrase for a number, supporting cardinal and ordinal forms, decimals, large scales (short/long), and grammatical gender.
+                         
+                         Parameters:
+                             number (int | float): Number to pronounce.
+                             places (int): Maximum decimal places to include when pronouncing fractional parts.
+                             scale (Scale): Numerical scale to use for large numbers (short or long).
+                             ordinals (bool): If True, pronounce the number as an ordinal.
+                             digits (DigitPronunciation): How to render decimal digits (digit-by-digit or as a whole number).
+                             gender (GrammaticalGender): Grammatical gender to apply when pronouncing ordinals and gendered forms.
+                         
+                         Returns:
+                             str: The number expressed as a Portuguese phrase.
+                         """
         if not isinstance(number, (int, float)):
             raise TypeError("Number must be an int or float.")
 
@@ -676,16 +758,16 @@ class RomanceNumberExtractor:
                            word: str,
                            scale: Scale = Scale.LONG) -> str:
         """
-        Return the pronunciation of a fraction given as a string (e.g., "1/2").
-
-        The numerator is pronounced as a cardinal number, and the denominator as an ordinal or fraction name, pluralized if appropriate. For denominators not in the known fraction list, the denominator is pronounced as a cardinal number followed by "avos" if plural.
-
-        Parameters:
-            word (str): Fraction in the form "numerator/denominator" (e.g., "3/4").
-
-        Returns:
-            str: The pronunciation of the fraction.
-        """
+                           Produce the spoken phrase for a fractional expression like "1/2".
+                           
+                           The numerator is spoken as a cardinal number. The denominator is spoken using a known fraction name when available (pluralized if the numerator is greater than one); if the denominator is not a known fraction it is spoken as a cardinal number and, when the numerator is greater than one, followed by the vocabulary's denominator particle. A zero denominator yields the vocabulary's divided-by-zero message.
+                           
+                           Parameters:
+                               word (str): Fraction in the form "numerator/denominator" (e.g., "3/4").
+                           
+                           Returns:
+                               str: The spoken pronunciation of the fraction.
+                           """
         n1, n2 = word.split("/")
         n1_int, n2_int = int(n1), int(n2)
 
@@ -714,19 +796,19 @@ class RomanceNumberExtractor:
                           scale: Scale = Scale.LONG
                           ) -> str:
         """
-        Return the ordinal pronunciation of a number, supporting grammatical gender, scale (short or long), and language variant (Brazilian or European Portuguese).
-
-        Parameters:
-            number (int or float): The number to pronounce as an ordinal.
-            gender (GrammaticalGender, optional): The grammatical gender for the ordinal form (masculine or feminine).
-            scale (Scale, optional): The numerical scale to use (short or long).
-
-        Returns:
-            str: The ordinal pronunciation of the number.
-
-        Raises:
-            TypeError: If `number` is not an int or float.
-        """
+                          Produce the ordinal pronunciation for a number, applying grammatical gender and the specified numeric scale.
+                          
+                          Parameters:
+                              number (int | float): The number to pronounce as an ordinal. Zero and negative values are supported (negative values include the negative sign).
+                              gender (GrammaticalGender): Grammatical gender to use for the ordinal form.
+                              scale (Scale): Numeric scale to apply when naming large magnitudes (short or long scale).
+                          
+                          Returns:
+                              str: The ordinal pronunciation of the number.
+                          
+                          Raises:
+                              TypeError: If `number` is not an int or float.
+                          """
         if not isinstance(number, (int, float)):
             raise TypeError("Number must be an int or float.")
         if number == 0:
@@ -773,17 +855,20 @@ class RomanceNumberExtractor:
                              gender: GrammaticalGender = GrammaticalGender.MASCULINE
                              ) -> str:
         """
-        Returns the cardinal pronunciation of an integer from 0 to 999, using the specified language variant.
-
-        Parameters:
-            n (int): Integer to pronounce (must be between 0 and 999).
-
-        Returns:
-            str: The pronounced number.
-
-        Raises:
-            ValueError: If n is not in the range 0 to 999.
-        """
+                             Return the cardinal pronunciation for an integer in the range 0–999 using the vocabulary's gender variants.
+                             
+                             Pronunciation is chosen from the vocabulary's UNITS, TENS, and HUNDREDS mappings and assembled with configured join words and particles.
+                             
+                             Parameters:
+                                 n (int): Integer to pronounce; must be between 0 and 999.
+                                 gender (GrammaticalGender): Grammatical gender to select gendered word forms when applicable.
+                             
+                             Returns:
+                                 str: The pronounced cardinal phrase for the given number.
+                             
+                             Raises:
+                                 ValueError: If `n` is outside the range 0–999.
+                             """
         if not 0 <= n <= 999:
             raise ValueError("Number must be between 0 and 999.")
         if n in self.vocab.UNITS:
@@ -824,17 +909,18 @@ class RomanceNumberExtractor:
                                      gender: GrammaticalGender = GrammaticalGender.MASCULINE
                                      ) -> str:
         """
-        Returns the ordinal word for an integer between 0 and 999, adjusting for grammatical gender and language variant.
-
-        Parameters:
-            n (int): The integer to convert (must be between 0 and 999).
-
-        Returns:
-            str: The ordinal representation of the number.
-
-        Raises:
-            ValueError: If n is not between 0 and 999.
-        """
+                                     Return the ordinal word for an integer from 0 to 999, adjusted for the specified grammatical gender.
+                                     
+                                     Parameters:
+                                         n (int): Integer between 0 and 999 to convert to its ordinal form.
+                                         gender (GrammaticalGender): Grammatical gender to apply to the resulting ordinal.
+                                     
+                                     Returns:
+                                         str: Ordinal representation of the number with appropriate gender inflection.
+                                     
+                                     Raises:
+                                         ValueError: If `n` is not between 0 and 999.
+                                     """
         if not 0 <= n <= 999:
             raise ValueError("Number must be between 0 and 999.")
         if n == 0:

@@ -2,9 +2,18 @@ from ovos_number_parser.util import (Scale, GrammaticalGender, NumberVocabulary,
 
 
 def swap_gender_ast(word: str, gender: GrammaticalGender) -> str:
-    """Swap ordinal/adjective endings between masculine and feminine where applicable.
-
-    For Asturian, ordinals typically end in -u (masc.) and -a (fem.).
+    """
+    Swap Asturian ordinal/adjective endings between masculine and feminine forms.
+    
+    When `gender` is `GrammaticalGender.FEMININE`, replaces a terminal "u" with "a" (also converts "imu" → "ima").
+    For other genders, replaces a terminal "a" with "u". If no applicable ending is found, returns the original word.
+    
+    Parameters:
+        word (str): The word to adjust.
+        gender (GrammaticalGender): Target grammatical gender.
+    
+    Returns:
+        str: The word with its gendered ending swapped when applicable.
     """
     if gender == GrammaticalGender.FEMININE:
         if word.endswith('imu'):
@@ -18,6 +27,19 @@ def swap_gender_ast(word: str, gender: GrammaticalGender) -> str:
 
 
 def pluralize_ast(word: str):
+    """
+    Produce the plural form of an Asturian noun or adjective.
+    
+    Parameters:
+        word (str): Singular Asturian word.
+    
+    Returns:
+        str: The pluralized form:
+          - words ending with "ón" become "ones",
+          - words ending with "u" become "os",
+          - words not ending in "s" have "s" appended,
+          - otherwise the original word is returned.
+    """
     if word.endswith("ón"):
         return word[:-2] + "ones"
     if word.endswith("u"):
