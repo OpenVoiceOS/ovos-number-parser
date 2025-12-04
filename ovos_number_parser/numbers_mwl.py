@@ -1,11 +1,7 @@
-from typing import List, Union, Dict, Tuple
-
-from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation, word_tokenize
-
-
 from ovos_number_parser.util import (Scale, GrammaticalGender, DigitPronunciation,
                                      NumberVocabulary, RomanceNumberExtractor)
 from typing import Union
+import warnings
 
 
 def swap_gender_mwl(word: str, gender: GrammaticalGender) -> str:
@@ -43,7 +39,7 @@ def pluralize_mwl(word: str):
     return word
 
 
-MWL = NumberVocabulary(
+_MWL = NumberVocabulary(
     LANG="mwl",
     swap_gender=swap_gender_mwl,  # used for female forms
     pluralize=pluralize_mwl,  # use for plural forms
@@ -228,11 +224,11 @@ MWL = NumberVocabulary(
     }
 )
 
-MWL = RomanceNumberExtractor(MWL)
+MWL = RomanceNumberExtractor(_MWL)
 
-
-
-
+##################################################################
+# all methods below are deprecated and only for backwards compat
+##################################################################
 
 def pronounce_ordinal_mwl(
         number: Union[int, float],
@@ -240,19 +236,13 @@ def pronounce_ordinal_mwl(
         scale: Scale = Scale.LONG
 ) -> str:
     """
-    Return the ordinal pronunciation of a number in Portuguese, supporting grammatical gender, scale (short or long), and language variant (Brazilian or European Portuguese).
-
-    Parameters:
-        number (int or float): The number to pronounce as an ordinal.
-        gender (GrammaticalGender, optional): The grammatical gender for the ordinal form (masculine or feminine).
-        scale (Scale, optional): The numerical scale to use (short or long).
-
-    Returns:
-        str: The ordinal pronunciation of the number in Portuguese.
-
-    Raises:
-        TypeError: If `number` is not an int or float.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return MWL.pronounce_ordinal(number, gender, scale)
 
 
@@ -260,21 +250,25 @@ def is_fractional_mwl(
         input_str: str
 ) -> Union[float, bool]:
     """
-    Checks if the input string corresponds to a recognized Portuguese fractional word.
-
-    Returns:
-        The fractional value as a float if recognized (e.g., 0.5 for "meio" or "meia"); otherwise, False.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return MWL.is_fractional(input_str)
 
 
 def is_ordinal_mwl(input_str: str) -> bool:
     """
-    Determine if a string is a Portuguese ordinal word.
-
-    Returns:
-        bool: True if the input string is recognized as a Portuguese ordinal, otherwise False.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return MWL.is_ordinal(input_str)
 
 
@@ -284,16 +278,13 @@ def extract_number_mwl(
         scale: Scale = Scale.LONG,
 ) -> Union[int, float, bool]:
     """
-    Extracts a numeric value from a Portuguese text phrase, supporting cardinals, ordinals, fractions, and large scales.
-
-    Parameters:
-        text (str): The input phrase potentially containing a number.
-        ordinals (bool): If True, recognizes ordinal words as numbers.
-        scale (Scale): Specifies whether to use the short or long numerical scale.
-
-    Returns:
-        int or float: The extracted number if found; otherwise, False.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return MWL.extract_number(text, ordinals, scale)
 
 
@@ -306,18 +297,13 @@ def pronounce_number_mwl(
         gender: GrammaticalGender = GrammaticalGender.MASCULINE
 ) -> str:
     """
-    Return the full Portuguese pronunciation of a number, supporting cardinal and ordinal forms, decimals, large scales, grammatical gender, and both Brazilian and European Portuguese variants.
-
-    Parameters:
-        number (int or float): The number to pronounce.
-        places (int): Number of decimal places to include for floats.
-        scale (Scale): Numerical scale to use (short or long).
-        ordinals (bool): If True, pronounce as an ordinal number.
-        gender (GrammaticalGender): Grammatical gender for ordinal numbers.
-
-    Returns:
-        str: The number expressed as a Portuguese phrase.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return MWL.pronounce_number(number, places, scale, ordinals, digits, gender)
 
 
@@ -326,99 +312,92 @@ def numbers_to_digits_mwl(
         scale: Scale = Scale.LONG
 ) -> str:
     """
-    Converts written Portuguese numbers in a text string to their digit equivalents, preserving all other text.
-
-    Identifies spans of number words (including the joiner "y"), extracts their numeric values, and replaces them with digit strings. Non-number words and context are left unchanged.
-
-    Parameters:
-        utterance (str): Input text possibly containing written Portuguese numbers.
-        scale (Scale, optional): Numerical scale (short or long) to interpret large numbers. Defaults to Scale.LONG.
-
-    Returns:
-        str: The input text with written numbers replaced by their digit representations.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return MWL.numbers_to_digits(utterance, scale)
 
 
 
 def pronounce_fraction_mwl(word: str, scale: Scale = Scale.LONG) -> str:
     """
-    Return the Portuguese pronunciation of a fraction given as a string (e.g., "1/2").
-
-    The numerator is pronounced as a cardinal number, and the denominator as an ordinal or fraction name, pluralized if appropriate. For denominators not in the known fraction list, the denominator is pronounced as a cardinal number followed by "avos" if plural.
-
-    Parameters:
-        word (str): Fraction in the form "numerator/denominator" (e.g., "3/4").
-
-    Returns:
-        str: The Portuguese pronunciation of the fraction.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return MWL.pronounce_fraction(word, scale)
 
 
 if __name__ == "__main__":
     print("--- Testing Pronunciation (Short Scale) ---")
-    print(f"1,234,567: {pronounce_number_mwl(1_234_567, scale=Scale.SHORT)}")
-    print(f"1,000,000,000: {pronounce_number_mwl(1_000_000_000, scale=Scale.SHORT)}")
+    print(f"1,234,567: {MWL.pronounce_number(1_234_567, scale=Scale.SHORT)}")
+    print(f"1,000,000,000: {MWL.pronounce_number(1_000_000_000, scale=Scale.SHORT)}")
 
     print("\n--- Testing Pronunciation (Long Scale) ---")
-    print(f"1,000,000: {pronounce_number_mwl(1_000_000, scale=Scale.LONG)}")
-    print(f"1,000,100: {pronounce_number_mwl(1_000_100, scale=Scale.LONG)}")
-    print(f"1,000,000,000: {pronounce_number_mwl(1_000_000_000, scale=Scale.LONG)}")
-    print(f"1,000,000,000,000: {pronounce_number_mwl(1_000_000_000_000, scale=Scale.LONG)}")
-    print(f"2,500,000,000: {pronounce_number_mwl(2_500_000_000, scale=Scale.LONG)}")
-    print(f"2,500,123,456: {pronounce_number_mwl(2_500_123_456, scale=Scale.LONG)}")
-    print(f"16: {pronounce_number_mwl(16)}")
+    print(f"1,000,000: {MWL.pronounce_number(1_000_000, scale=Scale.LONG)}")
+    print(f"1,000,100: {MWL.pronounce_number(1_000_100, scale=Scale.LONG)}")
+    print(f"1,000,000,000: {MWL.pronounce_number(1_000_000_000, scale=Scale.LONG)}")
+    print(f"1,000,000,000,000: {MWL.pronounce_number(1_000_000_000_000, scale=Scale.LONG)}")
+    print(f"2,500,000,000: {MWL.pronounce_number(2_500_000_000, scale=Scale.LONG)}")
+    print(f"2,500,123,456: {MWL.pronounce_number(2_500_123_456, scale=Scale.LONG)}")
+    print(f"16: {MWL.pronounce_number(16)}")
 
     print("\n--- Testing Edge Cases ---")
-    print(f"-123.45: {pronounce_number_mwl(-123.45)}")
-    print(f"10.05: {pronounce_number_mwl(10.05)}")
-    print(f"2000: {pronounce_number_mwl(2000)}")
-    print(f"2001: {pronounce_number_mwl(2001)}")
-    print(f"123.456789: {pronounce_number_mwl(123.456789)}")
+    print(f"-123.45: {MWL.pronounce_number(-123.45)}")
+    print(f"10.05: {MWL.pronounce_number(10.05)}")
+    print(f"2000: {MWL.pronounce_number(2000)}")
+    print(f"2001: {MWL.pronounce_number(2001)}")
+    print(f"123.456789: {MWL.pronounce_number(123.456789)}")
 
     print("\n--- Testing Ordinal Pronunciation ---")
-    print(f"1st (masculine): {pronounce_number_mwl(1, ordinals=True, gender=GrammaticalGender.MASCULINE)}")
-    print(f"1st (feminine): {pronounce_number_mwl(1, ordinals=True, gender=GrammaticalGender.FEMININE)}")
-    print(f"23rd (masculine): {pronounce_number_mwl(23, ordinals=True)}")
-    print(f"23rd (feminine): {pronounce_number_mwl(23, ordinals=True, gender=GrammaticalGender.FEMININE)}")
-    print(f"100th: {pronounce_number_mwl(100, ordinals=True)}")
-    print(f"101st: {pronounce_number_mwl(101, ordinals=True)}")
-    print(f"1000th: {pronounce_number_mwl(1000, ordinals=True)}")
-    print(f"1,000,000th: {pronounce_number_mwl(1_000_000, ordinals=True)}")
-    print(f"1,000,000,000,000th (long): {pronounce_number_mwl(1_000_000_000_000, ordinals=True, scale=Scale.LONG)}")
+    print(f"1st (masculine): {MWL.pronounce_number(1, ordinals=True, gender=GrammaticalGender.MASCULINE)}")
+    print(f"1st (feminine): {MWL.pronounce_number(1, ordinals=True, gender=GrammaticalGender.FEMININE)}")
+    print(f"23rd (masculine): {MWL.pronounce_number(23, ordinals=True)}")
+    print(f"23rd (feminine): {MWL.pronounce_number(23, ordinals=True, gender=GrammaticalGender.FEMININE)}")
+    print(f"100th: {MWL.pronounce_number(100, ordinals=True)}")
+    print(f"101st: {MWL.pronounce_number(101, ordinals=True)}")
+    print(f"1000th: {MWL.pronounce_number(1000, ordinals=True)}")
+    print(f"1,000,000th: {MWL.pronounce_number(1_000_000, ordinals=True)}")
+    print(f"1,000,000,000,000th (long): {MWL.pronounce_number(1_000_000_000_000, ordinals=True, scale=Scale.LONG)}")
 
-    print("\n--- Testing numbers_to_digits_mwl ---")
-    print(f"'duzientos i cinquenta' -> '{numbers_to_digits_mwl('duzientos i cinquenta')}'")
-    print(f"'un milhon' -> '{numbers_to_digits_mwl('un milhon')}'")
-    print(f"'zasseis' -> '{numbers_to_digits_mwl('zasseis')}'")
-    print(f"'hai duzientos i cinquenta carros' -> '{numbers_to_digits_mwl('hai duzientos i cinquenta carros')}'")
+    print("\n--- Testing MWL.numbers_to_digits ---")
+    print(f"'duzientos i cinquenta' -> '{MWL.numbers_to_digits('duzientos i cinquenta')}'")
+    print(f"'un milhon' -> '{MWL.numbers_to_digits('un milhon')}'")
+    print(f"'zasseis' -> '{MWL.numbers_to_digits('zasseis')}'")
+    print(f"'hai duzientos i cinquenta carros' -> '{MWL.numbers_to_digits('hai duzientos i cinquenta carros')}'")
 
     print("\n--- Testing Ordinal Extraction ---")
-    print(f"'l segundo carro' -> {extract_number_mwl('l segundo carro', ordinals=True)}")
-    print(f"'purmerio lugar' -> {extract_number_mwl('purmerio lugar', ordinals=True)}")
-    print(f"'l milésimo die' -> {extract_number_mwl('l milésimo dia', ordinals=True)}")
-    print(f"'la milésima beç' -> {extract_number_mwl('la milésima beç', ordinals=True)}")
-    print(f"'la purmeria beç' -> {extract_number_mwl('la purmeria beç', ordinals=True)}")
-    print(f"'la sessagésima quarta beç' -> {extract_number_mwl('la sessagésima quarta beç', ordinals=True)}")
+    print(f"'l segundo carro' -> {MWL.extract_number('l segundo carro', ordinals=True)}")
+    print(f"'purmerio lugar' -> {MWL.extract_number('purmerio lugar', ordinals=True)}")
+    print(f"'l milésimo die' -> {MWL.extract_number('l milésimo dia', ordinals=True)}")
+    print(f"'la milésima beç' -> {MWL.extract_number('la milésima beç', ordinals=True)}")
+    print(f"'la purmeria beç' -> {MWL.extract_number('la purmeria beç', ordinals=True)}")
+    print(f"'la sessagésima quarta beç' -> {MWL.extract_number('la sessagésima quarta beç', ordinals=True)}")
 
     print("\n--- Testing Cardinal Extraction ---")
-    print(f"'un' -> {extract_number_mwl('un')}")
-    print(f"'ũa' -> {extract_number_mwl('ũa')}")
-    print(f"'bint'i un' ->", extract_number_mwl("bint'i un"))
-    print(f"'bint'i ũa' ->", extract_number_mwl("bint'i ũa"))
-    print(f"'bint'i dous' ->", extract_number_mwl("bint'i dous"))
-    print(f"'bint'i dues' ->", extract_number_mwl("bint'i dues"))
-    print(f"'un milhon' -> {extract_number_mwl('un milhon')}")
-    print(f"'dous milhones e quinhentos' -> {extract_number_mwl('dous milhones i quinhentos')}")
-    print(f"'mil i binte i trés' -> {extract_number_mwl('mil i binte i trés')}")
-    print(f"'trinta i cinco bírgula quatro' -> {extract_number_mwl('trinta i cinco bírgula quatro')}")
+    print(f"'un' -> {MWL.extract_number('un')}")
+    print(f"'ũa' -> {MWL.extract_number('ũa')}")
+    print(f"'bint'i un' ->", MWL.extract_number("bint'i un"))
+    print(f"'bint'i ũa' ->", MWL.extract_number("bint'i ũa"))
+    print(f"'bint'i dous' ->", MWL.extract_number("bint'i dous"))
+    print(f"'bint'i dues' ->", MWL.extract_number("bint'i dues"))
+    print(f"'un milhon' -> {MWL.extract_number('un milhon')}")
+    print(f"'dous milhones e quinhentos' -> {MWL.extract_number('dous milhones i quinhentos')}")
+    print(f"'mil i binte i trés' -> {MWL.extract_number('mil i binte i trés')}")
+    print(f"'trinta i cinco bírgula quatro' -> {MWL.extract_number('trinta i cinco bírgula quatro')}")
 
     print("\n--- Testing Fractions ---")
-    print(f"1/2: {pronounce_fraction_mwl('1/2')}")
-    print(f"2/2: {pronounce_fraction_mwl('2/2')}")
-    print(f"5/2: {pronounce_fraction_mwl('5/2')}")
-    print(f"5/3: {pronounce_fraction_mwl('5/3')}")
-    print(f"5/4: {pronounce_fraction_mwl('5/4')}")
-    print(f"7/5: {pronounce_fraction_mwl('7/5')}")
-    print(f"0/20: {pronounce_fraction_mwl('0/20')}")
+    print(f"1/2: {MWL.pronounce_fraction('1/2')}")
+    print(f"2/2: {MWL.pronounce_fraction('2/2')}")
+    print(f"5/2: {MWL.pronounce_fraction('5/2')}")
+    print(f"5/3: {MWL.pronounce_fraction('5/3')}")
+    print(f"5/4: {MWL.pronounce_fraction('5/4')}")
+    print(f"7/5: {MWL.pronounce_fraction('7/5')}")
+    print(f"0/20: {MWL.pronounce_fraction('0/20')}")

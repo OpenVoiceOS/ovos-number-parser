@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Union
-
+import warnings
 from ovos_number_parser.util import (Scale, GrammaticalGender,
                                      DigitPronunciation,
                                      NumberVocabulary, RomanceNumberExtractor)
@@ -291,6 +291,9 @@ _PT_BR = NumberVocabulary(
 PT_PT = RomanceNumberExtractor(_PT_PT)
 PT_BR = RomanceNumberExtractor(_PT_BR)
 
+##################################################################
+# all methods below are deprecated and only for backwards compat
+##################################################################
 
 def pronounce_ordinal_pt(
         number: Union[int, float],
@@ -313,6 +316,11 @@ def pronounce_ordinal_pt(
     Raises:
         TypeError: If `number` is not an int or float.
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if variant == PortugueseVariant.PT:
         return PT_PT.pronounce_ordinal(number, gender, scale)
     return PT_BR.pronounce_ordinal(number, gender, scale)
@@ -322,21 +330,25 @@ def is_fractional_pt(
         input_str: str
 ) -> Union[float, bool]:
     """
-    Checks if the input string corresponds to a recognized Portuguese fractional word.
-
-    Returns:
-        The fractional value as a float if recognized (e.g., 0.5 for "meio" or "meia"); otherwise, False.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return PT_PT.is_fractional(input_str)
 
 
 def is_ordinal_pt(input_str: str) -> bool:
     """
-    Determine if a string is a Portuguese ordinal word.
-
-    Returns:
-        bool: True if the input string is recognized as a Portuguese ordinal, otherwise False.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return PT_PT.is_ordinal(input_str)
 
 
@@ -347,17 +359,13 @@ def extract_number_pt(
         variant: PortugueseVariant = PortugueseVariant.PT
 ) -> Union[int, float, bool]:
     """
-    Extracts a numeric value from a Portuguese text phrase, supporting cardinals, ordinals, fractions, and large scales.
-
-    Parameters:
-        text (str): The input phrase potentially containing a number.
-        ordinals (bool): If True, recognizes ordinal words as numbers.
-        scale (Scale): Specifies whether to use the short or long numerical scale.
-        variant (PortugueseVariant): Specifies the Portuguese language variant (BR or PT).
-
-    Returns:
-        int or float: The extracted number if found; otherwise, False.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if variant == PortugueseVariant.PT:
         return PT_PT.extract_number(text, ordinals, scale)
     return PT_BR.extract_number(text, ordinals, scale)
@@ -373,19 +381,13 @@ def pronounce_number_pt(
         gender: GrammaticalGender = GrammaticalGender.MASCULINE
 ) -> str:
     """
-    Return the full Portuguese pronunciation of a number, supporting cardinal and ordinal forms, decimals, large scales, grammatical gender, and both Brazilian and European Portuguese variants.
-
-    Parameters:
-        number (int or float): The number to pronounce.
-        places (int): Number of decimal places to include for floats.
-        scale (Scale): Numerical scale to use (short or long).
-        variant (PortugueseVariant): Portuguese language variant for pronunciation.
-        ordinals (bool): If True, pronounce as an ordinal number.
-        gender (GrammaticalGender): Grammatical gender for ordinal numbers.
-
-    Returns:
-        str: The number expressed as a Portuguese phrase.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if variant == PortugueseVariant.PT:
         return PT_PT.pronounce_number(number, places, scale, ordinals, digits, gender)
     return PT_BR.pronounce_number(number, places, scale, ordinals, digits, gender)
@@ -397,18 +399,13 @@ def numbers_to_digits_pt(
         variant: PortugueseVariant = PortugueseVariant.PT
 ) -> str:
     """
-    Converts written Portuguese numbers in a text string to their digit equivalents, preserving all other text.
-
-    Identifies spans of number words (including the joiner "e"), extracts their numeric values, and replaces them with digit strings. Non-number words and context are left unchanged.
-
-    Parameters:
-        utterance (str): Input text possibly containing written Portuguese numbers.
-        scale (Scale, optional): Numerical scale (short or long) to interpret large numbers. Defaults to Scale.LONG.
-        variant (PortugueseVariant, optional): Portuguese language variant (BR or PT). Defaults to PortugueseVariant.PT.
-
-    Returns:
-        str: The input text with written numbers replaced by their digit representations.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if variant == PortugueseVariant.PT:
         return PT_PT.numbers_to_digits(utterance, scale)
     return PT_BR.numbers_to_digits(utterance, scale)
@@ -419,16 +416,13 @@ def pronounce_fraction_pt(word: str,
                           scale: Scale = Scale.LONG,
                           variant: PortugueseVariant = PortugueseVariant.PT) -> str:
     """
-    Return the Portuguese pronunciation of a fraction given as a string (e.g., "1/2").
-
-    The numerator is pronounced as a cardinal number, and the denominator as an ordinal or fraction name, pluralized if appropriate. For denominators not in the known fraction list, the denominator is pronounced as a cardinal number followed by "avos" if plural.
-
-    Parameters:
-        word (str): Fraction in the form "numerator/denominator" (e.g., "3/4").
-
-    Returns:
-        str: The Portuguese pronunciation of the fraction.
+    DEPRECATED
     """
+    warnings.warn(
+        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if variant == PortugueseVariant.PT:
         return PT_PT.pronounce_fraction(word, scale)
     return PT_BR.pronounce_fraction(word, scale)

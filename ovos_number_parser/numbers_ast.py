@@ -28,7 +28,7 @@ def pluralize_ast(word: str):
     return word
 
 
-AST = NumberVocabulary(
+_AST = NumberVocabulary(
     LANG="ast",
     swap_gender=swap_gender_ast,  # used for female forms
     pluralize=pluralize_ast,  # use for plural forms
@@ -174,7 +174,7 @@ AST = NumberVocabulary(
     }
 )
 
-AST = RomanceNumberExtractor(AST)
+AST = RomanceNumberExtractor(_AST)
 
 
 
