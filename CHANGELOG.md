@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.2a2) (2025-12-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.5.2a1...0.5.2a2)
+
+**Merged pull requests:**
+
+- chore: Configure Renovate [\#40](https://github.com/OpenVoiceOS/ovos-number-parser/pull/40) ([renovate[bot]](https://github.com/apps/renovate))
+
 ## [0.5.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.2a1) (2025-10-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.5.1...0.5.2a1)
