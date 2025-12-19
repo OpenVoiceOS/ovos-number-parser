@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2a3](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.2a3) (2025-12-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.5.2a2...0.5.2a3)
+
+**Merged pull requests:**
+
+- chore\(deps\): update dependency python to 3.14 [\#41](https://github.com/OpenVoiceOS/ovos-number-parser/pull/41) ([renovate[bot]](https://github.com/apps/renovate))
+
 ## [0.5.2a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.2a2) (2025-12-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.5.2a1...0.5.2a2)
