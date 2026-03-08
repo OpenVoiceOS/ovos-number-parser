@@ -47,7 +47,7 @@ _NUMBERS_FR = {
     "milliard": 1000000000,
     "milliards": 1000000000}
 
-_ORDINAL_ENDINGS_FR = ("er", "re", "ère", "nd", "nde" "ième", "ème", "e")
+_ORDINAL_ENDINGS_FR = ("er", "re", "ère", "nd", "nde", "ième", "ème", "e")
 
 _NUM_STRING_FR = {
     0: 'zéro',
