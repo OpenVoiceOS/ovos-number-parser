@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2a5](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.2a5) (2026-06-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.5.2a4...0.5.2a5)
+
+**Merged pull requests:**
+
+- Fix French ordinal suffix parsing [\#46](https://github.com/OpenVoiceOS/ovos-number-parser/pull/46) ([goldyfruit](https://github.com/goldyfruit))
+
 ## [0.5.2a4](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.2a4) (2025-12-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.5.2a3...0.5.2a4)
