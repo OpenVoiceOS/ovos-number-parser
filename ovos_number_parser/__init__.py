@@ -329,7 +329,7 @@ def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[
     if lang.startswith("it"):
         return is_fractional_it(input_str, short_scale)
     if lang.startswith("nl"):
-        return is_fractional_pl(input_str, short_scale)
+        return is_fractional_nl(input_str, short_scale)
     if lang.startswith("pl"):
         return is_fractional_pl(input_str, short_scale)
     if lang.startswith("pt"):
