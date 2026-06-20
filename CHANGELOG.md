@@ -1,11 +1,16 @@
 # Changelog
 
-## [0.5.2a5](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.2a5) (2026-06-18)
+## [0.5.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.3a1) (2026-06-20)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.5.2a4...0.5.2a5)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.5.2a4...0.5.3a1)
+
+**Closed issues:**
+
+- Dutch is\_fractional uses Polish logic \(is\_fractional\_pl instead of is\_fractional\_nl\) [\#48](https://github.com/OpenVoiceOS/ovos-number-parser/issues/48)
 
 **Merged pull requests:**
 
+- fix: use is\_fractional\_nl for Dutch in is\_fractional [\#49](https://github.com/OpenVoiceOS/ovos-number-parser/pull/49) ([JarbasAl](https://github.com/JarbasAl))
 - Fix French ordinal suffix parsing [\#46](https://github.com/OpenVoiceOS/ovos-number-parser/pull/46) ([goldyfruit](https://github.com/goldyfruit))
 
 ## [0.5.2a4](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.5.2a4) (2025-12-19)
