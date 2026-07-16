@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.10.0a1) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.9.0a1...0.10.0a1)
+
+**Merged pull requests:**
+
+- feat: generic fallbacks so every language provides every public function [\#64](https://github.com/OpenVoiceOS/ovos-number-parser/pull/64) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.9.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.9.0a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.8.0a1...0.9.0a1)
