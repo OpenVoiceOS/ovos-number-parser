@@ -9,8 +9,9 @@ from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
                                 numbers_to_digits, pronounce_fraction,
                                 pronounce_number, pronounce_ordinal)
 
-LANGS = ["an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "en", "es",
-         "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu", "it", "kab",
+LANGS = ["an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en",
+         "es", "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu",
+         "it", "kab",
          "mwl", "nl", "oc", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "uk"]
 
 
