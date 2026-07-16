@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.7.0a1) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.6.3a1...0.7.0a1)
+
+**Merged pull requests:**
+
+- feat: hungarian number extraction [\#58](https://github.com/OpenVoiceOS/ovos-number-parser/pull/58) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.6.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.6.3a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.6.2a1...0.6.3a1)
