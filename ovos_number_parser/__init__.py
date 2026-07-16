@@ -30,6 +30,7 @@ from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_i
 from ovos_number_parser.numbers_kab import (pronounce_number_kab, pronounce_ordinal_kab, extract_number_kab,
                                              is_fractional_kab, is_ordinal_kab)
 from ovos_number_parser.numbers_mwl import MWL
+from ovos_number_parser.numbers_oc import OC
 from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
     extract_number_nl, is_fractional_nl
 from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, \
@@ -251,6 +252,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
     """
     if lang.startswith("ast"):
         return AST.numbers_to_digits(utterance)
+    if lang.startswith("oc"):
+        return OC.numbers_to_digits(utterance, scale=scale)
     if lang.startswith("gl"):
         return numbers_to_digits_gl(utterance)
     if lang.startswith("de"):
@@ -312,6 +315,8 @@ def pronounce_number(number: Union[int, float], lang: str,
         return pronounce_number_ca(number, places)
     if lang.startswith("ast"):
         return AST.pronounce_number(number, places, scale, ordinals, digits, gender)
+    if lang.startswith("oc"):
+        return OC.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("cs"):
         return pronounce_number_cs(number, places, short_scale, scientific, ordinals)
     if lang.startswith("da"):
@@ -382,6 +387,8 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = N
             else PT_PT.pronounce_fraction(fraction_word, scale=scale)
     elif lang.startswith("ast"):
         return AST.pronounce_fraction(fraction_word, scale=scale)
+    elif lang.startswith("oc"):
+        return OC.pronounce_fraction(fraction_word, scale=scale)
     elif lang.startswith("mwl"):
         return MWL.pronounce_fraction(fraction_word, scale=scale)
     elif lang.startswith("gl"):
@@ -425,6 +432,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return RO.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang.startswith("ast"):
         return AST.pronounce_ordinal(number, scale=scale, gender=gender)
+    if lang.startswith("oc"):
+        return OC.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang.startswith("ar"):
         return pronounce_ordinal_ar(number)
     if lang.startswith("da"):
@@ -529,6 +538,8 @@ def extract_number(text: str, lang: str,
         return RO.extract_number(text, scale=scale, ordinals=ordinals)
     if lang.startswith("ast"):
         return AST.extract_number(text, scale=scale, ordinals=ordinals)
+    if lang.startswith("oc"):
+        return OC.extract_number(text, scale=scale, ordinals=ordinals)
     if lang.startswith("ru"):
         return extract_number_ru(text, short_scale, ordinals)
     if lang.startswith("sv"):
@@ -603,6 +614,8 @@ def is_fractional(input_str: str, lang: str,
         return RO.is_fractional(input_str)
     if lang.startswith("ast"):
         return AST.is_fractional(input_str)
+    if lang.startswith("oc"):
+        return OC.is_fractional(input_str)
     if lang.startswith("ru"):
         return is_fractional_ru(input_str, short_scale)
     if lang.startswith("sv"):
@@ -638,6 +651,8 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return RO.is_ordinal(input_str)
     if lang.startswith("ast"):
         return AST.is_ordinal(input_str)
+    if lang.startswith("oc"):
+        return OC.is_ordinal(input_str)
     if lang.startswith("en"):
         return is_ordinal_en(input_str)
     if lang.startswith("ar"):

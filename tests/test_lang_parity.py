@@ -10,8 +10,8 @@ from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
                                 pronounce_number, pronounce_ordinal)
 
 LANGS = ["ar", "az", "ast", "ca", "cs", "da", "de", "en", "es", "eu", "fa", "fr",
-         "gl", "hu", "it", "kab", "mwl", "nl", "pl", "pt", "ro", "ru", "sl",
-         "sv", "uk"]
+         "gl", "hu", "it", "kab", "mwl", "nl", "oc", "pl", "pt", "ro", "ru",
+         "sl", "sv", "uk"]
 
 
 class TestLanguageParity(unittest.TestCase):
