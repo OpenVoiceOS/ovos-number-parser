@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from ovos_number_parser.util import (
     Token, Scale, ReplaceableNumber, tokenize, partition_list,
-    invert_dict, is_numeric, look_for_fractions, convert_to_mixed_fraction
+    invert_dict, is_numeric, look_for_fractions, convert_to_mixed_fraction, word_tokenize
 )
 
 
@@ -822,6 +822,59 @@ class TestConvertToMixedFraction(unittest.TestCase):
         result = convert_to_mixed_fraction(1.0 / 25, denominators=range(1, 21))
         # Should not find good approximation with default range
         self.assertIsNone(result)
+
+
+
+class TestWordTokenize(unittest.TestCase):
+    """Test tokenize function."""
+
+    def test_basic_tokenization(self):
+        """Test basic word tokenization."""
+        result = word_tokenize("palavra uma palavra duas")
+        expected = ["palavra", "uma", "palavra", "duas"]
+        self.assertEqual(result, expected)
+
+    def test_percentage_split(self):
+        """Test splitting percentages."""
+        result = word_tokenize("12%")
+        self.assertEqual(result, ["12", "%"])
+
+    def test_hash_number_split(self):
+        """Test splitting hash with numbers."""
+        result = word_tokenize("#1")
+        self.assertEqual(result, ["#", "1"])
+
+    def test_hyphen_between_words(self):
+        """Test hyphen handling between words."""
+        result = word_tokenize("amo-te")
+        self.assertEqual(result, ["amo", "-", "te"])
+
+    def test_hyphen_preservation_in_numbers(self):
+        """Test that hyphens in numbers are preserved."""
+        result = word_tokenize("1-2")
+        # Should not split number ranges
+        self.assertIn("1-2", result)
+
+    def test_trailing_hyphen_removal(self):
+        """Test removal of trailing hyphens."""
+        result = word_tokenize("palavra -")
+        self.assertEqual(result, ["palavra"])
+
+    def test_empty_string(self):
+        """Test tokenization of empty string."""
+        result = word_tokenize("")
+        self.assertEqual(result, [])
+
+    def test_whitespace_handling(self):
+        """Test handling of various whitespace."""
+        result = word_tokenize("  palavra   outra  ")
+        self.assertEqual(result, ["palavra", "outra"])
+
+    def test_complex_input(self):
+        """Test complex input with multiple patterns."""
+        result = word_tokenize("amo-te 50% #2 test")
+        expected_elements = ["amo", "-", "te", "50", "%", "#", "2", "test"]
+        self.assertEqual(result, expected_elements)
 
 
 if __name__ == '__main__':
