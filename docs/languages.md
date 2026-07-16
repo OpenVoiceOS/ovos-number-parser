@@ -2,7 +2,7 @@
 
 Per-language behaviour that goes beyond the support matrix in the README.
 
-## Germanic compound numbers (de, nl, da, sv)
+## Germanic compound numbers (de, nl, da, sv, fy)
 
 These languages write numbers as single compound words. The extractors split
 them into their component number words and evaluate the result, so both the
@@ -14,8 +14,12 @@ compound and the spaced form parse:
 | Dutch    | `eenentwintig`, `tweehonderddrieëntwintig` | 21, 223 |
 | Danish   | `toogfyrre`, `nihundredenioghalvfems` | 42, 999 |
 | Swedish  | `tjugoen`, `etthundratjugotre`, `tvåtusen tjugotre` | 21, 123, 2023 |
+| West Frisian | `ienentweintich`, `twahûnderttrijeentweintich` | 21, 223 |
 
 Dutch diacritics (`één`, `drieëntwintig`) are normalized before parsing.
+West Frisian diacritics (`sân`, `hûndert`, `tûzen`) are likewise normalized,
+and the variant spellings without the etymological `-s-` (`sechtjin`,
+`sechtich`) are accepted alongside the standard `sechstjin`/`sechstich`.
 Danish accepts both the standard spellings (`elleve`, `halvtreds`,
 `halvfjerds`) and the legacy variants kept for backward compatibility.
 
@@ -30,9 +34,9 @@ Basque counts in twenties. The `-ta` joiner forms are understood when
 extracting: `hogeita bat` (20 + 1 = 21), `berrogeita hamar` (40 + 10 = 50),
 `laurogeita hemeretzi` (80 + 19 = 99).
 
-## Romance languages (pt, gl, mwl, ast)
+## Romance languages (pt, gl, mwl, ast, an)
 
-Portuguese, Galician, Mirandese and Asturian share a declarative
+Portuguese, Galician, Mirandese, Asturian and Aragonese share a declarative
 `NumberVocabulary` + `RomanceNumberExtractor` implementation in
 `ovos_number_parser.util`. Each language is described by its vocabulary
 (units, tens, hundreds, scales, ordinals, fractions, gender rules and joiner
@@ -42,6 +46,13 @@ of them. This is the preferred path for adding new Romance languages.
 Portuguese distinguishes European and Brazilian variants (`pt-PT` reads
 16 as `dezasseis`, `pt-BR` as `dezesseis`) and inflects `um/uma`,
 `dois/duas` and the hundreds (`duzentos/duzentas`) for grammatical gender.
+
+Aragonese pronounces the general forms of the current academic norm
+(`cuatre`, `ueito`, `deciséis`, `vintiún`, `trenta y cinco`, `cient`) and
+accepts the dialectal variants (`quatre`, `güeito`, `setse`, `vente`,
+`noranta`) on extraction. Ordinals use the characteristic `-eno` series
+(`cuatreno`, `cinqueno`, `onceno`); tens ordinals above the attested range
+follow the same productive `-eno` pattern.
 
 ## Spanish and Catalan
 

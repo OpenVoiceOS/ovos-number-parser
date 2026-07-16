@@ -9,9 +9,9 @@ from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
                                 numbers_to_digits, pronounce_fraction,
                                 pronounce_number, pronounce_ordinal)
 
-LANGS = ["ar", "az", "ast", "ca", "cs", "da", "de", "en", "es", "eu", "fa", "fr",
-         "gl", "hu", "it", "kab", "mwl", "nl", "oc", "pl", "pt", "ro", "ru",
-         "sl", "sv", "uk"]
+LANGS = ["an", "ar", "az", "ast", "ca", "cs", "da", "de", "en", "es", "eu", "fa",
+         "fr", "fy", "gl", "hu", "it", "kab", "mwl", "nl", "oc", "pl", "pt", "ro",
+         "ru", "sl", "sv", "uk"]
 
 
 class TestLanguageParity(unittest.TestCase):
@@ -100,6 +100,9 @@ class TestPronounceFractionAnchors(unittest.TestCase):
         "pt": [("1/2", "um meio"), ("2/3", "dois terços")],
         "ro": [("1/2", "o jumătate"), ("2/3", "două treimi"),
                ("3/4", "trei sferturi"), ("1/4", "un sfert")],
+        "an": [("1/2", "un meyo"), ("2/3", "dos tercios"),
+               ("3/4", "tres cuartos")],
+        "fy": [("1/2", "ien heal")],
     }
 
     def test_anchors(self):
