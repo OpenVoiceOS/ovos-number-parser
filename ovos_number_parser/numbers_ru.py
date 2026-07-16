@@ -1020,7 +1020,9 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
                 prev_word in _SUMS,
                 word not in _SUMS,
                 word not in multiplies,
-                current_val >= 10
+                current_val >= 10,
+                # teens continue a preceding hundred ("сто десять" = 110)
+                not (prev_val and prev_val >= 100 and current_val < 100)
             ]):
                 # Backtrack - we've got numbers we can't sum.
                 number_words.pop()

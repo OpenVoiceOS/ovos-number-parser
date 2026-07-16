@@ -1053,7 +1053,9 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
                 word not in _SUMS,
                 new_word.isdigit() is False,
                 word not in multiplies,
-                current_val >= 10
+                current_val >= 10,
+                # teens continue a preceding hundred ("сто десять" = 110)
+                not (prev_val and prev_val >= 100 and current_val < 100)
             ]):
                 # Backtrack - we've got numbers we can't sum.
                 number_words.pop()

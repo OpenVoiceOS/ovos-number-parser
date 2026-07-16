@@ -27,6 +27,11 @@ def swap_gender_pt(word: str, gender: GrammaticalGender) -> str:
     Returns:
         str: The word with its ending swapped to match the specified gender, if applicable; otherwise, the original word.
     """
+    invariant = {"zero", "quatro", "cinco", "oito", "cem", "cento",
+                 "mil", "milhão", "bilhão", "trilhão", "conto"}
+    if word in invariant:
+        # most portuguese cardinals do not inflect for gender
+        return word
     if word == "dois" and gender == GrammaticalGender.FEMININE:
         return "duas"
     elif word == "duas" and gender == GrammaticalGender.MASCULINE:
