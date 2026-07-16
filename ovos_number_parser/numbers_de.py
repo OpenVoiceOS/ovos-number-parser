@@ -686,7 +686,7 @@ def _extract_real_number_with_text_de(tokens, short_scale):
             _val = _current_val = None
 
         if not next_word and number_words:
-            val = sum(to_sum) or _val
+            val = sum(to_sum) if to_sum else _val
 
     return val, number_words
 
@@ -799,6 +799,69 @@ def is_numeric_de(input_str):
         return False
 
 
+def _split_compound_number_de(word):
+    """
+    Split a German compound number word into its component number words.
+
+    "einundzwanzig" -> ["ein", "und", "zwanzig"]
+    "zweihundertdreiundvierzig" -> ["zweihundert", "drei", "und", "vierzig"]
+
+    Returns None if the word is not composed purely of known number words.
+    """
+    if word in _STRING_NUM or word in _STRING_LONG_SCALE:
+        return None
+    keys = sorted(set(_STRING_NUM) | set(_STRING_LONG_SCALE),
+                  key=len, reverse=True)
+    parts, rest = [], word
+    while rest:
+        if rest.startswith("und") and parts:
+            parts.append("und")
+            rest = rest[3:]
+            continue
+        for k in keys:
+            if rest.startswith(k):
+                parts.append(k)
+                rest = rest[len(k):]
+                break
+        else:
+            return None
+    return parts if len(parts) > 1 else None
+
+
+def _compound_value_de(parts):
+    """Evaluate the numeric value of a split compound number word."""
+    total = current = 0
+    for p in parts:
+        if p == "und":
+            continue
+        v = _STRING_NUM.get(p)
+        if v is None:
+            v = _STRING_LONG_SCALE.get(p)
+        if v is None:
+            return None
+        if v >= 1000:
+            total += max(current, 1) * v
+            current = 0
+        elif v == 100:
+            current = max(current, 1) * 100
+        else:
+            current += v
+    return total + current
+
+
+def _expand_compound_numbers_de(text):
+    """Rewrite compound number words as their digit value for parsing."""
+    out = []
+    for w in text.split():
+        parts = _split_compound_number_de(w)
+        if parts:
+            value = _compound_value_de(parts)
+            out.append(str(value) if value is not None else w)
+        else:
+            out.append(w)
+    return " ".join(out)
+
+
 def extract_number_de(text, short_scale=True, ordinals=False):
     """
     This function extracts a number from a text string
@@ -812,7 +875,8 @@ def extract_number_de(text, short_scale=True, ordinals=False):
                                    was found
 
     """
-    numbers = _extract_numbers_with_text_de(tokenize(text.lower()),
+    text = _expand_compound_numbers_de(text.lower())
+    numbers = _extract_numbers_with_text_de(tokenize(text),
                                             short_scale, ordinals)
     # if query ordinals only consider ordinals
     if ordinals:

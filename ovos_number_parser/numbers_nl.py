@@ -895,6 +895,75 @@ def _initialize_number_data_nl(short_scale):
     return multiplies, string_num_ordinal_nl, string_num_scale_nl
 
 
+def _split_compound_number_nl(word):
+    """
+    Split a Dutch compound number word into its component number words.
+
+    "eenentwintig" -> ["een", "en", "twintig"]
+    "tweehonderddrieentwintig" -> ["twee", "honderd", "drie", "en", "twintig"]
+
+    Returns None if the word is not composed purely of known number words.
+    """
+    if word in _STRING_NUM_NL:
+        return None
+    keys = sorted(set(_STRING_NUM_NL) |
+                  set(_MULTIPLIES_LONG_SCALE_NL) |
+                  set(_MULTIPLIES_SHORT_SCALE_NL),
+                  key=len, reverse=True)
+    parts, rest = [], word
+    while rest:
+        if rest.startswith("en") and parts and rest != "en":
+            candidate = rest[2:]
+            if any(candidate.startswith(k) for k in keys):
+                parts.append("en")
+                rest = candidate
+                continue
+        for k in keys:
+            if rest.startswith(k):
+                parts.append(k)
+                rest = rest[len(k):]
+                break
+        else:
+            return None
+    return parts if len(parts) > 1 else None
+
+
+def _compound_value_nl(parts, short_scale=True):
+    """Evaluate the numeric value of a split compound number word."""
+    scale = _SHORT_SCALE_NL if short_scale else _LONG_SCALE_NL
+    string_scale = invert_dict(scale)
+    total = current = 0
+    for p in parts:
+        if p == "en":
+            continue
+        v = _STRING_NUM_NL.get(p)
+        if v is None:
+            v = string_scale.get(p)
+        if v is None:
+            return None
+        if v >= 1000:
+            total += max(current, 1) * v
+            current = 0
+        elif v == 100:
+            current = max(current, 1) * 100
+        else:
+            current += v
+    return total + current
+
+
+def _expand_compound_numbers_nl(text, short_scale=True):
+    """Rewrite compound number words as their digit value for parsing."""
+    out = []
+    for w in text.split():
+        parts = _split_compound_number_nl(w)
+        if parts:
+            value = _compound_value_nl(parts, short_scale)
+            out.append(str(value) if value is not None else w)
+        else:
+            out.append(w)
+    return " ".join(out)
+
+
 def extract_number_nl(text, short_scale=True, ordinals=False):
     """Extract a number from a text string
 
@@ -910,7 +979,9 @@ def extract_number_nl(text, short_scale=True, ordinals=False):
         (int) or (float) or False: The extracted number or False if no number
                                    was found
     """
-    return _extract_number_with_text_nl(tokenize(text.lower()),
+    text = text.lower().replace("ë", "e").replace("é", "e")
+    text = _expand_compound_numbers_nl(text, short_scale)
+    return _extract_number_with_text_nl(tokenize(text),
                                         short_scale, ordinals).value
 
 

@@ -345,6 +345,100 @@ def _combine_adjacent_numbers(number_map):
     return simplified
 
 
+_STRING_NUM_SV = {v: k for k, v in _NUM_STRING_SV.items()}
+_STRING_NUM_SV["ett"] = 1
+
+_STRING_SCALE_SV = {
+    "hundra": 100,
+    "tusen": 1000,
+    "miljon": 1000000,
+    "miljoner": 1000000,
+    "miljard": 1000000000,
+    "miljarder": 1000000000,
+    "biljon": 1000000000000,
+    "biljoner": 1000000000000,
+}
+
+_ORDINAL_NUM_SV = {
+    "första": 1, "andra": 2, "tredje": 3, "fjärde": 4, "femte": 5,
+    "sjätte": 6, "sjunde": 7, "åttonde": 8, "nionde": 9, "tionde": 10,
+    "elfte": 11, "tolfte": 12, "trettonde": 13, "fjortonde": 14,
+    "femtonde": 15, "sextonde": 16, "sjuttonde": 17, "artonde": 18,
+    "nittonde": 19, "tjugonde": 20, "trettionde": 30, "fyrtionde": 40,
+    "femtionde": 50, "sextionde": 60, "sjuttionde": 70, "åttionde": 80,
+    "nittionde": 90, "hundrade": 100, "tusende": 1000
+}
+
+
+def _split_compound_number_sv(word):
+    """
+    Split a Swedish compound number word into its component number words.
+
+    "tjugoen" -> ["tjugo", "en"]
+    "etthundratjugotre" -> ["ett", "hundra", "tjugo", "tre"]
+
+    Returns None if the word is not composed purely of known number words.
+    """
+    if word in _STRING_NUM_SV or word in _STRING_SCALE_SV:
+        return None
+    keys = sorted(set(_STRING_NUM_SV) | set(_STRING_SCALE_SV),
+                  key=len, reverse=True)
+    parts, rest = [], word
+    while rest:
+        for k in keys:
+            if rest.startswith(k):
+                parts.append(k)
+                rest = rest[len(k):]
+                break
+        else:
+            return None
+    return parts if len(parts) > 1 else None
+
+
+def _compound_value_sv(parts):
+    """Evaluate the numeric value of a split compound number word."""
+    total = current = 0
+    for p in parts:
+        v = _STRING_NUM_SV.get(p)
+        if v is None:
+            v = _STRING_SCALE_SV.get(p)
+            if v is None:
+                return None
+            if v >= 1000:
+                total += max(current, 1) * v
+                current = 0
+            else:  # hundra
+                current = max(current, 1) * 100
+        elif v == 100:
+            current = max(current, 1) * 100
+        else:
+            current += v
+    return total + current
+
+
+def _word_value_sv(word):
+    """Value of a single (possibly compound) Swedish number word."""
+    if word in _STRING_NUM_SV:
+        return _STRING_NUM_SV[word]
+    if word in _STRING_SCALE_SV:
+        return _STRING_SCALE_SV[word]
+    parts = _split_compound_number_sv(word)
+    if parts:
+        return _compound_value_sv(parts)
+    return None
+
+
+def _merge_values_sv(prev, nxt):
+    """True if nxt is a lower-magnitude continuation of prev
+    ("tvåtusen tjugotre" -> 2000 + 23)."""
+    power = 10
+    while power <= prev:
+        if prev % power == 0 and nxt < power:
+            return True
+        power *= 10
+    return False
+
+
 def extract_number_sv(text, short_scale=True, ordinals=False):
     """
     This function prepares the given text for parsing by making
@@ -357,8 +451,30 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     # TODO: short_scale and ordinals don't do anything here.
     # The parameters are present in the function signature for API
     # compatibility reasons.
-    text = text.lower()
-    aWords = text.split()
+    text = text.lower().replace("ettusen", "ett tusen")
+    expanded = []
+    for w in text.split():
+        v = _word_value_sv(w)
+        if v is not None:
+            expanded.append(str(v))
+        else:
+            expanded.append(w)
+    # merge lower-magnitude continuations ("2000 23" -> 2023)
+    scales = {100, 1000, 1000000, 1000000000, 1000000000000}
+    merged = []
+    for w in expanded:
+        if merged and w.isdigit() and merged[-1].isdigit():
+            prev, nxt = int(merged[-1]), int(w)
+            if nxt in scales and prev < nxt:
+                # "två miljoner" -> 2 * 1000000
+                merged[-1] = str(prev * nxt)
+                continue
+            if _merge_values_sv(prev, nxt):
+                # "tvåtusen tjugotre" -> 2000 + 23
+                merged[-1] = str(prev + nxt)
+                continue
+        merged.append(w)
+    aWords = merged
     and_pass = False
     valPreAnd = False
     val = False
@@ -367,6 +483,12 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
         word = aWords[count]
         if is_numeric(word):
             val = float(word)
+            if count + 1 < len(aWords):
+                valNext = is_fractional_sv(aWords[count + 1])
+                if valNext:
+                    # "två och en halv" -> the "1" multiplies the fraction
+                    val = val * valNext
+                    aWords[count + 1] = ""
         elif word == "första":
             val = 1
         elif word == "andra":
