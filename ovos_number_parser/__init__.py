@@ -31,6 +31,8 @@ from ovos_number_parser.numbers_fy import numbers_to_digits_fy, pronounce_number
     extract_number_fy, is_fractional_fy, nice_number_fy
 from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl, is_fractional_gl, \
     numbers_to_digits_gl, pronounce_ordinal_gl, is_ordinal_gl, pronounce_fraction_gl
+from ovos_number_parser.numbers_hr import pronounce_number_hr, pronounce_ordinal_hr, extract_number_hr, \
+    is_fractional_hr, nice_number_hr, numbers_to_digits_hr
 from ovos_number_parser.numbers_hu import pronounce_number_hu, pronounce_ordinal_hu, extract_number_hu, \
     is_fractional_hu, is_ordinal_hu, nice_number_hu
 from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, is_fractional_it)
@@ -78,8 +80,12 @@ from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
 _NICE_NUMBER_FNS = {
     "ar": nice_number_ar, "az": nice_number_az, "ca": nice_number_ca, "cs": nice_number_cs,
     "da": nice_number_da, "de": nice_number_de, "es": nice_number_es,
+<<<<<<< HEAD
     "et": nice_number_et, "eu": nice_number_eu, "fa": nice_number_fa,
     "fi": nice_number_fi, "fr": nice_number_fr, "fy": nice_number_fy,
+=======
+    "eu": nice_number_eu, "fa": nice_number_fa, "hr": nice_number_hr, "fr": nice_number_fr, "fy": nice_number_fy,
+>>>>>>> cb4a061 (feat: croatian number support)
     "hu": nice_number_hu, "it": nice_number_it, "nl": nice_number_nl,
     "pl": nice_number_pl, "ru": nice_number_ru, "sk": nice_number_sk, "sl": nice_number_sl,
     "sv": nice_number_sv, "uk": nice_number_uk,
@@ -91,7 +97,11 @@ _FRACTION_NUMERATOR_OVERRIDES = {
     "ru": {1: "одна", 2: "две"},
     "uk": {1: "одна", 2: "дві"},
     "cs": {1: "jedna", 2: "dvě"},
+<<<<<<< HEAD
     "sk": {1: "jedna", 2: "dve"},
+=======
+    "hr": {2: "dvije"},
+>>>>>>> cb4a061 (feat: croatian number support)
     "pl": {1: "jedna", 2: "dwie"},
     "hu": {2: "két"},
 }
@@ -100,8 +110,12 @@ _FRACTION_NUMERATOR_OVERRIDES = {
 _NUMBER_CONNECTORS = {
     "ar": {"و"}, "ca": {"i"}, "da": {"og"}, "en": {"and"}, "es": {"y"}, "eu": {"eta"},
     "fr": {"et"}, "fy": {"en"}, "it": {"e"}, "nl": {"en"}, "sv": {"och"},
+<<<<<<< HEAD
     "fa": {"و"}, "sl": {"in"}, "hu": set(), "fi": set(), "et": set(),
     "kab": {"u", "d", "ed"},
+=======
+    "fa": {"و"}, "hr": {"i"}, "sl": {"in"}, "hu": set(), "kab": {"u", "d", "ed"},
+>>>>>>> cb4a061 (feat: croatian number support)
 }
 
 
@@ -280,6 +294,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         return MWL.numbers_to_digits(utterance, scale=scale)
     if lang.startswith("ro"):
         return RO.numbers_to_digits(utterance, scale=scale)
+    if lang.startswith("hr"):
+        return numbers_to_digits_hr(utterance)
     if lang.startswith("ru"):
         return numbers_to_digits_ru(utterance)
     if lang.startswith("sk"):
@@ -357,6 +373,8 @@ def pronounce_number(number: Union[int, float], lang: str,
         return pronounce_number_fi(number, places, short_scale, scientific, ordinals)
     if lang.startswith("fr"):
         return pronounce_number_fr(number, places)
+    if lang.startswith("hr"):
+        return pronounce_number_hr(number, places, short_scale, scientific, ordinals)
     if lang.startswith("hu"):
         return pronounce_number_hu(number, places, short_scale, scientific, ordinals)
     if lang.startswith("it"):
@@ -472,10 +490,15 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_da(number)
     if lang.startswith("de"):
         return pronounce_ordinal_de(number)
+<<<<<<< HEAD
     if lang.startswith("et"):
         return pronounce_ordinal_et(number)
     if lang.startswith("fi"):
         return pronounce_ordinal_fi(number)
+=======
+    if lang.startswith("hr"):
+        return pronounce_ordinal_hr(number)
+>>>>>>> cb4a061 (feat: croatian number support)
     if lang.startswith("hu"):
         return pronounce_ordinal_hu(number)
     if lang.startswith("fy"):
@@ -596,6 +619,8 @@ def extract_number(text: str, lang: str,
         return extract_number_sv(text, short_scale, ordinals)
     if lang.startswith("uk"):
         return extract_number_uk(text, short_scale, ordinals)
+    if lang.startswith("hr"):
+        return extract_number_hr(text, short_scale, ordinals)
     if lang.startswith("hu"):
         return extract_number_hu(text, short_scale, ordinals)
     if lang.startswith("sl"):
@@ -682,6 +707,8 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_sv(input_str, short_scale)
     if lang.startswith("fa"):
         return is_fractional_fa(input_str, short_scale)
+    if lang.startswith("hr"):
+        return is_fractional_hr(input_str, short_scale)
     if lang.startswith("hu"):
         return is_fractional_hu(input_str, short_scale)
     if lang.startswith("sl"):
