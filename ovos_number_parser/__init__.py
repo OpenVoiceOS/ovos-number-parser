@@ -19,7 +19,8 @@ from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa
 from ovos_number_parser.numbers_fr import (pronounce_number_fr, extract_number_fr, is_fractional_fr)
 from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl, is_fractional_gl, \
     numbers_to_digits_gl, pronounce_ordinal_gl, is_ordinal_gl, pronounce_fraction_gl
-from ovos_number_parser.numbers_hu import pronounce_number_hu, pronounce_ordinal_hu
+from ovos_number_parser.numbers_hu import pronounce_number_hu, pronounce_ordinal_hu, extract_number_hu, \
+    is_fractional_hu, is_ordinal_hu
 from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, is_fractional_it)
 from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
@@ -317,6 +318,8 @@ def extract_number(text: str, lang: str,
         return extract_number_sv(text, short_scale, ordinals)
     if lang.startswith("uk"):
         return extract_number_uk(text, short_scale, ordinals)
+    if lang.startswith("hu"):
+        return extract_number_hu(text, short_scale, ordinals)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
@@ -381,6 +384,8 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_sv(input_str, short_scale)
     if lang.startswith("uk"):
         return is_fractional_uk(input_str, short_scale)
+    if lang.startswith("hu"):
+        return is_fractional_hu(input_str, short_scale)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
@@ -413,4 +418,6 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return is_ordinal_da(input_str)
     if lang.startswith("gl"):
         return is_ordinal_gl(input_str)
+    if lang.startswith("hu"):
+        return is_ordinal_hu(input_str)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
