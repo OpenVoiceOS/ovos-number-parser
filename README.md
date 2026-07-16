@@ -30,7 +30,9 @@ fractional and ordinal numbers, and more.
 | `de` (German)           | ✅                | ✅                 | ✅              | ✅                 |
 | `es` (Spanish)          | ✅                | 🚧                 | ✅              | 🚧                 |
 | `eu` (Euskara / Basque) | ✅                | ❌                 | ✅              | ❌                 |
+| `et` (Estonian)         | ✅                | ✅                 | ✅              | ✅                 |
 | `fa` (Farsi / Persian)  | ✅                | 🚧                 | ✅              | ❌                 |
+| `fi` (Finnish)          | ✅                | ✅                 | ✅              | ✅                 |
 | `fr` (French)           | ✅                | 🚧                 | ✅              | ❌                 |
 | `hu` (Hungarian)        | ✅                | ✅                 | ❌              | ❌                 |
 | `it` (Italian)          | ✅                | 🚧                | ✅              | ❌                 |

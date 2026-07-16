@@ -20,8 +20,12 @@ from ovos_number_parser.numbers_en import numbers_to_digits_en, is_ordinal_en, p
 from ovos_number_parser.numbers_es import numbers_to_digits_es, pronounce_number_es, extract_number_es, is_fractional_es
 from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu, \
     pronounce_ordinal_eu
+from ovos_number_parser.numbers_et import pronounce_number_et, pronounce_ordinal_et, extract_number_et, \
+    is_fractional_et, is_ordinal_et, nice_number_et
 from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa, is_fractional_fa, \
     pronounce_ordinal_fa
+from ovos_number_parser.numbers_fi import pronounce_number_fi, pronounce_ordinal_fi, extract_number_fi, \
+    is_fractional_fi, is_ordinal_fi, nice_number_fi
 from ovos_number_parser.numbers_fr import (pronounce_number_fr, extract_number_fr, is_fractional_fr)
 from ovos_number_parser.numbers_fy import numbers_to_digits_fy, pronounce_number_fy, pronounce_ordinal_fy, \
     extract_number_fy, is_fractional_fy, nice_number_fy
@@ -72,7 +76,8 @@ from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
 _NICE_NUMBER_FNS = {
     "ar": nice_number_ar, "az": nice_number_az, "ca": nice_number_ca, "cs": nice_number_cs,
     "da": nice_number_da, "de": nice_number_de, "es": nice_number_es,
-    "eu": nice_number_eu, "fa": nice_number_fa, "fr": nice_number_fr, "fy": nice_number_fy,
+    "et": nice_number_et, "eu": nice_number_eu, "fa": nice_number_fa,
+    "fi": nice_number_fi, "fr": nice_number_fr, "fy": nice_number_fy,
     "hu": nice_number_hu, "it": nice_number_it, "nl": nice_number_nl,
     "pl": nice_number_pl, "ru": nice_number_ru, "sl": nice_number_sl,
     "sv": nice_number_sv, "uk": nice_number_uk,
@@ -92,7 +97,8 @@ _FRACTION_NUMERATOR_OVERRIDES = {
 _NUMBER_CONNECTORS = {
     "ar": {"و"}, "ca": {"i"}, "da": {"og"}, "en": {"and"}, "es": {"y"}, "eu": {"eta"},
     "fr": {"et"}, "fy": {"en"}, "it": {"e"}, "nl": {"en"}, "sv": {"och"},
-    "fa": {"و"}, "sl": {"in"}, "hu": set(), "kab": {"u", "d", "ed"},
+    "fa": {"و"}, "sl": {"in"}, "hu": set(), "fi": set(), "et": set(),
+    "kab": {"u", "d", "ed"},
 }
 
 
@@ -338,8 +344,12 @@ def pronounce_number(number: Union[int, float], lang: str,
         return pronounce_number_es(number, places)
     if lang.startswith("eu"):
         return pronounce_number_eu(number, places)
+    if lang.startswith("et"):
+        return pronounce_number_et(number, places, short_scale, scientific, ordinals)
     if lang.startswith("fa"):
         return pronounce_number_fa(number, places, scientific, ordinals)
+    if lang.startswith("fi"):
+        return pronounce_number_fi(number, places, short_scale, scientific, ordinals)
     if lang.startswith("fr"):
         return pronounce_number_fr(number, places)
     if lang.startswith("hu"):
@@ -455,6 +465,10 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_da(number)
     if lang.startswith("de"):
         return pronounce_ordinal_de(number)
+    if lang.startswith("et"):
+        return pronounce_ordinal_et(number)
+    if lang.startswith("fi"):
+        return pronounce_ordinal_fi(number)
     if lang.startswith("hu"):
         return pronounce_ordinal_hu(number)
     if lang.startswith("fy"):
@@ -534,8 +548,12 @@ def extract_number(text: str, lang: str,
         return extract_number_gl(text, short_scale, ordinals)
     if lang.startswith("eu"):
         return extract_number_eu(text, short_scale, ordinals)
+    if lang.startswith("et"):
+        return extract_number_et(text, short_scale, ordinals)
     if lang.startswith("fa"):
         return extract_number_fa(text, ordinals)
+    if lang.startswith("fi"):
+        return extract_number_fi(text, short_scale, ordinals)
     if lang.startswith("fr"):
         return extract_number_fr(text, short_scale, ordinals)
     if lang.startswith("it"):
@@ -617,6 +635,10 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_gl(input_str)
     if lang.startswith("eu"):
         return is_fractional_eu(input_str)
+    if lang.startswith("et"):
+        return is_fractional_et(input_str, short_scale)
+    if lang.startswith("fi"):
+        return is_fractional_fi(input_str, short_scale)
     if lang.startswith("fr"):
         return is_fractional_fr(input_str)
     if lang.startswith("it"):
@@ -693,6 +715,10 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return is_ordinal_da(input_str)
     if lang.startswith("gl"):
         return is_ordinal_gl(input_str)
+    if lang.startswith("et"):
+        return is_ordinal_et(input_str)
+    if lang.startswith("fi"):
+        return is_ordinal_fi(input_str)
     if lang.startswith("hu"):
         return is_ordinal_hu(input_str)
     if lang.startswith("kab"):
