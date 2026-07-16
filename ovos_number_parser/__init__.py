@@ -27,6 +27,8 @@ from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl
 from ovos_number_parser.numbers_hu import pronounce_number_hu, pronounce_ordinal_hu, extract_number_hu, \
     is_fractional_hu, is_ordinal_hu, nice_number_hu
 from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, is_fractional_it)
+from ovos_number_parser.numbers_kab import (pronounce_number_kab, pronounce_ordinal_kab, extract_number_kab,
+                                             is_fractional_kab, is_ordinal_kab)
 from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
     extract_number_nl, is_fractional_nl
@@ -85,7 +87,7 @@ _FRACTION_NUMERATOR_OVERRIDES = {
 _NUMBER_CONNECTORS = {
     "ar": {"و"}, "ca": {"i"}, "da": {"og"}, "en": {"and"}, "es": {"y"}, "eu": {"eta"},
     "fr": {"et"}, "it": {"e"}, "nl": {"en"}, "sv": {"och"},
-    "fa": {"و"}, "sl": {"in"}, "hu": set(),
+    "fa": {"و"}, "sl": {"in"}, "hu": set(), "kab": {"u", "d", "ed"},
 }
 
 
@@ -327,6 +329,8 @@ def pronounce_number(number: Union[int, float], lang: str,
         return pronounce_number_hu(number, places, short_scale, scientific, ordinals)
     if lang.startswith("it"):
         return pronounce_number_it(number, places, short_scale, scientific)
+    if lang.startswith("kab"):
+        return pronounce_number_kab(number, places, ordinals, gender)
     if lang.startswith("nl"):
         return pronounce_number_nl(number, places, short_scale, scientific, ordinals)
     if lang.startswith("pl"):
@@ -438,6 +442,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_fa(number)
     if lang.startswith("sl"):
         return pronounce_number_sl(number, ordinals=True)
+    if lang.startswith("kab"):
+        return pronounce_ordinal_kab(number, gender)
     # fallback to unicode RBNF
     try:
         engine = RbnfEngine.for_language(lang.split("-")[0])
@@ -499,6 +505,8 @@ def extract_number(text: str, lang: str,
         return extract_number_fr(text, short_scale, ordinals)
     if lang.startswith("it"):
         return extract_number_it(text, short_scale, ordinals)
+    if lang.startswith("kab"):
+        return extract_number_kab(text, short_scale, ordinals)
     if lang.startswith("nl"):
         return extract_number_nl(text, short_scale, ordinals)
     if lang.startswith("pl"):
@@ -570,6 +578,8 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_fr(input_str)
     if lang.startswith("it"):
         return is_fractional_it(input_str, short_scale)
+    if lang.startswith("kab"):
+        return is_fractional_kab(input_str, short_scale)
     if lang.startswith("nl"):
         return is_fractional_nl(input_str, short_scale)
     if lang.startswith("pl"):
@@ -628,6 +638,8 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return is_ordinal_gl(input_str)
     if lang.startswith("hu"):
         return is_ordinal_hu(input_str)
+    if lang.startswith("kab"):
+        return is_ordinal_kab(input_str)
     if lang.startswith("sl"):
         return is_ordinal_sl(input_str)
     return _is_ordinal_generic(input_str, lang)

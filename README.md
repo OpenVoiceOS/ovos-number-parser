@@ -34,6 +34,7 @@ fractional and ordinal numbers, and more.
 | `fr` (French)           | ✅                | 🚧                 | ✅              | ❌                 |
 | `hu` (Hungarian)        | ✅                | ✅                 | ❌              | ❌                 |
 | `it` (Italian)          | ✅                | 🚧                | ✅              | ❌                 |
+| `kab` (Kabyle)          | ✅                | ✅                 | ✅              | 🚧                 |
 | `nl` (Dutch)            | ✅                | ✅                 | ✅              | ✅                 |
 | `pl` (Polish)           | ✅                | 🚧                 | ✅              | ✅                 |
 | `pt` (Portuguese)       | ✅                | ✅                  | ✅              | ✅                |

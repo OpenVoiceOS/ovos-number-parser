@@ -56,6 +56,25 @@ hundreds (`quinientos`, `setecientos`, `novecientos`), scale words including
 (`one hundred and one` = 101), digit grouping (`1,000,000`) and spoken-style
 comma pauses (`two thousand, twenty three`).
 
+## Kabyle
+
+Kabyle carries two numeral systems: the pan-Amazigh cardinals (`yiwen`,
+`sin`, `kṛaḍ`, ... `mraw`) and the Algerian-Arabic borrowed numerals used
+for everyday counting above ten (`ḥḍac` = 11, `ɛecrin` = 20, `mya` = 100,
+`alef` = 1000). Pronunciation uses the Amazigh forms for 0-10 and the
+Arabic-derived forms above ten, joining compounds with the conjunction `u`
+with the unit before the ten (`waḥed u ɛecrin` = 21). Extraction accepts
+both systems, feminine forms (`yiwet`, `snat`), additive Amazigh compounds
+(`mraw d yiwen` = 11) and diacritic-stripped spellings (`hdac`).
+
+Ordinals use `amezwaru` (f. `tamezwarut`) for "first" and `wis`/`tis` +
+cardinal otherwise. The only attested fraction noun is `azgen` (half).
+
+Coverage boundary: pronunciation spans 0–9999. The minus word, a
+decimal-separator word, ordinal suffix forms, larger scale words and
+further fraction nouns are not reliably attested and are deliberately
+omitted.
+
 ## Persian
 
 Numbers are written and parsed in Persian script (`بیست و یک` = 21). Both
