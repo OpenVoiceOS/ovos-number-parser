@@ -40,6 +40,7 @@ fractional and ordinal numbers, and more.
 | `pt` (Portuguese)       | ✅                | ✅                  | ✅              | ✅                |
 | `mwl` (Mirandese)       | ✅                | ✅                  | ✅              | ✅                |
 | `ast` (Asturian)        | ✅                | ✅                  | ✅              | ✅                |
+| `ro` (Romanian)         | ✅                | ✅                  | ✅              | ✅                |
 | `ru` (Russian)          | ✅                | 🚧                 | ✅              | ✅                 |
 | `sv` (Swedish)          | ✅                | ✅                 | ✅              | ❌                 |
 | `sl` (Slovenian)        | ✅                | 🚧                 | ❌              | ❌                 |
