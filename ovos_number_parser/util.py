@@ -305,6 +305,14 @@ class NumberVocabulary:
     pluralize: Callable[[str], str] = lambda word: word
     singularize: Callable[[str], str] = lambda word: word
 
+    # restrict the tens joiner to the twenties ("vint-e-un" but "trenta dos"),
+    # for languages that only join 21-29
+    JOINER_ONLY_ON_TWENTYS: bool = False
+
+    # prefer explicit ORDINAL_TENS entries ("onzen", "vint-e-unen") over
+    # composing tens + units ordinals
+    PREFER_EXPLICIT_ORDINALS: bool = False
+
     # join the "hundred" particle to its remainder ("cento e un") even when
     # JOINER_ON_HUNDREDS is off, but only for the top-level group of the number
     JOINER_ON_HUNDRED_PARTICLE: bool = False
@@ -521,8 +529,8 @@ class RomanceNumberExtractor:
                         current = 0
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
-                    # ("două sute" = 200), leaving higher groups untouched
-                    # ("două mii trei sute" -> 2000 + 3*100)
+                    # ("două sute" = 200, "dos cents" = 200), leaving higher
+                    # groups untouched ("două mii trei sute" -> 2000 + 3*100)
                     below = current % 100
                     current += (below or 1) * 100 - below
                 else:
@@ -1002,7 +1010,8 @@ class RomanceNumberExtractor:
                 unit = n % 10
                 parts.append(gendered(ten, tens_map[ten]))
                 if unit > 0:
-                    if self.vocab.JOINER_ON_TWENTYS and self.vocab.JOIN_WORD:
+                    if self.vocab.JOINER_ON_TWENTYS and self.vocab.JOIN_WORD \
+                            and (ten == 20 or not self.vocab.JOINER_ONLY_ON_TWENTYS):
                         parts.append(self.vocab.JOIN_WORD[0])
                     parts.append(gendered(unit, self.vocab.UNITS[unit]))
 
@@ -1061,6 +1070,9 @@ class RomanceNumberExtractor:
             elif n < 10:
                 units_word_masc = self.vocab.ORDINAL_UNITS[n]
                 parts.append(self.vocab.swap_gender(units_word_masc, gender))
+            elif self.vocab.PREFER_EXPLICIT_ORDINALS and n in self.vocab.ORDINAL_TENS:
+                # explicit compound ordinal ("onzen", "vint-e-unen")
+                parts.append(self.vocab.swap_gender(self.vocab.ORDINAL_TENS[n], gender))
             elif n < 20:
                 tens_word_masc = self.vocab.ORDINAL_TENS[10]
                 units_word_masc = self.vocab.ORDINAL_UNITS[n - 10]
