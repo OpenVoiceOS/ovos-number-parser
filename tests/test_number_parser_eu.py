@@ -1,13 +1,14 @@
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser import (extract_number, pronounce_number,
+                                 pronounce_ordinal, is_ordinal)
 
 
 class TestBasquePronounce(unittest.TestCase):
     """Anchors for spoken Basque numbers."""
 
     def test_pronounce_number(self):
-        expected = {0: 'zero', 1: 'bat', 2: 'bi', 3: 'hiru', 4: 'lau', 5: 'bost', 6: 'sei', 7: 'zazpi', 8: 'zortzi', 9: 'bederatzi', 10: 'hamar', 11: 'hamaika', 12: 'hamabi', 13: 'hamahiru', 14: 'hamalau', 15: 'hamabost', 16: 'hamasei', 17: 'hamazazpi', 18: 'hemezortzi', 19: 'hemeretzi', 20: 'hogei', 21: 'hogeita bat', 30: 'hogeita hamar', 42: 'berrogeita bi', 50: 'berrogeita hamar', 66: 'hirurogeita sei', 70: 'hirurogeita hamar', 80: 'laurogei', 90: 'laurogeita hamar', 99: 'laurogeita hemeretzi', 100: 'ehun', 101: 'ehun eta bat', 123: 'ehun eta hogeita hiru', 200: 'berrehun', 500: 'bostehun', 999: 'bederatzirehun eta laurogeita hemeretzi', 1000: 'mila', 2000: 'bi mila', 2023: 'bi mila hogeita hiru', 1000000: '1000000', 2000000: '2000000'}
+        expected = {0: 'zero', 1: 'bat', 2: 'bi', 3: 'hiru', 4: 'lau', 5: 'bost', 6: 'sei', 7: 'zazpi', 8: 'zortzi', 9: 'bederatzi', 10: 'hamar', 11: 'hamaika', 12: 'hamabi', 13: 'hamahiru', 14: 'hamalau', 15: 'hamabost', 16: 'hamasei', 17: 'hamazazpi', 18: 'hemezortzi', 19: 'hemeretzi', 20: 'hogei', 21: 'hogeita bat', 30: 'hogeita hamar', 42: 'berrogeita bi', 50: 'berrogeita hamar', 66: 'hirurogeita sei', 70: 'hirurogeita hamar', 80: 'laurogei', 90: 'laurogeita hamar', 99: 'laurogeita hemeretzi', 100: 'ehun', 101: 'ehun eta bat', 123: 'ehun eta hogeita hiru', 200: 'berrehun', 500: 'bostehun', 999: 'bederatziehun eta laurogeita hemeretzi', 1000: 'mila', 2000: 'bi mila', 2023: 'bi mila eta hogeita hiru', 1000000: 'milioi bat', 2000000: 'bi milioi'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="eu"), spoken)
@@ -19,11 +20,60 @@ class TestBasquePronounce(unittest.TestCase):
                 self.assertEqual(pronounce_number(number, lang="eu"), spoken)
 
 
+class TestBasqueLargeNumbers(unittest.TestCase):
+    """Cardinals above the thousand are composed with the vigesimal eta rule.
+
+    Forms are cited to Euskaltzaindia Araua 7 ("Zenbakien idazkeraz", 1994):
+    the -ehun hundreds (never -rehun), the eta-drop before a lower remainder,
+    and the head-final "milioi bat" idiom.
+    """
+
+    def test_pronounce_large(self):
+        expected = {
+            1000: 'mila',
+            1001: 'mila eta bat',
+            1200: 'mila eta berrehun',          # eta kept before bare hundreds
+            1202: 'mila berrehun eta bi',        # eta drops before lower remainder
+            1936: 'mila bederatziehun eta hogeita hamasei',
+            12345: 'hamabi mila hirurehun eta berrogeita bost',
+            1000000: 'milioi bat',
+            2000000: 'bi milioi',
+            1000000000: 'bilioi bat',
+        }
+        for number, spoken in expected.items():
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_number(number, lang="eu"), spoken)
+
+
+class TestBasqueOrdinals(unittest.TestCase):
+    """Ordinals take -garren; cited to Araua 18 ("Ordinalen ... idazkera", 1994)."""
+
+    def test_pronounce_ordinal(self):
+        expected = {
+            1: 'lehenengo',        # suppletive, no -garren
+            2: 'bigarren',
+            5: 'bosgarren',        # bost -> bos- (not *bostgarren)
+            10: 'hamargarren',
+            16: 'hamaseigarren',
+            20: 'hogeigarren',
+            100: 'ehungarren',
+        }
+        for number, spoken in expected.items():
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_ordinal(number, lang="eu"), spoken)
+
+    def test_is_ordinal(self):
+        self.assertEqual(is_ordinal("hamaseigarren", lang="eu"), 16)
+        self.assertEqual(is_ordinal("bosgarren", lang="eu"), 5)
+        self.assertEqual(is_ordinal("lehenengo", lang="eu"), 1)
+        self.assertFalse(is_ordinal("katua", lang="eu"))
+
+
 class TestBasqueExtract(unittest.TestCase):
     """Anchors for extracting numbers from Basque text."""
 
     def test_extract_number(self):
-        expected = {0: 'zero', 1: 'bat', 2: 'bi', 3: 'hiru', 4: 'lau', 5: 'bost', 6: 'sei', 7: 'zazpi', 8: 'zortzi', 9: 'bederatzi', 10: 'hamar', 11: 'hamaika', 12: 'hamabi', 13: 'hamahiru', 14: 'hamalau', 15: 'hamabost', 16: 'hamasei', 17: 'hamazazpi', 18: 'hemezortzi', 19: 'hemeretzi', 20: 'hogei', 21: 'hogeita bat', 30: 'hogeita hamar', 42: 'berrogeita bi', 50: 'berrogeita hamar', 66: 'hirurogeita sei', 70: 'hirurogeita hamar', 80: 'laurogei', 90: 'laurogeita hamar', 99: 'laurogeita hemeretzi', 100: 'ehun', 101: 'ehun eta bat', 123: 'ehun eta hogeita hiru', 200: 'berrehun', 500: 'bostehun', 999: 'bederatzirehun eta laurogeita hemeretzi', 1000: 'mila', 2000: 'bi mila', 2023: 'bi mila hogeita hiru', 1000000: '1000000', 2000000: '2000000'}
+        expected = {0: 'zero', 1: 'bat', 2: 'bi', 3: 'hiru', 4: 'lau', 5: 'bost', 6: 'sei', 7: 'zazpi', 8: 'zortzi', 9: 'bederatzi', 10: 'hamar', 11: 'hamaika', 12: 'hamabi', 13: 'hamahiru', 14: 'hamalau', 15: 'hamabost', 16: 'hamasei', 17: 'hamazazpi', 18: 'hemezortzi', 19: 'hemeretzi', 20: 'hogei', 21: 'hogeita bat', 30: 'hogeita hamar', 42: 'berrogeita bi', 50: 'berrogeita hamar', 66: 'hirurogeita sei', 70: 'hirurogeita hamar', 80: 'laurogei', 90: 'laurogeita hamar', 99: 'laurogeita hemeretzi', 100: 'ehun', 101: 'ehun eta bat', 123: 'ehun eta hogeita hiru', 200: 'berrehun', 500: 'bostehun', 999: 'bederatziehun eta laurogeita hemeretzi', 1000: 'mila', 2000: 'bi mila', 2023: 'bi mila eta hogeita hiru', 1000000: 'milioi bat', 2000000: 'bi milioi'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="eu"), number)

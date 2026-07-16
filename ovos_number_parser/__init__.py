@@ -23,7 +23,7 @@ from ovos_number_parser.numbers_el import pronounce_number_el, pronounce_ordinal
     extract_number_el, is_fractional_el, is_ordinal_el
 from ovos_number_parser.numbers_es import numbers_to_digits_es, pronounce_number_es, extract_number_es, is_fractional_es
 from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu, \
-    pronounce_ordinal_eu
+    pronounce_ordinal_eu, is_ordinal_eu
 from ovos_number_parser.numbers_et import pronounce_number_et, pronounce_ordinal_et, extract_number_et, \
     is_fractional_et, is_ordinal_et, nice_number_et
 from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa, is_fractional_fa, \
@@ -851,6 +851,8 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return is_ordinal_el(input_str)
     if lang.startswith("he"):
         return is_ordinal_he(input_str)
+    if lang.startswith("eu"):
+        return is_ordinal_eu(input_str)
     if lang.startswith("hu"):
         return is_ordinal_hu(input_str)
     if lang.startswith("nn"):
