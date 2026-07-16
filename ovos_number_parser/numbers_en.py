@@ -291,8 +291,20 @@ _STRING_SHORT_ORDINAL_EN = invert_dict(_SHORT_ORDINAL_EN)
 _STRING_LONG_ORDINAL_EN = invert_dict(_LONG_ORDINAL_EN)
 
 
-def is_ordinal_en(input_str: str) -> bool:
-    return input_str in _STRING_LONG_ORDINAL_EN
+def is_ordinal_en(input_str: str):
+    """
+    Check if the given text is an ordinal word.
+
+    Returns:
+        (bool) or (int/float): False if not an ordinal, otherwise the number
+        corresponding to the ordinal
+    """
+    input_str = input_str.lower()
+    if input_str in _STRING_LONG_ORDINAL_EN:
+        return _STRING_LONG_ORDINAL_EN[input_str]
+    if input_str in _STRING_SHORT_ORDINAL_EN:
+        return _STRING_SHORT_ORDINAL_EN[input_str]
+    return False
 
 
 def pronounce_number_en(number, places=2, short_scale=True, scientific=False,

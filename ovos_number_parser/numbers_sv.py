@@ -570,6 +570,10 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
 
         break
 
+    if val is not False and val is not None:
+        val = float(val)
+        if val.is_integer():
+            val = int(val)
     return val or False
 
 
