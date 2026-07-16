@@ -50,7 +50,8 @@ _NUM_STRING_NL = {
     60: 'zestig',
     70: 'zeventig',
     80: 'tachtig',
-    90: 'negentig'
+    90: 'negentig',
+    100: 'honderd'
 }
 
 _FRACTION_STRING_NL = {
@@ -260,6 +261,7 @@ _DECIMAL_MARKER_NL = {"komma", "punt"}
 
 _STRING_NUM_NL = invert_dict(_NUM_STRING_NL)
 _STRING_NUM_NL.update({
+    "een": 1,
     "half": 0.5,
     "driekwart": 0.75,
     "anderhalf": 1.5,
@@ -273,37 +275,6 @@ _MONTHS_NL = ['januari', 'februari', 'maart', 'april', 'mei', 'juni',
               'juli', 'augustus', 'september', 'oktober', 'november',
               'december']
 
-_NUM_STRING_NL = {
-    0: 'nul',
-    1: 'één',
-    2: 'twee',
-    3: 'drie',
-    4: 'vier',
-    5: 'vijf',
-    6: 'zes',
-    7: 'zeven',
-    8: 'acht',
-    9: 'negen',
-    10: 'tien',
-    11: 'elf',
-    12: 'twaalf',
-    13: 'dertien',
-    14: 'veertien',
-    15: 'vijftien',
-    16: 'zestien',
-    17: 'zeventien',
-    18: 'achttien',
-    19: 'negentien',
-    20: 'twintig',
-    30: 'dertig',
-    40: 'veertig',
-    50: 'vijftig',
-    60: 'zestig',
-    70: 'zeventig',
-    80: 'tachtig',
-    90: 'negentig',
-    100: 'honderd'
-}
 
 # Dutch uses "long scale" https://en.wikipedia.org/wiki/Long_and_short_scales
 # Currently, numbers are limited to 1000000000000000000000000,
@@ -391,8 +362,7 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
         if num > 99:
             hundreds = floor(num / 100)
             if hundreds > 0:
-                result += _NUM_STRING_NL[
-                              hundreds] + _EXTRA_SPACE_NL + 'honderd' + _EXTRA_SPACE_NL
+                result += _NUM_STRING_NL[hundreds] + _EXTRA_SPACE_NL + 'honderd' + _EXTRA_SPACE_NL
                 num -= hundreds * 100
         if num == 0:
             result += ''  # do nothing
@@ -435,12 +405,9 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
 
         if last_triplet == 1:
             if scale_level == 0:
-                if result != '':
-                    result += '' + 'één'
-                else:
-                    result += "één"
+                result += "een"
             elif scale_level == 1:
-                result += 'één' + _EXTRA_SPACE_NL + 'duizend' + _EXTRA_SPACE_NL
+                result += 'een' + _EXTRA_SPACE_NL + 'duizend' + _EXTRA_SPACE_NL
             else:
                 result += "één " + _NUM_POWERS_OF_TEN[scale_level] + ' '
         elif last_triplet > 1:
@@ -471,12 +438,20 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
         return "min " + pronounce_number_nl(abs(number), places)
     else:
         if number == int(number):
-            return pronounce_whole_number_nl(number)
+            spoken = pronounce_whole_number_nl(number)
+            # the standalone numeral takes the accent: "één appel" vs the
+            # article "een appel"; compounds stay unaccented (eenentwintig)
+            if spoken == "een":
+                return "één"
+            return spoken
         else:
             whole_number_part = floor(number)
             fractional_part = number - whole_number_part
-            result += pronounce_whole_number_nl(whole_number_part) or \
+            whole_spoken = pronounce_whole_number_nl(whole_number_part) or \
                 _NUM_STRING_NL[0]
+            if whole_spoken == "een":
+                whole_spoken = "één"
+            result += whole_spoken
             if places > 0:
                 result += " komma"
                 result += pronounce_fractional_nl(fractional_part, places)
