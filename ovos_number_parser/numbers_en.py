@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
@@ -794,6 +795,18 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
         prev_word = tokens[idx - 1].word.lower() if idx > 0 else ""
         next_word = tokens[idx + 1].word.lower() if idx + 1 < len(tokens) else ""
 
+        # "and" connects parts of the same number ("one hundred and one");
+        # skip over it when linking two number words
+        if word == "and" and number_words and prev_word in multiplies and (
+                next_word in _STRING_NUM_EN or
+                next_word in string_num_scale or
+                (ordinals and next_word in string_num_ordinal) or
+                is_numeric(next_word)):
+            number_words.append(token)
+            continue
+        if prev_word == "and" and idx > 1:
+            prev_word = tokens[idx - 2].word.lower()
+
         if is_numeric(word[:-2]) and \
                 (word.endswith("st") or word.endswith("nd") or
                  word.endswith("rd") or word.endswith("th")):
@@ -1045,7 +1058,12 @@ def extract_number_en(text, short_scale=True, ordinals=False):
                                    was found
 
     """
-    return _extract_number_with_text_en(tokenize(text.lower()),
+    text = text.lower()
+    # digit grouping ("1,000,000") and spoken-style commas
+    # ("two thousand, twenty three")
+    text = re.sub(r"(?<=\d),(?=\d{3}\b)", "", text)
+    text = re.sub(r"(?<=[a-z]),", "", text)
+    return _extract_number_with_text_en(tokenize(text),
                                         short_scale, ordinals).value
 
 
