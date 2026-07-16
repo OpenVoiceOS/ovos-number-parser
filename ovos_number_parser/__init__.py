@@ -8,6 +8,8 @@ from ovos_number_parser.numbers_an import AN
 from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, \
     is_fractional_ar, is_ordinal_ar, nice_number_ar
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
+from ovos_number_parser.numbers_bg import numbers_to_digits_bg, pronounce_number_bg, extract_number_bg, \
+    is_fractional_bg, nice_number_bg
 from ovos_number_parser.numbers_ca import numbers_to_digits_ca, pronounce_number_ca, is_fractional_ca, extract_number_ca
 from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, \
     extract_number_cs, pronounce_ordinal_cs
@@ -78,7 +80,8 @@ from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
 # --- generic language fallbacks -------------------------------------------
 
 _NICE_NUMBER_FNS = {
-    "ar": nice_number_ar, "az": nice_number_az, "ca": nice_number_ca, "cs": nice_number_cs,
+    "ar": nice_number_ar, "az": nice_number_az, "bg": nice_number_bg,
+    "ca": nice_number_ca, "cs": nice_number_cs,
     "da": nice_number_da, "de": nice_number_de, "es": nice_number_es,
 <<<<<<< HEAD
     "et": nice_number_et, "eu": nice_number_eu, "fa": nice_number_fa,
@@ -94,6 +97,7 @@ _NICE_NUMBER_FNS = {
 # fraction nouns take feminine numerals in the Slavic languages and the
 # "két" allomorph in Hungarian
 _FRACTION_NUMERATOR_OVERRIDES = {
+    "bg": {1: "една", 2: "две"},
     "ru": {1: "одна", 2: "две"},
     "uk": {1: "одна", 2: "дві"},
     "cs": {1: "jedna", 2: "dvě"},
@@ -108,7 +112,7 @@ _FRACTION_NUMERATOR_OVERRIDES = {
 
 # words that may join two spoken numbers ("vingt et un", "sto in ena")
 _NUMBER_CONNECTORS = {
-    "ar": {"و"}, "ca": {"i"}, "da": {"og"}, "en": {"and"}, "es": {"y"}, "eu": {"eta"},
+    "ar": {"و"}, "bg": {"и"}, "ca": {"i"}, "da": {"og"}, "en": {"and"}, "es": {"y"}, "eu": {"eta"},
     "fr": {"et"}, "fy": {"en"}, "it": {"e"}, "nl": {"en"}, "sv": {"och"},
 <<<<<<< HEAD
     "fa": {"و"}, "sl": {"in"}, "hu": set(), "fi": set(), "et": set(),
@@ -294,8 +298,13 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         return MWL.numbers_to_digits(utterance, scale=scale)
     if lang.startswith("ro"):
         return RO.numbers_to_digits(utterance, scale=scale)
+<<<<<<< HEAD
     if lang.startswith("hr"):
         return numbers_to_digits_hr(utterance)
+=======
+    if lang.startswith("bg"):
+        return numbers_to_digits_bg(utterance)
+>>>>>>> 884a066 (feat: bulgarian number support)
     if lang.startswith("ru"):
         return numbers_to_digits_ru(utterance)
     if lang.startswith("sk"):
@@ -345,6 +354,8 @@ def pronounce_number(number: Union[int, float], lang: str,
         return pronounce_number_az(number, places, short_scale, scientific, ordinals)
     if lang.startswith("ar"):
         return pronounce_number_ar(number, places, scientific, ordinals)
+    if lang.startswith("bg"):
+        return pronounce_number_bg(number, places, short_scale, scientific, ordinals)
     if lang.startswith("ca"):
         return pronounce_number_ca(number, places)
     if lang.startswith("ast"):
@@ -521,6 +532,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_eu(number)
     if lang.startswith("fa"):
         return pronounce_ordinal_fa(number)
+    if lang.startswith("bg"):
+        return pronounce_number_bg(number, ordinals=True)
     if lang.startswith("sl"):
         return pronounce_number_sl(number, ordinals=True)
     if lang.startswith("kab"):
@@ -566,6 +579,8 @@ def extract_number(text: str, lang: str,
         return extract_number_az(text, short_scale, ordinals)
     if lang.startswith("ar"):
         return extract_number_ar(text, ordinals)
+    if lang.startswith("bg"):
+        return extract_number_bg(text, short_scale, ordinals)
     if lang.startswith("ca"):
         return extract_number_ca(text, short_scale, ordinals)
     if lang.startswith("cs"):
@@ -657,6 +672,8 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_az(input_str, short_scale)
     if lang.startswith("ar"):
         return is_fractional_ar(input_str, short_scale)
+    if lang.startswith("bg"):
+        return is_fractional_bg(input_str, short_scale)
     if lang.startswith("ca"):
         return is_fractional_ca(input_str, short_scale)
     if lang.startswith("cs"):

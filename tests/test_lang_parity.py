@@ -9,9 +9,9 @@ from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
                                 numbers_to_digits, pronounce_fraction,
                                 pronounce_number, pronounce_ordinal)
 
-        "an", "ar", "ast", "az", "ca", "cs", "da", "de", "en", "es", "et", 
-         "eu", "fa", "fi", "fr", "fy", "gl", "hr", "hu", "it", "kab", "mwl", 
-         "nl", "oc", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "uk"]
+        "an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "en", "es", 
+         "et", "eu", "fa", "fi", "fr", "fy", "gl", "hr", "hu", "it", "kab", 
+         "mwl", "nl", "oc", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "uk"]
 
 
 class TestLanguageParity(unittest.TestCase):
