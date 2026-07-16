@@ -4,6 +4,8 @@ from typing import Union
 from unicode_rbnf import RbnfEngine, FormatPurpose
 
 from ovos_number_parser.numbers_ast import AST
+from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, \
+    is_fractional_ar, is_ordinal_ar, nice_number_ar
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_ca import numbers_to_digits_ca, pronounce_number_ca, is_fractional_ca, extract_number_ca
 from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, \
@@ -61,7 +63,7 @@ from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
 # --- generic language fallbacks -------------------------------------------
 
 _NICE_NUMBER_FNS = {
-    "az": nice_number_az, "ca": nice_number_ca, "cs": nice_number_cs,
+    "ar": nice_number_ar, "az": nice_number_az, "ca": nice_number_ca, "cs": nice_number_cs,
     "da": nice_number_da, "de": nice_number_de, "es": nice_number_es,
     "eu": nice_number_eu, "fa": nice_number_fa, "fr": nice_number_fr,
     "hu": nice_number_hu, "it": nice_number_it, "nl": nice_number_nl,
@@ -81,7 +83,7 @@ _FRACTION_NUMERATOR_OVERRIDES = {
 
 # words that may join two spoken numbers ("vingt et un", "sto in ena")
 _NUMBER_CONNECTORS = {
-    "ca": {"i"}, "da": {"og"}, "en": {"and"}, "es": {"y"}, "eu": {"eta"},
+    "ar": {"و"}, "ca": {"i"}, "da": {"og"}, "en": {"and"}, "es": {"y"}, "eu": {"eta"},
     "fr": {"et"}, "it": {"e"}, "nl": {"en"}, "sv": {"och"},
     "fa": {"و"}, "sl": {"in"}, "hu": set(),
 }
@@ -299,6 +301,8 @@ def pronounce_number(number: Union[int, float], lang: str,
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
     if lang.startswith("az"):
         return pronounce_number_az(number, places, short_scale, scientific, ordinals)
+    if lang.startswith("ar"):
+        return pronounce_number_ar(number, places, scientific, ordinals)
     if lang.startswith("ca"):
         return pronounce_number_ca(number, places)
     if lang.startswith("ast"):
@@ -408,6 +412,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return MWL.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang.startswith("ast"):
         return AST.pronounce_ordinal(number, scale=scale, gender=gender)
+    if lang.startswith("ar"):
+        return pronounce_ordinal_ar(number)
     if lang.startswith("da"):
         return pronounce_ordinal_da(number)
     if lang.startswith("de"):
@@ -471,6 +477,8 @@ def extract_number(text: str, lang: str,
         return extract_number_en(text, short_scale, ordinals)
     if lang.startswith("az"):
         return extract_number_az(text, short_scale, ordinals)
+    if lang.startswith("ar"):
+        return extract_number_ar(text, ordinals)
     if lang.startswith("ca"):
         return extract_number_ca(text, short_scale, ordinals)
     if lang.startswith("cs"):
@@ -542,6 +550,8 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_en(input_str, short_scale)
     if lang.startswith("az"):
         return is_fractional_az(input_str, short_scale)
+    if lang.startswith("ar"):
+        return is_fractional_ar(input_str, short_scale)
     if lang.startswith("ca"):
         return is_fractional_ca(input_str, short_scale)
     if lang.startswith("cs"):
@@ -605,6 +615,8 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return AST.is_ordinal(input_str)
     if lang.startswith("en"):
         return is_ordinal_en(input_str)
+    if lang.startswith("ar"):
+        return is_ordinal_ar(input_str)
     if lang.startswith("de"):
         val = is_ordinal_de(input_str)
         if isinstance(val, str) and val.endswith("."):
