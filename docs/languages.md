@@ -70,3 +70,26 @@ readings.
   form (`jeden tysiąc jeden`); plural forms (`dwa tysiące trzy`) work.
 - Czech pronounces four-digit numbers date-style (`1234` →
   `dvanáct třicet čtyři`), which extraction does not reverse.
+
+## Full function parity
+
+Every supported language provides every public function. Where a language
+has no hand-written implementation, a documented generic fallback fills in:
+
+- `pronounce_fraction` reuses the language's `nice_number` fraction wording
+  (which carries its plural/declension rules) and spells out any digits; the
+  Slavic languages use feminine numerators (`dvě třetiny`, `две трети`) and
+  Hungarian its `két` allomorph. Denominators outside the language's fraction
+  vocabulary fall back to "cardinal numerator + ordinal denominator".
+- `is_ordinal` falls back to a reverse lookup over `pronounce_ordinal`
+  (1–100, round hundreds, 1000, 1000000), registering both `-o`/`-a`
+  grammatical-gender variants.
+- `numbers_to_digits` falls back to replacing maximal spoken-number spans
+  found by `extract_number`, joining across connector words (`vingt et un`,
+  `sto in ena`) only when the combined words read as one larger number.
+  Languages whose hand-written converters stopped at twenty or mishandled
+  compound and comma-grouped numbers (az, ca, cs, da, en, es, nl, pl) now
+  use this path.
+
+The parity guarantee is enforced by `tests/test_lang_parity.py`, which runs
+every public function against every supported language.
