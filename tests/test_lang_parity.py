@@ -10,7 +10,8 @@ from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
                                 pronounce_number, pronounce_ordinal)
 
 LANGS = ["ar", "az", "ast", "ca", "cs", "da", "de", "en", "es", "eu", "fa", "fr",
-         "gl", "hu", "it", "kab", "mwl", "nl", "pl", "pt", "ru", "sl", "sv", "uk"]
+         "gl", "hu", "it", "kab", "mwl", "nl", "pl", "pt", "ro", "ru", "sl",
+         "sv", "uk"]
 
 
 class TestLanguageParity(unittest.TestCase):
@@ -97,6 +98,8 @@ class TestPronounceFractionAnchors(unittest.TestCase):
         "ca": [("1/2", "un mig")],
         "az": [("1/2", "yarım"), ("2/3", "üçdə iki")],
         "pt": [("1/2", "um meio"), ("2/3", "dois terços")],
+        "ro": [("1/2", "o jumătate"), ("2/3", "două treimi"),
+               ("3/4", "trei sferturi"), ("1/4", "un sfert")],
     }
 
     def test_anchors(self):
@@ -143,6 +146,8 @@ class TestPronounceOrdinalAnchors(unittest.TestCase):
         "sl": [(1, "prvi"), (2, "drugi"), (3, "tretji"), (10, "deseti"),
                (21, "enaindvajseti"), (100, "stoti")],
         "gl": [(1, "primeiro"), (2, "segundo"), (3, "terceiro")],
+        "ro": [(1, "primul"), (2, "al doilea"), (3, "al treilea"),
+               (10, "al zecelea"), (21, "al douăzeci și unulea")],
     }
 
     def test_anchors(self):
@@ -168,6 +173,8 @@ class TestIsOrdinalAnchors(unittest.TestCase):
             ("sl", "prvi", 1), ("sl", "enaindvajseti", 21),
             ("hu", "első", 1), ("hu", "második", 2), ("hu", "huszadik", 20),
             ("gl", "segundo", 2),
+            ("ro", "al doilea", 2), ("ro", "a treia", 3),
+            ("ro", "primul", 1),
         ]
         for lang, word, expected in cases:
             self.assertEqual(is_ordinal(word, lang), expected,

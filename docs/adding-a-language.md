@@ -34,7 +34,13 @@ XX = RomanceNumberExtractor(_XX)
 ```
 
 See `numbers_gl.py` or `numbers_ast.py` for complete worked examples, and the
-`NumberVocabulary` docstrings in `util.py` for every knob.
+`NumberVocabulary` docstrings in `util.py` for every knob. Languages with
+articled scale groups ("o mie"), a count-to-scale linker word
+("douăzeci **de** mii"), multiplicative hundreds words ("două sute" = 200)
+or particle-based ordinals ("al doilea"/"a doua") can describe those with
+`SCALE_ONE`, `SCALE_LINKER`, `SCALE_GENDERS`, `MULTIPLY_HUNDREDS`,
+`FRACTION_ONE`, `JOINER_ON_SCALE_REMAINDER` and the `ORDINAL_PREFIX` family —
+see `numbers_ro.py` for a worked example.
 
 **Other language families** implement the functions directly. Use an existing
 module of the same family as a template:
