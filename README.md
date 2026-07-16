@@ -42,6 +42,8 @@ fractional and ordinal numbers, and more.
 | `ast` (Asturian)        | ✅                | ✅                  | ✅              | ✅                |
 | `oc` (Occitan)          | ✅                | ✅                  | ✅              | ✅                |
 | `ro` (Romanian)         | ✅                | ✅                  | ✅              | ✅                |
+| `an` (Aragonese)        | ✅                | ✅                  | ✅              | ✅                |
+| `fy` (West Frisian)     | ✅                | ✅                  | ✅              | ✅                |
 | `ru` (Russian)          | ✅                | 🚧                 | ✅              | ✅                 |
 | `sv` (Swedish)          | ✅                | ✅                 | ✅              | ❌                 |
 | `sl` (Slovenian)        | ✅                | 🚧                 | ❌              | ❌                 |
