@@ -20,6 +20,7 @@ _DA_NUMBERS = {
     'ni': 9,
     'ti': 10,
     'elve': 11,
+    'elleve': 11,
     'tolv': 12,
     'tretten': 13,
     'fjorten': 14,
@@ -42,12 +43,16 @@ _DA_NUMBERS = {
     'enogtredive': 31,
     'fyrre': 40,
     'halvtres': 50,
+    'halvtreds': 50,
     'tres': 60,
     'halvfjers': 70,
+    'halvfjerds': 70,
     'firs': 80,
     'halvfems': 90,
     'hunderede': 100,
     'ethunderede': 100,
+    'hundrede': 100,
+    'ethundrede': 100,
     'tohundrede': 200,
     'trehundrede': 300,
     'firehundrede': 400,
@@ -323,7 +328,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
                 else:
                     result += _NUM_STRING_DA[hundreds] + \
                               'hundrede' + _EXTRA_SPACE_DA
-                    num -= hundreds * 100
+                num -= hundreds * 100
         if num == 0:
             result += ''  # do nothing
         elif num == 1:
@@ -345,6 +350,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
     def pronounce_fractional_da(num, places):
         # fixed number of places even with trailing zeros
         result = ""
+        num = round(num, places)
         place = 10
         while places > 0:
             # doesn't work with 1.0001 and places = 2: int(
@@ -605,7 +611,10 @@ def _extract_real_number_with_text_da(tokens, short_scale):
             if _val is not None:
                 to_sum.append(_val)
             if to_sum:
-                val = sum(to_sum)
+                if to_sum[0] < 0:
+                    val = to_sum[0] - sum(to_sum[1:])
+                else:
+                    val = sum(to_sum)
 
             if number_words and (not all([w in _ARTICLES | _NEGATIVES
                                           | _NUMBER_CONNECTORS for w in words_only])
@@ -680,7 +689,11 @@ def _extract_real_number_with_text_da(tokens, short_scale):
             _val = _current_val = None
 
         if not next_word and number_words:
-            val = sum(to_sum) or _val
+            if to_sum and to_sum[0] < 0:
+                # negated number: components extend the magnitude
+                val = to_sum[0] - sum(to_sum[1:])
+            else:
+                val = sum(to_sum) if to_sum else _val
 
     return val, number_words
 
@@ -697,6 +710,10 @@ def is_fractional_da(input_str, short_scale=False):
     # account for different numerators, e.g. totrediedele
 
     input_str = input_str.lower()
+    if input_str in _DA_NUMBERS:
+        # whole numbers like "halvtres" (50) contain "halv" but are not
+        # fractions
+        return False
     numerator = 1
     prev_number = 0
     denominator = False
@@ -770,6 +787,71 @@ def is_numeric_da(input_str):
         return False
 
 
+def _split_compound_number_da(word):
+    """
+    Split a Danish compound number word into its component number words.
+
+    "toogfyrre" -> ["to", "og", "fyrre"]
+    "nihundredenioghalvfems" -> ["nihundrede", "ni", "og", "halvfems"]
+
+    Returns None if the word is not composed purely of known number words.
+    """
+    if word in _DA_NUMBERS:
+        return None
+    keys = sorted(set(_DA_NUMBERS) | set(_STRING_LONG_SCALE),
+                  key=len, reverse=True)
+    parts, rest = [], word
+    while rest:
+        if rest.startswith("og") and parts:
+            candidate = rest[2:]
+            if any(candidate.startswith(k) for k in keys):
+                parts.append("og")
+                rest = candidate
+                continue
+        for k in keys:
+            if rest.startswith(k):
+                parts.append(k)
+                rest = rest[len(k):]
+                break
+        else:
+            return None
+    return parts if len(parts) > 1 else None
+
+
+def _compound_value_da(parts):
+    """Evaluate the numeric value of a split compound number word."""
+    total = current = 0
+    for p in parts:
+        if p == "og":
+            continue
+        v = _DA_NUMBERS.get(p)
+        if v is None:
+            v = _STRING_LONG_SCALE.get(p)
+        if v is None:
+            return None
+        if v >= 1000:
+            total += max(current, 1) * v
+            current = 0
+        elif v == 100:
+            current = max(current, 1) * 100
+        else:
+            current += v
+    return total + current
+
+
+def _expand_compound_numbers_da(text):
+    """Rewrite compound number words as their digit value for parsing."""
+    out = []
+    for w in text.split():
+        parts = _split_compound_number_da(w)
+        if parts:
+            value = _compound_value_da(parts)
+            out.append(str(int(value)) if value is not None else w)
+        else:
+            out.append(w)
+    return " ".join(out)
+
+
 def extract_number_da(text, short_scale=False, ordinals=False):
     """
     This function extracts a number from a text string
@@ -782,7 +864,8 @@ def extract_number_da(text, short_scale=False, ordinals=False):
         (int) or (float) or False: The extracted number or False if no number
                                    was found
     """
-    numbers = _extract_numbers_with_text_da(tokenize(text.lower()),
+    text = _expand_compound_numbers_da(text.lower())
+    numbers = _extract_numbers_with_text_da(tokenize(text),
                                             short_scale, ordinals)
     # if query ordinals only consider ordinals
     if ordinals:

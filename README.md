@@ -57,154 +57,44 @@ pip install ovos-number-parser
 
 ## Usage
 
-### Pronounce a Number
-
-Convert a number to its spoken equivalent.
-
 ```python
-def pronounce_number(number: Union[int, float], lang: str, places: int = 2, short_scale: bool = True,
-                     scientific: bool = False, ordinals: bool = False) -> str:
-    """
-    Convert a number to its spoken equivalent.
+from ovos_number_parser import (pronounce_number, pronounce_ordinal,
+                                extract_number, is_fractional, is_ordinal,
+                                numbers_to_digits)
 
-    Args:
-        number: The number to pronounce.
-        lang (str): A BCP-47 language code.
-        places (int): Number of decimal places to express. Default is 2.
-        short_scale (bool): Use short (True) or long scale (False) for large numbers.
-        scientific (bool): Pronounce in scientific notation if True.
-        ordinals (bool): Pronounce as an ordinal if True.
+pronounce_number(123, "en")            # 'one hundred and twenty three'
+pronounce_number(4.5, "pt")            # 'quatro vírgula cinco'
+pronounce_number(21, "de")             # 'einundzwanzig'
+pronounce_number(3, "en", ordinals=True)  # 'third'
+pronounce_ordinal(5, "de")             # 'fünfte'
 
-    Returns:
-        str: The pronounced number.
-    """
+extract_number("set a timer for twenty one minutes", "en")   # 21
+extract_number("one hundred and one dalmatians", "en")       # 101
+extract_number("dos mil veintitrés", "es")                   # 2023
+extract_number("einundzwanzig Katzen", "de")                 # 21
+extract_number("hello world", "en")                          # False
+
+is_fractional("half", "en")            # 0.5
+is_ordinal("third", "en")              # 3
+
+numbers_to_digits("set a timer for five minutes", "en")
+# 'set a timer for 5 minutes'
 ```
 
-**Example Usage:**
+Grammatical gender is supported for languages that inflect numerals:
 
 ```python
-from ovos_number_parser import pronounce_number
+from ovos_number_parser.util import GrammaticalGender
 
-# Example
-result = pronounce_number(123, "en")
-print(result)  # "one hundred and twenty-three"
+pronounce_number(2, "pt", gender=GrammaticalGender.FEMININE)  # 'duas'
 ```
 
-### Pronounce an Ordinal
+## Documentation
 
-Convert a number to its ordinal spoken equivalent.
-
-```python
-def pronounce_ordinal(number: Union[int, float], lang: str, short_scale: bool = True) -> str:
-    """
-    Convert an ordinal number to its spoken equivalent.
-
-    Args:
-        number: The number to pronounce.
-        lang (str): A BCP-47 language code.
-        short_scale (bool): Use short (True) or long scale (False) for large numbers.
-
-    Returns:
-        str: The pronounced ordinal number.
-    """
-```
-
-**Example Usage:**
-
-```python
-from ovos_number_parser import pronounce_ordinal
-
-# Example
-result = pronounce_ordinal(5, "en")
-print(result)  # "fifth"
-```
-
-### Extract a Number
-
-Extract a number from a given text string.
-
-```python
-def extract_number(text: str, lang: str, short_scale: bool = True, ordinals: bool = False) -> Union[int, float, bool]:
-    """
-    Extract a number from text.
-
-    Args:
-        text (str): The string to extract a number from.
-        lang (str): A BCP-47 language code.
-        short_scale (bool): Use short scale if True, long scale if False.
-        ordinals (bool): Consider ordinal numbers.
-
-    Returns:
-        int, float, or False: The extracted number, or False if no number found.
-    """
-```
-
-**Example Usage:**
-
-```python
-from ovos_number_parser import extract_number
-
-# Example
-result = extract_number("I have twenty apples", "en")
-print(result)  # 20
-```
-
-### Check for Fractional Numbers
-
-Identify if the text contains a fractional number.
-
-```python
-def is_fractional(input_str: str, lang: str, short_scale: bool = True) -> Union[bool, float]:
-    """
-    Check if the text is a fraction.
-
-    Args:
-        input_str (str): The string to check if fractional.
-        lang (str): A BCP-47 language code.
-        short_scale (bool): Use short scale if True, long scale if False.
-
-    Returns:
-        bool or float: False if not a fraction, otherwise the fraction as a float.
-    """
-```
-
-**Example Usage:**
-
-```python
-from ovos_number_parser import is_fractional
-
-# Example
-result = is_fractional("half", "en")
-print(result)  # 0.5
-```
-
-### Check for Ordinals
-
-Determine if the text contains an ordinal number.
-
-```python
-def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
-    """
-    Check if the text is an ordinal number.
-
-    Args:
-        input_str (str): The string to check if ordinal.
-        lang (str): A BCP-47 language code.
-
-    Returns:
-        bool or float: False if not an ordinal, otherwise the ordinal as a float.
-    """
-```
-
-**Example Usage:**
-
-```python
-from ovos_number_parser import is_ordinal
-
-# Example
-result = is_ordinal("third", "en")
-print(result)  # 3
-```
+- [API reference](docs/api.md) — every public function and its parameters
+- [Language notes](docs/languages.md) — per-language behaviour and known gaps
+- [Adding a language](docs/adding-a-language.md) — implementation guide
+- [examples/](examples/) — runnable example scripts
 
 ## Related Projects
 

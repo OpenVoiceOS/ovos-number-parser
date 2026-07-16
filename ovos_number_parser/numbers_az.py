@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
@@ -760,10 +761,32 @@ def _extract_decimal_with_text_az(tokens, short_scale, ordinals):
 
             number = numbers1[-1]
             decimal = numbers2[0]
+            # concatenate consecutive single digits after the marker
+            # ("point one four" -> .14)
+            _digits = ""
+            _digit_tokens = []
+            _prev_end = None
+            for _num in numbers2:
+                _v = _num.value
+                if _v is None or _v is False or float(_v) != int(_v) \
+                        or not 0 <= _v <= 9:
+                    break
+                if _prev_end is not None and _num.start_index != _prev_end + 1:
+                    break
+                _digits += str(int(_v))
+                _digit_tokens.extend(_num.tokens)
+                _prev_end = _num.end_index
+            if len(_digits) > 1:
+                _frac = float("0." + _digits)
+                return (number.value - _frac if number.value < 0
+                        else number.value + _frac), \
+                    number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
-                return number.value + float('0.' + str(decimal.value)), \
+                _frac2 = float('0.' + str(decimal.value))
+                return (number.value - _frac2 if number.value < 0
+                        else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
 
@@ -871,7 +894,11 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
         if (prev_word in _SUMS_AZ and val and val < 10) or all([prev_word in
                                                                 multiplies,
                                                                 val < prev_val if prev_val else False]):
-            val = prev_val + val
+            if prev_val < 0:
+                # continue a negated number: "minus forty two" = -(40+2)
+                val = prev_val - val
+            else:
+                val = prev_val + val
             # print("d")
 
         # is the prev word a number and should we multiply it?
@@ -1081,5 +1108,6 @@ def extract_number_az(text, short_scale=True, ordinals=False):
                                    was found
 
     """
+    text = re.sub(r"(?<=[^\W\d]),", " ", text)
     return _extract_number_with_text_az(tokenize(text.lower()),
                                         short_scale, ordinals).value

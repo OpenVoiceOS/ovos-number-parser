@@ -124,7 +124,7 @@ def pronounce_number(number: Union[int, float], lang: str,
     if lang.startswith("ast"):
         return AST.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("cs"):
-        return pronounce_number_en(number, places, short_scale, scientific, ordinals)
+        return pronounce_number_cs(number, places, short_scale, scientific, ordinals)
     if lang.startswith("da"):
         return pronounce_number_da(number, places, short_scale, scientific, ordinals)
     if lang.startswith("de"):
@@ -376,7 +376,7 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_sv(input_str, short_scale)
     if lang.startswith("uk"):
         return is_fractional_uk(input_str, short_scale)
-    raise NotImplementedError(f"Unsupported languags: '{lang}'")
+    raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
 def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
@@ -403,4 +403,4 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return is_ordinal_de(input_str)
     if lang.startswith("da"):
         return is_ordinal_da(input_str)
-    raise NotImplementedError(f"Unsupported languags: '{lang}'")
+    raise NotImplementedError(f"Unsupported language: '{lang}'")

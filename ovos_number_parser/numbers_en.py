@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
@@ -290,8 +291,20 @@ _STRING_SHORT_ORDINAL_EN = invert_dict(_SHORT_ORDINAL_EN)
 _STRING_LONG_ORDINAL_EN = invert_dict(_LONG_ORDINAL_EN)
 
 
-def is_ordinal_en(input_str: str) -> bool:
-    return input_str in _STRING_LONG_ORDINAL_EN
+def is_ordinal_en(input_str: str):
+    """
+    Check if the given text is an ordinal word.
+
+    Returns:
+        (bool) or (int/float): False if not an ordinal, otherwise the number
+        corresponding to the ordinal
+    """
+    input_str = input_str.lower()
+    if input_str in _STRING_LONG_ORDINAL_EN:
+        return _STRING_LONG_ORDINAL_EN[input_str]
+    if input_str in _STRING_SHORT_ORDINAL_EN:
+        return _STRING_SHORT_ORDINAL_EN[input_str]
+    return False
 
 
 def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
@@ -747,10 +760,32 @@ def _extract_decimal_with_text_en(tokens, short_scale, ordinals):
 
             number = numbers1[-1]
             decimal = numbers2[0]
+            # concatenate consecutive single digits after the marker
+            # ("point one four" -> .14)
+            _digits = ""
+            _digit_tokens = []
+            _prev_end = None
+            for _num in numbers2:
+                _v = _num.value
+                if _v is None or _v is False or float(_v) != int(_v) \
+                        or not 0 <= _v <= 9:
+                    break
+                if _prev_end is not None and _num.start_index != _prev_end + 1:
+                    break
+                _digits += str(int(_v))
+                _digit_tokens.extend(_num.tokens)
+                _prev_end = _num.end_index
+            if len(_digits) > 1:
+                _frac = float("0." + _digits)
+                return (number.value - _frac if number.value < 0
+                        else number.value + _frac), \
+                    number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
-                return number.value + float('0.' + str(decimal.value)), \
+                _frac2 = float('0.' + str(decimal.value))
+                return (number.value - _frac2 if number.value < 0
+                        else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
 
@@ -793,6 +828,18 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
 
         prev_word = tokens[idx - 1].word.lower() if idx > 0 else ""
         next_word = tokens[idx + 1].word.lower() if idx + 1 < len(tokens) else ""
+
+        # "and" connects parts of the same number ("one hundred and one");
+        # skip over it when linking two number words
+        if word == "and" and number_words and prev_word in multiplies and (
+                next_word in _STRING_NUM_EN or
+                next_word in string_num_scale or
+                (ordinals and next_word in string_num_ordinal) or
+                is_numeric(next_word)):
+            number_words.append(token)
+            continue
+        if prev_word == "and" and idx > 1:
+            prev_word = tokens[idx - 2].word.lower()
 
         if is_numeric(word[:-2]) and \
                 (word.endswith("st") or word.endswith("nd") or
@@ -871,7 +918,11 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
         if (prev_word in _SUMS_EN and val and val < 10) or all([prev_word in
                                                                 multiplies,
                                                                 val < prev_val if prev_val else False]):
-            val = prev_val + val
+            if prev_val < 0:
+                # continue a negated number: "minus forty two" = -(40+2)
+                val = prev_val - val
+            else:
+                val = prev_val + val
 
         # is the prev word a number and should we multiply it?
         # twenty hundred, six hundred
@@ -1045,7 +1096,12 @@ def extract_number_en(text, short_scale=True, ordinals=False):
                                    was found
 
     """
-    return _extract_number_with_text_en(tokenize(text.lower()),
+    text = text.lower()
+    # digit grouping ("1,000,000") and spoken-style commas
+    # ("two thousand, twenty three")
+    text = re.sub(r"(?<=\d),(?=\d{3}\b)", "", text)
+    text = re.sub(r"(?<=[a-z]),", "", text)
+    return _extract_number_with_text_en(tokenize(text),
                                         short_scale, ordinals).value
 
 

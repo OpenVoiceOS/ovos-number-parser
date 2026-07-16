@@ -100,7 +100,12 @@ _STRING_NUM_ES = {
     "ochocientas": 800,
     "novecientos": 900,
     "novecientas": 900,
-    "mil": 1000}
+    "mil": 1000,
+    "millón": 1000000,
+    "millon": 1000000,
+    "millones": 1000000,
+    "millardo": 1000000000,
+    "millardos": 1000000000}
 
 _FRACTION_STRING_ES = {
     2: 'medio',
@@ -344,6 +349,10 @@ def extract_number_es(text, short_scale=True, ordinals=False):
     # Returns incorrect output on certain fractional phrases like, "cuarto de dos"
     #  TODO: numbers greater than 999999
     aWords = text.lower().split()
+    negative = False
+    while aWords and aWords[0] in ['menos']:
+        negative = True
+        aWords = aWords[1:]
     count = 0
     result = None
     while count < len(aWords):
@@ -384,7 +393,22 @@ def extract_number_es(text, short_scale=True, ordinals=False):
                 result = 0
             # handle fractions
             if next_word != "avos":
-                result = val
+                if val in (100, 1000, 1000000, 1000000000) and result:
+                    # scale word multiplies what came before ("dos mil")
+                    result = result * val
+                else:
+                    power = 10
+                    merged = False
+                    while result and power <= result:
+                        if result % power == 0 and val < power:
+                            # lower-magnitude continuation
+                            # ("dos mil veintitres" -> 2000 + 23)
+                            result = result + val
+                            merged = True
+                            break
+                        power *= 10
+                    if not merged:
+                        result = val
             else:
                 result = float(result) / float(val)
 
@@ -418,7 +442,7 @@ def extract_number_es(text, short_scale=True, ordinals=False):
                 result += afterAndVal
                 break
         elif next_next_word is not None:
-            if next_next_word in ands:
+            if next_next_word in ands and next_word not in _STRING_NUM_ES:
                 newWords = aWords[count + 3:]
                 newText = ""
                 for word in newWords:
@@ -442,9 +466,21 @@ def extract_number_es(text, short_scale=True, ordinals=False):
                     zeros += 1
                 else:
                     break
-            afterDotVal = str(extract_number_es(newText[:-1]))
-            afterDotVal = zeros * "0" + afterDotVal
-            result = float(str(result) + "." + afterDotVal)
+            # read the decimal tail digit by digit ("uno cuatro" -> .14)
+            digits = ""
+            for word in newWords:
+                if word.isdigit():
+                    digits += word
+                elif word in _STRING_NUM_ES and _STRING_NUM_ES[word] < 10:
+                    digits += str(_STRING_NUM_ES[word])
+                else:
+                    break
+            if digits:
+                afterDotVal = digits
+            else:
+                afterDotVal = str(extract_number_es(newText[:-1]))
+                afterDotVal = zeros * "0" + afterDotVal
+            result = float(str(result or 0) + "." + afterDotVal)
             break
         count += 1
 
@@ -458,6 +494,8 @@ def extract_number_es(text, short_scale=True, ordinals=False):
         if dec == "0":
             result = int(integer)
 
+    if negative and result is not None and result is not False:
+        result = -result
     return result or False
 
 
@@ -751,9 +789,10 @@ def pronounce_number_es(number, places=2, short_scale=False):
 
     big_nums = [_LONG_SCALE_ES[a] for a in _LONG_SCALE_ES]
     if result in big_nums:
-        
-        if result[-4:] == "rdos" or result[-4:] == "ones":
+        if result[-4:] == "rdos":
             result = "un " + result[:-1]
+        elif result[-4:] == "ones":
+            result = "un " + result[:-4] + "ón"
 
     if len(result.split(" ")) > 1 and result.split(" ")[0] in ["un", "uno"]:
         big_num = result.split(" ")[1]

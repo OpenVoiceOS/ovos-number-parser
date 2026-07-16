@@ -483,10 +483,27 @@ class RomanceNumberExtractor:
                 continue
 
             if token in self.vocab.DECIMAL_MARKER:
-                decimal_str = ''.join(
-                    str(numbers_map.get(t, '')) for t in tokens[i + 1:]
-                    if t in numbers_map
-                )
+                tail = tokens[i + 1:]
+                tail_vals = [numbers_map[t] for t in tail if t in numbers_map]
+                if tail_vals and all(
+                        0 <= v <= 9 and float(v) == int(v)
+                        for v in tail_vals):
+                    # digit-by-digit reading ("vírgula um quatro" -> .14)
+                    decimal_str = ''.join(str(int(v)) for v in tail_vals)
+                else:
+                    # composed reading ("vírgula trinta e quatro" -> .34)
+                    zeros = 0
+                    for t in tail:
+                        if numbers_map.get(t) == 0:
+                            zeros += 1
+                        else:
+                            break
+                    tail_num = self.extract_number(" ".join(tail))
+                    if tail_num is not False and tail_num >= 0 \
+                            and float(tail_num) == int(tail_num):
+                        decimal_str = "0" * zeros + str(int(tail_num))
+                    else:
+                        decimal_str = ''
                 if decimal_str:
                     result += current + float(f"0.{decimal_str}")
                     current = 0

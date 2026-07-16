@@ -325,13 +325,14 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
                                 places):  # fixed number of places even with
         # trailing zeros
         result = ""
+        num = round(num, places)
         place = 10
         while places > 0:  # doesn't work with 1.0001 and places = 2: int(
             # number*place) % 10 > 0 and places > 0:
-            result += " " + _NUM_STRING[int(num * place) % 10]
-            if int(num * place) % 10 == 1:
-                result += 's'  # "1" is pronounced "eins" after the decimal
-                # point
+            word = _NUM_STRING[int(num * place) % 10]
+            if int(num * place) % 10 == 1 and not word.endswith("s"):
+                word += "s"  # "1" is pronounced "eins" after the decimal point
+            result += " " + word
             place *= 10
             places -= 1
         return result
@@ -589,7 +590,10 @@ def _extract_real_number_with_text_de(tokens, short_scale):
             if _val is not None:
                 to_sum.append(_val)
             if to_sum:
-                val = sum(to_sum)
+                if to_sum[0] < 0:
+                    val = to_sum[0] - sum(to_sum[1:])
+                else:
+                    val = sum(to_sum)
 
             if number_words and (not all([w in _ARTICLES | _NEGATIVES
                                           | _NUMBER_CONNECTORS for w in words_only])
@@ -686,7 +690,11 @@ def _extract_real_number_with_text_de(tokens, short_scale):
             _val = _current_val = None
 
         if not next_word and number_words:
-            val = sum(to_sum) or _val
+            if to_sum and to_sum[0] < 0:
+                # negated number: components extend the magnitude
+                val = to_sum[0] - sum(to_sum[1:])
+            else:
+                val = sum(to_sum) if to_sum else _val
 
     return val, number_words
 
@@ -799,6 +807,69 @@ def is_numeric_de(input_str):
         return False
 
 
+def _split_compound_number_de(word):
+    """
+    Split a German compound number word into its component number words.
+
+    "einundzwanzig" -> ["ein", "und", "zwanzig"]
+    "zweihundertdreiundvierzig" -> ["zweihundert", "drei", "und", "vierzig"]
+
+    Returns None if the word is not composed purely of known number words.
+    """
+    if word in _STRING_NUM or word in _STRING_LONG_SCALE:
+        return None
+    keys = sorted(set(_STRING_NUM) | set(_STRING_LONG_SCALE),
+                  key=len, reverse=True)
+    parts, rest = [], word
+    while rest:
+        if rest.startswith("und") and parts:
+            parts.append("und")
+            rest = rest[3:]
+            continue
+        for k in keys:
+            if rest.startswith(k):
+                parts.append(k)
+                rest = rest[len(k):]
+                break
+        else:
+            return None
+    return parts if len(parts) > 1 else None
+
+
+def _compound_value_de(parts):
+    """Evaluate the numeric value of a split compound number word."""
+    total = current = 0
+    for p in parts:
+        if p == "und":
+            continue
+        v = _STRING_NUM.get(p)
+        if v is None:
+            v = _STRING_LONG_SCALE.get(p)
+        if v is None:
+            return None
+        if v >= 1000:
+            total += max(current, 1) * v
+            current = 0
+        elif v == 100:
+            current = max(current, 1) * 100
+        else:
+            current += v
+    return total + current
+
+
+def _expand_compound_numbers_de(text):
+    """Rewrite compound number words as their digit value for parsing."""
+    out = []
+    for w in text.split():
+        parts = _split_compound_number_de(w)
+        if parts:
+            value = _compound_value_de(parts)
+            out.append(str(value) if value is not None else w)
+        else:
+            out.append(w)
+    return " ".join(out)
+
+
 def extract_number_de(text, short_scale=True, ordinals=False):
     """
     This function extracts a number from a text string
@@ -812,7 +883,8 @@ def extract_number_de(text, short_scale=True, ordinals=False):
                                    was found
 
     """
-    numbers = _extract_numbers_with_text_de(tokenize(text.lower()),
+    text = _expand_compound_numbers_de(text.lower())
+    numbers = _extract_numbers_with_text_de(tokenize(text),
                                             short_scale, ordinals)
     # if query ordinals only consider ordinals
     if ordinals:
