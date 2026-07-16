@@ -300,7 +300,7 @@ def _float2tuple(value, _precision):
 
 
 def _cardinal3(number):
-    if (number < 19):
+    if (number < 20):
         return _FARSI_ONES[number]
     if (number < 100):
         x, y = divmod(number, 10)

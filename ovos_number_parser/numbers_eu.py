@@ -68,7 +68,7 @@ NUM_STRING_EU = {
     40: 'berrogei',
     50: 'berrogeita hamar',
     60: 'hirurogei',
-    70: 'hirurogehita hamar',
+    70: 'hirurogeita hamar',
     80: 'laurogei',
     90: 'laurogeita hamar',
     100: 'ehun',
@@ -299,6 +299,16 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
         # is current word a number?
         if word in _NUM_STRING_EU:
             val = _NUM_STRING_EU[word]
+        elif word.endswith("ta") and word[:-2] in _NUM_STRING_EU and \
+                _NUM_STRING_EU[word[:-2]] in (20, 40, 60, 80):
+            # vigesimal joiner: "hogeita bat" = 20 + 1,
+            # "berrogeita hamar" = 40 + 10
+            val = _NUM_STRING_EU[word[:-2]]
+            if next_word is not None and \
+                    _NUM_STRING_EU.get(next_word, 100) < 20:
+                val += _NUM_STRING_EU[next_word]
+                aWords[count + 1] = ""
+                next_word = next_next_word
         elif word.isdigit():  # doesn't work with decimals
             val = int(word)
         elif is_numeric(word):
@@ -330,8 +340,22 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
             # handle fractions
             if next_word == "en" or next_word == "ren":
                 result = float(result) / float(val)
+            elif val in (100, 1000, 1000000) and result:
+                # scale word multiplies what came before ("bi mila")
+                result = result * val
             else:
-                result = val
+                power = 10
+                merged = False
+                while result and power <= result:
+                    if result % power == 0 and val < power:
+                        # lower-magnitude continuation
+                        # ("bi mila hogeita hiru" -> 2000 + 23)
+                        result = result + val
+                        merged = True
+                        break
+                    power *= 10
+                if not merged:
+                    result = val
 
         if next_word is None:
             break
@@ -363,7 +387,7 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
                 result += afterAndVal
                 break
         elif next_next_word is not None:
-            if next_next_word in ands:
+            if next_next_word in ands and next_word not in _NUM_STRING_EU:
                 newWords = aWords[count + 3:]
                 newText = ""
                 for word in newWords:

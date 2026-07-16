@@ -64,7 +64,8 @@ _NUMBERS_CA = {
     "nou-cents": 900,
     "nou-centes": 900,
     "mil": 1000,
-    "milió": 1000000
+    "milió": 1000000,
+    "milions": 1000000
 }
 
 _FRACTION_STRING_CA = {
@@ -630,10 +631,24 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
                 result = 0
             # handle fractions
             # TODO: caution, review use of "ens" word
-            if next_word != "ens":
-                result += val
-            else:
+            if next_word == "ens":
                 result = float(result) / float(val)
+            elif val in (100, 1000, 1000000, 1000000000) and result:
+                # scale word multiplies what came before ("dos mil")
+                result = result * val
+            else:
+                power = 10
+                merged = False
+                while result and power <= result:
+                    if result % power == 0 and val < power:
+                        # lower-magnitude continuation
+                        # ("dos mil vint-i-tres" -> 2000 + 23)
+                        result = result + val
+                        merged = True
+                        break
+                    power *= 10
+                if not merged:
+                    result = (result or 0) + val
 
         if next_word is None:
             break
@@ -665,7 +680,7 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
                 result += afterAndVal
                 break
         elif next_next_word is not None:
-            if next_next_word in ands:
+            if next_next_word in ands and next_word not in _NUMBERS_CA:
                 newWords = aWords[count + 3:]
                 newText = ""
                 for word in newWords:

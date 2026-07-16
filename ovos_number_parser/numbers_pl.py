@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
@@ -1039,6 +1040,7 @@ def extract_number_pl(text, short_scale=True, ordinals=False):
                                    was found
 
     """
+    text = re.sub(r"(?<=[^\W\d]),", " ", text)
     return _extract_number_with_text_pl(tokenize(text.lower()),
                                         True, ordinals).value
 

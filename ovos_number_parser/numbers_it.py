@@ -1,5 +1,6 @@
 import collections
 
+import re
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions
 
 _SHORT_ORDINAL_STRING_IT = {
@@ -532,7 +533,7 @@ def extract_number_it(text, short_scale=False, ordinals=False):
 
     """
 
-    text = text.lower()
+    text = re.sub(r"(?<=[^\W\d]),", " ", text.lower())
     string_num_ordinal_it = {}
     # first, second...
     if ordinals:

@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+import re
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber)
 
@@ -267,11 +268,22 @@ _NEGATIVES = {"záporné", "mínus"}
 _SUMS = {'dvacet', '20', 'třicet', '30', 'čtyřicet', '40', 'padesát', '50',
          'šedesát', '60', 'sedmdesát', '70', 'osmdesát', '80', 'devadesát', '90'}
 
+# declined forms of the scale words ("dvě stě", "tři sta", "pět set",
+# "dva tisíce") used when speaking multiples
+_SCALE_DECLENSIONS_CS = {
+    "stě": 100,
+    "sta": 100,
+    "set": 100,
+    "tisíce": 1000
+}
+
 _MULTIPLIES_LONG_SCALE_CS = set(_LONG_SCALE_CS.values()) | \
-                            generate_plurals_cs(_LONG_SCALE_CS.values())
+                            generate_plurals_cs(_LONG_SCALE_CS.values()) | \
+                            set(_SCALE_DECLENSIONS_CS)
 
 _MULTIPLIES_SHORT_SCALE_CS = set(_SHORT_SCALE_CS.values()) | \
-                             generate_plurals_cs(_SHORT_SCALE_CS.values())
+                             generate_plurals_cs(_SHORT_SCALE_CS.values()) | \
+                             set(_SCALE_DECLENSIONS_CS)
 
 # split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
 _FRACTION_MARKER = {"a"}
@@ -289,6 +301,7 @@ _STRING_NUM_CS.update({
     "dvojice": 2,
     "dvoje": 2
 })
+
 
 _STRING_SHORT_ORDINAL_CS = invert_dict(_SHORT_ORDINAL_CS)
 _STRING_LONG_ORDINAL_CS = invert_dict(_LONG_ORDINAL_CS)
@@ -786,6 +799,7 @@ def _initialize_number_data(short_scale):
 
     string_num_scale_cs = _SHORT_SCALE_CS if short_scale else _LONG_SCALE_CS
     string_num_scale_cs = invert_dict(string_num_scale_cs)
+    string_num_scale_cs.update(_SCALE_DECLENSIONS_CS)
     string_num_scale_cs.update(generate_plurals_cs(string_num_scale_cs))
     return multiplies, string_num_ordinal_cs, string_num_scale_cs
 
@@ -806,6 +820,7 @@ def extract_number_cs(text, short_scale=True, ordinals=False):
                                    was found
 
     """
+    text = re.sub(r"(?<=[^\W\d]),", " ", text)
     return _extract_number_with_text_cs(tokenize(text.lower()),
                                         short_scale, ordinals).value
 
@@ -1101,8 +1116,6 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
 
     # check for a direct match
     if num in number_names and not ordinals:
-        if num > 90:
-            result += "jedna "
         result += number_names[num]
     else:
         def _sub_thousand(n, ordinals=False):
@@ -1117,8 +1130,16 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
                                       else "")
             else:
                 q, r = divmod(n, 100)
-                return digits[q] + " sto" + (
-                    " a " + _sub_thousand(r, ordinals) if r else "")
+                if q == 1:
+                    hundred = "sto"
+                elif q == 2:
+                    hundred = "dvě stě"
+                elif q in (3, 4):
+                    hundred = digits[q] + " sta"
+                else:
+                    hundred = digits[q] + " set"
+                return hundred + (
+                    " " + _sub_thousand(r, ordinals) if r else "")
 
         def _short_scale(n):
             if n >= max(_SHORT_SCALE_CS.keys()):
