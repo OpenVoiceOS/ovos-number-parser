@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.9.0a1) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.8.0a1...0.9.0a1)
+
+**Merged pull requests:**
+
+- feat: ordinal pronunciation for czech, polish, ukrainian, basque and farsi [\#62](https://github.com/OpenVoiceOS/ovos-number-parser/pull/62) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.8.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.8.0a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.7.0a1...0.8.0a1)
