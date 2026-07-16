@@ -17,7 +17,8 @@ from ovos_number_parser.numbers_es import numbers_to_digits_es, pronounce_number
 from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu
 from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa
 from ovos_number_parser.numbers_fr import (pronounce_number_fr, extract_number_fr, is_fractional_fr)
-from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl, is_fractional_gl, numbers_to_digits_gl
+from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl, is_fractional_gl, \
+    numbers_to_digits_gl, pronounce_ordinal_gl, is_ordinal_gl, pronounce_fraction_gl
 from ovos_number_parser.numbers_hu import pronounce_number_hu, pronounce_ordinal_hu
 from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, is_fractional_it)
 from ovos_number_parser.numbers_mwl import MWL
@@ -191,6 +192,8 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = N
         return AST.pronounce_fraction(fraction_word, scale=scale)
     elif lang.startswith("mwl"):
         return MWL.pronounce_fraction(fraction_word, scale=scale)
+    elif lang.startswith("gl"):
+        return pronounce_fraction_gl(fraction_word, scale=scale)
     else:
         raise NotImplementedError(f"unsupported language: {lang}")
 
@@ -236,6 +239,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_nl(number)
     if lang.startswith("sv"):
         return pronounce_ordinal_sv(number)
+    if lang.startswith("gl"):
+        return pronounce_ordinal_gl(number, gender=gender, scale=scale)
     # fallback to unicode RBNF
     try:
         engine = RbnfEngine.for_language(lang.split("-")[0])
@@ -353,7 +358,7 @@ def is_fractional(input_str: str, lang: str,
     if lang.startswith("es"):
         return is_fractional_es(input_str, short_scale)
     if lang.startswith("gl"):
-        return is_fractional_gl(input_str, short_scale)
+        return is_fractional_gl(input_str)
     if lang.startswith("eu"):
         return is_fractional_eu(input_str)
     if lang.startswith("fr"):
@@ -406,4 +411,6 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return val
     if lang.startswith("da"):
         return is_ordinal_da(input_str)
+    if lang.startswith("gl"):
+        return is_ordinal_gl(input_str)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
