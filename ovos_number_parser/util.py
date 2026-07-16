@@ -376,16 +376,19 @@ class RomanceNumberExtractor:
     def __init__(self, vocab: NumberVocabulary):
         self.vocab = vocab
 
-    def is_ordinal(self, input_str: str, scale: Optional[Scale] = None) -> bool:
+    def is_ordinal(self, input_str: str, scale: Optional[Scale] = None) -> Union[int, bool]:
         """
-        Determine if a string is a Portuguese ordinal word.
+        Determine if a string is an ordinal word.
 
         Returns:
-            bool: True if the input string is recognized as a Portuguese ordinal, otherwise False.
+            (int or bool): the value of the ordinal if the input string is
+            recognized as an ordinal, otherwise False.
         """
         scale = scale or self.vocab.DEFAULT_SCALE
         ordinals_map = self.vocab.get_ordinal_strings(scale)
-        return input_str in ordinals_map
+        if input_str in ordinals_map:
+            return ordinals_map[input_str]
+        return False
 
     def is_fractional(self, input_str: str) -> Union[float, bool]:
         """
@@ -428,6 +431,15 @@ class RomanceNumberExtractor:
         # normalize and tokenize
         clean_text = text.lower().replace('-', ' ')
         tokens = [t for t in clean_text.split() if t not in self.vocab.JOIN_WORD]
+
+        # a digit token wins if it appears before any spoken number word
+        for tok in tokens:
+            t = tok.strip(".,!?;:").replace(",", ".")
+            if t and t.lstrip("-").replace(".", "", 1).isdigit():
+                val = float(t)
+                return int(val) if val.is_integer() else val
+            if tok in numbers_map or tok in ordinals_map or tok in scales_map:
+                break
 
         # plural fraction words ("cuartos", "terzos") multiply by the preceding
         # cardinal ("tres cuartos" = 3/4), singular ones add ("dois e meio" = 2.5)
