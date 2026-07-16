@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.6.3a1) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.6.2a1...0.6.3a1)
+
+**Merged pull requests:**
+
+- fix: digit extraction and ordinal values in RomanceNumberExtractor, wire galician helpers [\#56](https://github.com/OpenVoiceOS/ovos-number-parser/pull/56) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.6.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.6.2a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.6.1a3...0.6.2a1)
