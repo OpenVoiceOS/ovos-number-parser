@@ -1096,3 +1096,37 @@ def normalize_word_pl(word):
         return 'dwa'
 
     return word
+
+
+_ORDINAL_HUNDREDS_PL = {
+    200: "dwusetny", 300: "trzechsetny", 400: "czterechsetny",
+    500: "pięćsetny", 600: "sześćsetny", 700: "siedemsetny",
+    800: "osiemsetny", 900: "dziewięćsetny",
+}
+
+
+def pronounce_ordinal_pl(number):
+    """
+    Pronounce a number as a Polish ordinal (masculine nominative).
+
+    Args:
+        number (int): the number to pronounce
+    Returns:
+        (str): the ordinal in Polish
+    """
+    number = int(number)
+    if number <= 0:
+        raise ValueError("Polish ordinals start at 1")
+    if number in _SHORT_ORDINAL_PL:
+        return _SHORT_ORDINAL_PL[number]
+    if number in _ORDINAL_HUNDREDS_PL:
+        return _ORDINAL_HUNDREDS_PL[number]
+    if number < 100:
+        tens = number // 10 * 10
+        unit = number % 10
+        return f"{_SHORT_ORDINAL_PL[tens]} {_SHORT_ORDINAL_PL[unit]}"
+    last = number % 100
+    if last:
+        prefix = number - last
+        return f"{pronounce_number_pl(prefix)} {pronounce_ordinal_pl(last)}"
+    raise NotImplementedError(f"cannot pronounce {number} as a Polish ordinal")

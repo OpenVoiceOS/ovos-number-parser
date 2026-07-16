@@ -1281,3 +1281,36 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
         for char in _num_str:
             result += " " + number_names[int(char)]
     return result
+
+
+_ORDINAL_HUNDREDS_CS = {
+    200: "dvoustý", 300: "třístý", 400: "čtyřstý", 500: "pětistý",
+    600: "šestistý", 700: "sedmistý", 800: "osmistý", 900: "devítistý",
+}
+
+
+def pronounce_ordinal_cs(number):
+    """
+    Pronounce a number as a Czech ordinal.
+
+    Args:
+        number (int): the number to pronounce
+    Returns:
+        (str): the ordinal in Czech
+    """
+    number = int(number)
+    if number <= 0:
+        raise ValueError("Czech ordinals start at 1")
+    if number in _SHORT_ORDINAL_CS:
+        return _SHORT_ORDINAL_CS[number]
+    if number in _ORDINAL_HUNDREDS_CS:
+        return _ORDINAL_HUNDREDS_CS[number]
+    if number < 100:
+        tens = number // 10 * 10
+        unit = number % 10
+        return f"{_SHORT_ORDINAL_CS[tens]} {_SHORT_ORDINAL_CS[unit]}"
+    last = number % 100
+    if last:
+        prefix = number - last
+        return f"{pronounce_number_cs(prefix)} {pronounce_ordinal_cs(last)}"
+    raise NotImplementedError(f"cannot pronounce {number} as a Czech ordinal")

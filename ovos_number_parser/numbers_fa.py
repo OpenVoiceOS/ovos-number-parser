@@ -427,3 +427,48 @@ def pronounce_number_fa(number, places=2, scientific=False,
     if ordinals:
         return _to_ordinal(number)
     return _to_cardinal(number, places)
+
+
+_STRING_FRACTION_FA = {word: val for val, word in _FRACTION_STRING_FA.items()}
+_STRING_FRACTION_FA["نیم"] = 2
+
+
+def is_fractional_fa(input_str, short_scale=True):
+    """
+    Check if the given word is a Farsi fraction.
+
+    Args:
+        input_str (str): the string to check if fractional
+        short_scale (bool): ignored, present for API compatibility
+    Returns:
+        (bool) or (float): False if not a fraction, otherwise the fraction
+    """
+    word = input_str.strip()
+    if word in _STRING_FRACTION_FA:
+        return 1.0 / _STRING_FRACTION_FA[word]
+    return False
+
+
+def pronounce_ordinal_fa(number):
+    """
+    Pronounce a number as a Farsi ordinal.
+
+    Uses the irregular "اول" for 1 and the fraction/ordinal names up to 20,
+    beyond that the cardinal takes the suffix "م" ("ام" after a vowel).
+
+    Args:
+        number (int): the number to pronounce
+    Returns:
+        (str): the ordinal in Farsi
+    """
+    number = int(number)
+    if number <= 0:
+        raise ValueError("Farsi ordinals start at 1")
+    if number == 1:
+        return "اول"
+    if number in _FRACTION_STRING_FA:
+        return _FRACTION_STRING_FA[number]
+    cardinal = pronounce_number_fa(number)
+    if cardinal[-1] in "اوهی":
+        return cardinal + "‌ام"
+    return cardinal + "م"
