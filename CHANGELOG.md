@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.6.1a2) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.6.1a1...0.6.1a2)
+
+**Merged pull requests:**
+
+- ci: install setuptools for the release workflow [\#52](https://github.com/OpenVoiceOS/ovos-number-parser/pull/52) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.6.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.6.1a1) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.6.0a1...0.6.1a1)
