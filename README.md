@@ -34,6 +34,7 @@ fractional and ordinal numbers, and more.
 | `fa` (Farsi / Persian)  | ✅                | 🚧                 | ✅              | ❌                 |
 | `fi` (Finnish)          | ✅                | ✅                 | ✅              | ✅                 |
 | `fr` (French)           | ✅                | 🚧                 | ✅              | ❌                 |
+| `hr` (Croatian)         | ✅                | ✅                 | ✅              | ✅                 |
 | `hu` (Hungarian)        | ✅                | ✅                 | ❌              | ❌                 |
 | `it` (Italian)          | ✅                | 🚧                | ✅              | ❌                 |
 | `kab` (Kabyle)          | ✅                | ✅                 | ✅              | 🚧                 |
