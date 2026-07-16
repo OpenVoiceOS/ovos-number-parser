@@ -203,8 +203,27 @@ def extract_numbers_fa(text, short_scale=True, ordinals=False):
     """
 
     ar = _parse_sentence(text)
+    # fold spoken decimals: [(3, [.. "و"]), (14, [..]), "صدم"] -> 3.14
+    _denoms = {"دهم": 10, "صدم": 100, "هزارم": 1000}
+    folded = []
+    i = 0
+    while i < len(ar):
+        x = ar[i]
+        if type(x) == tuple and i + 1 < len(ar) and \
+                isinstance(ar[i + 1], str) and ar[i + 1] in _denoms:
+            frac = x[0] / _denoms[ar[i + 1]]
+            if folded and type(folded[-1]) == tuple and \
+                    folded[-1][1] and folded[-1][1][-1] == "و":
+                whole = folded.pop()
+                frac = whole[0] + frac if whole[0] >= 0 \
+                    else whole[0] - frac
+            folded.append((frac, x[1] + [ar[i + 1]]))
+            i += 2
+            continue
+        folded.append(x)
+        i += 1
     result = []
-    for x in ar:
+    for x in folded:
         if type(x) == tuple:
             result.append(x[0])
     return result
@@ -226,10 +245,15 @@ def extract_number_fa(text, ordinals=False):
                                    was found
 
     """
+    negative = False
+    words = text.split()
+    if words and words[0] == "منفی":
+        negative = True
+        text = " ".join(words[1:])
     x = extract_numbers_fa(text, ordinals=ordinals)
     if (len(x) == 0):
         return False
-    return x[0]
+    return -x[0] if negative else x[0]
 
 
 def nice_number_fa(number, speech=True, denominators=range(1, 21),
@@ -300,7 +324,7 @@ def _float2tuple(value, _precision):
 
 
 def _cardinal3(number):
-    if (number < 19):
+    if (number < 20):
         return _FARSI_ONES[number]
     if (number < 100):
         x, y = divmod(number, 10)
@@ -403,3 +427,48 @@ def pronounce_number_fa(number, places=2, scientific=False,
     if ordinals:
         return _to_ordinal(number)
     return _to_cardinal(number, places)
+
+
+_STRING_FRACTION_FA = {word: val for val, word in _FRACTION_STRING_FA.items()}
+_STRING_FRACTION_FA["نیم"] = 2
+
+
+def is_fractional_fa(input_str, short_scale=True):
+    """
+    Check if the given word is a Farsi fraction.
+
+    Args:
+        input_str (str): the string to check if fractional
+        short_scale (bool): ignored, present for API compatibility
+    Returns:
+        (bool) or (float): False if not a fraction, otherwise the fraction
+    """
+    word = input_str.strip()
+    if word in _STRING_FRACTION_FA:
+        return 1.0 / _STRING_FRACTION_FA[word]
+    return False
+
+
+def pronounce_ordinal_fa(number):
+    """
+    Pronounce a number as a Farsi ordinal.
+
+    Uses the irregular "اول" for 1 and the fraction/ordinal names up to 20,
+    beyond that the cardinal takes the suffix "م" ("ام" after a vowel).
+
+    Args:
+        number (int): the number to pronounce
+    Returns:
+        (str): the ordinal in Farsi
+    """
+    number = int(number)
+    if number <= 0:
+        raise ValueError("Farsi ordinals start at 1")
+    if number == 1:
+        return "اول"
+    if number in _FRACTION_STRING_FA:
+        return _FRACTION_STRING_FA[number]
+    cardinal = pronounce_number_fa(number)
+    if cardinal[-1] in "اوهی":
+        return cardinal + "‌ام"
+    return cardinal + "م"

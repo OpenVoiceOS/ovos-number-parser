@@ -887,10 +887,32 @@ def _extract_decimal_with_text_uk(tokens, short_scale, ordinals):
 
             number = numbers1[-1]
             decimal = numbers2[0]
+            # concatenate consecutive single digits after the marker
+            # ("point one four" -> .14)
+            _digits = ""
+            _digit_tokens = []
+            _prev_end = None
+            for _num in numbers2:
+                _v = _num.value
+                if _v is None or _v is False or float(_v) != int(_v) \
+                        or not 0 <= _v <= 9:
+                    break
+                if _prev_end is not None and _num.start_index != _prev_end + 1:
+                    break
+                _digits += str(int(_v))
+                _digit_tokens.extend(_num.tokens)
+                _prev_end = _num.end_index
+            if len(_digits) > 1:
+                _frac = float("0." + _digits)
+                return (number.value - _frac if number.value < 0
+                        else number.value + _frac), \
+                    number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
-                return number.value + float('0.' + str(decimal.value)), \
+                _frac2 = float('0.' + str(decimal.value))
+                return (number.value - _frac2 if number.value < 0
+                        else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
 
@@ -1001,7 +1023,11 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
         if (prev_word in _SUMS and val and val < 10) \
                 or (prev_word in _SUMS and val and val < 100 and prev_val >= 100) \
                 or all([prev_word in multiplies, val < prev_val if prev_val else False]):
-            val = prev_val + val
+            if prev_val < 0:
+                # continue a negated number: "minus forty two" = -(40+2)
+                val = prev_val - val
+            else:
+                val = prev_val + val
 
         # is the prev word a number and should we multiply it?
         multiplies.update({"тисячa", "тисячі", "тисячу", "тисячах", "тисячaми", "тисячею", "тисяч"})
@@ -1053,7 +1079,9 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
                 word not in _SUMS,
                 new_word.isdigit() is False,
                 word not in multiplies,
-                current_val >= 10
+                current_val >= 10,
+                # teens continue a preceding hundred ("сто десять" = 110)
+                not (prev_val and prev_val >= 100 and current_val < 100)
             ]):
                 # Backtrack - we've got numbers we can't sum.
                 number_words.pop()
@@ -1375,3 +1403,30 @@ def plural_uk(num: int, one: str, few: str, many: str):
     if 2 <= num % 10 <= 4:
         return few
     return many
+
+
+def pronounce_ordinal_uk(number):
+    """
+    Pronounce a number as a Ukrainian ordinal (masculine nominative).
+
+    Only the final word is ordinal, preceding groups stay cardinal.
+
+    Args:
+        number (int): the number to pronounce
+    Returns:
+        (str): the ordinal in Ukrainian
+    """
+    number = int(number)
+    if number <= 0:
+        raise ValueError("Ukrainian ordinals start at 1")
+    if number in _ORDINAL_BASE_UK:
+        return _ORDINAL_BASE_UK[number]
+    if number < 100:
+        tens = number // 10 * 10
+        unit = number % 10
+        return f"{pronounce_number_uk(tens)} {_ORDINAL_BASE_UK[unit]}"
+    last = number % 100
+    if last:
+        prefix = number - last
+        return f"{pronounce_number_uk(prefix)} {pronounce_ordinal_uk(last)}"
+    raise NotImplementedError(f"cannot pronounce {number} as a Ukrainian ordinal")

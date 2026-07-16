@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+import re
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber)
 
@@ -267,11 +268,22 @@ _NEGATIVES = {"záporné", "mínus"}
 _SUMS = {'dvacet', '20', 'třicet', '30', 'čtyřicet', '40', 'padesát', '50',
          'šedesát', '60', 'sedmdesát', '70', 'osmdesát', '80', 'devadesát', '90'}
 
+# declined forms of the scale words ("dvě stě", "tři sta", "pět set",
+# "dva tisíce") used when speaking multiples
+_SCALE_DECLENSIONS_CS = {
+    "stě": 100,
+    "sta": 100,
+    "set": 100,
+    "tisíce": 1000
+}
+
 _MULTIPLIES_LONG_SCALE_CS = set(_LONG_SCALE_CS.values()) | \
-                            generate_plurals_cs(_LONG_SCALE_CS.values())
+                            generate_plurals_cs(_LONG_SCALE_CS.values()) | \
+                            set(_SCALE_DECLENSIONS_CS)
 
 _MULTIPLIES_SHORT_SCALE_CS = set(_SHORT_SCALE_CS.values()) | \
-                             generate_plurals_cs(_SHORT_SCALE_CS.values())
+                             generate_plurals_cs(_SHORT_SCALE_CS.values()) | \
+                             set(_SCALE_DECLENSIONS_CS)
 
 # split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
 _FRACTION_MARKER = {"a"}
@@ -289,6 +301,7 @@ _STRING_NUM_CS.update({
     "dvojice": 2,
     "dvoje": 2
 })
+
 
 _STRING_SHORT_ORDINAL_CS = invert_dict(_SHORT_ORDINAL_CS)
 _STRING_LONG_ORDINAL_CS = invert_dict(_LONG_ORDINAL_CS)
@@ -511,10 +524,32 @@ def _extract_decimal_with_text_cs(tokens, short_scale, ordinals):
 
             number = numbers1[-1]
             decimal = numbers2[0]
+            # concatenate consecutive single digits after the marker
+            # ("point one four" -> .14)
+            _digits = ""
+            _digit_tokens = []
+            _prev_end = None
+            for _num in numbers2:
+                _v = _num.value
+                if _v is None or _v is False or float(_v) != int(_v) \
+                        or not 0 <= _v <= 9:
+                    break
+                if _prev_end is not None and _num.start_index != _prev_end + 1:
+                    break
+                _digits += str(int(_v))
+                _digit_tokens.extend(_num.tokens)
+                _prev_end = _num.end_index
+            if len(_digits) > 1:
+                _frac = float("0." + _digits)
+                return (number.value - _frac if number.value < 0
+                        else number.value + _frac), \
+                    number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
-                return number.value + float('0.' + str(decimal.value)), \
+                _frac2 = float('0.' + str(decimal.value))
+                return (number.value - _frac2 if number.value < 0
+                        else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
 
@@ -632,14 +667,22 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
         if (prev_word in _SUMS and val and val < 10) or all([prev_word in
                                                              multiplies,
                                                              val < prev_val if prev_val else False]):
-            val = prev_val + val
+            if prev_val < 0:
+                # continue a negated number: "minus forty two" = -(40+2)
+                val = prev_val - val
+            else:
+                val = prev_val + val
 
         # For Czech only: If Ordinal previous number will be also in ordinal number format
         # dvacátý první = twentieth first
         if (prev_word in string_num_ordinal and val and val < 10) or all([prev_word in
                                                                           multiplies,
                                                                           val < prev_val if prev_val else False]):
-            val = prev_val + val
+            if prev_val < 0:
+                # continue a negated number: "minus forty two" = -(40+2)
+                val = prev_val - val
+            else:
+                val = prev_val + val
 
         # is the prev word a number and should we multiply it?
         # twenty hundred, six hundred
@@ -786,6 +829,7 @@ def _initialize_number_data(short_scale):
 
     string_num_scale_cs = _SHORT_SCALE_CS if short_scale else _LONG_SCALE_CS
     string_num_scale_cs = invert_dict(string_num_scale_cs)
+    string_num_scale_cs.update(_SCALE_DECLENSIONS_CS)
     string_num_scale_cs.update(generate_plurals_cs(string_num_scale_cs))
     return multiplies, string_num_ordinal_cs, string_num_scale_cs
 
@@ -806,6 +850,7 @@ def extract_number_cs(text, short_scale=True, ordinals=False):
                                    was found
 
     """
+    text = re.sub(r"(?<=[^\W\d]),", " ", text)
     return _extract_number_with_text_cs(tokenize(text.lower()),
                                         short_scale, ordinals).value
 
@@ -1101,8 +1146,6 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
 
     # check for a direct match
     if num in number_names and not ordinals:
-        if num > 90:
-            result += "jedna "
         result += number_names[num]
     else:
         def _sub_thousand(n, ordinals=False):
@@ -1117,8 +1160,16 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
                                       else "")
             else:
                 q, r = divmod(n, 100)
-                return digits[q] + " sto" + (
-                    " a " + _sub_thousand(r, ordinals) if r else "")
+                if q == 1:
+                    hundred = "sto"
+                elif q == 2:
+                    hundred = "dvě stě"
+                elif q in (3, 4):
+                    hundred = digits[q] + " sta"
+                else:
+                    hundred = digits[q] + " set"
+                return hundred + (
+                    " " + _sub_thousand(r, ordinals) if r else "")
 
         def _short_scale(n):
             if n >= max(_SHORT_SCALE_CS.keys()):
@@ -1230,3 +1281,36 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
         for char in _num_str:
             result += " " + number_names[int(char)]
     return result
+
+
+_ORDINAL_HUNDREDS_CS = {
+    200: "dvoustý", 300: "třístý", 400: "čtyřstý", 500: "pětistý",
+    600: "šestistý", 700: "sedmistý", 800: "osmistý", 900: "devítistý",
+}
+
+
+def pronounce_ordinal_cs(number):
+    """
+    Pronounce a number as a Czech ordinal.
+
+    Args:
+        number (int): the number to pronounce
+    Returns:
+        (str): the ordinal in Czech
+    """
+    number = int(number)
+    if number <= 0:
+        raise ValueError("Czech ordinals start at 1")
+    if number in _SHORT_ORDINAL_CS:
+        return _SHORT_ORDINAL_CS[number]
+    if number in _ORDINAL_HUNDREDS_CS:
+        return _ORDINAL_HUNDREDS_CS[number]
+    if number < 100:
+        tens = number // 10 * 10
+        unit = number % 10
+        return f"{_SHORT_ORDINAL_CS[tens]} {_SHORT_ORDINAL_CS[unit]}"
+    last = number % 100
+    if last:
+        prefix = number - last
+        return f"{pronounce_number_cs(prefix)} {pronounce_ordinal_cs(last)}"
+    raise NotImplementedError(f"cannot pronounce {number} as a Czech ordinal")

@@ -1,5 +1,6 @@
 import collections
 
+import re
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions
 
 _SHORT_ORDINAL_STRING_IT = {
@@ -532,7 +533,13 @@ def extract_number_it(text, short_scale=False, ordinals=False):
 
     """
 
-    text = text.lower()
+    text = re.sub(r"(?<=[^\W\d]),", " ", text.lower())
+    _words0 = text.split()
+    if _words0 and _words0[0] == "meno":
+        _rest = extract_number_it(" ".join(_words0[1:]), short_scale, ordinals)
+        if _rest is not False and _rest is not None:
+            return -_rest
+        return _rest
     string_num_ordinal_it = {}
     # first, second...
     if ordinals:
@@ -610,6 +617,19 @@ def extract_number_it(text, short_scale=False, ordinals=False):
                     break
 
             number = int(extract_number_it(components[0]))
+            # read the decimal tail digit by digit ("uno quattro" -> .14)
+            digits = ""
+            for element in sub_components:
+                if element.isdigit():
+                    digits += element
+                elif element in _STRING_NUM_IT \
+                        and 0 <= _STRING_NUM_IT[element] <= 9:
+                    digits += str(int(_STRING_NUM_IT[element]))
+                else:
+                    digits = ""
+                    break
+            if digits and number is not None:
+                return number + float("0." + digits)
             decimal = int(extract_number_it(components[1]))
             if number is not None and decimal is not None:
                 if '.' not in str(decimal):

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
@@ -771,10 +772,32 @@ def _extract_decimal_with_text_pl(tokens, short_scale, ordinals):
 
             number = numbers1[-1]
             decimal = numbers2[0]
+            # concatenate consecutive single digits after the marker
+            # ("point one four" -> .14)
+            _digits = ""
+            _digit_tokens = []
+            _prev_end = None
+            for _num in numbers2:
+                _v = _num.value
+                if _v is None or _v is False or float(_v) != int(_v) \
+                        or not 0 <= _v <= 9:
+                    break
+                if _prev_end is not None and _num.start_index != _prev_end + 1:
+                    break
+                _digits += str(int(_v))
+                _digit_tokens.extend(_num.tokens)
+                _prev_end = _num.end_index
+            if len(_digits) > 1:
+                _frac = float("0." + _digits)
+                return (number.value - _frac if number.value < 0
+                        else number.value + _frac), \
+                    number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
-                return number.value + float('0.' + str(decimal.value)), \
+                _frac2 = float('0.' + str(decimal.value))
+                return (number.value - _frac2 if number.value < 0
+                        else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
 
@@ -875,10 +898,12 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
         # is the prev word a number and should we sum it?
         # twenty two, fifty six
         if prev_val:
-            if (prev_word in string_num_ordinal and val and val < prev_val) or \
-                    (prev_word in _STRING_NUM_PL and val and val < prev_val and val // 10 != prev_val // 10) or \
-                    all([prev_word in multiplies, val < prev_val if prev_val else False]):
-                val += prev_val
+            _mag = abs(prev_val)
+            if (prev_word in string_num_ordinal and val and val < _mag) or \
+                    (prev_word in _STRING_NUM_PL and val and val < _mag and val // 10 != _mag // 10) or \
+                    all([prev_word in multiplies, val < _mag]):
+                # keep the sign: "minus czterdzieści dwa" = -(40 + 2)
+                val = prev_val - val if prev_val < 0 else prev_val + val
 
         if next_word in multiplies:
             prev_val = val
@@ -1039,6 +1064,7 @@ def extract_number_pl(text, short_scale=True, ordinals=False):
                                    was found
 
     """
+    text = re.sub(r"(?<=[^\W\d]),", " ", text)
     return _extract_number_with_text_pl(tokenize(text.lower()),
                                         True, ordinals).value
 
@@ -1070,3 +1096,37 @@ def normalize_word_pl(word):
         return 'dwa'
 
     return word
+
+
+_ORDINAL_HUNDREDS_PL = {
+    200: "dwusetny", 300: "trzechsetny", 400: "czterechsetny",
+    500: "pięćsetny", 600: "sześćsetny", 700: "siedemsetny",
+    800: "osiemsetny", 900: "dziewięćsetny",
+}
+
+
+def pronounce_ordinal_pl(number):
+    """
+    Pronounce a number as a Polish ordinal (masculine nominative).
+
+    Args:
+        number (int): the number to pronounce
+    Returns:
+        (str): the ordinal in Polish
+    """
+    number = int(number)
+    if number <= 0:
+        raise ValueError("Polish ordinals start at 1")
+    if number in _SHORT_ORDINAL_PL:
+        return _SHORT_ORDINAL_PL[number]
+    if number in _ORDINAL_HUNDREDS_PL:
+        return _ORDINAL_HUNDREDS_PL[number]
+    if number < 100:
+        tens = number // 10 * 10
+        unit = number % 10
+        return f"{_SHORT_ORDINAL_PL[tens]} {_SHORT_ORDINAL_PL[unit]}"
+    last = number % 100
+    if last:
+        prefix = number - last
+        return f"{pronounce_number_pl(prefix)} {pronounce_ordinal_pl(last)}"
+    raise NotImplementedError(f"cannot pronounce {number} as a Polish ordinal")
