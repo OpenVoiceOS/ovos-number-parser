@@ -350,6 +350,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
     def pronounce_fractional_da(num, places):
         # fixed number of places even with trailing zeros
         result = ""
+        num = round(num, places)
         place = 10
         while places > 0:
             # doesn't work with 1.0001 and places = 2: int(
@@ -610,7 +611,10 @@ def _extract_real_number_with_text_da(tokens, short_scale):
             if _val is not None:
                 to_sum.append(_val)
             if to_sum:
-                val = sum(to_sum)
+                if to_sum[0] < 0:
+                    val = to_sum[0] - sum(to_sum[1:])
+                else:
+                    val = sum(to_sum)
 
             if number_words and (not all([w in _ARTICLES | _NEGATIVES
                                           | _NUMBER_CONNECTORS for w in words_only])
@@ -685,7 +689,11 @@ def _extract_real_number_with_text_da(tokens, short_scale):
             _val = _current_val = None
 
         if not next_word and number_words:
-            val = sum(to_sum) if to_sum else _val
+            if to_sum and to_sum[0] < 0:
+                # negated number: components extend the magnitude
+                val = to_sum[0] - sum(to_sum[1:])
+            else:
+                val = sum(to_sum) if to_sum else _val
 
     return val, number_words
 

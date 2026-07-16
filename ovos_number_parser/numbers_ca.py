@@ -578,6 +578,10 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
     # reasons.
     text = text.lower()
     aWords = text.split()
+    negative = False
+    while aWords and aWords[0] in ['menys']:
+        negative = True
+        aWords = aWords[1:]
     count = 0
     result = None
     while count < len(aWords):
@@ -704,9 +708,21 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
                     zeros += 1
                 else:
                     break
-            afterDotVal = str(extract_number_ca(newText[:-1]))
-            afterDotVal = zeros * "0" + afterDotVal
-            result = float(str(result) + "." + afterDotVal)
+            # read the decimal tail digit by digit ("uno cuatro" -> .14)
+            digits = ""
+            for word in newWords:
+                if word.isdigit():
+                    digits += word
+                elif word in _NUMBERS_CA and _NUMBERS_CA[word] < 10:
+                    digits += str(_NUMBERS_CA[word])
+                else:
+                    break
+            if digits:
+                afterDotVal = digits
+            else:
+                afterDotVal = str(extract_number_ca(newText[:-1]))
+                afterDotVal = zeros * "0" + afterDotVal
+            result = float(str(result or 0) + "." + afterDotVal)
             break
         count += 1
 
@@ -720,6 +736,8 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
         if dec == "0":
             result = int(integer)
 
+    if negative and result is not None and result is not False:
+        result = -result
     return result or False
 
 

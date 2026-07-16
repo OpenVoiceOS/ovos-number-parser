@@ -203,8 +203,27 @@ def extract_numbers_fa(text, short_scale=True, ordinals=False):
     """
 
     ar = _parse_sentence(text)
+    # fold spoken decimals: [(3, [.. "و"]), (14, [..]), "صدم"] -> 3.14
+    _denoms = {"دهم": 10, "صدم": 100, "هزارم": 1000}
+    folded = []
+    i = 0
+    while i < len(ar):
+        x = ar[i]
+        if type(x) == tuple and i + 1 < len(ar) and \
+                isinstance(ar[i + 1], str) and ar[i + 1] in _denoms:
+            frac = x[0] / _denoms[ar[i + 1]]
+            if folded and type(folded[-1]) == tuple and \
+                    folded[-1][1] and folded[-1][1][-1] == "و":
+                whole = folded.pop()
+                frac = whole[0] + frac if whole[0] >= 0 \
+                    else whole[0] - frac
+            folded.append((frac, x[1] + [ar[i + 1]]))
+            i += 2
+            continue
+        folded.append(x)
+        i += 1
     result = []
-    for x in ar:
+    for x in folded:
         if type(x) == tuple:
             result.append(x[0])
     return result
@@ -226,10 +245,15 @@ def extract_number_fa(text, ordinals=False):
                                    was found
 
     """
+    negative = False
+    words = text.split()
+    if words and words[0] == "منفی":
+        negative = True
+        text = " ".join(words[1:])
     x = extract_numbers_fa(text, ordinals=ordinals)
     if (len(x) == 0):
         return False
-    return x[0]
+    return -x[0] if negative else x[0]
 
 
 def nice_number_fa(number, speech=True, denominators=range(1, 21),

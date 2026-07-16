@@ -283,6 +283,10 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
 
     """
     aWords = text.lower().split()
+    negative = False
+    while aWords and aWords[0] in ['minus', 'ken']:
+        negative = True
+        aWords = aWords[1:]
     count = 0
     result = None
     while count < len(aWords):
@@ -411,9 +415,21 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
                     zeros += 1
                 else:
                     break
-            afterDotVal = str(extract_number_eu(newText[:-1]))
-            afterDotVal = zeros * "0" + afterDotVal
-            result = float(str(result) + "." + afterDotVal)
+            # read the decimal tail digit by digit ("uno cuatro" -> .14)
+            digits = ""
+            for word in newWords:
+                if word.isdigit():
+                    digits += word
+                elif word in _NUM_STRING_EU and _NUM_STRING_EU[word] < 10:
+                    digits += str(_NUM_STRING_EU[word])
+                else:
+                    break
+            if digits:
+                afterDotVal = digits
+            else:
+                afterDotVal = str(extract_number_eu(newText[:-1]))
+                afterDotVal = zeros * "0" + afterDotVal
+            result = float(str(result or 0) + "." + afterDotVal)
             break
         count += 1
 
@@ -427,6 +443,8 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
         if dec == "0":
             result = int(integer)
 
+    if negative and result is not None and result is not False:
+        result = -result
     return result or False
 
 

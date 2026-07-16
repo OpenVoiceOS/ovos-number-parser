@@ -413,6 +413,7 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
                                 places):  # fixed number of places even with
         # trailing zeros
         result = ""
+        num = round(num, places)
         place = 10
         while places > 0:  # doesn't work with 1.0001 and places = 2: int(
             # number*place) % 10 > 0 and places > 0:
@@ -474,7 +475,8 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
         else:
             whole_number_part = floor(number)
             fractional_part = number - whole_number_part
-            result += pronounce_whole_number_nl(whole_number_part)
+            result += pronounce_whole_number_nl(whole_number_part) or \
+                _NUM_STRING_NL[0]
             if places > 0:
                 result += " komma"
                 result += pronounce_fractional_nl(fractional_part, places)
@@ -713,10 +715,32 @@ def _extract_decimal_with_text_nl(tokens, short_scale, ordinals):
 
             number = numbers1[-1]
             decimal = numbers2[0]
+            # concatenate consecutive single digits after the marker
+            # ("point one four" -> .14)
+            _digits = ""
+            _digit_tokens = []
+            _prev_end = None
+            for _num in numbers2:
+                _v = _num.value
+                if _v is None or _v is False or float(_v) != int(_v) \
+                        or not 0 <= _v <= 9:
+                    break
+                if _prev_end is not None and _num.start_index != _prev_end + 1:
+                    break
+                _digits += str(int(_v))
+                _digit_tokens.extend(_num.tokens)
+                _prev_end = _num.end_index
+            if len(_digits) > 1:
+                _frac = float("0." + _digits)
+                return (number.value - _frac if number.value < 0
+                        else number.value + _frac), \
+                    number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
-                return number.value + float('0.' + str(decimal.value)), \
+                _frac2 = float('0.' + str(decimal.value))
+                return (number.value - _frac2 if number.value < 0
+                        else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
 
@@ -813,7 +837,11 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
         # is the prev word a number and should we sum it?
         # twenty two, fifty six
         if prev_word in _SUMS_NL and val and val < 10:
-            val = prev_val + val
+            if prev_val < 0:
+                # continue a negated number: "minus forty two" = -(40+2)
+                val = prev_val - val
+            else:
+                val = prev_val + val
 
         # is the prev word a number and should we multiply it?
         # twenty hundred, six hundred

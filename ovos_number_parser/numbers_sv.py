@@ -184,6 +184,7 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
     def pronounce_fractional_sv(num, places):
         # fixed number of places even with trailing zeros
         result = ""
+        num = round(num, places)
         place = 10
         while places > 0:
             # doesn't work with 1.0001 and places = 2: int(
@@ -238,7 +239,8 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
         else:
             whole_number_part = floor(number)
             fractional_part = number - whole_number_part
-            result += pronounce_whole_number_sv(whole_number_part)
+            result += pronounce_whole_number_sv(whole_number_part) or \
+                _NUM_STRING_SV[0]
             if places > 0:
                 result += " komma"
                 result += pronounce_fractional_sv(fractional_part, places)
@@ -452,6 +454,12 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     # The parameters are present in the function signature for API
     # compatibility reasons.
     text = text.lower().replace("ettusen", "ett tusen")
+    words = text.split()
+    negative = False
+    while words and words[0] in ("minus",):
+        negative = True
+        words = words[1:]
+    text = " ".join(words)
     expanded = []
     for w in text.split():
         v = _word_value_sv(w)
@@ -474,7 +482,26 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
                 merged[-1] = str(prev + nxt)
                 continue
         merged.append(w)
-    aWords = merged
+    # spoken decimals: "två komma fem" -> "2.5"
+    out = []
+    i = 0
+    while i < len(merged):
+        w = merged[i]
+        if w == "komma" and out and out[-1].isdigit() \
+                and i + 1 < len(merged) and merged[i + 1].isdigit():
+            digits = ""
+            j = i + 1
+            while j < len(merged) and merged[j].isdigit() \
+                    and len(merged[j]) == 1:
+                digits += merged[j]
+                j += 1
+            if digits:
+                out[-1] = out[-1] + "." + digits
+                i = j
+                continue
+        out.append(w)
+        i += 1
+    aWords = out
     and_pass = False
     valPreAnd = False
     val = False
@@ -574,6 +601,8 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
         val = float(val)
         if val.is_integer():
             val = int(val)
+        if negative:
+            val = -val
     return val or False
 
 

@@ -169,6 +169,50 @@ def nice_number_fr(number, speech=True, denominators=range(1, 21)):
     return strNumber
 
 
+def _pronounce_sub_thousand_fr(n):
+    """Spoken form of 0-999."""
+    assert 0 <= n <= 999
+    if n < 100:
+        return pronounce_number_fr(n)
+    q, r = divmod(n, 100)
+    if q == 1:
+        part = "cent"
+    else:
+        part = pronounce_number_fr(q) + " cent"
+        if r == 0:
+            part += "s"  # "deux cents" but "deux cent un"
+    if r:
+        part += " " + pronounce_number_fr(r)
+    return part
+
+
+def _pronounce_whole_number_fr(n):
+    """Spoken form of any whole number below 10^12."""
+    assert n >= 0
+    if n < 1000:
+        return _pronounce_sub_thousand_fr(n)
+    if n < 10 ** 6:
+        thousands, rest = divmod(n, 1000)
+        part = "mille" if thousands == 1 \
+            else _pronounce_sub_thousand_fr(thousands) + " mille"
+        if rest:
+            part += " " + _pronounce_sub_thousand_fr(rest)
+        return part
+    if n < 10 ** 9:
+        millions, rest = divmod(n, 10 ** 6)
+        part = "un million" if millions == 1 \
+            else _pronounce_whole_number_fr(millions) + " millions"
+        if rest:
+            part += " " + _pronounce_whole_number_fr(rest)
+        return part
+    milliards, rest = divmod(n, 10 ** 9)
+    part = "un milliard" if milliards == 1 \
+        else _pronounce_whole_number_fr(milliards) + " milliards"
+    if rest:
+        part += " " + _pronounce_whole_number_fr(rest)
+    return part
+
+
 def pronounce_number_fr(number, places=2):
     """
     Convert a number to it's spoken equivalent
@@ -181,14 +225,21 @@ def pronounce_number_fr(number, places=2):
     Returns:
         (str): The pronounced number
     """
-    if abs(number) >= 100:
-        # TODO: Support for numbers over 100
-        return str(number)
-
     result = ""
     if number < 0:
         result = "moins "
     number = abs(number)
+
+    if number >= 100:
+        if number >= 10 ** 12 or int(number) != number and number >= 1000:
+            return result + str(number)
+        result += _pronounce_whole_number_fr(int(number))
+        if number != int(number) and places > 0:
+            result += " virgule"
+            _num_str = str(number).split(".")[1][0:places]
+            for char in _num_str:
+                result += " " + _NUM_STRING_FR[int(char)]
+        return result
 
     if number > 16:
         tens = int(number - int(number) % 10)
@@ -427,7 +478,26 @@ def _number_parse_fr(words, i):
             return result1
         return None
 
-    return number_1_999999_fr(i)
+    def number_1_billions_fr(i):
+        # Check for numbers including millions and milliards.
+        result1 = number_1_999999_fr(i)
+        if result1:
+            val1, i1 = result1
+        else:
+            val1, i1 = 1, i
+        # check for million(s) / milliard(s)
+        result2 = number_word_fr(i1, 1000000, 1000000000)
+        if result2:
+            scale, i2 = result2
+            result3 = number_1_billions_fr(i2)
+            if result3 and result3[0] < scale:
+                return val1 * scale + result3[0], result3[1]
+            return val1 * scale, i2
+        elif result1:
+            return result1
+        return None
+
+    return number_1_billions_fr(i)
 
 
 def _get_ordinal_fr(word):
@@ -539,6 +609,10 @@ def extract_number_fr(text, short_scale=True, ordinals=False):
     text = normalize_fr(text, False)
     # split words by whitespace
     aWords = text.split()
+    negative = False
+    while aWords and aWords[0] in ("moins", "-"):
+        negative = True
+        aWords = aWords[1:]
     count = 0
     result = None
     add = False
@@ -582,7 +656,7 @@ def extract_number_fr(text, short_scale=True, ordinals=False):
                 val = float(val) * valNext
                 count += 1
 
-        if not val:
+        if val is None:
             count += 1
             # is current word a numeric fraction like "2/3"?
             aPieces = word.split('/')
@@ -603,9 +677,17 @@ def extract_number_fr(text, short_scale=True, ordinals=False):
                     break
             afterDotVal = None
             # extract the number after the zeros
-            if newWords[zeros].isdigit():
+            if zeros < len(newWords) and newWords[zeros].isdigit():
                 afterDotVal = newWords[zeros]
                 countDot = count + zeros + 2
+                # concatenate following spoken digits
+                # ("trois virgule un quatre" -> 3.14)
+                idx2 = zeros + 1
+                while idx2 < len(newWords) and newWords[idx2].isdigit() \
+                        and len(newWords[idx2]) == 1:
+                    afterDotVal += newWords[idx2]
+                    idx2 += 1
+                    countDot += 1
             # if a number was extracted (since comma is also a
             # punctuation sign)
             if afterDotVal:
@@ -615,14 +697,18 @@ def extract_number_fr(text, short_scale=True, ordinals=False):
                 # add the zeros
                 afterDotString = zeros * "0" + afterDotVal
                 val = float(str(val) + "." + afterDotString)
-        if val:
+        if val is not None:
             if add:
                 result += val
                 add = False
             else:
                 result = val
 
-    return result or False
+    if negative and result is not None and result is not False:
+        result = -result
+    if result is None:
+        return False
+    return result
 
 
 def is_fractional_fr(input_str, short_scale=True):
