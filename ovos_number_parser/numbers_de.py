@@ -437,6 +437,7 @@ def numbers_to_digits_de(text, short_scale=False,
         str
         The original text, with numbers subbed in where appropriate.
     """
+    text = _expand_compound_numbers_de(text)
     tokens = tokenize(text)
     numbers_to_replace = \
         _extract_numbers_with_text_de(tokens, short_scale, ordinals, fractions)

@@ -361,7 +361,7 @@ def is_fractional(input_str: str, lang: str,
     if lang.startswith("it"):
         return is_fractional_it(input_str, short_scale)
     if lang.startswith("nl"):
-        return is_fractional_pl(input_str, short_scale)
+        return is_fractional_nl(input_str, short_scale)
     if lang.startswith("pl"):
         return is_fractional_pl(input_str, short_scale)
     if lang.startswith("pt"):
@@ -400,7 +400,10 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
     if lang.startswith("en"):
         return is_ordinal_en(input_str)
     if lang.startswith("de"):
-        return is_ordinal_de(input_str)
+        val = is_ordinal_de(input_str)
+        if isinstance(val, str) and val.endswith("."):
+            return int(val[:-1])
+        return val
     if lang.startswith("da"):
         return is_ordinal_da(input_str)
     raise NotImplementedError(f"Unsupported language: '{lang}'")

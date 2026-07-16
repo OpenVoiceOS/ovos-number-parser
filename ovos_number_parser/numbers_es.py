@@ -638,9 +638,8 @@ def nice_number_es(number, speech=True, denominators=range(1, 21)):
         else:
             # else return "2 y 3 cuarto", for example
             strNumber = '{} y {} {}'.format(whole, num, den_str)
-        if num > 1 and den != 3:
-            # if the numerator is greater than 1 and the denominator
-            # is not 3 ("tercio"), add an s for plural
+        if num > 1:
+            # pluralize the denominator ("dos tercios", "tres cuartos")
             strNumber += 's'
 
     return strNumber
