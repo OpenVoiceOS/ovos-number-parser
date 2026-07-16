@@ -83,12 +83,9 @@ _NICE_NUMBER_FNS = {
     "ar": nice_number_ar, "az": nice_number_az, "bg": nice_number_bg,
     "ca": nice_number_ca, "cs": nice_number_cs,
     "da": nice_number_da, "de": nice_number_de, "es": nice_number_es,
-<<<<<<< HEAD
     "et": nice_number_et, "eu": nice_number_eu, "fa": nice_number_fa,
     "fi": nice_number_fi, "fr": nice_number_fr, "fy": nice_number_fy,
-=======
-    "eu": nice_number_eu, "fa": nice_number_fa, "hr": nice_number_hr, "fr": nice_number_fr, "fy": nice_number_fy,
->>>>>>> cb4a061 (feat: croatian number support)
+    "hr": nice_number_hr,
     "hu": nice_number_hu, "it": nice_number_it, "nl": nice_number_nl,
     "pl": nice_number_pl, "ru": nice_number_ru, "sk": nice_number_sk, "sl": nice_number_sl,
     "sv": nice_number_sv, "uk": nice_number_uk,
@@ -101,11 +98,8 @@ _FRACTION_NUMERATOR_OVERRIDES = {
     "ru": {1: "одна", 2: "две"},
     "uk": {1: "одна", 2: "дві"},
     "cs": {1: "jedna", 2: "dvě"},
-<<<<<<< HEAD
-    "sk": {1: "jedna", 2: "dve"},
-=======
     "hr": {2: "dvije"},
->>>>>>> cb4a061 (feat: croatian number support)
+    "sk": {1: "jedna", 2: "dve"},
     "pl": {1: "jedna", 2: "dwie"},
     "hu": {2: "két"},
 }
@@ -114,12 +108,8 @@ _FRACTION_NUMERATOR_OVERRIDES = {
 _NUMBER_CONNECTORS = {
     "ar": {"و"}, "bg": {"и"}, "ca": {"i"}, "da": {"og"}, "en": {"and"}, "es": {"y"}, "eu": {"eta"},
     "fr": {"et"}, "fy": {"en"}, "it": {"e"}, "nl": {"en"}, "sv": {"och"},
-<<<<<<< HEAD
-    "fa": {"و"}, "sl": {"in"}, "hu": set(), "fi": set(), "et": set(),
-    "kab": {"u", "d", "ed"},
-=======
-    "fa": {"و"}, "hr": {"i"}, "sl": {"in"}, "hu": set(), "kab": {"u", "d", "ed"},
->>>>>>> cb4a061 (feat: croatian number support)
+    "fa": {"و"}, "hr": {"i"}, "sl": {"in"}, "hu": set(), "fi": set(),
+    "et": set(), "kab": {"u", "d", "ed"},
 }
 
 
@@ -298,13 +288,10 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         return MWL.numbers_to_digits(utterance, scale=scale)
     if lang.startswith("ro"):
         return RO.numbers_to_digits(utterance, scale=scale)
-<<<<<<< HEAD
-    if lang.startswith("hr"):
-        return numbers_to_digits_hr(utterance)
-=======
     if lang.startswith("bg"):
         return numbers_to_digits_bg(utterance)
->>>>>>> 884a066 (feat: bulgarian number support)
+    if lang.startswith("hr"):
+        return numbers_to_digits_hr(utterance)
     if lang.startswith("ru"):
         return numbers_to_digits_ru(utterance)
     if lang.startswith("sk"):
@@ -501,15 +488,12 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_da(number)
     if lang.startswith("de"):
         return pronounce_ordinal_de(number)
-<<<<<<< HEAD
     if lang.startswith("et"):
         return pronounce_ordinal_et(number)
     if lang.startswith("fi"):
         return pronounce_ordinal_fi(number)
-=======
     if lang.startswith("hr"):
         return pronounce_ordinal_hr(number)
->>>>>>> cb4a061 (feat: croatian number support)
     if lang.startswith("hu"):
         return pronounce_ordinal_hu(number)
     if lang.startswith("fy"):
