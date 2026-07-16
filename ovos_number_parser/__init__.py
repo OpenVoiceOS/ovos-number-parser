@@ -52,6 +52,14 @@ from ovos_number_parser.numbers_kab import (pronounce_number_kab, pronounce_ordi
                                              is_fractional_kab, is_ordinal_kab)
 from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.numbers_oc import OC
+from ovos_number_parser.numbers_nb import (nice_number_nb, pronounce_number_nb,
+                                           pronounce_ordinal_nb, is_ordinal_nb,
+                                           is_fractional_nb, extract_number_nb,
+                                           numbers_to_digits_nb)
+from ovos_number_parser.numbers_nn import (nice_number_nn, pronounce_number_nn,
+                                           pronounce_ordinal_nn, is_ordinal_nn,
+                                           is_fractional_nn, extract_number_nn,
+                                           numbers_to_digits_nn)
 from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
     extract_number_nl, is_fractional_nl
 from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, \
@@ -101,7 +109,8 @@ _NICE_NUMBER_FNS = {
     "fi": nice_number_fi, "fr": nice_number_fr, "fy": nice_number_fy,
     "he": nice_number_he, "hr": nice_number_hr,
     "hu": nice_number_hu, "id": nice_number_id, "it": nice_number_it,
-    "ms": nice_number_ms, "nl": nice_number_nl,
+    "ms": nice_number_ms, "nb": nice_number_nb, "nl": nice_number_nl,
+    "nn": nice_number_nn,
     "pl": nice_number_pl, "ru": nice_number_ru, "sk": nice_number_sk, "sl": nice_number_sl,
     "sv": nice_number_sv, "tr": nice_number_tr,
     "uk": nice_number_uk,
@@ -413,6 +422,10 @@ def pronounce_number(number: Union[int, float], lang: str,
         return pronounce_number_kab(number, places, ordinals, gender)
     if lang.startswith("fy"):
         return pronounce_number_fy(number, places, short_scale, scientific, ordinals)
+    if lang.startswith("nn"):
+        return pronounce_number_nn(number, places, short_scale, scientific, ordinals)
+    if lang.startswith("nb") or lang.startswith("no"):
+        return pronounce_number_nb(number, places, short_scale, scientific, ordinals)
     if lang.startswith("nl"):
         return pronounce_number_nl(number, places, short_scale, scientific, ordinals)
     if lang.startswith("pl"):
@@ -540,6 +553,10 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_tr(number)
     if lang.startswith("fy"):
         return pronounce_ordinal_fy(number)
+    if lang.startswith("nn"):
+        return pronounce_ordinal_nn(number)
+    if lang.startswith("nb") or lang.startswith("no"):
+        return pronounce_ordinal_nb(number)
     if lang.startswith("nl"):
         return pronounce_ordinal_nl(number)
     if lang.startswith("sv"):
@@ -643,6 +660,10 @@ def extract_number(text: str, lang: str,
         return extract_number_kab(text, short_scale, ordinals)
     if lang.startswith("fy"):
         return extract_number_fy(text, short_scale, ordinals)
+    if lang.startswith("nn"):
+        return extract_number_nn(text, short_scale, ordinals)
+    if lang.startswith("nb") or lang.startswith("no"):
+        return extract_number_nb(text, short_scale, ordinals)
     if lang.startswith("nl"):
         return extract_number_nl(text, short_scale, ordinals)
     if lang.startswith("pl"):
@@ -744,6 +765,10 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_kab(input_str, short_scale)
     if lang.startswith("fy"):
         return is_fractional_fy(input_str, short_scale)
+    if lang.startswith("nn"):
+        return is_fractional_nn(input_str, short_scale)
+    if lang.startswith("nb") or lang.startswith("no"):
+        return is_fractional_nb(input_str, short_scale)
     if lang.startswith("nl"):
         return is_fractional_nl(input_str, short_scale)
     if lang.startswith("pl"):
@@ -828,6 +853,10 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return is_ordinal_he(input_str)
     if lang.startswith("hu"):
         return is_ordinal_hu(input_str)
+    if lang.startswith("nn"):
+        return is_ordinal_nn(input_str)
+    if lang.startswith("nb") or lang.startswith("no"):
+        return is_ordinal_nb(input_str)
     if lang.startswith("kab"):
         return is_ordinal_kab(input_str)
     if lang.startswith("sl"):
