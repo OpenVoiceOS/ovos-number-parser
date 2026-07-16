@@ -873,11 +873,9 @@ def extract_number_da(text, short_scale=False, ordinals=False):
                                         and x.value.endswith("."),
                               numbers))
 
-    number = numbers[0].value if numbers else None
-
-    if number:
-        number = float(number)
-        if number.is_integer():
-            number = int(number)
-
+    if not numbers:
+        return False
+    number = float(numbers[0].value)
+    if number.is_integer():
+        number = int(number)
     return number
