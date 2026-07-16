@@ -533,3 +533,27 @@ def eu_number_parse(words, i):
         return None
 
     return eu_number(i)
+
+
+def pronounce_ordinal_eu(number):
+    """
+    Pronounce a number as a Basque ordinal.
+
+    Basque ordinals add the suffix "-garren" to the cardinal; "first" is the
+    irregular "lehen".
+
+    Args:
+        number (int): the number to pronounce
+    Returns:
+        (str): the ordinal in Basque
+    """
+    number = int(number)
+    if number <= 0:
+        raise ValueError("Basque ordinals start at 1")
+    if number == 1:
+        return "lehen"
+    cardinal = pronounce_number_eu(number)
+    # final -t of "bost" assimilates before the suffix
+    if cardinal.endswith("bost"):
+        cardinal = cardinal[:-1]
+    return cardinal + "garren"

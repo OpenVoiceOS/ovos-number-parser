@@ -1403,3 +1403,30 @@ def plural_uk(num: int, one: str, few: str, many: str):
     if 2 <= num % 10 <= 4:
         return few
     return many
+
+
+def pronounce_ordinal_uk(number):
+    """
+    Pronounce a number as a Ukrainian ordinal (masculine nominative).
+
+    Only the final word is ordinal, preceding groups stay cardinal.
+
+    Args:
+        number (int): the number to pronounce
+    Returns:
+        (str): the ordinal in Ukrainian
+    """
+    number = int(number)
+    if number <= 0:
+        raise ValueError("Ukrainian ordinals start at 1")
+    if number in _ORDINAL_BASE_UK:
+        return _ORDINAL_BASE_UK[number]
+    if number < 100:
+        tens = number // 10 * 10
+        unit = number % 10
+        return f"{pronounce_number_uk(tens)} {_ORDINAL_BASE_UK[unit]}"
+    last = number % 100
+    if last:
+        prefix = number - last
+        return f"{pronounce_number_uk(prefix)} {pronounce_ordinal_uk(last)}"
+    raise NotImplementedError(f"cannot pronounce {number} as a Ukrainian ordinal")

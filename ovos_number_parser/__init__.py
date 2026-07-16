@@ -6,7 +6,8 @@ from unicode_rbnf import RbnfEngine, FormatPurpose
 from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_ca import numbers_to_digits_ca, pronounce_number_ca, is_fractional_ca, extract_number_ca
-from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, extract_number_cs
+from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, \
+    extract_number_cs, pronounce_ordinal_cs
 from ovos_number_parser.numbers_da import numbers_to_digits_da, pronounce_number_da, is_fractional_da, is_ordinal_da, \
     pronounce_ordinal_da, extract_number_da
 from ovos_number_parser.numbers_de import numbers_to_digits_de, pronounce_number_de, pronounce_ordinal_de, \
@@ -14,8 +15,10 @@ from ovos_number_parser.numbers_de import numbers_to_digits_de, pronounce_number
 from ovos_number_parser.numbers_en import numbers_to_digits_en, is_ordinal_en, pronounce_number_en, extract_number_en, \
     is_fractional_en
 from ovos_number_parser.numbers_es import numbers_to_digits_es, pronounce_number_es, extract_number_es, is_fractional_es
-from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu
-from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa
+from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu, \
+    pronounce_ordinal_eu
+from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa, is_fractional_fa, \
+    pronounce_ordinal_fa
 from ovos_number_parser.numbers_fr import (pronounce_number_fr, extract_number_fr, is_fractional_fr)
 from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl, is_fractional_gl, \
     numbers_to_digits_gl, pronounce_ordinal_gl, is_ordinal_gl, pronounce_fraction_gl
@@ -25,14 +28,16 @@ from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_i
 from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
     extract_number_nl, is_fractional_nl
-from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, is_fractional_pl
+from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, \
+    is_fractional_pl, pronounce_ordinal_pl
 from ovos_number_parser.numbers_pt import PortugueseVariant, PT_PT, PT_BR
 from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru
 from ovos_number_parser.numbers_sl import pronounce_number_sl, extract_number_sl, is_fractional_sl, \
     is_ordinal_sl
 from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
     is_fractional_sv
-from ovos_number_parser.numbers_uk import numbers_to_digits_uk, pronounce_number_uk, extract_number_uk, is_fractional_uk
+from ovos_number_parser.numbers_uk import numbers_to_digits_uk, pronounce_number_uk, extract_number_uk, \
+    is_fractional_uk, pronounce_ordinal_uk
 from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
 
 
@@ -245,6 +250,16 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_gl(number, gender=gender, scale=scale)
     if lang.startswith("sl"):
         return pronounce_number_sl(number, ordinals=True)
+    if lang.startswith("cs"):
+        return pronounce_ordinal_cs(number)
+    if lang.startswith("pl"):
+        return pronounce_ordinal_pl(number)
+    if lang.startswith("uk"):
+        return pronounce_ordinal_uk(number)
+    if lang.startswith("eu"):
+        return pronounce_ordinal_eu(number)
+    if lang.startswith("fa"):
+        return pronounce_ordinal_fa(number)
     # fallback to unicode RBNF
     try:
         engine = RbnfEngine.for_language(lang.split("-")[0])
@@ -393,6 +408,8 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_hu(input_str, short_scale)
     if lang.startswith("sl"):
         return is_fractional_sl(input_str, short_scale)
+    if lang.startswith("fa"):
+        return is_fractional_fa(input_str, short_scale)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
