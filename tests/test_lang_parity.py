@@ -9,7 +9,7 @@ from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
                                 numbers_to_digits, pronounce_fraction,
                                 pronounce_number, pronounce_ordinal)
 
-LANGS = ["az", "ast", "ca", "cs", "da", "de", "en", "es", "eu", "fa", "fr",
+LANGS = ["ar", "az", "ast", "ca", "cs", "da", "de", "en", "es", "eu", "fa", "fr",
          "gl", "hu", "it", "mwl", "nl", "pl", "pt", "ru", "sl", "sv", "uk"]
 
 
