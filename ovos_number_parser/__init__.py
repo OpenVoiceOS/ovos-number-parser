@@ -45,6 +45,8 @@ from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number
 from ovos_number_parser.numbers_pt import PortugueseVariant, PT_PT, PT_BR
 from ovos_number_parser.numbers_ro import RO
 from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru
+from ovos_number_parser.numbers_sk import numbers_to_digits_sk, pronounce_number_sk, is_fractional_sk, \
+    extract_number_sk, pronounce_ordinal_sk, nice_number_sk
 from ovos_number_parser.numbers_sl import pronounce_number_sl, extract_number_sl, is_fractional_sl, \
     is_ordinal_sl, nice_number_sl
 from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
@@ -79,7 +81,7 @@ _NICE_NUMBER_FNS = {
     "et": nice_number_et, "eu": nice_number_eu, "fa": nice_number_fa,
     "fi": nice_number_fi, "fr": nice_number_fr, "fy": nice_number_fy,
     "hu": nice_number_hu, "it": nice_number_it, "nl": nice_number_nl,
-    "pl": nice_number_pl, "ru": nice_number_ru, "sl": nice_number_sl,
+    "pl": nice_number_pl, "ru": nice_number_ru, "sk": nice_number_sk, "sl": nice_number_sl,
     "sv": nice_number_sv, "uk": nice_number_uk,
 }
 
@@ -89,6 +91,7 @@ _FRACTION_NUMERATOR_OVERRIDES = {
     "ru": {1: "одна", 2: "две"},
     "uk": {1: "одна", 2: "дві"},
     "cs": {1: "jedna", 2: "dvě"},
+    "sk": {1: "jedna", 2: "dve"},
     "pl": {1: "jedna", 2: "dwie"},
     "hu": {2: "két"},
 }
@@ -279,6 +282,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         return RO.numbers_to_digits(utterance, scale=scale)
     if lang.startswith("ru"):
         return numbers_to_digits_ru(utterance)
+    if lang.startswith("sk"):
+        return numbers_to_digits_sk(utterance)
     if lang.startswith("uk"):
         return numbers_to_digits_uk(utterance)
     return _numbers_to_digits_generic(utterance, lang)
@@ -374,6 +379,8 @@ def pronounce_number(number: Union[int, float], lang: str,
         return RO.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("ru"):
         return pronounce_number_ru(number, places, short_scale, scientific, ordinals)
+    if lang.startswith("sk"):
+        return pronounce_number_sk(number, places, short_scale, scientific, ordinals)
     if lang.startswith("sl"):
         return pronounce_number_sl(number, places, short_scale, scientific, ordinals)
     if lang.startswith("sv"):
@@ -481,6 +488,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_gl(number, gender=gender, scale=scale)
     if lang.startswith("cs"):
         return pronounce_ordinal_cs(number)
+    if lang.startswith("sk"):
+        return pronounce_ordinal_sk(number)
     if lang.startswith("pl"):
         return pronounce_ordinal_pl(number)
     if lang.startswith("uk"):
@@ -581,6 +590,8 @@ def extract_number(text: str, lang: str,
         return AN.extract_number(text, scale=scale, ordinals=ordinals)
     if lang.startswith("ru"):
         return extract_number_ru(text, short_scale, ordinals)
+    if lang.startswith("sk"):
+        return extract_number_sk(text, short_scale, ordinals)
     if lang.startswith("sv"):
         return extract_number_sv(text, short_scale, ordinals)
     if lang.startswith("uk"):
@@ -665,6 +676,8 @@ def is_fractional(input_str: str, lang: str,
         return AN.is_fractional(input_str)
     if lang.startswith("ru"):
         return is_fractional_ru(input_str, short_scale)
+    if lang.startswith("sk"):
+        return is_fractional_sk(input_str, short_scale)
     if lang.startswith("sv"):
         return is_fractional_sv(input_str, short_scale)
     if lang.startswith("fa"):
