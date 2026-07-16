@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Dict, Union, Any, Tuple, Optional, Callable
 import re
@@ -309,6 +309,47 @@ class NumberVocabulary:
     # JOINER_ON_HUNDREDS is off, but only for the top-level group of the number
     JOINER_ON_HUNDRED_PARTICLE: bool = False
 
+    # use the conjunction between a scale group and its final sub-100
+    # remainder ("dous mil e un"); languages that say the remainder bare
+    # ("două mii unu") turn this off
+    JOINER_ON_SCALE_REMAINDER: bool = True
+
+    # linker word inserted between a count and its scale word when the count
+    # ends in 00 or in 20-99 ("douăzeci DE mii", "o sută DE milioane")
+    SCALE_LINKER: str = ""
+
+    # extraction: the word for 100 multiplies the preceding units
+    # ("două sute" = 200) instead of being added to them
+    MULTIPLY_HUNDREDS: bool = False
+
+    # full spelling of "one <scale>" groups when they use an article or a
+    # special form of "one" ("o mie", "un milion")
+    SCALE_ONE: Dict[int, str] = field(default_factory=dict)
+
+    # grammatical gender the count before each scale word agrees with
+    # ("două mii" - feminine "două", not masculine "doi")
+    SCALE_GENDERS: Dict[int, GrammaticalGender] = field(default_factory=dict)
+
+    # full spelling of "1/x" fractions when they use an article
+    # ("o jumătate", "un sfert")
+    FRACTION_ONE: Dict[int, str] = field(default_factory=dict)
+
+    # gender the fraction numerator agrees with ("două treimi")
+    FRACTION_NUMERATOR_GENDER: Optional[GrammaticalGender] = None
+
+    # ordinal particle placed before the ordinal word ("al doilea"/"a doua")
+    ORDINAL_PREFIX: Dict[GrammaticalGender, str] = field(default_factory=dict)
+    # values whose ordinal word already stands alone and takes no particle
+    # ("primul")
+    ORDINAL_UNPREFIXED: List[int] = field(default_factory=list)
+    # compound ordinals over 20 keep the cardinal tens joined to an ordinal
+    # unit ("al douăzeci și unulea"); also prefers exact ORDINAL_TENS entries
+    # for 11-19
+    ORDINAL_COMPOUND_CARDINAL_TENS: bool = False
+    # unit spellings used inside compound ordinals when they differ from the
+    # standalone ordinal ("unulea" vs "primul")
+    ORDINAL_COMPOUND_UNITS: Dict[int, str] = field(default_factory=dict)
+
     def get_number_strings(self, scale: Optional[Scale] = None) -> Dict[str, int]:
         scale = scale or self.DEFAULT_SCALE
         SCALES = self.SHORT_SCALE if scale == Scale.SHORT else self.LONG_SCALE
@@ -341,6 +382,7 @@ class NumberVocabulary:
         scale = scale or self.DEFAULT_SCALE
         SCALES = self.ORDINAL_SHORT_SCALE if scale == Scale.SHORT else self.ORDINAL_LONG_SCALE
         male = {
+            **{v: k for k, v in self.ORDINAL_COMPOUND_UNITS.items()},
             **{v: k for k, v in self.ORDINAL_UNITS.items()},
             **{v: k for k, v in self.ORDINAL_TENS.items()},
             **{v: k for k, v in self.ORDINAL_HUNDREDS.items()},
@@ -385,6 +427,11 @@ class RomanceNumberExtractor:
             recognized as an ordinal, otherwise False.
         """
         scale = scale or self.vocab.DEFAULT_SCALE
+        if self.vocab.ORDINAL_PREFIX:
+            # drop the ordinal particles ("al doilea" -> "doilea")
+            particles = set(self.vocab.ORDINAL_PREFIX.values())
+            input_str = " ".join(w for w in input_str.strip().split()
+                                 if w not in particles)
         ordinals_map = self.vocab.get_ordinal_strings(scale)
         if input_str in ordinals_map:
             return ordinals_map[input_str]
@@ -472,6 +519,12 @@ class RomanceNumberExtractor:
                         current = (current or 1) * val
                         result += current
                         current = 0
+                elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
+                    # the hundreds word multiplies the preceding units
+                    # ("două sute" = 200), leaving higher groups untouched
+                    # ("două mii trei sute" -> 2000 + 3*100)
+                    below = current % 100
+                    current += (below or 1) * 100 - below
                 else:
                     current += val
                 i += 1
@@ -588,6 +641,12 @@ class RomanceNumberExtractor:
                 while j < len(words) and continues_span(j):
                     number_span_words.append(words[j])
                     j += 1
+
+                # a joiner at the end of the span belongs to the surrounding
+                # text ("trei de mere" -> "3 de mere"), not to the number
+                while number_span_words and number_span_words[-1] in self.vocab.JOIN_WORD:
+                    number_span_words.pop()
+                    j -= 1
 
                 # Form the phrase from the span and extract the number value
                 phrase = " ".join(number_span_words)
@@ -719,12 +778,22 @@ class RomanceNumberExtractor:
         scale_word = scale_val[1] if is_singular else self.vocab.pluralize(scale_val[1])
         # any group nested under this scale must not force a terminal conjunction
         nested_under_higher = _under_higher_scale or scale_val[0] >= 10 ** 6
-        if count == 1 and scale_val[0] in self.vocab.NO_PREV_UNIT:
+        if count == 1 and scale_val[0] in self.vocab.SCALE_ONE:
+            count_str = self.vocab.SCALE_ONE[scale_val[0]]
+        elif count == 1 and scale_val[0] in self.vocab.NO_PREV_UNIT:
             count_str = scale_word
         else:
+            count_gender = self.vocab.SCALE_GENDERS.get(scale_val[0],
+                                                        GrammaticalGender.MASCULINE)
             count_pronunciation = self.pronounce_number(count, places, scale,
+                                                        gender=count_gender,
                                                         _under_higher_scale=True)
-            count_str = f"{count_pronunciation} {scale_word}"
+            # counts ending in 00 or 20-99 link to the scale word
+            # ("douăzeci de mii")
+            if self.vocab.SCALE_LINKER and (count % 100 == 0 or count % 100 >= 20):
+                count_str = f"{count_pronunciation} {self.vocab.SCALE_LINKER} {scale_word}"
+            else:
+                count_str = f"{count_pronunciation} {scale_word}"
 
         # If there's no remainder, we're done
         if remainder == 0:
@@ -732,15 +801,17 @@ class RomanceNumberExtractor:
 
         # the sub-1000 remainder that directly follows the thousands group of a
         # number below one million takes the terminal conjunction on its hundreds
-        remainder_force = scale_val[0] == 1000 and not _under_higher_scale
+        remainder_force = scale_val[0] == 1000 and not _under_higher_scale \
+            and self.vocab.JOINER_ON_SCALE_REMAINDER
         remainder_str = self.pronounce_number(remainder, places, scale,
                                               _force_hundreds_join=remainder_force,
                                               _under_higher_scale=nested_under_higher)
         # Conjunction logic: add JOIN_WORD if the remainder is the last group and is
         # less than 100 or a multiple of 100.
         join_word = self.vocab.JOIN_WORD[0] if len(self.vocab.JOIN_WORD) else ""
-        if remainder < 100 or (remainder < 1000 and remainder % 100 == 0
-                               and self.vocab.JOINER_ON_THOUSANDS):
+        if self.vocab.JOINER_ON_SCALE_REMAINDER and \
+                (remainder < 100 or (remainder < 1000 and remainder % 100 == 0
+                                     and self.vocab.JOINER_ON_THOUSANDS)):
             return f"{count_str} {join_word} {remainder_str}"
         else:
             return f"{count_str} {remainder_str}"
@@ -763,6 +834,10 @@ class RomanceNumberExtractor:
         n1, n2 = word.split("/")
         n1_int, n2_int = int(n1), int(n2)
 
+        if n1_int == 1 and n2_int in self.vocab.FRACTION_ONE:
+            # "1/x" fractions with an article ("o jumătate", "un sfert")
+            return self.vocab.FRACTION_ONE[n2_int]
+
         if n2_int == 0:
             denom = self.vocab.DIVIDED_BY_ZERO
 
@@ -779,7 +854,8 @@ class RomanceNumberExtractor:
 
 
         # Pronounce the numerator (first number) as a cardinal.
-        num = self.pronounce_number(n1_int, scale=scale)
+        numerator_gender = self.vocab.FRACTION_NUMERATOR_GENDER or GrammaticalGender.MASCULINE
+        num = self.pronounce_number(n1_int, scale=scale, gender=numerator_gender)
         return f"{num} {denom}"
 
     def pronounce_ordinal(self,
@@ -787,6 +863,17 @@ class RomanceNumberExtractor:
                           gender: GrammaticalGender = GrammaticalGender.MASCULINE,
                           scale: Optional[Scale] = None
                           ) -> str:
+        result = self._pronounce_ordinal_core(number, gender, scale)
+        prefix = self.vocab.ORDINAL_PREFIX.get(gender)
+        if prefix and number > 0 and int(number) not in self.vocab.ORDINAL_UNPREFIXED:
+            result = f"{prefix} {result}"
+        return result
+
+    def _pronounce_ordinal_core(self,
+                                number: Union[int, float],
+                                gender: GrammaticalGender = GrammaticalGender.MASCULINE,
+                                scale: Optional[Scale] = None
+                                ) -> str:
         """
         Return the ordinal pronunciation of a number, supporting grammatical gender, scale (short or long), and language variant (Brazilian or European Portuguese).
 
@@ -808,7 +895,7 @@ class RomanceNumberExtractor:
             return self.vocab.UNITS[0]
 
         if number < 0:
-            return f"{self.vocab.NEGATIVE_SIGN[0]} {self.pronounce_ordinal(abs(number), gender, scale)}"
+            return f"{self.vocab.NEGATIVE_SIGN[0]} {self._pronounce_ordinal_core(abs(number), gender, scale)}"
 
         n = int(number)
         if n < 1000:
@@ -839,7 +926,7 @@ class RomanceNumberExtractor:
             return count_str
 
         # Pronounce the remainder and join
-        remainder_str = self.pronounce_ordinal(remainder, gender, scale)
+        remainder_str = self._pronounce_ordinal_core(remainder, gender, scale)
 
         return f"{count_str} {remainder_str}"
 
@@ -954,8 +1041,21 @@ class RomanceNumberExtractor:
 
         # Handle tens and units
         if n > 0:
+            if self.vocab.ORDINAL_COMPOUND_CARDINAL_TENS and n >= 20 and n % 10 != 0:
+                # cardinal tens joined to an ordinal unit
+                # ("al douăzeci și unulea")
+                ten = n // 10 * 10
+                unit = n % 10
+                unit_word = self.vocab.ORDINAL_COMPOUND_UNITS.get(
+                    unit, self.vocab.ORDINAL_UNITS[unit])
+                joiner = f" {self.vocab.JOIN_WORD[0]} " if self.vocab.JOIN_WORD else " "
+                parts.append(f"{self.vocab.TENS[ten]}{joiner}"
+                             f"{self.vocab.swap_gender(unit_word, gender)}")
+            elif self.vocab.ORDINAL_COMPOUND_CARDINAL_TENS and n in self.vocab.ORDINAL_TENS:
+                # exact single-word entry for 11-19 ("treisprezecelea")
+                parts.append(self.vocab.swap_gender(self.vocab.ORDINAL_TENS[n], gender))
             # Ordinal numbers don't use 'e' as a separator
-            if n % 10 == 0:
+            elif n % 10 == 0:
                 tens_word_masc = self.vocab.ORDINAL_TENS[n]
                 parts.append(self.vocab.swap_gender(tens_word_masc, gender))
             elif n < 10:
