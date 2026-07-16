@@ -28,7 +28,8 @@ from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number
 from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, is_fractional_pl
 from ovos_number_parser.numbers_pt import PortugueseVariant, PT_PT, PT_BR
 from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru
-from ovos_number_parser.numbers_sl import pronounce_number_sl
+from ovos_number_parser.numbers_sl import pronounce_number_sl, extract_number_sl, is_fractional_sl, \
+    is_ordinal_sl
 from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
     is_fractional_sv
 from ovos_number_parser.numbers_uk import numbers_to_digits_uk, pronounce_number_uk, extract_number_uk, is_fractional_uk
@@ -242,6 +243,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_sv(number)
     if lang.startswith("gl"):
         return pronounce_ordinal_gl(number, gender=gender, scale=scale)
+    if lang.startswith("sl"):
+        return pronounce_number_sl(number, ordinals=True)
     # fallback to unicode RBNF
     try:
         engine = RbnfEngine.for_language(lang.split("-")[0])
@@ -320,6 +323,8 @@ def extract_number(text: str, lang: str,
         return extract_number_uk(text, short_scale, ordinals)
     if lang.startswith("hu"):
         return extract_number_hu(text, short_scale, ordinals)
+    if lang.startswith("sl"):
+        return extract_number_sl(text, short_scale, ordinals)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
@@ -386,6 +391,8 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_uk(input_str, short_scale)
     if lang.startswith("hu"):
         return is_fractional_hu(input_str, short_scale)
+    if lang.startswith("sl"):
+        return is_fractional_sl(input_str, short_scale)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
@@ -420,4 +427,6 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return is_ordinal_gl(input_str)
     if lang.startswith("hu"):
         return is_ordinal_hu(input_str)
+    if lang.startswith("sl"):
+        return is_ordinal_sl(input_str)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
