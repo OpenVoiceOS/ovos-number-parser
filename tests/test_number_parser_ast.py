@@ -199,5 +199,93 @@ class TestIntegrationAST(unittest.TestCase):
         self.assertEqual(AST.extract_number(text), -234)
 
 
+# ============================================================
+# Long-scale ladder (billón, trillón, ...)
+# ============================================================
+
+class TestLongScaleAST(unittest.TestCase):
+
+    def test_billon(self):
+        self.assertEqual(AST.pronounce_number(10 ** 12), "un billón")
+
+    def test_trillon(self):
+        self.assertEqual(AST.pronounce_number(10 ** 18), "un trillón")
+
+    def test_thousand_millions(self):
+        # long scale: 10^9 is "mil millones", not a distinct word
+        self.assertEqual(AST.pronounce_number(10 ** 9), "mil millones")
+
+    def test_long_scale_round_trip(self):
+        for n in [10 ** 6, 10 ** 9, 10 ** 12, 5 * 10 ** 12,
+                  10 ** 18, 3 * 10 ** 24, 10 ** 30, 10 ** 36]:
+            text = AST.pronounce_number(n)
+            self.assertEqual(AST.extract_number(text), n, text)
+
+
+# ============================================================
+# Round-trip sweep + boundaries
+# ============================================================
+
+class TestSweepAST(unittest.TestCase):
+
+    def test_full_sweep_0_2000(self):
+        for n in range(0, 2001):
+            text = AST.pronounce_number(n)
+            self.assertEqual(AST.extract_number(text), n, f"{n} -> {text}")
+
+    def test_negatives(self):
+        for n in [-1, -5, -234, -1000, -1_000_000]:
+            text = AST.pronounce_number(n)
+            self.assertTrue(text.startswith("menos"))
+            self.assertEqual(AST.extract_number(text), n)
+
+    def test_decimal_round_trip(self):
+        for n in [0.5, 1.5, 2.75, 3.25, -1.5]:
+            text = AST.pronounce_number(n)
+            self.assertAlmostEqual(AST.extract_number(text), n)
+
+
+# ============================================================
+# Adversarial / malformed input
+# ============================================================
+
+class TestAdversarialAST(unittest.TestCase):
+
+    def test_empty_string(self):
+        self.assertFalse(AST.extract_number(""))
+
+    def test_whitespace_only(self):
+        self.assertFalse(AST.extract_number("   "))
+
+    def test_numbers_to_digits_empty(self):
+        self.assertEqual(AST.numbers_to_digits(""), "")
+
+    def test_junk_around_number(self):
+        self.assertEqual(AST.extract_number("xyz ventiuno qqq"), 21)
+
+    def test_mixed_case(self):
+        self.assertEqual(AST.extract_number("Dieciséis"), 16)
+        self.assertEqual(AST.extract_number("VENTIUNO"), 21)
+
+    def test_alt_spellings(self):
+        self.assertEqual(AST.extract_number("unu"), 1)
+        self.assertEqual(AST.extract_number("oito"), 8)
+
+
+# ============================================================
+# Gender agreement
+# ============================================================
+
+class TestGenderAST(unittest.TestCase):
+
+    def test_feminine_one(self):
+        self.assertEqual(
+            AST.pronounce_number(1, gender=GrammaticalGender.FEMININE), "una")
+
+    def test_feminine_ordinal(self):
+        self.assertEqual(
+            AST.pronounce_ordinal(1, gender=GrammaticalGender.FEMININE), "primera")
+
+
 if __name__ == "__main__":
     unittest.main()
