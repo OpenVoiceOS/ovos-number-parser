@@ -681,10 +681,16 @@ def _extract_real_number_with_text(tokens, t):
             _val = _current_val = None
 
         if not next_word and number_words:
+            _negative = any(_tok.word.lower() in t.negatives
+                            for _tok in number_words)
             if to_sum and to_sum[0] < 0:
                 val = to_sum[0] - sum(to_sum[1:])
             else:
                 val = sum(to_sum) if to_sum else _val
+            # a zero whole part ("minus null komma fem") leaves the sign in
+            # neither the value nor to_sum[0]; recover it from the minus token
+            if _negative and isinstance(val, (int, float)) and val > 0:
+                val = -val
 
     return val, number_words
 
