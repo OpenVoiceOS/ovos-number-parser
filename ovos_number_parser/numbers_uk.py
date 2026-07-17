@@ -943,6 +943,7 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
     val = False
     prev_val = None
     next_val = None
+    negative = False
     to_sum = []
     for idx, token in enumerate(tokens):
         current_val = None
@@ -951,7 +952,8 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
             continue
 
         word = token.word
-        if word in word in _NEGATIVES:
+        if word in _NEGATIVES:
+            negative = True
             number_words.append(token)
             continue
 
@@ -1060,9 +1062,8 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
                 val = val * prev_val
             else:
                 val = 2
-        # is this a negative number?
-        if val and prev_word and prev_word in _NEGATIVES:
-            val = 0 - val
+        # the sign is applied once to the whole number after parsing,
+        # so no per-token negation happens here
 
         # let's make sure it isn't a fraction
         if not val:
@@ -1160,6 +1161,8 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
 
     if val is not None and to_sum:
         val += sum(to_sum)
+    if negative and val not in (None, False):
+        val = -val
     return val, number_words
 
 
