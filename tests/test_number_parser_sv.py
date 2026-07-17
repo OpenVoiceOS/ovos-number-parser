@@ -58,5 +58,65 @@ class TestSwedishRoundTrip(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="sv"), number)
 
 
+class TestSwedishNaturalSentences(unittest.TestCase):
+    """Numbers embedded in natural spoken Swedish."""
+
+    def test_sentences(self):
+        cases = {
+            "jag har tjugoen katter": 21,
+            "det kostar etthundra kronor": 100,
+            "tre och en halv": 3.5,
+            "en och en halv": 1.5,
+            "två komma fem": 2.5,
+            "minus sju grader": -7,
+            "året tvåtusen tjugotre": 2023,
+        }
+        for text, val in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="sv"), val)
+
+    def test_fractions_words(self):
+        # "halv fyra" is not a number phrase on its own: "halv" -> 0.5
+        self.assertEqual(extract_number("halv", lang="sv"), 0.5)
+        self.assertEqual(extract_number("en kvart", lang="sv"), 0.25)
+        self.assertEqual(extract_number("trekvart", lang="sv"), 0.75)
+
+
+class TestSwedishAdversarial(unittest.TestCase):
+    """Malformed / boundary / contract-violation inputs must not crash."""
+
+    def test_non_string_input(self):
+        for bad in (None, 42, 3.5, [], {}):
+            with self.subTest(bad=bad):
+                self.assertIn(extract_number(bad, lang="sv"), (False, None))
+
+    def test_empty_and_junk(self):
+        for text in ("", "   ", "hej hur mår du", "!!!", "minus"):
+            with self.subTest(text=text):
+                self.assertIn(extract_number(text, lang="sv"), (False, None))
+
+    def test_mixed_case(self):
+        self.assertEqual(extract_number("TJUGOEN", lang="sv"), 21)
+        self.assertEqual(extract_number("Fyrtiotvå", lang="sv"), 42)
+
+    def test_boundaries(self):
+        self.assertEqual(extract_number("2/3", lang="sv"), 2 / 3)
+        self.assertEqual(extract_number("minus fyrtiotvå", lang="sv"), -42)
+
+
+class TestSwedishLargeSweep(unittest.TestCase):
+    """Round-trip a dense range to guard pronounce/extract symmetry."""
+
+    def test_dense_sweep(self):
+        for n in list(range(0, 2000)) + list(range(2000, 100000, 137)):
+            with self.subTest(number=n):
+                spoken = pronounce_number(n, lang="sv")
+                got = extract_number(spoken, lang="sv")
+                if n == 0:
+                    self.assertIn(got, (0, False))
+                else:
+                    self.assertEqual(got, n)
+
+
 if __name__ == "__main__":
     unittest.main()
