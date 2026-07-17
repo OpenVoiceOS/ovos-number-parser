@@ -518,6 +518,7 @@ def is_fractional_ca(input_str, short_scale=True):
         (bool) or (float): False if not a fraction, otherwise the fraction
 
     """
+    input_str = input_str.lower()
     if input_str.endswith('é', -1):
         input_str = input_str[:len(input_str) - 1] + "è"  # e.g. "cinqué -> cinquè"
     elif input_str.endswith('ena', -3):
@@ -545,7 +546,7 @@ def is_fractional_ca(input_str, short_scale=True):
              "desè", "onzè", "dotzè", "tretzè", "catorzè", "quinzè", "setzè",
              "dissetè", "divuitè", "dinovè"]
 
-    if input_str.lower() in aFrac:
+    if input_str in aFrac:
         return 1.0 / (aFrac.index(input_str) + 2)
     if input_str == "vintè":
         return 1.0 / 20
