@@ -153,6 +153,54 @@ class TestArabicExtract(unittest.TestCase):
             numbers_to_digits("لدي خمسة وعشرون قطة", lang="ar"),
             "لدي 25 قطة")
 
+
+class TestArabicRobustDigits(unittest.TestCase):
+    """Robustness to Persian/Arabic-Indic digits and glued punctuation."""
+
+    def test_persian_digits(self):
+        # Persian/Urdu (extended Arabic-Indic) digits carry 0-9 values
+        self.assertEqual(extract_number("۲۵", lang="ar"), 25)
+        self.assertEqual(extract_number("۱۹۸۵", lang="ar"), 1985)
+        self.assertEqual(extract_number("عندي ۳ قطط", lang="ar"), 3)
+        self.assertAlmostEqual(extract_number("۵٫۲", lang="ar"), 5.2)
+
+    def test_punctuation_glued_digits(self):
+        # a number glued to an Arabic comma/semicolon/question mark or an
+        # ASCII period is still recognised as a number
+        for text, value in [("10،", 10), ("25.", 25), ("٢٥؛", 25),
+                             ("۲۰۲۴،", 2024), ("۳؟", 3),
+                             ("لدي ٢٥، كتاب", 25)]:
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="ar"), value)
+
+    def test_regression_clean_and_decimal(self):
+        # clean integers and decimals keep working unchanged
+        self.assertEqual(extract_number("٢٥", lang="ar"), 25)
+        self.assertEqual(extract_number("مئة وثلاثة وعشرون", lang="ar"), 123)
+        self.assertAlmostEqual(extract_number("٥٫٢", lang="ar"), 5.2)
+        self.assertEqual(extract_number("سالب سبعة", lang="ar"), -7)
+
+
+class TestArabicNumbersToDigitsRobust(unittest.TestCase):
+    """Verbalizing digits inside text keeps adjacent punctuation."""
+
+    def test_persian_and_arabic_indic_digits(self):
+        self.assertEqual(
+            numbers_to_digits("الرقم ٢٠٢٤", lang="ar"), "الرقم 2024")
+        self.assertEqual(
+            numbers_to_digits("عندي ۳ قطط", lang="ar"), "عندي 3 قطط")
+
+    def test_glued_punctuation_is_reattached(self):
+        # the Arabic comma / semicolon must survive verbalization, not vanish
+        self.assertEqual(
+            numbers_to_digits("لدي ٢٥، كتاب", lang="ar"), "لدي 25، كتاب")
+        self.assertEqual(
+            numbers_to_digits("لدي خمسة؛ كتب", lang="ar"), "لدي 5؛ كتب")
+        self.assertEqual(
+            numbers_to_digits("السنة ۱۹۸۵.", lang="ar"), "السنة 1985.")
+        self.assertEqual(
+            numbers_to_digits("خمسة وعشرون كتاباً", lang="ar"), "25 كتاباً")
+
     def test_extract_dual_nouns(self):
         # the dual of common counting nouns carries the value 2 lexically
         for spoken in ["يومين", "يومان", "ساعتين", "ساعتان", "دقيقتين",

@@ -225,9 +225,13 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
     lang2 = lang.lower().split("-")[0]
     connectors = _NUMBER_CONNECTORS.get(lang2, set())
     tokens = utterance.split()
+    # ASCII plus Arabic comma, semicolon and question mark, so a number glued
+    # to punctuation ("٢٠٢٤،", "25.") is still recognised and the mark is
+    # carried over onto the digits instead of being dropped
+    punct = ".,!?;:؟،؛"
 
     def _clean(t):
-        return t.strip(".,!?;:").lower()
+        return t.strip(punct).lower()
 
     def _is_num(t):
         c = _clean(t)
@@ -271,7 +275,7 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
                 break
         span = " ".join(_clean(t) for t in tokens[i:j + 1])
         val = extract_number(span, lang)
-        stripped = tokens[j].rstrip(".,!?;:")
+        stripped = tokens[j].rstrip(punct)
         trail = tokens[j][len(stripped):]
         if isinstance(val, float) and val.is_integer():
             val = int(val)
