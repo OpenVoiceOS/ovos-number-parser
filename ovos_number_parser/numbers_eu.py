@@ -312,8 +312,13 @@ def pronounce_ordinal_eu(num):
     1-10 use the attested table (1st suppletive ``lehenengo``). Above ten the
     suffix attaches to the cardinal's final element, with the euphonic
     ``bost`` -> ``bos`` drop (``hamabost`` -> ``hamabosgarren``).
+
+    Raises:
+        ValueError: for negative numbers, which have no ordinal form.
     """
     num = int(num)
+    if num < 0:
+        raise ValueError(f"Basque ordinals are not defined for {num}")
     if num in ORDINAL_BASE_EU:
         return ORDINAL_BASE_EU[num]
     words = _spell_cardinal_eu(num).split()

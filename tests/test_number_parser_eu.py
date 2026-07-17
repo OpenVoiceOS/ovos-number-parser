@@ -66,6 +66,14 @@ class TestBasqueOrdinals(unittest.TestCase):
             with self.subTest(number=number):
                 self.assertEqual(pronounce_ordinal(number, lang="eu"), spoken)
 
+    def test_pronounce_ordinal_negative(self):
+        # negatives previously raised a bare KeyError from the cardinal
+        # speller; they now fail cleanly with a ValueError
+        for number in (-1, -5):
+            with self.subTest(number=number):
+                with self.assertRaises(ValueError):
+                    pronounce_ordinal(number, lang="eu")
+
     def test_is_ordinal(self):
         self.assertEqual(is_ordinal("hamaseigarren", lang="eu"), 16)
         self.assertEqual(is_ordinal("bosgarren", lang="eu"), 5)
