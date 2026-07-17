@@ -1,6 +1,81 @@
 import unittest
 
 from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser.numbers_sv import pronounce_ordinal_sv
+
+
+class TestSwedishOrdinals(unittest.TestCase):
+    """Anchors for spoken Swedish ordinals.
+
+    Reference: standard Swedish grammar / Svenska Akademiens ordlista. Only the
+    final element of a compound inflects as an ordinal; the preceding magnitude
+    words keep their cardinal form.
+    """
+
+    def test_units_and_teens(self):
+        expected = {
+            0: 'nollte', 1: 'första', 2: 'andra', 3: 'tredje', 4: 'fjärde',
+            5: 'femte', 6: 'sjätte', 7: 'sjunde', 8: 'åttonde', 9: 'nionde',
+            10: 'tionde', 11: 'elfte', 12: 'tolfte', 13: 'trettonde',
+            14: 'fjortonde', 15: 'femtonde', 16: 'sextonde', 17: 'sjuttonde',
+            18: 'artonde', 19: 'nittonde',
+        }
+        for n, spoken in expected.items():
+            with self.subTest(number=n):
+                self.assertEqual(pronounce_ordinal_sv(n), spoken)
+
+    def test_tens(self):
+        expected = {
+            20: 'tjugonde', 30: 'trettionde', 40: 'fyrtionde',
+            50: 'femtionde', 60: 'sextionde', 70: 'sjuttionde',
+            80: 'åttionde', 90: 'nittionde',
+        }
+        for n, spoken in expected.items():
+            with self.subTest(number=n):
+                self.assertEqual(pronounce_ordinal_sv(n), spoken)
+
+    def test_compound_tens(self):
+        expected = {
+            21: 'tjugoförsta', 22: 'tjugoandra', 23: 'tjugotredje',
+            25: 'tjugofemte', 33: 'trettiotredje', 48: 'fyrtioåttonde',
+            99: 'nittionionde',
+        }
+        for n, spoken in expected.items():
+            with self.subTest(number=n):
+                self.assertEqual(pronounce_ordinal_sv(n), spoken)
+
+    def test_hundreds_and_thousands(self):
+        expected = {
+            100: 'hundrade', 101: 'hundraförsta', 111: 'hundraelfte',
+            121: 'hundratjugoförsta', 150: 'hundrafemtionde',
+            200: 'tvåhundrade', 203: 'tvåhundratredje',
+            999: 'niohundranittionionde',
+            1000: 'tusende', 1001: 'tusenförsta', 2000: 'tvåtusende',
+        }
+        for n, spoken in expected.items():
+            with self.subTest(number=n):
+                self.assertEqual(pronounce_ordinal_sv(n), spoken)
+
+    def test_large_scale(self):
+        expected = {
+            1000000: 'miljonte',
+            2000000: 'tvåmiljonte',
+            1000000000: 'miljardte',
+        }
+        for n, spoken in expected.items():
+            with self.subTest(number=n):
+                self.assertEqual(pronounce_ordinal_sv(n), spoken)
+
+    def test_no_bare_de_suffix_regression(self):
+        # regression: multiples of ten used to yield "tjugode"/"trettiode"
+        # and teens "tioförsta"; the ten must inflect to "-nde".
+        for n in (20, 30, 40, 50, 60, 70, 80, 90):
+            self.assertTrue(pronounce_ordinal_sv(n).endswith('nde'), n)
+        self.assertNotIn('tio', pronounce_ordinal_sv(11))
+
+    def test_rejects_non_integer_and_negative(self):
+        self.assertEqual(pronounce_ordinal_sv(-3), -3)
+        self.assertEqual(pronounce_ordinal_sv(2.5), 2.5)
 
 
 class TestSwedishPronounce(unittest.TestCase):
