@@ -96,6 +96,42 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(is_ordinal_en("fifth"), 5)
         self.assertFalse(is_ordinal_en("seven"))
 
+    def test_large_ordinals_short_scale(self):
+        # scale words must be looked up by place value (1000**group), not by
+        # group index times 1000 — otherwise groups above thousands crash or
+        # name the wrong scale
+        cases = {
+            1000000: "millionth",
+            2000000: "two millionth",
+            3000000: "three millionth",
+            5000000: "five millionth",
+            21000000: "twenty one millionth",
+            1000000000: "billionth",
+            2000000000: "two billionth",
+            1000000000000: "trillionth",
+        }
+        for n, expected in cases.items():
+            self.assertEqual(
+                pronounce_number_en(n, ordinals=True, short_scale=True),
+                expected, n)
+
+    def test_large_ordinals_long_scale(self):
+        cases = {
+            1000000: "millionth",
+            2000000: "two millionth",
+            1000000000000: "billionth",
+            2000000000000: "two billionth",
+        }
+        for n, expected in cases.items():
+            self.assertEqual(
+                pronounce_number_en(n, ordinals=True, short_scale=False),
+                expected, n)
+
+    def test_large_ordinals_do_not_raise(self):
+        for n in range(1000000, 40000000, 1000000):
+            pronounce_number_en(n, ordinals=True, short_scale=True)
+            pronounce_number_en(n, ordinals=True, short_scale=False)
+
 
 if __name__ == "__main__":
     unittest.main()
