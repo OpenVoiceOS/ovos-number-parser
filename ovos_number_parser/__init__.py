@@ -390,6 +390,45 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
     return _numbers_to_digits_generic(utterance, lang)
 
 
+# Connectives for the a+bi complex form, per language, English as the default.
+# The imaginary unit is spoken "i" following ISO 80000-2 (item 2-13.1), which
+# fixes i as the symbol for sqrt(-1) in the rectangular form a + bi.
+_COMPLEX_CONNECTIVES = {
+    "en": ("plus", "minus", "i"),
+    "ru": ("плюс", "минус", "и"),
+    "de": ("plus", "minus", "i"),
+}
+
+
+def _pronounce_complex(number: complex, lang: str, places: int,
+                       scale: Optional[Scale], digits, gender) -> str:
+    """Speak a complex number in rectangular a+bi form (ISO 80000-2).
+
+    Composed from the real pronunciation so it works in every language; only
+    the "plus"/"minus"/"i" connectives are language-specific (English default).
+    """
+    plus_w, minus_w, i_w = _COMPLEX_CONNECTIVES.get(
+        lang.split("-")[0].split("_")[0], _COMPLEX_CONNECTIVES["en"])
+
+    def _speak(value):
+        # collapse an integer-valued float ("3.0" -> "three") and -0.0 -> 0
+        v = int(value) if value == int(value) else value
+        return pronounce_number(v, lang, places=places, scale=scale,
+                                digits=digits, gender=gender)
+
+    imag = int(number.imag) if number.imag == int(number.imag) else number.imag
+    if imag == 0:
+        return _speak(number.real)
+
+    magnitude = "" if abs(imag) == 1 else _speak(abs(imag)) + " "
+    if number.real == 0:
+        sign = "" if imag > 0 else minus_w + " "
+        return f"{sign}{magnitude}{i_w}".strip()
+
+    connective = plus_w if imag > 0 else minus_w
+    return f"{_speak(number.real)} {connective} {magnitude}{i_w}"
+
+
 def pronounce_number(number: Union[int, float], lang: str,
                      places: int = 3,
                      short_scale: Optional[bool] = None,  # DEPRECATED
@@ -435,6 +474,8 @@ def pronounce_number(number: Union[int, float], lang: str,
     """
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
+    if isinstance(number, complex):
+        return _pronounce_complex(number, lang, places, scale, digits, gender)
     if isinstance(number, float) and number != number:
         raise ValueError("cannot pronounce NaN (not a number)")
     if lang.startswith("en"):
