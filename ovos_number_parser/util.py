@@ -1,4 +1,6 @@
+import math
 from dataclasses import dataclass, field
+from decimal import Decimal
 from enum import Enum
 from typing import List, Dict, Union, Any, Tuple, Optional, Callable
 import re
@@ -719,16 +721,28 @@ class RomanceNumberExtractor:
         if not isinstance(number, (int, float)):
             raise TypeError("Number must be an int or float.")
 
+        # Non-finite floats (nan, inf) have no spoken numeric form; return a
+        # clean textual sentinel rather than crashing downstream int() calls.
+        if isinstance(number, float) and not math.isfinite(number):
+            return str(number)
+
         if ordinals:
             return self.pronounce_ordinal(number, gender, scale)
 
         if number < 0:
             return f"{self.vocab.NEGATIVE_SIGN[0]} {self.pronounce_number(abs(number), places, scale=scale, digits=digits, gender=gender)}"
 
+        # Normalize the textual form so very large or scientific-notation floats
+        # (e.g. 6.022e23 -> "602200000000000000000000") do not leak an "e" into
+        # the decimal-splitting / int() logic below and crash.
+        num_str = str(number)
+        if isinstance(number, float) and ("e" in num_str or "E" in num_str):
+            num_str = format(Decimal(num_str), 'f')
+
         # Handle decimals
-        if "." in str(number):
+        if "." in num_str:
             integer_part = int(number)
-            decimal_part_str = str(number).split('.')[1].rstrip("0")
+            decimal_part_str = num_str.split('.')[1].rstrip("0")
 
             # Handle cases where the decimal part rounds to zero
             if decimal_part_str and int(decimal_part_str) == 0:
