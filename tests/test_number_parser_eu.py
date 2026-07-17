@@ -205,6 +205,29 @@ class TestBasqueCardinalSweep(unittest.TestCase):
             self.assertEqual(extract_number_eu(spoken), number,
                              f"{number} spoken as {spoken!r}")
 
+    def test_hundreds_within_thousands(self):
+        # a lexical hundred inside a thousands group must multiply into the
+        # thousands, not collapse to a decimal ("berrehun ... mila")
+        cases = {
+            256357: 'berrehun eta berrogeita hamasei mila hirurehun eta '
+                    'berrogeita hamazazpi',
+            200000: 'berrehun mila',
+            2256357: None,
+            9876543: None,
+        }
+        for number, spoken in cases.items():
+            said = pronounce_number_eu(number)
+            if spoken is not None:
+                self.assertEqual(said, spoken)
+            self.assertEqual(extract_number_eu(said), number, said)
+
+    def test_round_trip_millions_sweep(self):
+        for number in range(1_000_000, 10_000_001, 4993):
+            for signed in (number, -number):
+                spoken = pronounce_number_eu(signed)
+                self.assertEqual(extract_number_eu(spoken), signed,
+                                 f"{signed} spoken as {spoken!r}")
+
 
 class TestBasqueOrdinalSweep(unittest.TestCase):
     """pronounce_ordinal -> is_ordinal must round-trip."""
