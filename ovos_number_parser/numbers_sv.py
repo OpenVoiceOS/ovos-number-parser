@@ -453,6 +453,8 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     # TODO: short_scale and ordinals don't do anything here.
     # The parameters are present in the function signature for API
     # compatibility reasons.
+    if not isinstance(text, str):
+        return False
     text = text.lower().replace("ettusen", "ett tusen")
     words = text.split()
     negative = False
