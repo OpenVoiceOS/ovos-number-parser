@@ -45,6 +45,31 @@ class TestGalicianWiring(unittest.TestCase):
         self.assertFalse(is_fractional("can", "gl"))
 
 
+class TestNonStringInput(unittest.TestCase):
+    """Non-string input is "no number": return the False sentinel, never raise."""
+
+    ROMANCE = ("pt", "gl", "mwl", "ast", "an", "oc", "ro")
+
+    def test_none_returns_false(self):
+        for lang in self.ROMANCE:
+            self.assertIs(extract_number(None, lang), False, lang)
+
+    def test_numbers_and_containers_return_false(self):
+        for value in (123, 4.5, True, [], {}, (), object()):
+            for lang in self.ROMANCE:
+                self.assertIs(extract_number(value, lang), False,
+                              f"{lang} {value!r}")
+
+    def test_empty_string_still_false(self):
+        for lang in self.ROMANCE:
+            self.assertIs(extract_number("", lang), False, lang)
+
+    def test_real_numbers_still_extracted(self):
+        # the guard must not swallow genuine strings
+        self.assertEqual(extract_number("sete", "pt"), 7)
+        self.assertEqual(extract_number("sete", "gl"), 7)
+
+
 class TestFractionBeforeScale(unittest.TestCase):
     """A "half" before a scale word multiplies the scale, it does not add 0.5.
 
