@@ -674,7 +674,14 @@ def extract_number_it(text, short_scale=False, ordinals=False):
         if word in multiplies:
             if not prev_val:
                 prev_val = 1
-            val = prev_val * val
+            if prev_val < val:
+                val = prev_val * val
+            else:
+                # the multiplier is smaller than what came before it, so it
+                # opens a new lower-order addend rather than scaling it
+                # ("mille cento" = 1000 + 100, not 1000 * 100)
+                to_sum.append(prev_val)
+                prev_val = 0
 
         # is this a spoken fraction?
         # mezza tazza
