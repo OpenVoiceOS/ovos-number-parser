@@ -1194,8 +1194,12 @@ def is_fractional_ru(input_str, short_scale=True):
         (bool) or (float): False if not a fraction, otherwise the fraction
 
     """
-    if input_str[-3:] in ["тые", "тых"]:  # leading number is bigger than one (две четвёртые, три пятых)
-        input_str = input_str[-3:] + "тая"
+    # Ordinal-derived fraction nouns are feminine ("пятая", 1/5). After a
+    # numerator they take the plural nominative "-ые" or genitive "-ых"
+    # ("две пятые", "три пятых"); normalize that ending back to the singular
+    # "-тая" citation form so it matches the table.
+    if input_str[-3:] in ["тые", "тых"]:
+        input_str = input_str[:-3] + "тая"
     fractions = {"целая": 1}  # first four numbers have little different format
 
     for num in _FRACTION_STRING_RU:  # Numbers from 2 to 1 hundred, more is not usually used in common speech
