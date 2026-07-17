@@ -536,7 +536,8 @@ _NEGATIVES = {"ujemne", "minus"}
 _SUMS = {'dwadzieścia', '20', 'trzydzieści', '30', 'czterdzieści', '40', 'pięćdziesiąt', '50',
          'sześćdziesiąt', '60', 'siedemdziesiąt', '70', 'osiemdziesiąt', '80', 'dziewięćdziesiąt', '90'}
 
-_MULTIPLIES_SHORT_SCALE_PL = generate_plurals_pl(_SHORT_SCALE_PL.values())
+_MULTIPLIES_SHORT_SCALE_PL = generate_plurals_pl(_SHORT_SCALE_PL.values()) | \
+    {word for value, word in _SHORT_SCALE_PL.items() if value >= 1000}
 
 # split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
 _FRACTION_MARKER = {'i'}
@@ -826,6 +827,7 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
     val = False
     prev_val = None
     next_val = None
+    negative = False
     to_sum = []
     for idx, token in enumerate(tokens):
         current_val = None
@@ -843,6 +845,11 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
             word = word[:-1]
 
         word = normalize_word_pl(word)
+
+        if word in _NEGATIVES:
+            negative = True
+            number_words.append(token)
+            continue
 
         if word not in string_num_scale and \
                 word not in _STRING_NUM_PL and \
@@ -926,9 +933,8 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
                 val *= next_val
                 number_words.append(tokens[idx + 1])
 
-        # is this a negative number?
-        if val and prev_word and prev_word in _NEGATIVES:
-            val = 0 - val
+        # the sign is applied once to the whole number after parsing, so no
+        # per-token negation happens here
 
         if next_word in _STRING_NUM_PL:
             prev_val = val
@@ -1025,6 +1031,9 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
 
     if val is not None and to_sum:
         val += sum(to_sum)
+
+    if negative and val not in (None, False):
+        val = -val
 
     return val, number_words
 
