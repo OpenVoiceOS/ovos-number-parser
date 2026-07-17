@@ -736,7 +736,7 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
                 break
             prev_val = val
 
-            if word in multiplies and next_word not in multiplies:
+            if word in multiplies:
                 # handle long numbers
                 # six hundred sixty six
                 # two million five hundred thousand
@@ -848,6 +848,15 @@ def extract_number_cs(text, short_scale=True, ordinals=False):
     handles pronunciations in long scale and short scale
 
     https://en.wikipedia.org/wiki/Names_of_large_numbers
+
+    Numeral structure follows the Internetová jazyková příručka of the
+    Ústav pro jazyk český AV ČR (§791, "Členění čísel, víceslovné číslovkové
+    výrazy"): a spelled-out number splits into groups written as separate
+    words (tisíc devět set sedmdesát dva), where million groups multiply the
+    group before them and the thousand and hundred groups form their own
+    additive portions. Each such group is set aside and summed independently,
+    so a millions group followed by a hundred-thousands group accumulates
+    correctly.
 
     Args:
         text (str): the string to normalize
@@ -1054,6 +1063,10 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
     Convert a number to it's spoken equivalent
 
     For example, '5.2' would return 'five point two'
+
+    Word forms follow the Internetová jazyková příručka of the Ústav pro jazyk
+    český AV ČR (§791): each numeral group is spoken as separate words, so the
+    output round-trips through extract_number_cs.
 
     Args:
         num(float or int): the number to pronounce (under 100)
