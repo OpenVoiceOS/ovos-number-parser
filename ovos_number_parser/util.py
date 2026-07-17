@@ -552,11 +552,20 @@ class RomanceNumberExtractor:
             fraction = self.is_fractional(token)
             if fraction is not False:
                 saw_number = True
-                if token in plural_fractions:
-                    result += (current or 1) * fraction
+                next_token = tokens[i + 1] if i + 1 < len(tokens) else None
+                next_val = numbers_map.get(next_token) if next_token else None
+                if token not in plural_fractions and next_val is not None \
+                        and next_val >= 1000:
+                    # a singular fraction before a scale word multiplies that
+                    # scale ("meio milhão" = 500000, "medio millón" = 500000),
+                    # so leave it pending for the scale branch to multiply
+                    current += fraction
                 else:
-                    result += current + fraction
-                current = 0
+                    if token in plural_fractions:
+                        result += (current or 1) * fraction
+                    else:
+                        result += current + fraction
+                    current = 0
                 i += 1
                 continue
 

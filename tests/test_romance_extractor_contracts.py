@@ -70,5 +70,38 @@ class TestNonStringInput(unittest.TestCase):
         self.assertEqual(extract_number("sete", "gl"), 7)
 
 
+class TestFractionBeforeScale(unittest.TestCase):
+    """A "half" before a scale word multiplies the scale, it does not add 0.5.
+
+    "meio milhão" is half of a million (500000), never a million and a half.
+    """
+
+    def test_half_million(self):
+        self.assertEqual(extract_number("meio milhão", "pt"), 500000)
+        self.assertEqual(extract_number("medio millón", "gl"), 500000)
+        self.assertEqual(extract_number("jumătate de milion", "ro"), 500000)
+
+    def test_half_thousand(self):
+        self.assertEqual(extract_number("meio mil", "pt"), 500)
+        self.assertEqual(extract_number("medio mil", "gl"), 500)
+        self.assertEqual(extract_number("jumătate de mie", "ro"), 500)
+
+    def test_result_never_the_scale_plus_half(self):
+        for lang, text in [("pt", "meio milhão"), ("gl", "medio millón"),
+                           ("pt", "meio mil"), ("gl", "medio mil")]:
+            val = extract_number(text, lang)
+            self.assertLess(val, 1000000, f"{lang} {text}")
+
+    def test_standalone_and_trailing_fractions_unchanged(self):
+        # a fraction not followed by a scale word keeps its additive meaning
+        self.assertEqual(extract_number("dois e meio", "pt"), 2.5)
+        self.assertEqual(extract_number("dous e medio", "gl"), 2.5)
+        # plural fractions still multiply the preceding cardinal
+        self.assertEqual(extract_number("três quartos", "pt"), 0.75)
+
+    def test_negative_half_scale(self):
+        self.assertEqual(extract_number("menos meio milhão", "pt"), -500000)
+
+
 if __name__ == "__main__":
     unittest.main()

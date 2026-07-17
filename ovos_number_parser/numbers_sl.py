@@ -396,39 +396,58 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
             else:
                 ordi_force = False
 
+            def _long_numeral(count, masculine, ordi=False):
+                # spoken numeral preceding a long-scale word, in the gender the
+                # word requires: "-jon" words (milijon) are masculine and take
+                # dva/trije, "-jarda" words (milijarda) are feminine and keep
+                # dve/tri from the plain cardinal.
+                spoken = pronounce_number_sl(count, places, True, scientific,
+                                             ordinals=ordi)
+                if masculine and not ordi:
+                    prefix = spoken.split()[0] + " " if count > 100 else ""
+                    if count % 100 == 2:
+                        spoken = prefix + digits[2][:-1] + "a"
+                    elif count % 100 == 3:
+                        spoken = prefix + digits[3] + "je"
+                return spoken
+
             for i, z in enumerate(split):
                 if not z:
                     continue
 
-                number = pronounce_number_sl(z, places, True, scientific)
-                if z > 100:
-                    add = number.split()[0] + " "
-                else:
-                    add = ""
-                if z % 100 == 2 and i >= 1:
-                    number = add + digits[2][:-1] + "a"
-                if z % 100 == 3 and i >= 1:
-                    number = add + digits[3] + "je"
+                if i == 0:
+                    # units group: a plain sub-million number
+                    res.append(pronounce_number_sl(z, places, True, scientific))
+                    continue
 
-                # strip off the comma after the thousand
-                if i:
-                    if i >= len(hundreds):
-                        return ""
-                    # plus one as we skip 'thousand'
-                    # (and 'hundred', but this is excluded by index value)
-                    hundred = _plural_hundreds(
-                        z, hundreds[i + 1], True if ordi_force else ordi and not i)
+                if i + 1 >= len(hundreds):
+                    return ""
 
-                    if z >= 1000:
-                        z //= 1000
-                        number = pronounce_number_sl(z, places, True, scientific,
-                                                     ordinals=True if ordi_force else ordi and not i)
+                # a million-group value 0..999999 carries two magnitudes: the
+                # "-jarda" tier (z // 1000, e.g. milijarda) and the "-jon" tier
+                # (z % 1000, e.g. milijon). Both must be emitted, larger first.
+                word = hundreds[i + 1]
+                high, low = divmod(z, 1000)
+                group = []
 
-                    if z == 1:
-                        number = hundred
+                if high:
+                    hundred = _plural_hundreds(high * 1000, word, ordi_force)
+                    if high == 1:
+                        group.append(hundred)
                     else:
-                        number += " " + hundred
-                res.append(number)
+                        group.append(
+                            _long_numeral(high, masculine=False,
+                                          ordi=ordi_force) + " " + hundred)
+
+                if low:
+                    hundred = _plural_hundreds(low, word, ordi_force)
+                    if low == 1:
+                        group.append(hundred)
+                    else:
+                        group.append(
+                            _long_numeral(low, masculine=True) + " " + hundred)
+
+                res.append(" ".join(group))
             return " ".join(reversed(res))
 
         if short_scale:
