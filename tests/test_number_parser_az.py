@@ -260,5 +260,37 @@ class TestAzerbaijaniRoundTripSweep(unittest.TestCase):
                 self.assertEqual(extract_number_az(spoken), number)
 
 
+class TestAzerbaijaniScaleAccumulation(unittest.TestCase):
+    """Millions combined with thousands must accumulate correctly.
+
+    Anchored on standard Azerbaijani cardinal structure (yüz, min, milyon as
+    separate words; "Say (dilçilik)", az.wikipedia).
+    """
+
+    def test_million_plus_thousands_anchor(self):
+        spoken = pronounce_number_az(8186976)
+        self.assertEqual(extract_number_az(spoken), 8186976)
+
+    def test_million_thousand_hundred_round_trip(self):
+        for number in [1000976, 1100000, 1200000, 1500000, 8186976,
+                       2500000, 8100000, 9999999, 10000000, 1186976]:
+            with self.subTest(number=number):
+                spoken = pronounce_number_az(number)
+                self.assertEqual(extract_number_az(spoken), number)
+
+    def test_negative_scale_round_trip(self):
+        for number in [-9997, -104979, -1500000, -8186976, -1000976]:
+            with self.subTest(number=number):
+                spoken = pronounce_number_az(number)
+                self.assertEqual(extract_number_az(spoken), number)
+
+    def test_property_round_trip_both_signs(self):
+        for base in range(0, 10000001, 5417):
+            for number in (base, -base):
+                spoken = pronounce_number_az(number)
+                self.assertEqual(extract_number_az(spoken), number,
+                                 msg=f"round-trip failed for {number}: {spoken!r}")
+
+
 if __name__ == "__main__":
     unittest.main()
