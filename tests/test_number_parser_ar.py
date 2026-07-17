@@ -3,6 +3,11 @@ import unittest
 from ovos_number_parser import (extract_number, pronounce_number,
                                 pronounce_ordinal, pronounce_fraction,
                                 is_fractional, is_ordinal, numbers_to_digits)
+from ovos_number_parser.numbers_ar import extract_numbers_ar
+
+
+def extract_number_ar(text, ordinals=False):
+    return extract_number(text, lang="ar", ordinals=ordinals)
 
 
 class TestArabicPronounce(unittest.TestCase):
@@ -147,6 +152,71 @@ class TestArabicExtract(unittest.TestCase):
         self.assertEqual(
             numbers_to_digits("لدي خمسة وعشرون قطة", lang="ar"),
             "لدي 25 قطة")
+
+    def test_extract_dual_nouns(self):
+        # the dual of common counting nouns carries the value 2 lexically
+        for spoken in ["يومين", "يومان", "ساعتين", "ساعتان", "دقيقتين",
+                       "دقيقتان", "ثانيتين", "أسبوعين", "شهرين", "سنتين",
+                       "عامين", "ليلتين", "مرتين", "مرتان", "اثنتين",
+                       "ريالين", "دولارين", "درهمين", "جنيهين"]:
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number_ar(spoken), 2)
+
+    def test_extract_dual_in_context(self):
+        # timer / duration phrasing
+        self.assertEqual(extract_number_ar("اضبط مؤقت لمدة ساعتين"), 2)
+        self.assertEqual(extract_number_ar("بعد يومين"), 2)
+        self.assertAlmostEqual(extract_number_ar("ساعتين ونصف"), 2.5)
+        self.assertEqual(extract_number_ar("سالب ساعتين"), -2)
+
+    def test_definite_article_on_cardinals(self):
+        # the ال- article is tolerated on cardinals
+        self.assertEqual(extract_number_ar("الخمسة"), 5)
+        self.assertEqual(extract_number_ar("العشرون"), 20)
+        self.assertEqual(extract_number_ar("المئة"), 100)
+        self.assertEqual(extract_number_ar("الألف"), 1000)
+        self.assertEqual(extract_number_ar("الثلاثة والعشرون"), 23)
+
+    def test_consecutive_units_are_separate_numbers(self):
+        # two units cannot combine into one Arabic number: they are a list
+        self.assertEqual(extract_numbers_ar("ثلاثة وخمسة وسبعة"), [3, 5, 7])
+        self.assertEqual(extract_numbers_ar("واحد واثنان"), [1, 2])
+        self.assertEqual(extract_numbers_ar("خمسة ثلاثة"), [5, 3])
+        self.assertEqual(
+            extract_numbers_ar("عندي ثلاثة كتب وخمسة أقلام"), [3, 5])
+
+    def test_connector_compounds(self):
+        expected = {121: "مئة وواحد وعشرون",
+                    123: "مئة وثلاثة وعشرون",
+                    111: "مئة وأحد عشر",
+                    225: "مئتان وخمسة وعشرون",
+                    250: "مئتين وخمسين",
+                    1200: "ألف ومئتان",
+                    1994: "ألف وتسعمئة وأربعة وتسعون",
+                    2024: "ألفان وأربعة وعشرون",
+                    5300: "خمسة آلاف وثلاثمئة",
+                    123456: "مئة وثلاثة وعشرون ألف وأربعمئة وستة وخمسون",
+                    1001000000: "مليار ومليون"}
+        for number, spoken in expected.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number_ar(spoken), number)
+
+    def test_extract_diacritized(self):
+        # fully / partially voweled input parses like the bare form
+        self.assertEqual(extract_number_ar("ثَلاثة"), 3)
+        self.assertEqual(extract_number_ar("وَاحِد"), 1)
+        self.assertEqual(extract_number_ar("ثَمَانِيَة"), 8)
+
+    def test_extract_hundreds_variants(self):
+        expected = [(700, "سبعمئة"), (800, "ثمانمئة"), (800, "ثمانمائة"),
+                    (999, "تسعمائة وتسعة وتسعون"), (300, "ثلاث مئة")]
+        for number, spoken in expected:
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number_ar(spoken), number)
+
+    def test_extract_mixed_digit_systems(self):
+        self.assertEqual(extract_number_ar("٢5"), 25)
+        self.assertEqual(extract_numbers_ar("لدي ٥ و 3"), [5, 3])
 
 
 class TestArabicRoundTrip(unittest.TestCase):
