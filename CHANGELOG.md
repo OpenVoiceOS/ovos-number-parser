@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.3a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.2a2...0.18.3a1)
+
+**Merged pull requests:**
+
+- fix: emit milijon remainder in Slovene long-scale numbers [\#121](https://github.com/OpenVoiceOS/ovos-number-parser/pull/121) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.18.2a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.2a2) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.2a1...0.18.2a2)
@@ -416,10 +424,6 @@
 ## [0.1.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.1.0a1) (2025-02-26)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.0.2...0.1.0a1)
-
-**Merged pull requests:**
-
-- Release 0.1.0a1 [\#12](https://github.com/OpenVoiceOS/ovos-number-parser/pull/12) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [0.0.2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.0.2) (2024-11-13)
 
