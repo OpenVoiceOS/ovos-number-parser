@@ -611,6 +611,9 @@ def extract_number(text: str, lang: str,
         (int, float or False): The number extracted or False if the input
                                text contains no numbers
     """
+    if not isinstance(text, str):
+        # non-string input carries no number to extract
+        return False
     scale = scale or Scale.SHORT
     if short_scale is not None:
         # TODO log warning
@@ -718,6 +721,9 @@ def is_fractional(input_str: str, lang: str,
     Returns:
         (bool) or (float): False if not a fraction, otherwise the fraction
     """
+    if not isinstance(input_str, str):
+        # non-string input cannot be a fraction
+        return False
     scale = scale or Scale.SHORT
     if short_scale is not None:
         # TODO log warning
