@@ -618,5 +618,144 @@ class TestIntegrationScenarios(unittest.TestCase):
 
         self.assertEqual(PT_BR.extract_number("menos cinco"), -5)
 
+class TestGenderedForms(unittest.TestCase):
+    """Portuguese cardinals that inflect for grammatical gender."""
+
+    def test_extract_feminine_units(self):
+        self.assertEqual(PT_PT.extract_number("duas"), 2)
+        self.assertEqual(PT_PT.extract_number("uma"), 1)
+
+    def test_extract_feminine_hundreds(self):
+        self.assertEqual(PT_PT.extract_number("duzentas"), 200)
+        self.assertEqual(PT_PT.extract_number("trezentas"), 300)
+        self.assertEqual(PT_PT.extract_number("quinhentas"), 500)
+
+    def test_extract_feminine_compound(self):
+        self.assertEqual(PT_PT.extract_number("duzentas e uma"), 201)
+        self.assertEqual(PT_PT.extract_number("vinte e uma"), 21)
+        self.assertEqual(PT_PT.extract_number("trezentas e trinta e três"), 333)
+
+    def test_pronounce_feminine(self):
+        from ovos_number_parser.util import GrammaticalGender
+        self.assertEqual(PT_PT.pronounce_number(2, gender=GrammaticalGender.FEMININE),
+                         "duas")
+        self.assertEqual(PT_PT.pronounce_number(200, gender=GrammaticalGender.FEMININE),
+                         "duzentas")
+        self.assertEqual(PT_PT.pronounce_number(21, gender=GrammaticalGender.FEMININE),
+                         "vinte e uma")
+
+
+class TestJoinerAndHundreds(unittest.TestCase):
+    """'e' joiners, cem vs cento, and thousands composition."""
+
+    def test_cem_vs_cento(self):
+        self.assertEqual(PT_PT.extract_number("cem"), 100)
+        self.assertEqual(PT_PT.extract_number("cento"), 100)
+        self.assertEqual(PT_PT.extract_number("cento e cinquenta"), 150)
+        self.assertEqual(PT_PT.pronounce_number(100), "cem")
+        self.assertEqual(PT_PT.pronounce_number(150), "cento e cinquenta")
+
+    def test_mil_composition(self):
+        self.assertEqual(PT_PT.extract_number("mil"), 1000)
+        self.assertEqual(PT_PT.extract_number("mil e um"), 1001)
+        self.assertEqual(PT_PT.extract_number("mil quinhentos e quarenta e dois"), 1542)
+
+    def test_millions_and_remainder(self):
+        self.assertEqual(
+            PT_PT.extract_number("dois milhões e quinhentos", scale=Scale.SHORT),
+            2000500)
+        self.assertEqual(
+            PT_BR.extract_number("duzentos milhões", scale=Scale.SHORT),
+            200000000)
+
+
+class TestRoundTripSweep(unittest.TestCase):
+    """Large round-trip sweeps across variants and scales."""
+
+    def test_integer_sweep_both_variants(self):
+        cases = list(range(0, 201)) + list(range(200, 2001, 13)) + \
+            [10000, 12345, 100000, 999999, 1000000]
+        for variant in (PT_PT, PT_BR):
+            for n in cases:
+                text = variant.pronounce_number(n)
+                self.assertEqual(variant.extract_number(text), n,
+                                 f"{variant.vocab.LANG}: {n} -> {text!r}")
+
+    def test_negative_sweep(self):
+        for n in (-1, -16, -100, -234, -1000, -1234567):
+            text = PT_PT.pronounce_number(n)
+            self.assertTrue(text.startswith("menos"))
+            self.assertEqual(PT_PT.extract_number(text), n)
+
+    def test_large_scale_round_trip(self):
+        for n in (1000000, 1000000000, 1000000000000):
+            for scale in (Scale.SHORT, Scale.LONG):
+                for variant in (PT_PT, PT_BR):
+                    text = variant.pronounce_number(n, scale=scale)
+                    self.assertEqual(variant.extract_number(text, scale=scale), n)
+
+
+class TestAdversarialNumberInputs(unittest.TestCase):
+    """Malformed and boundary inputs."""
+
+    def test_none_raises_predictably(self):
+        # None is not a valid string input
+        for fn in (PT_PT.extract_number, PT_PT.is_fractional):
+            with self.assertRaises(AttributeError):
+                fn(None)
+
+    def test_pronounce_rejects_non_numbers(self):
+        for bad in ("not a number", None, [1, 2]):
+            with self.assertRaises(TypeError):
+                PT_PT.pronounce_number(bad)
+
+    def test_junk_returns_false(self):
+        for junk in ("", "   ", "xyz", "palavra qualquer", "###", "42abc"):
+            self.assertFalse(PT_PT.extract_number(junk))
+
+    def test_zero_and_negative_zero(self):
+        self.assertEqual(PT_PT.extract_number("zero"), 0)
+        self.assertEqual(PT_PT.extract_number("menos zero"), 0)
+
+    def test_numbers_to_digits_preserves_non_numbers(self):
+        self.assertEqual(PT_PT.numbers_to_digits("nada de números aqui"),
+                         "nada de números aqui")
+
+    def test_case_and_hyphen_insensitivity(self):
+        self.assertEqual(PT_BR.extract_number("VINTE e UM"), 21)
+        self.assertEqual(PT_BR.extract_number("vinte-e-um"), 21)
+
+
+class TestRealSentences(unittest.TestCase):
+    """Numbers embedded in natural sentences."""
+
+    def test_extract_from_sentence(self):
+        self.assertEqual(PT_PT.extract_number("comprei vinte e cinco maçãs"), 25)
+        self.assertEqual(PT_BR.extract_number("há duzentos e cinquenta carros"), 250)
+
+    def test_numbers_to_digits_in_sentence(self):
+        self.assertEqual(PT_PT.numbers_to_digits("tenho vinte e um anos"),
+                         "tenho 21 anos")
+        result = PT_BR.numbers_to_digits("comprei dezesseis livros")
+        self.assertIn("16", result)
+
+    def test_fractions_in_speech(self):
+        self.assertAlmostEqual(PT_PT.extract_number("dois e meio"), 2.5, places=5)
+        self.assertAlmostEqual(PT_PT.extract_number("três quartos"), 0.75, places=5)
+        self.assertAlmostEqual(PT_PT.extract_number("dois terços"), 2.0 / 3, places=5)
+
+    def test_ordinals_in_sentence(self):
+        self.assertEqual(PT_PT.extract_number("o segundo carro", ordinals=True), 2)
+        self.assertEqual(PT_PT.extract_number("primeiro lugar", ordinals=True), 1)
+
+    def test_variant_regionalisms(self):
+        # each variant understands its own teens spelling
+        self.assertEqual(PT_BR.extract_number("dezesseis"), 16)
+        self.assertEqual(PT_PT.extract_number("dezasseis"), 16)
+        # and cross-variant spellings are still accepted via ALT_SPELLINGS
+        self.assertEqual(PT_BR.extract_number("dezasseis"), 16)
+        self.assertEqual(PT_PT.extract_number("dezesseis"), 16)
+
+
 if __name__ == '__main__':
     unittest.main()
