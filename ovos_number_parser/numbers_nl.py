@@ -935,6 +935,11 @@ def _compound_value_nl(parts, short_scale=True):
     """Evaluate the numeric value of a split compound number word."""
     scale = _SHORT_SCALE_NL if short_scale else _LONG_SCALE_NL
     string_scale = invert_dict(scale)
+    # "tweeëneenhalf" == "twee en een half" == 2.5: the "een" before "half"
+    # is the article "a", not an extra unit to add
+    parts = [p for i, p in enumerate(parts)
+             if not (p == "een" and i + 1 < len(parts)
+                     and parts[i + 1] == "half")]
     total = current = 0
     for p in parts:
         if p == "en":
