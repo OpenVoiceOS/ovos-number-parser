@@ -36,6 +36,34 @@ class TestHungarianEdges(unittest.TestCase):
         self.assertEqual(pronounce_number_hu(5.2), "öt egész húsz század")
         self.assertEqual(pronounce_number_hu(5.2, places=1), "öt egész két tized")
 
+    def test_scale_group_of_one_is_hyphenated(self):
+        # above 2000 Hungarian hyphenates at every thousand-group boundary,
+        # including when a million/billion group is exactly one
+        cases = [
+            (1000001, "egymillió-egy"),
+            (1000100, "egymillió-száz"),
+            (1234567, "egymillió-kétszázharmincnégyezer-ötszázhatvanhét"),
+            (1001000, "egymillió-egyezer"),
+            (2001001, "kétmillió-egyezer-egy"),
+            (1000000001, "egymilliárd-egy"),
+            (1001000000, "egymilliárd-egymillió"),
+        ]
+        for n, expected in cases:
+            self.assertEqual(pronounce_number_hu(n), expected, n)
+
+    def test_scale_group_of_one_still_bare_when_standalone(self):
+        # a bare thousand/million group keeps no trailing hyphen or "egy"
+        self.assertEqual(pronounce_number_hu(1000), "ezer")
+        self.assertEqual(pronounce_number_hu(1500), "ezerötszáz")
+        self.assertEqual(pronounce_number_hu(1000000), "egymillió")
+        self.assertEqual(pronounce_number_hu(1000000000), "egymilliárd")
+
+    def test_large_number_round_trip(self):
+        from ovos_number_parser.numbers_hu import extract_number_hu
+        for n in (1000001, 1001000, 1234567, 2001001, 1000000001,
+                  1001000000):
+            self.assertEqual(extract_number_hu(pronounce_number_hu(n)), n, n)
+
     def test_pronounce_ordinal_large(self):
         from ovos_number_parser.numbers_hu import pronounce_ordinal_hu
         self.assertEqual(pronounce_ordinal_hu(1000), "ezredik")
