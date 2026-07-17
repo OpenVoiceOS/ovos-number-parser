@@ -1,6 +1,6 @@
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser import extract_number, pronounce_number, is_fractional
 
 
 class TestCatalanPronounce(unittest.TestCase):
@@ -56,6 +56,28 @@ class TestCatalanRoundTrip(unittest.TestCase):
             with self.subTest(number=number):
                 spoken = pronounce_number(number, lang="ca")
                 self.assertEqual(extract_number(spoken, lang="ca"), number)
+
+
+class TestCatalanFractions(unittest.TestCase):
+    """Catalan fraction nouns, gendered/plural and capitalized forms."""
+
+    def test_basic_and_inflected(self):
+        self.assertEqual(is_fractional("mig", lang="ca"), 0.5)
+        self.assertEqual(is_fractional("mitja", lang="ca"), 0.5)
+        self.assertEqual(is_fractional("terç", lang="ca"), 1.0 / 3)
+        self.assertEqual(is_fractional("quart", lang="ca"), 0.25)
+        self.assertEqual(is_fractional("quarta", lang="ca"), 0.25)
+        self.assertEqual(is_fractional("centè", lang="ca"), 0.01)
+
+    def test_capitalized_input_does_not_crash(self):
+        self.assertEqual(is_fractional("Mig", lang="ca"), 0.5)
+        self.assertEqual(is_fractional("QUART", lang="ca"), 0.25)
+        self.assertEqual(is_fractional("Centè", lang="ca"), 0.01)
+
+    def test_non_fraction_returns_false(self):
+        for word in ["", "hola", "cinc"]:
+            with self.subTest(word=word):
+                self.assertFalse(is_fractional(word, lang="ca"))
 
 
 if __name__ == "__main__":
