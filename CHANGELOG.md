@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.18.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.4a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.3a1...0.18.4a1)
+
+**Merged pull requests:**
+
+- fix: index English scale words by place value for large ordinals [\#126](https://github.com/OpenVoiceOS/ovos-number-parser/pull/126) ([JarbasAl](https://github.com/JarbasAl))
+- fix: correct Swedish ordinal pronunciation [\#124](https://github.com/OpenVoiceOS/ovos-number-parser/pull/124) ([JarbasAl](https://github.com/JarbasAl))
+- fix: multiply the scale when a fraction precedes it in Romance numbers [\#122](https://github.com/OpenVoiceOS/ovos-number-parser/pull/122) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.18.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.3a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.2a2...0.18.3a1)
+
+**Merged pull requests:**
+
+- fix: emit milijon remainder in Slovene long-scale numbers [\#121](https://github.com/OpenVoiceOS/ovos-number-parser/pull/121) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.18.2a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.2a2) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.2a1...0.18.2a2)
@@ -393,33 +411,17 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.1.0...0.2.0a1)
 
-**Merged pull requests:**
-
-- feat: fallback parser [\#15](https://github.com/OpenVoiceOS/ovos-number-parser/pull/15) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.1.0](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.1.0) (2025-02-26)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.1.0a2...0.1.0)
-
-**Merged pull requests:**
-
-- Release 0.1.0a2 [\#14](https://github.com/OpenVoiceOS/ovos-number-parser/pull/14) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [0.1.0a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.1.0a2) (2025-02-26)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.1.0a1...0.1.0a2)
 
-**Merged pull requests:**
-
-- chore:downstream\_report [\#13](https://github.com/OpenVoiceOS/ovos-number-parser/pull/13) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.1.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.1.0a1) (2025-02-26)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.0.2...0.1.0a1)
-
-**Merged pull requests:**
-
-- Release 0.1.0a1 [\#12](https://github.com/OpenVoiceOS/ovos-number-parser/pull/12) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [0.0.2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.0.2) (2024-11-13)
 

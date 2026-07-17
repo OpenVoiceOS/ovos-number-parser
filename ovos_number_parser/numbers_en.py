@@ -453,11 +453,11 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
                     number += " "
                     if ordi:
 
-                        if i * 1000 in _SHORT_ORDINAL_EN:
+                        if 1000 ** i in _SHORT_ORDINAL_EN:
                             if z == 1:
-                                number = _SHORT_ORDINAL_EN[i * 1000]
+                                number = _SHORT_ORDINAL_EN[1000 ** i]
                             else:
-                                number += _SHORT_ORDINAL_EN[i * 1000]
+                                number += _SHORT_ORDINAL_EN[1000 ** i]
                         else:
                             if n not in _SHORT_SCALE_EN:
                                 num = int("1" + "0" * (len(str(n)) - 2))
@@ -503,13 +503,11 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
                     number = number.replace(',', '')
 
                     if ordi:
-                        if i * 1000000 in _LONG_ORDINAL_EN:
+                        if 1000000 ** i in _LONG_ORDINAL_EN:
                             if z == 1:
-                                number = _LONG_ORDINAL_EN[
-                                    (i + 1) * 1000000]
+                                number = _LONG_ORDINAL_EN[1000000 ** i]
                             else:
-                                number += _LONG_ORDINAL_EN[
-                                    (i + 1) * 1000000]
+                                number += " " + _LONG_ORDINAL_EN[1000000 ** i]
                         else:
                             if n not in _LONG_SCALE_EN:
                                 num = int("1" + "0" * (len(str(n)) - 2))

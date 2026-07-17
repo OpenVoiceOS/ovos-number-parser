@@ -82,6 +82,41 @@ _FRACTION_STRING_SV = {
     20: 'tjugondel'
 }
 
+_ORDINAL_STRING_SV = {
+    0: 'nollte',
+    1: 'första',
+    2: 'andra',
+    3: 'tredje',
+    4: 'fjärde',
+    5: 'femte',
+    6: 'sjätte',
+    7: 'sjunde',
+    8: 'åttonde',
+    9: 'nionde',
+    10: 'tionde',
+    11: 'elfte',
+    12: 'tolfte',
+    13: 'trettonde',
+    14: 'fjortonde',
+    15: 'femtonde',
+    16: 'sextonde',
+    17: 'sjuttonde',
+    18: 'artonde',
+    19: 'nittonde',
+    20: 'tjugonde',
+    30: 'trettionde',
+    40: 'fyrtionde',
+    50: 'femtionde',
+    60: 'sextionde',
+    70: 'sjuttionde',
+    80: 'åttionde',
+    90: 'nittionde',
+    100: 'hundrade',
+    1000: 'tusende',
+    1000000: 'miljonte',
+    1000000000: 'miljardte'
+}
+
 _EXTRA_SPACE_SV = " "
 
 
@@ -260,31 +295,55 @@ def pronounce_ordinal_sv(number):
         (str): The pronounced number string.
     """
 
-    # ordinals for 1, 3, 7 and 8 are irregular
-    # this produces the base form, it will have to be adapted for genus,
-    # casus, numerus
-
-    ordinals = ["noll", "första", "andra", "tredje", "fjärde", "femte",
-                "sjätte", "sjunde", "åttonde", "nionde", "tionde"]
-
-    tens = int(floor(number / 10.0)) * 10
-    ones = number % 10
+    # In Swedish only the final element of a compound is inflected as an
+    # ordinal; the preceding magnitude words stay in their cardinal form
+    # (121 -> "hundratjugoförsta"). This produces the base (uter) form, which
+    # may need adaption for genus, kasus and numerus.
 
     if number < 0 or number != int(number):
         return number
-    if number == 0:
-        return ordinals[number]
+    number = int(number)
 
-    result = ""
-    if number > 10:
-        result += pronounce_number_sv(tens).rstrip()
+    if number in _ORDINAL_STRING_SV:
+        return _ORDINAL_STRING_SV[number]
 
-    if ones > 0:
-        result += ordinals[ones]
-    else:
-        result += 'de'
+    if number < 100:
+        tens = number // 10 * 10
+        ones = number % 10
+        return _NUM_STRING_SV[tens] + _ORDINAL_STRING_SV[ones]
 
-    return result
+    if number < 1000:
+        hundreds = number // 100
+        rem = number % 100
+        prefix = 'hundra' if hundreds == 1 \
+            else _NUM_STRING_SV[hundreds] + 'hundra'
+        if rem == 0:
+            return prefix + 'de'
+        return prefix + pronounce_ordinal_sv(rem)
+
+    if number < 1000000:
+        thousands = number // 1000
+        rem = number % 1000
+        prefix = 'tusen' if thousands == 1 \
+            else pronounce_number_sv(thousands).replace(' ', '') + 'tusen'
+        if rem == 0:
+            return prefix + 'de'
+        return prefix + pronounce_ordinal_sv(rem)
+
+    if number < 1000000000000:
+        scale = 1000000000 if number >= 1000000000 else 1000000
+        word = 'miljard' if scale == 1000000000 else 'miljon'
+        count = number // scale
+        rem = number % scale
+        if rem == 0:
+            prefix = word if count == 1 \
+                else pronounce_number_sv(count).replace(' ', '') + word
+            return prefix + 'te'
+        # magnitude word stays cardinal; only the remainder is the ordinal
+        return pronounce_number_sv(number - rem).strip() + ' ' \
+            + pronounce_ordinal_sv(rem)
+
+    return str(number)
 
 
 def _find_numbers_in_text(tokens):
