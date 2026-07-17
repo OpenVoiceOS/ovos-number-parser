@@ -1,3 +1,4 @@
+import math
 from collections import OrderedDict
 from typing import List
 
@@ -237,6 +238,38 @@ _SHORT_SCALE_ES = OrderedDict([
     (1e3003, "millinillones")
 ])
 
+def _es_scale_words(short_scale):
+    """Map large-magnitude Spanish scale words to their numeric value.
+
+    Spain and most Spanish-speaking regions use the *long scale*, where
+    ``billón`` is 10^12 (a million millions) and ``millardo`` is 10^9, in
+    contrast to the English short scale where "billion" is 10^9.
+    See https://en.wikipedia.org/wiki/Long_and_short_scales.
+
+    Both the plural forms listed in the pronunciation tables (``billones``)
+    and their singular counterparts (``billón``) are included so extraction
+    round-trips with :func:`pronounce_number_es`.
+    """
+    table = _SHORT_SCALE_ES if short_scale else _LONG_SCALE_ES
+    words = {}
+    for magnitude, plural in table.items():
+        if not math.isfinite(magnitude):
+            # magnitudes beyond float range (1e309+) cannot be represented
+            continue
+        magnitude = int(magnitude)
+        if magnitude < 1000000:
+            # "cien"/"mil" are handled by the base number vocabulary
+            continue
+        words[plural] = magnitude
+        # derive the singular: "billones" -> "billón", "millardos" -> "millardo"
+        if plural.endswith("ones"):
+            words[plural[:-4] + "ón"] = magnitude
+            words[plural[:-4] + "on"] = magnitude  # unaccented variant
+        elif plural.endswith("s"):
+            words[plural[:-1]] = magnitude
+    return words
+
+
 # TODO: female forms.
 _ORDINAL_STRING_BASE_ES = {
     1: 'primero',
@@ -340,21 +373,29 @@ def extract_number_es(text, short_scale=True, ordinals=False):
     """
     This function prepares the given text for parsing by making
     numbers consistent, getting rid of contractions, etc.
+
+    Large-magnitude words follow the requested scale. Spanish (Spain and
+    most of Latin America) conventionally uses the *long scale*, in which
+    ``billón`` is 10^12 and ``millardo`` is 10^9, whereas the short scale
+    reads ``billón`` as 10^9. See
+    https://en.wikipedia.org/wiki/Long_and_short_scales.
+
     Args:
         text (str): the string to normalize
+        short_scale (bool): interpret ``billón`` and larger words on the
+            short scale (10^9) when True, long scale (10^12) when False.
     Returns:
         (int) or (float): The value of extracted number
 
     """
-    # TODO: short_scale and ordinals don't do anything here.
-    # The parameters are present in the function signature for API compatibility
-    # reasons.
+    # TODO: ordinals don't do anything here.
     #
     # Returns incorrect output on certain fractional phrases like, "cuarto de dos"
     #  TODO: numbers greater than 999999
     if not text:
         return False
     aWords = text.lower().split()
+    scale_words = _es_scale_words(short_scale)
     negative = False
     while aWords and aWords[0] in ['menos']:
         negative = True
@@ -381,7 +422,9 @@ def extract_number_es(text, short_scale=True, ordinals=False):
             next_word = None
 
         # is current word a number?
-        if word in _STRING_NUM_ES:
+        if word in scale_words:
+            val = scale_words[word]
+        elif word in _STRING_NUM_ES:
             val = _STRING_NUM_ES[word]
         elif word.isdigit():  # doesn't work with decimals
             val = int(word)
@@ -802,7 +845,13 @@ def pronounce_number_es(number, places=2, short_scale=False):
             result += "cero"
         result += " coma"
         _num_str = str(number)
-        _num_str = _num_str.split(".")[1][0:places]
+        if "." in _num_str:
+            _num_str = _num_str.split(".")[1][0:places]
+        else:
+            # tiny/large floats stringify in scientific notation ("1e-09"),
+            # which has no decimal point to split on; expand to fixed notation
+            _num_str = "{:.{places}f}".format(number, places=places
+                                              ).split(".")[1][0:places]
         for char in _num_str:
             result += " " + _NUM_STRING_ES[int(char)]
     return result

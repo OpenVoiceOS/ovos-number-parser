@@ -1,6 +1,7 @@
 import unittest
 
 from ovos_number_parser import extract_number, pronounce_number, is_fractional
+from ovos_number_parser.util import Scale
 
 
 class TestSpanishPronounce(unittest.TestCase):
@@ -179,6 +180,78 @@ class TestSpanishFractions(unittest.TestCase):
         for word in ["", "hola", "cinco"]:
             with self.subTest(word=word):
                 self.assertFalse(is_fractional(word, lang="es"))
+
+
+class TestSpanishLongScale(unittest.TestCase):
+    """Spanish is a long-scale language: billón = 10^12, millardo = 10^9.
+
+    See https://en.wikipedia.org/wiki/Long_and_short_scales.
+    """
+
+    def test_long_scale_words_extract(self):
+        cases = {
+            "un millón": 10 ** 6,
+            "un millardo": 10 ** 9,
+            "un billón": 10 ** 12,
+            "dos billones": 2 * 10 ** 12,
+            "tres billones": 3 * 10 ** 12,
+        }
+        for spoken, value in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(
+                    extract_number(spoken, lang="es", scale=Scale.LONG), value)
+
+    def test_short_scale_billon_is_1e9(self):
+        # under the short scale, "billón" means 10^9, not 10^12
+        self.assertEqual(
+            extract_number("un billón", lang="es", scale=Scale.SHORT), 10 ** 9)
+
+    def test_pronounce_to_extract_roundtrip_long(self):
+        for magnitude in (10 ** 6, 10 ** 9, 10 ** 12):
+            with self.subTest(magnitude=magnitude):
+                spoken = pronounce_number(magnitude, lang="es", scale=Scale.LONG)
+                self.assertEqual(
+                    extract_number(spoken, lang="es", scale=Scale.LONG),
+                    magnitude, spoken)
+
+    def test_extract_to_pronounce_roundtrip_long(self):
+        for spoken in ("un millón", "un millardo", "un billón"):
+            with self.subTest(spoken=spoken):
+                value = extract_number(spoken, lang="es", scale=Scale.LONG)
+                self.assertEqual(
+                    pronounce_number(value, lang="es", scale=Scale.LONG), spoken)
+
+    def test_scale_default_short_still_reads_million(self):
+        # unrelated smaller magnitudes must not regress on either scale
+        for scale in (Scale.SHORT, Scale.LONG):
+            with self.subTest(scale=scale):
+                self.assertEqual(
+                    extract_number("un millón", lang="es", scale=scale), 10 ** 6)
+
+    def test_boundary_billon_not_confused_with_millardo(self):
+        # long scale: millardo (10^9) and billón (10^12) are distinct
+        self.assertNotEqual(
+            extract_number("un millardo", lang="es", scale=Scale.LONG),
+            extract_number("un billón", lang="es", scale=Scale.LONG))
+
+    def test_bare_scale_word_without_multiplier(self):
+        # "billón" with no leading unit implies one
+        self.assertEqual(
+            extract_number("billón", lang="es", scale=Scale.LONG), 10 ** 12)
+
+
+class TestSpanishTinyFloatNoCrash(unittest.TestCase):
+    """Scientific-notation floats must not raise when pronounced."""
+
+    def test_tiny_float_does_not_crash(self):
+        for number in (1e-9, -1e-9, 1e-12, 1e20):
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="es")
+                self.assertIsInstance(spoken, str)
+                self.assertTrue(spoken)
+
+    def test_ordinary_decimal_unregressed(self):
+        self.assertEqual(pronounce_number(5.2, lang="es"), "cinco coma dos")
 
 
 if __name__ == "__main__":
