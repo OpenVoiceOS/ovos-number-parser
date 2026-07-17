@@ -1039,7 +1039,7 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
         # пара сотень, три пари пива
         if prev_word in ['пара', 'пари', 'парою', 'парами'] and current_val != 1000.0:
             val = val * 2
-        if prev_val in _STRING_NUM_UK.values() and current_val == 100:
+        if prev_val and prev_val in _STRING_NUM_UK.values() and current_val == 100:
             val = prev_val * current_val
 
         # half cup
