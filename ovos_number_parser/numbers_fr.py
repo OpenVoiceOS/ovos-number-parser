@@ -45,7 +45,9 @@ _NUMBERS_FR = {
     "million": 1000000,
     "millions": 1000000,
     "milliard": 1000000000,
-    "milliards": 1000000000}
+    "milliards": 1000000000,
+    "billion": 1000000000000,
+    "billions": 1000000000000}
 
 _ORDINAL_ENDINGS_FR = ("er", "re", "ère", "nd", "nde", "ième", "ème", "e")
 
@@ -187,7 +189,14 @@ def _pronounce_sub_thousand_fr(n):
 
 
 def _pronounce_whole_number_fr(n):
-    """Spoken form of any whole number below 10^12."""
+    """Spoken form of any whole number below 10^15.
+
+    French uses the long scale, where each new named magnitude is 10^6
+    times the previous one: million = 10^6, milliard = 10^9,
+    billion = 10^12 (see Wikipedia, "Long and short scales",
+    https://en.wikipedia.org/wiki/Long_and_short_scales). This differs
+    from the short scale where "billion" means 10^9.
+    """
     assert n >= 0
     if n < 1000:
         return _pronounce_sub_thousand_fr(n)
@@ -205,9 +214,16 @@ def _pronounce_whole_number_fr(n):
         if rest:
             part += " " + _pronounce_whole_number_fr(rest)
         return part
-    milliards, rest = divmod(n, 10 ** 9)
-    part = "un milliard" if milliards == 1 \
-        else _pronounce_whole_number_fr(milliards) + " milliards"
+    if n < 10 ** 12:
+        milliards, rest = divmod(n, 10 ** 9)
+        part = "un milliard" if milliards == 1 \
+            else _pronounce_whole_number_fr(milliards) + " milliards"
+        if rest:
+            part += " " + _pronounce_whole_number_fr(rest)
+        return part
+    billions, rest = divmod(n, 10 ** 12)
+    part = "un billion" if billions == 1 \
+        else _pronounce_whole_number_fr(billions) + " billions"
     if rest:
         part += " " + _pronounce_whole_number_fr(rest)
     return part
@@ -230,8 +246,15 @@ def pronounce_number_fr(number, places=2):
         result = "moins "
     number = abs(number)
 
+    # Scientific-notation floats (very small or very large magnitudes) have
+    # no long-scale word form and str() renders them with an exponent, which
+    # has no "." to split for the decimal part. Return the numeric string
+    # rather than raising.
+    if number != 0 and (number >= 10 ** 15 or number < 1e-4):
+        return result + str(number)
+
     if number >= 100:
-        if number >= 10 ** 12 or int(number) != number and number >= 1000:
+        if number >= 10 ** 15 or int(number) != number and number >= 1000:
             return result + str(number)
         result += _pronounce_whole_number_fr(int(number))
         if number != int(number) and places > 0:
@@ -485,8 +508,8 @@ def _number_parse_fr(words, i):
             val1, i1 = result1
         else:
             val1, i1 = 1, i
-        # check for million(s) / milliard(s)
-        result2 = number_word_fr(i1, 1000000, 1000000000)
+        # check for million(s) / milliard(s) / billion(s)
+        result2 = number_word_fr(i1, 1000000, 1000000000000)
         if result2:
             scale, i2 = result2
             result3 = number_1_billions_fr(i2)

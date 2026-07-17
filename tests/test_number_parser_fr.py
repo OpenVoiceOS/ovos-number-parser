@@ -162,6 +162,43 @@ class TestNumberParserFr(unittest.TestCase):
         self.assertEqual(normalize_fr("le chat", remove_articles=False),
                          "le chat")
 
+    def test_long_scale_billion_words(self):
+        # French is long scale: milliard = 10^9, billion = 10^12.
+        self.assertEqual(pronounce_number_fr(10 ** 6), "un million")
+        self.assertEqual(pronounce_number_fr(10 ** 9), "un milliard")
+        self.assertEqual(pronounce_number_fr(10 ** 12), "un billion")
+        self.assertEqual(pronounce_number_fr(2 * 10 ** 12), "deux billions")
+        self.assertEqual(extract_number_fr("un billion"), 10 ** 12)
+        self.assertEqual(extract_number_fr("deux billions"), 2 * 10 ** 12)
+
+    def test_long_scale_round_trip_both_directions(self):
+        # word -> number and number -> word must agree at each magnitude.
+        for n in [10 ** 6, 10 ** 9, 10 ** 12]:
+            word = pronounce_number_fr(n)
+            self.assertEqual(extract_number_fr(word), n, n)
+        for word, n in [("un million", 10 ** 6),
+                        ("un milliard", 10 ** 9),
+                        ("un billion", 10 ** 12)]:
+            self.assertEqual(extract_number_fr(word), n, word)
+            self.assertEqual(extract_number_fr(pronounce_number_fr(n)), n, n)
+
+    def test_long_scale_mixed_magnitudes(self):
+        # Adversarial nesting: billions must combine with lower scales.
+        self.assertEqual(
+            extract_number_fr(pronounce_number_fr(10 ** 12 + 3 * 10 ** 9)),
+            10 ** 12 + 3 * 10 ** 9)
+        self.assertEqual(
+            pronounce_number_fr(10 ** 12 + 3 * 10 ** 9),
+            "un billion trois milliards")
+
+    def test_scientific_notation_does_not_crash(self):
+        # Very small / very large / scientific floats must not raise.
+        for value in [1e-9, 1e-5, 6.022e23, 1e15, -1e-9]:
+            try:
+                pronounce_number_fr(value)
+            except Exception as error:  # noqa: BLE001
+                self.fail(f"pronounce_number_fr({value!r}) raised {error!r}")
+
 
 if __name__ == "__main__":
     unittest.main()
