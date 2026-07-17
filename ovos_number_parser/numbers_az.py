@@ -209,7 +209,7 @@ def _get_ordinal_ak(word):
             return "ncı"
         return "ıncı"
 
-    if last_vowel == ["e", "ə", "i"]:
+    if last_vowel in ["e", "ə", "i"]:
         if is_last:
             return "nci"
         return "inci"
@@ -219,7 +219,7 @@ def _get_ordinal_ak(word):
             return "ncu"
         return "uncu"
 
-    if last_vowel == ["ö", "ü"]:
+    if last_vowel in ["ö", "ü"]:
         if is_last:
             return "ncü"
         return "üncü"
@@ -453,11 +453,11 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                     number += " "
                     if ordi:
 
-                        if i * 1000 in _SHORT_ORDINAL_AZ:
+                        if 1000 ** i in _SHORT_ORDINAL_AZ:
                             if z == 1:
-                                number = _SHORT_ORDINAL_AZ[i * 1000]
+                                number = _SHORT_ORDINAL_AZ[1000 ** i]
                             else:
-                                number += _SHORT_ORDINAL_AZ[i * 1000]
+                                number += _SHORT_ORDINAL_AZ[1000 ** i]
                         else:
                             if n not in _SHORT_SCALE_AZ:
                                 num = int("1" + "0" * (len(str(n)) - 2))
@@ -505,13 +505,11 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                     number = number.replace(',', '')
 
                     if ordi:
-                        if i * 1000000 in _LONG_ORDINAL_AZ:
+                        if 1000000 ** i in _LONG_ORDINAL_AZ:
                             if z == 1:
-                                number = _LONG_ORDINAL_AZ[
-                                    (i + 1) * 1000000]
+                                number = _LONG_ORDINAL_AZ[1000000 ** i]
                             else:
-                                number += _LONG_ORDINAL_AZ[
-                                    (i + 1) * 1000000]
+                                number += " " + _LONG_ORDINAL_AZ[1000000 ** i]
                         else:
                             if n not in _LONG_SCALE_AZ:
                                 num = int("1" + "0" * (len(str(n)) - 2))
