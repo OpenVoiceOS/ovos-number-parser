@@ -115,6 +115,27 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(is_ordinal_en("fifth"), 5)
         self.assertFalse(is_ordinal_en("seven"))
 
+    def test_hundred_and_units_combine(self):
+        # "X hundred and Y" is a single number: hundreds and units must fuse
+        # into one value, never split into "1 101" style fragments
+        self.assertEqual(numbers_to_digits_en("one hundred and one"), "101")
+        self.assertEqual(extract_number_en("one hundred and one"), 101)
+        cases = {
+            "two hundred and five": ("205", 205),
+            "nine hundred and ninety nine": ("999", 999),
+            "one hundred and twenty one": ("121", 121),
+            "three hundred and forty two": ("342", 342),
+            "one thousand one hundred and one": ("1101", 1101),
+        }
+        for text, (digits, value) in cases.items():
+            self.assertEqual(numbers_to_digits_en(text), digits, text)
+            self.assertEqual(extract_number_en(text), value, text)
+
+    def test_hundred_and_units_in_context(self):
+        self.assertEqual(
+            numbers_to_digits_en("it was one hundred and one degrees"),
+            "it was 101 degrees")
+
     def test_large_ordinals_short_scale(self):
         # scale words must be looked up by place value (1000**group), not by
         # group index times 1000 — otherwise groups above thousands crash or
