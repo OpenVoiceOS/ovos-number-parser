@@ -347,6 +347,10 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
 
     For example, '5.2' would return 'beş nöqtə iki'
 
+    Word forms follow standard Azerbaijani cardinal structure (yüz, min,
+    milyon spoken as separate words; see "Say (dilçilik)", az.wikipedia), so
+    the output round-trips through extract_number_az.
+
     Args:
         num(float or int): the number to pronounce (under 100)
         places(int): maximum decimal places to speak
@@ -967,7 +971,7 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
                 break
             prev_val = val
 
-            if word in multiplies and next_word not in multiplies:
+            if word in multiplies:
                 # handle long numbers
                 # six hundred sixty six
                 # two million five hundred thousand
@@ -1104,6 +1108,13 @@ def extract_number_az(text, short_scale=True, ordinals=False):
     handles pronunciations in long scale and short scale
 
     https://en.wikipedia.org/wiki/Names_of_large_numbers
+
+    Azerbaijani cardinals are written as separate words (yüz = 100, min =
+    1000, milyon = 1e6): the million group multiplies the group before it,
+    while the thousand and hundred groups form their own additive portions
+    (yüz on = 110, yüz iyirmi beş = 125). Each such group is set aside and
+    summed independently, so a millions group followed by a thousands group
+    accumulates correctly. See "Say (dilçilik)", az.wikipedia.
 
     Args:
         text (str): the string to normalize
