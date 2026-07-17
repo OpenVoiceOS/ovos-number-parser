@@ -334,8 +334,10 @@ def pronounce_ordinal_fy(number):
     if number in _SHORT_ORDINAL_STRING_FY:
         return _SHORT_ORDINAL_STRING_FY[number]
     # compounds: cardinal + table-driven last element, mirroring the
-    # cardinal compounding ("ienentweintich" -> "ienentweintichste")
-    if number < 100:
+    # cardinal compounding ("ienentweintich" -> "ienentweintichste").
+    # zero has no compound tens element, so it takes the regular suffix
+    # like the sibling Dutch "nulste"
+    if 0 < number < 100:
         ones = number % 10
         tens = number - ones
         return _NUM_STRING_FY[ones] + "en" + _ORDINAL_STRING_BASE_FY[tens]
