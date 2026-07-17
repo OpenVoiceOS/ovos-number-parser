@@ -10,7 +10,7 @@ from ovos_number_parser.util import (Scale, GrammaticalGender, NumberVocabulary,
 
 def swap_gender_gl(word: str, gender: GrammaticalGender) -> str:
     """
-    Convert a Portuguese word between masculine and feminine grammatical gender by adjusting its ending.
+    Convert a Galician word between masculine and feminine grammatical gender by adjusting its ending.
 
     Parameters:
         word (str): The word to convert.
@@ -19,10 +19,10 @@ def swap_gender_gl(word: str, gender: GrammaticalGender) -> str:
     Returns:
         str: The word with its ending swapped to match the specified gender, if applicable; otherwise, the original word.
     """
-    if word == "dois" and gender == GrammaticalGender.FEMININE:
-        return "duas"
-    elif word == "duas" and gender == GrammaticalGender.MASCULINE:
-        return "dois"
+    if word == "dous" and gender == GrammaticalGender.FEMININE:
+        return "dúas"
+    elif word == "dúas" and gender == GrammaticalGender.MASCULINE:
+        return "dous"
 
     elif gender == GrammaticalGender.FEMININE and word.endswith('o'):
         return word[:-1] + 'a'
@@ -55,7 +55,7 @@ _GL = NumberVocabulary(
 
     HUNDRED_PARTICLE="cento",  # how to read "1XX"
     DENOMINATOR_PARTICLE="abos",  # for fractions  X / N {PARTICLE}
-    DIVIDED_BY_ZERO="a dividir por zero",  # how to read X/0 values
+    DIVIDED_BY_ZERO="a dividir por cero",  # how to read X/0 values
     NO_PREV_UNIT=[100, 1000],  # "mil" vs "um mil"  / "cem" vs "um cem"
     NO_PLURAL=[1000],  # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
 

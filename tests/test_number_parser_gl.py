@@ -146,5 +146,109 @@ class TestExtractionGL(unittest.TestCase):
         self.assertEqual(GL.numbers_to_digits(phrase_large), 'atopamos 2000500 insectos')
 
 
+# ============================================================
+# Adversarial / robustness tests
+# ============================================================
+
+class TestAdversarialGL(unittest.TestCase):
+
+    def test_empty_and_junk(self):
+        self.assertFalse(GL.extract_number(''))
+        self.assertFalse(GL.extract_number('   '))
+        self.assertFalse(GL.extract_number('lalala'))
+        self.assertFalse(GL.extract_number('pon a mesa'))
+
+    def test_zero(self):
+        self.assertEqual(GL.pronounce_number(0), "cero")
+        self.assertEqual(GL.extract_number('cero'), 0)
+
+    def test_mixed_case(self):
+        self.assertEqual(GL.extract_number('VINTE E UN'), 21)
+        self.assertEqual(GL.extract_number('Vinte E Un'), 21)
+        self.assertEqual(GL.extract_number('MAIÚSCULAS vinte e dous'), 22)
+
+    def test_number_in_sentence(self):
+        self.assertEqual(GL.extract_number('hai corenta e dous carros'), 42)
+        self.assertEqual(GL.extract_number('quero cen mil euros'), 100000)
+
+    def test_divided_by_zero_is_galician(self):
+        # Galician zero is "cero", never Portuguese "zero"
+        self.assertEqual(GL.pronounce_fraction('1/0'), "un a dividir por cero")
+        self.assertEqual(GL.pronounce_fraction('5/0'), "cinco a dividir por cero")
+
+    def test_gender_two_swap(self):
+        self.assertEqual(GL.pronounce_number(2), "dous")
+        self.assertEqual(GL.pronounce_number(2, gender=GrammaticalGender.FEMININE), "dúas")
+
+
+class TestGalicianQuirksGL(unittest.TestCase):
+
+    def test_cen_vs_cento(self):
+        # bare hundred is "cen", composite uses "cento"
+        self.assertEqual(GL.pronounce_number(100), "cen")
+        self.assertEqual(GL.pronounce_number(101), "cento e un")
+        self.assertEqual(GL.extract_number('cen'), 100)
+        self.assertEqual(GL.extract_number('cento e un'), 101)
+
+    def test_e_joiner_forties(self):
+        self.assertEqual(GL.pronounce_number(42), "corenta e dous")
+        self.assertEqual(GL.extract_number('corenta e dous'), 42)
+
+    def test_gendered_hundreds(self):
+        self.assertEqual(GL.pronounce_number(200), "douscentos")
+        self.assertEqual(GL.pronounce_number(200, gender=GrammaticalGender.FEMININE), "douscentas")
+        self.assertEqual(GL.extract_number('douscentas'), 200)
+
+    def test_million_plural(self):
+        self.assertEqual(GL.pronounce_number(1_000_000), "un millón")
+        self.assertEqual(GL.pronounce_number(2_000_000), "dous millóns")
+        self.assertEqual(GL.extract_number('dous millóns'), 2_000_000)
+
+    def test_half_and_fractions_in_text(self):
+        self.assertEqual(GL.extract_number('un millón e medio'), 1_000_000.5)
+        self.assertEqual(GL.extract_number('tres cuartos'), 0.75)
+
+
+class TestRoundTripGL(unittest.TestCase):
+
+    def test_cardinal_sweep(self):
+        for n in range(0, 1001):
+            spoken = GL.pronounce_number(n)
+            self.assertEqual(GL.extract_number(spoken), n,
+                             f"round-trip failed for {n}: {spoken!r}")
+
+    def test_large_round_trip(self):
+        for n in [1000, 2000, 10000, 100000, 999999, 1_000_000,
+                  2_000_000, 1_234_567, 1_000_000_000, 1_000_000_000_000,
+                  3_000_500, 1_000_001]:
+            spoken = GL.pronounce_number(n)
+            self.assertEqual(GL.extract_number(spoken), n,
+                             f"round-trip failed for {n}: {spoken!r}")
+
+    def test_ordinal_round_trip(self):
+        for n in [1, 2, 3, 10, 20, 21, 23, 100, 1000, 1_000_000]:
+            spoken = GL.pronounce_number(n, ordinals=True)
+            self.assertEqual(GL.extract_number(spoken, ordinals=True), n,
+                             f"ordinal round-trip failed for {n}: {spoken!r}")
+
+    def test_feminine_round_trip(self):
+        for n in [1, 2, 21, 22, 200]:
+            spoken = GL.pronounce_number(n, gender=GrammaticalGender.FEMININE)
+            self.assertEqual(GL.extract_number(spoken), n,
+                             f"feminine round-trip failed for {n}: {spoken!r}")
+
+    def test_decimal_round_trip(self):
+        for v in [0.5, 1.5, 3.14, 10.05, 100.001]:
+            spoken = GL.pronounce_number(v)
+            self.assertAlmostEqual(GL.extract_number(spoken), v, places=5,
+                                   msg=f"decimal round-trip failed for {v}: {spoken!r}")
+
+    def test_negative_round_trip(self):
+        for v in [-7, -42, -123.45]:
+            spoken = GL.pronounce_number(v)
+            self.assertAlmostEqual(GL.extract_number(spoken), v, places=5,
+                                   msg=f"negative round-trip failed for {v}: {spoken!r}")
+
+
 if __name__ == '__main__':
     unittest.main()
