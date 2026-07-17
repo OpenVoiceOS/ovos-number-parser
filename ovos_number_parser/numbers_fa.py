@@ -383,7 +383,7 @@ def _to_cardinal(number, places):
         return "صفر"
     x, y, l = _float2tuple(number, places)
     if y == 0:
-        return _cardinalPos(x)
+        return _cardinalPos(x) or "صفر"
     if x == 0:
         return _fractional(y, l)
     return _cardinalPos(x) + _FARSI_SEPERATOR + _fractional(y, l)
@@ -424,6 +424,9 @@ def pronounce_number_fa(number, places=2, scientific=False,
                     abs(float(n)), places, False, ordinals=False),
                 'منفی ' if power < 0 else '',
                 pronounce_number_fa(abs(power), places, False, ordinals=False))
+        return '{}{}'.format(
+            'منفی ' if float(n) < 0 else '',
+            pronounce_number_fa(abs(float(n)), places, False, ordinals=False))
     if ordinals:
         return _to_ordinal(number)
     return _to_cardinal(number, places)
