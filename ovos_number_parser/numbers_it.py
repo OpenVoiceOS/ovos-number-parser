@@ -885,8 +885,11 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
                     continue
                 number = _sub_thousand(z)
                 if i:
-                    number += ""  # separa ordini grandezza
-                    number += hundreds[i]
+                    # a scale word joins onto a single Italian word, so the
+                    # digit group it multiplies must collapse to one token
+                    # first: "cento uno" + "mila" -> "centounomila", never
+                    # "cento unomila" (which reads back as 100 + 1000)
+                    number = number.replace(" ", "") + hundreds[i]
                 res.append(number)
 
             return ", ".join(reversed(res))
@@ -913,7 +916,10 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
                 if i:
                     # plus one as we skip 'thousand'
                     # (and 'hundred', but this is excluded by index value)
-                    number = number.replace(',', '')
+                    # collapse the group to a single token so the following
+                    # scale word ("milioni") multiplies the whole group and
+                    # not just its trailing word
+                    number = number.replace(',', '').replace(" ", "")
                     number += " " + hundreds[i + 1]
                 res.append(number)
             return ", ".join(reversed(res))
