@@ -351,9 +351,9 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
                 if z == 1 and i == 1:
                     number = ""
-                elif z > 100 and z % 100 == 2:
+                elif z > 100 and z % 100 == 2 and not ordi:
                     number = _sub_thousand(z, not i and ordi, is_male=True)
-                elif z > 100 and z % 100 == 3:
+                elif z > 100 and z % 100 == 3 and not ordi:
                     number = _sub_thousand(z, not i and ordi) + "je"
                 elif z > 1 or i == 0 or ordi:
                     number = _sub_thousand(z, not i and ordi)
@@ -576,8 +576,7 @@ def is_ordinal_sl(input_str):
         (bool) or (int): False if not an ordinal, otherwise the number
     """
     if not _ORDINAL_REVERSE_SL:
-        candidates = list(range(1, 101)) + \
-            [n * 100 for n in range(1, 11)] + [1000, 1000000]
+        candidates = list(range(1, 1000)) + [1000, 1000000]
         for n in candidates:
             _ORDINAL_REVERSE_SL[pronounce_number_sl(n, ordinals=True)] = n
     return _ORDINAL_REVERSE_SL.get(input_str.lower().strip(), False)
