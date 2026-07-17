@@ -901,6 +901,8 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
             _mag = abs(prev_val)
             if (prev_word in string_num_ordinal and val and val < _mag) or \
                     (prev_word in _STRING_NUM_PL and val and val < _mag and val // 10 != _mag // 10) or \
+                    (prev_word in string_num_scale and val and val < _mag
+                     and next_word not in multiplies) or \
                     all([prev_word in multiplies, val < _mag]):
                 # keep the sign: "minus czterdzieści dwa" = -(40 + 2)
                 val = prev_val - val if prev_val < 0 else prev_val + val

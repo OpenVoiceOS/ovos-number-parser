@@ -58,5 +58,91 @@ class TestPolishRoundTrip(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="pl"), number)
 
 
+class TestPolishThousands(unittest.TestCase):
+    """Singular scale words (tysiąc, milion) must sum with the remainder.
+
+    'tysiąc sto' is one thousand one hundred, not one hundred.
+    """
+
+    def test_singular_thousand_with_hundreds(self):
+        cases = {
+            'tysiąc sto': 1100,
+            'tysiąc dwieście trzydzieści cztery': 1234,
+            'tysiąc dziewięćset dziewięćdziesiąt dziewięć': 1999,
+            'jeden tysiąc sto': 1100,
+            'jeden tysiąc dwadzieścia jeden': 1021,
+        }
+        for spoken, number in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="pl"), number)
+
+    def test_singular_million_with_remainder(self):
+        cases = {
+            'milion jeden': 1000001,
+            'jeden milion jeden': 1000001,
+            'milion dwadzieścia jeden': 1000021,
+        }
+        for spoken, number in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="pl"), number)
+
+    def test_plural_thousands_still_work(self):
+        cases = {
+            'dwa tysiące pięćset': 2500,
+            'pięć tysięcy sześćset siedemdziesiąt osiem': 5678,
+            'dwieście pięćdziesiąt tysięcy': 250000,
+            'sto tysięcy pięćset': 100500,
+            'dwa miliony pięćset tysięcy': 2500000,
+        }
+        for spoken, number in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="pl"), number)
+
+    def test_round_trip_thousands_sweep(self):
+        numbers = list(range(1000, 2000, 7)) + \
+            [1100, 1234, 1999, 3721, 12345, 100500, 123456, 1000001, 2500000]
+        for number in numbers:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="pl")
+                self.assertEqual(extract_number(spoken, lang="pl"), number)
+
+
+class TestPolishDeclensions(unittest.TestCase):
+    """Declined forms in natural spoken sentences."""
+
+    def test_declined_units_in_context(self):
+        self.assertEqual(extract_number('dwie godziny', lang="pl"), 2)
+        self.assertEqual(extract_number('jedna minuta', lang="pl"), 1)
+        self.assertEqual(
+            extract_number('mam sto dwadzieścia trzy koty', lang="pl"), 123)
+
+    def test_fractions_and_halves(self):
+        self.assertEqual(extract_number('dwa i pół', lang="pl"), 2.5)
+        self.assertEqual(extract_number('trzy i pół', lang="pl"), 3.5)
+        self.assertEqual(extract_number('połowa', lang="pl"), 0.5)
+
+    def test_negative_in_sentence(self):
+        self.assertEqual(extract_number('minus pięć', lang="pl"), -5)
+
+
+class TestPolishAdversarial(unittest.TestCase):
+    """Malformed, empty and boundary inputs must not raise."""
+
+    def test_empty_and_junk(self):
+        for text in ["", "   ", "cześć jak się masz", "!!!", " + - /"]:
+            with self.subTest(text=text):
+                self.assertIn(extract_number(text, lang="pl"), (False, None))
+
+    def test_repeated_tokens_do_not_crash(self):
+        for text in ["jeden jeden", "sto sto", "tysiąc tysiąc", "dwa dwa"]:
+            with self.subTest(text=text):
+                # must return a number and not raise
+                self.assertIsNotNone(extract_number(text, lang="pl"))
+
+    def test_lang_code_variants(self):
+        self.assertEqual(extract_number('tysiąc sto', lang="pl-pl"), 1100)
+        self.assertEqual(extract_number('tysiąc sto', lang="pl-PL"), 1100)
+
+
 if __name__ == "__main__":
     unittest.main()
