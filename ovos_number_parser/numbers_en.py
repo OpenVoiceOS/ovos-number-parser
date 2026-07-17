@@ -14,8 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import math
 import re
 from collections import OrderedDict
+from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber)
@@ -146,12 +148,70 @@ _SHORT_SCALE_EN = OrderedDict([
     (1e114, "septentrigintillion"),
     (1e117, "octotrigintillion"),
     (1e120, "noventrigintillion"),
+    # Names from 10^123 to 10^303 follow the Conway-Wechsler system for the
+    # short-scale "-illion" series, cross-checked against Wikipedia's "Names of
+    # large numbers". The table is kept contiguous (one entry per 10^3 step) so
+    # every finite magnitude a float can hold composes to a spoken name.
     (1e123, "quadragintillion"),
+    (1e126, "unquadragintillion"),
+    (1e129, "duoquadragintillion"),
+    (1e132, "tresquadragintillion"),
+    (1e135, "quattuorquadragintillion"),
+    (1e138, "quinquadragintillion"),
+    (1e141, "sesquadragintillion"),
+    (1e144, "septenquadragintillion"),
+    (1e147, "octoquadragintillion"),
+    (1e150, "novenquadragintillion"),
     (1e153, "quinquagintillion"),
+    (1e156, "unquinquagintillion"),
+    (1e159, "duoquinquagintillion"),
+    (1e162, "tresquinquagintillion"),
+    (1e165, "quattuorquinquagintillion"),
+    (1e168, "quinquinquagintillion"),
+    (1e171, "sesquinquagintillion"),
+    (1e174, "septenquinquagintillion"),
+    (1e177, "octoquinquagintillion"),
+    (1e180, "novenquinquagintillion"),
     (1e183, "sexagintillion"),
+    (1e186, "unsexagintillion"),
+    (1e189, "duosexagintillion"),
+    (1e192, "tresexagintillion"),
+    (1e195, "quattuorsexagintillion"),
+    (1e198, "quinsexagintillion"),
+    (1e201, "sesexagintillion"),
+    (1e204, "septensexagintillion"),
+    (1e207, "octosexagintillion"),
+    (1e210, "novensexagintillion"),
     (1e213, "septuagintillion"),
+    (1e216, "unseptuagintillion"),
+    (1e219, "duoseptuagintillion"),
+    (1e222, "treseptuagintillion"),
+    (1e225, "quattuorseptuagintillion"),
+    (1e228, "quinseptuagintillion"),
+    (1e231, "seseptuagintillion"),
+    (1e234, "septenseptuagintillion"),
+    (1e237, "octoseptuagintillion"),
+    (1e240, "novenseptuagintillion"),
     (1e243, "octogintillion"),
+    (1e246, "unoctogintillion"),
+    (1e249, "duooctogintillion"),
+    (1e252, "treoctogintillion"),
+    (1e255, "quattuoroctogintillion"),
+    (1e258, "quinoctogintillion"),
+    (1e261, "sexoctogintillion"),
+    (1e264, "septemoctogintillion"),
+    (1e267, "octooctogintillion"),
+    (1e270, "novemoctogintillion"),
     (1e273, "nonagintillion"),
+    (1e276, "unnonagintillion"),
+    (1e279, "duononagintillion"),
+    (1e282, "trenonagintillion"),
+    (1e285, "quattuornonagintillion"),
+    (1e288, "quinnonagintillion"),
+    (1e291, "senonagintillion"),
+    (1e294, "septenonagintillion"),
+    (1e297, "octononagintillion"),
+    (1e300, "novenonagintillion"),
     (1e303, "centillion"),
     (1e306, "uncentillion"),
     (1e309, "duocentillion"),
@@ -333,8 +393,25 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
         return "infinity"
     elif num == float("-inf"):
         return "negative infinity"
+    # Round (not truncate) the value to `places` decimals so the spoken form
+    # matches the rounded number: half-away-from-zero per ISO 80000-1 and
+    # NIST SP 811 (2008) B.7. Rounding here also carries into the integer part
+    # ("zero point nine nine nine nine nine nine" at 2 places becomes "one")
+    # and collapses a value that rounds to zero to a plain "zero".
+    if not scientific and isinstance(num, float) and math.isfinite(num) \
+            and num != int(num):
+        num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
+                                               rounding=ROUND_HALF_UP)) or 0.0
     if scientific:
-        number = '%E' % num
+        try:
+            number = '%E' % num
+        except OverflowError:
+            # int larger than the float range: derive the mantissa and
+            # exponent from its digits so it still reads scientifically.
+            digits = str(abs(int(num)))
+            frac = digits[1:7].rstrip("0")
+            number = "%s%s%sE+%d" % ("-" if num < 0 else "", digits[0],
+                                     "." + frac if frac else "", len(digits) - 1)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -436,8 +513,11 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
                     " and " + _sub_thousand(r, ordinals) if r else "")
 
         def _short_scale(n):
+            # A finite value above the largest named scale returns "" so the
+            # caller reads it scientifically; "infinity" is reserved for the
+            # actual math.inf case handled at the top of pronounce_number_en.
             if n >= max(_SHORT_SCALE_EN.keys()):
-                return "infinity"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -484,8 +564,10 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
             return res
 
         def _long_scale(n):
+            # See _short_scale: a finite value beyond the largest named scale
+            # returns "" for a scientific fallback, never the infinity word.
             if n >= max(_LONG_SCALE_EN.keys()):
-                return "infinity"
+                return ""
             ordi = ordinals
             if int(n) != n:
                 ordi = False
@@ -530,8 +612,10 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
+    # deal with a magnitude that has no spoken name: read it scientifically
+    # (covers floats in "e" notation and very large ints alike) so a finite
+    # value never returns an empty string.
+    if not result and abs(num) >= 1e6:
         return pronounce_number_en(num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
@@ -1077,6 +1161,12 @@ def _initialize_number_data_en(short_scale, speech=True):
     string_num_scale_en = _SHORT_SCALE_EN if short_scale else _LONG_SCALE_EN
     string_num_scale_en = invert_dict(string_num_scale_en)
     string_num_scale_en.update(_generate_plurals_en(string_num_scale_en))
+
+    # "googol" is a named power of ten (10^100), not part of the -illion series;
+    # accept it as a scale word so "one googol" reads as 1e100. "googolplex"
+    # (10^(10^100)) overflows a float and is intentionally not recognised.
+    multiplies = multiplies | {"googol"}
+    string_num_scale_en["googol"] = 1e100
 
     if speech:
         string_num_scale_en.update(_SPOKEN_EXTRA_NUM_EN)
