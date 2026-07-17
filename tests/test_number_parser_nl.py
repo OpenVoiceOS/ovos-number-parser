@@ -58,5 +58,90 @@ class TestDutchRoundTrip(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="nl"), number)
 
 
+class TestDutchFractions(unittest.TestCase):
+    """Spoken Dutch fractions and 'and a half' compounds."""
+
+    def test_half_compounds(self):
+        # "tweeëneenhalf" == "twee en een half" == 2.5; the "een" before
+        # "half" is the article, it must not add a whole unit
+        self.assertEqual(extract_number("tweeeneenhalf", lang="nl"), 2.5)
+        self.assertEqual(extract_number("tweeenhalf", lang="nl"), 2.5)
+        self.assertEqual(extract_number("drieeneenhalf", lang="nl"), 3.5)
+        self.assertEqual(extract_number("vijfeneenhalf", lang="nl"), 5.5)
+        self.assertEqual(extract_number("eenhalf", lang="nl"), 0.5)
+
+    def test_half_compound_matches_spaced_form(self):
+        for word, spaced in [("tweeeneenhalf", "twee en een half"),
+                             ("drieeneenhalf", "drie en een half")]:
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="nl"),
+                                 extract_number(spaced, lang="nl"))
+
+    def test_natural_fraction_sentences(self):
+        self.assertEqual(
+            extract_number("over tweeeneenhalf uur", lang="nl"), 2.5)
+        self.assertEqual(
+            extract_number("ik wil twee en een half koekjes", lang="nl"), 2.5)
+        self.assertEqual(extract_number("anderhalf", lang="nl"), 1.5)
+        self.assertEqual(extract_number("driekwart liter", lang="nl"), 0.75)
+        self.assertEqual(extract_number("een paar appels", lang="nl"), 2)
+
+    def test_lang_code_variants(self):
+        for lang in ("nl", "nl-nl"):
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    extract_number("tweeeneenhalf", lang=lang), 2.5)
+
+
+class TestDutchOrdinalsAndSentences(unittest.TestCase):
+
+    def test_ordinal_words(self):
+        expected = {"eerste": 1, "tweede": 2, "derde": 3, "vierde": 4,
+                    "vijfde": 5, "achtste": 8, "negende": 9,
+                    "twintigste": 20}
+        for word, value in expected.items():
+            with self.subTest(word=word):
+                self.assertEqual(
+                    extract_number(word, lang="nl", ordinals=True), value)
+
+    def test_ordinal_in_sentence(self):
+        self.assertEqual(
+            extract_number("de derde deur", lang="nl", ordinals=True), 3)
+
+
+class TestDutchAdversarial(unittest.TestCase):
+
+    def test_empty_and_junk(self):
+        for text in ["", "   ", "hallo wereld", "abcdef", "!!!"]:
+            with self.subTest(text=text):
+                self.assertIn(extract_number(text, lang="nl"), (False, None))
+
+    def test_mixed_case(self):
+        self.assertEqual(extract_number("MIN ZEVEN", lang="nl"), -7)
+        self.assertEqual(extract_number("TWINTIG", lang="nl"), 20)
+
+    def test_zero_and_negatives(self):
+        self.assertEqual(extract_number("nul", lang="nl"), 0)
+        self.assertEqual(extract_number("min eenhonderd", lang="nl"), -100)
+
+
+class TestDutchWideRoundTrip(unittest.TestCase):
+    """pronounce_number output must survive extract_number over a wide range."""
+
+    def test_round_trip_sweep(self):
+        for number in list(range(0, 2000)) + \
+                [2500, 3333, 5000, 9999, 12345, 100000, 999999,
+                 1000000, 1234567]:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="nl")
+                self.assertEqual(extract_number(spoken, lang="nl"), number)
+
+    def test_round_trip_negatives(self):
+        for number in [-1, -7, -21, -100, -999, -1000]:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="nl")
+                self.assertEqual(extract_number(spoken, lang="nl"), number)
+
+
 if __name__ == "__main__":
     unittest.main()
