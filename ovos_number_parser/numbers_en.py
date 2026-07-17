@@ -308,7 +308,7 @@ def is_ordinal_en(input_str: str):
 
 
 def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, year=False):
     """
     Convert a number to it's spoken equivalent
 
@@ -321,6 +321,9 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "first" instead of "one"
+        year (bool): pronounce a 4-digit number in date style, e.g.
+            1972 => "nineteen seventy two". Off by default so the spoken
+            form of a plain number round-trips back to the same value.
     Returns:
         (str): The pronounced number
     """
@@ -376,10 +379,10 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
         result = "negative " if scientific else "minus "
     num = abs(num)
 
-    if not ordinals:
+    if year and not ordinals:
         try:
             # deal with 4 digits
-            # usually if it's a 4 digit num it should be said like a date
+            # when explicitly asked for, say it like a date
             # i.e. 1972 => nineteen seventy two
             if len(str(num)) == 4 and isinstance(num, int):
                 _num = str(num)
