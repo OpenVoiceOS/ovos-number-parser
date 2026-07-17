@@ -2,6 +2,10 @@ import unittest
 
 from ovos_number_parser import (extract_number, pronounce_number,
                                  pronounce_ordinal, is_ordinal)
+from ovos_number_parser.numbers_eu import (extract_number_eu,
+                                           pronounce_number_eu,
+                                           pronounce_ordinal_eu,
+                                           is_ordinal_eu)
 
 
 class TestBasquePronounce(unittest.TestCase):
@@ -106,6 +110,115 @@ class TestBasqueRoundTrip(unittest.TestCase):
             with self.subTest(number=number):
                 spoken = pronounce_number(number, lang="eu")
                 self.assertEqual(extract_number(spoken, lang="eu"), number)
+
+
+class TestBasqueScaleComposition(unittest.TestCase):
+    """Extraction of multi-word cardinals where a scale word (mila, milioi)
+    follows a group that must multiply it, or a running total that must be
+    added to. Forms are the verified pronounce_number output (Araua 7)."""
+
+    def test_thousand_plus_hundreds(self):
+        # "mila ehun ..." is 1000 + 100, not 1000 * 100
+        expected = {
+            1100: 'mila eta ehun',
+            1101: 'mila ehun eta bat',
+            1150: 'mila ehun eta berrogeita hamar',
+            1199: 'mila ehun eta laurogeita hemeretzi',
+            1200: 'mila eta berrehun',
+        }
+        for number, spoken in expected.items():
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_number(number, lang="eu"), spoken)
+                self.assertEqual(extract_number(spoken, lang="eu"), number)
+
+    def test_hundreds_times_thousand(self):
+        # "(ehun eta bat) mila" is 101 * 1000
+        expected = {
+            21000: 'hogeita bat mila',
+            21802: 'hogeita bat mila zortziehun eta bi',
+            101000: 'ehun eta bat mila',
+            123456: 'ehun eta hogeita hiru mila laurehun eta '
+                    'berrogeita hamasei',
+        }
+        for number, spoken in expected.items():
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_number(number, lang="eu"), spoken)
+                self.assertEqual(extract_number(spoken, lang="eu"), number)
+
+    def test_millions_head_plus_remainder(self):
+        expected = {
+            1000001: 'milioi bat eta bat',
+            1001000: 'milioi bat eta mila',
+            1002982: 'milioi bat bi mila bederatziehun eta laurogeita bi',
+            1500000: 'milioi bat eta bostehun mila',
+            2500000: 'bi milioi eta bostehun mila',
+        }
+        for number, spoken in expected.items():
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_number(number, lang="eu"), spoken)
+                self.assertEqual(extract_number(spoken, lang="eu"), number)
+
+
+class TestBasqueSentences(unittest.TestCase):
+    """Numbers embedded in natural, agglutinative Basque utterances."""
+
+    def test_sentences(self):
+        cases = {
+            'berrogeita hamar euro ordaindu ditut': 50,
+            'mila bederatziehun eta laurogeita hamar urtean': 1990,
+            'ehun eta hogeita hiru orrialde ditu liburuak': 123,
+            'hirurogeita hamar kilometro daude hemendik': 70,
+            'bi mila eta hogeita hiru urtea': 2023,
+        }
+        for text, number in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="eu"), number)
+
+    def test_case_and_whitespace_insensitive(self):
+        self.assertEqual(extract_number("HOGEI", lang="eu"), 20)
+        self.assertEqual(extract_number("Hogeita Bat", lang="eu"), 21)
+        self.assertEqual(extract_number("  hamar  ", lang="eu"), 10)
+
+
+class TestBasqueAdversarial(unittest.TestCase):
+    """Malformed / empty / junk input must not crash and must not invent
+    numbers."""
+
+    def test_empty_and_junk(self):
+        for text in ["", "   ", "kaixo zer moduz", "eta", "minus",
+                     "hogeitabat"]:
+            with self.subTest(text=text):
+                self.assertIn(extract_number(text, lang="eu"), (False, None))
+
+    def test_junk_around_number(self):
+        self.assertEqual(extract_number("xyz 123 abc", lang="eu"), 123)
+
+
+class TestBasqueCardinalSweep(unittest.TestCase):
+    """pronounce -> extract must round-trip across the whole 0..1_000_000
+    range (dense below 2_100, then sampled)."""
+
+    def test_round_trip_sweep(self):
+        numbers = list(range(0, 2101)) + list(range(2101, 1_000_001, 997))
+        for number in numbers:
+            spoken = pronounce_number_eu(number)
+            self.assertEqual(extract_number_eu(spoken), number,
+                             f"{number} spoken as {spoken!r}")
+
+
+class TestBasqueOrdinalSweep(unittest.TestCase):
+    """pronounce_ordinal -> is_ordinal must round-trip."""
+
+    def test_ordinal_round_trip(self):
+        for number in range(1, 1001):
+            spoken = pronounce_ordinal_eu(number)
+            self.assertEqual(is_ordinal_eu(spoken), number,
+                             f"{number} spoken as {spoken!r}")
+
+    def test_is_ordinal_rejects_junk(self):
+        for text in ["", "garren", "katua", "hogei"]:
+            with self.subTest(text=text):
+                self.assertFalse(is_ordinal_eu(text))
 
 
 if __name__ == "__main__":

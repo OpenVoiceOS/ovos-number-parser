@@ -453,8 +453,29 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
             # handle fractions
             if next_word == "en" or next_word == "ren":
                 result = float(result) / float(val)
-            elif val in (100, 1000, 1000000, 1000000000) and result:
-                # scale word multiplies what came before ("bi mila")
+            elif next_word in _NUM_STRING_EU \
+                    and _NUM_STRING_EU[next_word] in (1000, 1000000,
+                                                      1000000000) \
+                    and val < _NUM_STRING_EU[next_word]:
+                # small multiplier of the scale word that follows it, added to
+                # whatever larger total precedes ("milioi bat bi mila ..." ->
+                # 1000000 + 2 * 1000). Consume the scale word here so it is not
+                # re-processed against the (now larger) running total.
+                result += val * _NUM_STRING_EU[next_word]
+                # blank the scale word so it is not re-processed; it is the
+                # next non-empty token (count+1 normally, but a vigesimal
+                # remainder may already have blanked count+1)
+                for j in range(count + 1, len(aWords)):
+                    if aWords[j]:
+                        aWords[j] = ""
+                        break
+            elif val in (100, 1000, 1000000, 1000000000) and result \
+                    and result < val:
+                # scale word multiplies a smaller multiplier before it
+                # ("bi mila" = 2 * 1000). When the running total is already
+                # larger than the scale ("mila ehun" = 1000 + 100) the scale
+                # is a lower-magnitude continuation and must be added, handled
+                # by the power loop below.
                 result = result * val
             elif val == 1 and result in (1000000, 1000000000):
                 # head-final idiom "milioi bat"/"bilioi bat" = the scale itself
@@ -487,6 +508,29 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
             newText = ""
             for word in newWords:
                 newText += word + " "
+
+            # "ehun eta bat mila ..." joins the hundreds with the small
+            # remainder that *precedes* the scale word (101), which the scale
+            # then multiplies -- not the whole tail. Add the pre-scale chunk
+            # and hand the scale word back to the main loop.
+            scale_words = ("mila", "milioi", "bilioi")
+            scale_idx = next((i for i, w in enumerate(newWords)
+                              if i > 0 and w in scale_words), None)
+            if scale_idx is not None:
+                scale_val = _NUM_STRING_EU[newWords[scale_idx]]
+                pre = extract_number_eu(" ".join(newWords[:scale_idx]))
+                rest = extract_number_eu(" ".join(newWords[scale_idx + 1:]))
+                rest = rest if rest else 0
+                if pre:
+                    if result < scale_val:
+                        # the running total is the head of the multiplier group
+                        # ("ehun eta bat mila" = (100 + 1) * 1000)
+                        result = (result + pre) * scale_val + rest
+                    else:
+                        # the running total is a higher scale already; the tail
+                        # is an independent summand ("milioi bat eta bi mila")
+                        result += pre * scale_val + rest
+                    break
 
             afterAndVal = extract_number_eu(newText[:-1])
             if afterAndVal:
