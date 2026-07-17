@@ -1030,7 +1030,12 @@ class RomanceNumberExtractor:
 
         # Tens and Units
         if n > 0:
-            if n < 20:
+            if n in tens_map:
+                # a fused single-word spelling covers the whole 1-99 remainder:
+                # teens and round tens for every language, plus the fused
+                # twenties some languages write solid ("veintitrés", "vintiún")
+                parts.append(gendered(n, tens_map[n]))
+            elif n < 20:
                 base = tens_map.get(n) or self.vocab.UNITS.get(n, "")
                 parts.append(gendered(n, base))
             else:
