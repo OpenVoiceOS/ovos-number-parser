@@ -568,6 +568,14 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
     """
     This function prepares the given text for parsing by making
     numbers consistent, getting rid of contractions, etc.
+
+    Cardinal numerals follow the standard Catalan structure described in the
+    Consorci per a la Normalització Lingüística grammar, "6. Els numerals"
+    (IEC normativa; https://www.cpnl.cat/gramatica/24/6-els-numerals): the
+    scale words "mil" and "milions" carry no hyphen and multiply the hundreds
+    group that precedes them, and the products are summed, so
+    "un milió dos-cents trenta-quatre mil sis-cents" reads 1 234 600.
+
     Args:
         text (str): the string to normalize
     Returns:
@@ -585,6 +593,14 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
         aWords = aWords[1:]
     count = 0
     result = None
+    # A Catalan number is a run of groups joined by scale words: each hundreds
+    # group ("cinc-cents") multiplied by its scale ("mil", "milions") and the
+    # products summed. "total" holds the already-scaled groups, "current" the
+    # group under construction, so a scale word multiplies only its own group
+    # and never the accumulated higher-magnitude total ("dos milions cinc-cents
+    # mil" = 2000000 + 500*1000, not 2000000 + 500 + 1000).
+    total = 0
+    current = 0
     while count < len(aWords):
         val = 0
         word = aWords[count]
@@ -638,25 +654,24 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
             # TODO: caution, review use of "ens" word
             if next_word == "ens":
                 result = float(result) / float(val)
-            elif val in (100, 1000, 1000000, 1000000000) and result \
-                    and result < val:
-                # scale word multiplies what came before ("dos mil"); it only
-                # scales a strictly smaller value, so a bare hundred after a
-                # larger number is an addend ("mil cent" = 1000 + 100)
-                result = result * val
+                total = result
+                current = 0
+            elif val in (1000, 1000000, 1000000000):
+                # a thousand/million scale word multiplies the group being
+                # built and banks the product ("cinc-cents mil" -> 500*1000)
+                total += (current or 1) * val
+                current = 0
+                result = total + current
+            elif val == 100:
+                # "cent" multiplies its group ("cent mil" -> 100*1000) or opens
+                # a new hundreds group ("mil cent" -> 1000 + 100)
+                current = (current or 1) * 100
+                result = total + current
             else:
-                power = 10
-                merged = False
-                while result and power <= result:
-                    if result % power == 0 and val < power:
-                        # lower-magnitude continuation
-                        # ("dos mil vint-i-tres" -> 2000 + 23)
-                        result = result + val
-                        merged = True
-                        break
-                    power *= 10
-                if not merged:
-                    result = (result or 0) + val
+                # ones, tens and hyphenated hundreds accumulate within the group
+                # ("dos mil vint-i-tres" -> 2000 + 23)
+                current += val
+                result = total + current
 
         if next_word is None:
             break
