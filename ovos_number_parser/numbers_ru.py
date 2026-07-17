@@ -434,7 +434,15 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "минус бесконечность"
     if scientific:
-        number = '%E' % num
+        try:
+            number = '%E' % num
+        except OverflowError:
+            # int larger than the float range: derive the mantissa and
+            # exponent from its digits so it still reads scientifically.
+            digits = str(abs(int(num)))
+            frac = digits[1:7].rstrip("0")
+            number = "%s%s%sE+%d" % ("-" if num < 0 else "", digits[0],
+                                     "." + frac if frac else "", len(digits) - 1)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -498,8 +506,11 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
                 return _NUM_STRING_RU[q * 100] + (" " + _sub_thousand(r, ordinals) if r else "")
 
         def _short_scale(n):
+            # A finite value above the largest named scale has no spoken name
+            # here; return "" so the caller falls back to a scientific reading.
+            # "бесконечность" is reserved for actual math.inf (handled above).
             if n > max(_SHORT_SCALE_RU.keys()):
-                return "бесконечность"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -565,8 +576,10 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
             return res
 
         def _long_scale(n):
+            # See _short_scale: a finite value beyond the largest named scale
+            # returns "" for a scientific fallback, never the infinity word.
             if n >= max(_LONG_SCALE_RU.keys()):
-                return "бесконечность"
+                return ""
             ordi = ordinals
             if int(n) != n:
                 ordi = False
@@ -623,8 +636,10 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
+    # deal with a magnitude that has no spoken name: read it scientifically
+    # (covers floats in "e" notation and very large ints alike) so a finite
+    # value never returns an empty string.
+    if not result and abs(num) >= 1e6:
         return pronounce_number_ru(num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
