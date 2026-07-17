@@ -371,6 +371,13 @@ def _extract_number_long_it(word):
                                    was found
     """
 
+    # accented endings are the standard spelling of fused units
+    # (ventitré, trentatré, ...) and must parse like their bare forms
+    word = word.replace('é', 'e').replace('è', 'e')
+    # restore the vowel elided before -uno / -otto in the hundreds
+    # (centotto -> cento otto, centuno -> cento uno)
+    word = word.replace('centotto', 'centootto').replace('centuno', 'centouno')
+
     units = {'zero': 0, 'uno': 1, 'due': 2, 'tre': 3, 'quattro': 4,
              'cinque': 5, 'sei': 6, 'sette': 7, 'otto': 8, 'nove': 9}
 
