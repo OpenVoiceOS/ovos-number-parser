@@ -62,6 +62,57 @@ class TestSlovenianPronounceLegacy(unittest.TestCase):
             self.assertEqual(extract_number_sl(spoken), n, spoken)
 
 
+class TestSlovenianLongScaleMixedMagnitudes(unittest.TestCase):
+    """Long-scale groups spanning both the milijarda (10^9) and milijon (10^6)
+    tiers must emit both tiers.
+
+    A million-group value (0..999999) carries a 'milijarda' part (its thousands)
+    and a 'milijon' part (its remainder); the remainder used to be dropped, so
+    281 407 million came out as '... milijard' with the '407 milijonov' lost.
+    """
+
+    def test_milijarda_and_milijon_both_emitted(self):
+        # 1 milijarda + 407 milijonov
+        self.assertEqual(
+            pronounce_number_sl(1407000000, short_scale=False),
+            "milijarda štiristo sedem milijonov")
+
+    def test_full_mixed_magnitude_number(self):
+        self.assertEqual(
+            pronounce_number_sl(281407561516, short_scale=False),
+            "dvesto enainosemdeset milijard štiristo sedem milijonov "
+            "petsto enainšestdeset tisoč petsto šestnajst")
+
+    def test_bilijon_group_keeps_milijon_remainder(self):
+        self.assertEqual(
+            pronounce_number_sl(2000407000000, short_scale=False),
+            "dva bilijona štiristo sedem milijonov")
+
+    def test_long_scale_round_trip_sweep(self):
+        cases = [1407000000, 407000000, 281407561516, 2000407000000,
+                 281000000000, 123456789012, 1000407000000, 999999000000,
+                 5000005000000, 1002003000000]
+        for n in cases:
+            spoken = pronounce_number_sl(n, short_scale=False)
+            self.assertEqual(
+                extract_number_sl(spoken, short_scale=False), n, spoken)
+
+    def test_pure_tiers_unchanged(self):
+        # regression guard: single-tier groups keep their established forms
+        anchors = {
+            2000000000: "dve milijardi",
+            3000000000: "tri milijarde",
+            5000000000: "pet milijard",
+            2000000: "dva milijona",
+            3000000: "trije milijoni",
+            5000000: "pet milijonov",
+            1000000000: "milijarda",
+        }
+        for n, expected in anchors.items():
+            self.assertEqual(
+                pronounce_number_sl(n, short_scale=False), expected, n)
+
+
 class TestSlovenianCompoundOrdinals(unittest.TestCase):
     """Ordinals above one hundred join the hundred to the remainder.
 
