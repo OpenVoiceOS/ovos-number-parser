@@ -44,6 +44,27 @@ class TestPronounceNumberFi(unittest.TestCase):
         for n, expected in cases:
             self.assertEqual(pronounce_ordinal(n, "fi"), expected, n)
 
+    def test_ordinals_scale_multiples(self):
+        # a bare scale multiplier takes the compositive ordinal stem
+        # (kahdes-/yhdes-), not the standalone ensimmäinen/toinen forms
+        cases = [(2000, "kahdestuhannes"), (3000, "kolmastuhannes"),
+                 (12000, "kahdestoistatuhannes"),
+                 (200000, "kahdessadastuhannes"),
+                 (2000000, "kahdesmiljoonas"),
+                 (3000000, "kolmasmiljoonas"),
+                 (25000000, "kahdeskymmenesviidesmiljoonas")]
+        for n, expected in cases:
+            self.assertEqual(pronounce_ordinal(n, "fi"), expected, n)
+
+    def test_ordinals_no_recursion_or_crash(self):
+        # exact multiples of a million once triggered unbounded recursion
+        for n in (2000000, 3000000, 999000000):
+            self.assertIsInstance(pronounce_ordinal(n, "fi"), str)
+        # above the supported "miljoonas" scale falls back to digits cleanly
+        self.assertEqual(pronounce_ordinal(10 ** 9, "fi"), "1000000000")
+        self.assertEqual(pronounce_ordinal(999999999999, "fi"),
+                         "999999999999")
+
 
 class TestExtractNumberFi(unittest.TestCase):
     def test_anchors(self):

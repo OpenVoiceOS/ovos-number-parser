@@ -179,11 +179,29 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     return result
 
 
+def _ordinal_multiplier_fi(number):
+    """Ordinal stem of a scale-word multiplier (before "tuhannes"/"miljoonas").
+
+    A bare multiplier takes the compositive ordinal stem rather than the
+    standalone form: 2000th is "kahdestuhannes", not "toinentuhannes". Kotus,
+    Kielitoimiston ohjepankki, "järjestyslukujen taivuttaminen", gives the
+    compound base "kahdeskymmenesyhdes" (21st), showing the compositive stems
+    "yhdes"/"kahdes" carry through compounds instead of "ensimmäinen"/"toinen".
+    """
+    if number in _ORDINAL_UNITS_COMPOUND_FI and number < 10:
+        return _ORDINAL_UNITS_COMPOUND_FI[number]
+    return pronounce_ordinal_fi(number)
+
+
 def pronounce_ordinal_fi(number):
     """
     Pronounce a number as a Finnish ordinal.
 
-    1 -> "ensimmäinen", 2 -> "toinen", 21 -> "kahdeskymmenesensimmäinen"
+    1 -> "ensimmäinen", 2 -> "toinen", 21 -> "kahdeskymmenesensimmäinen",
+    2000 -> "kahdestuhannes", 2000000 -> "kahdesmiljoonas"
+
+    Compound ordinals mark every inflectable part with the compositive ordinal
+    stem (Kotus, Kielitoimiston ohjepankki, "järjestyslukujen taivuttaminen").
 
     Args:
         number (int): the number to format
@@ -213,13 +231,24 @@ def pronounce_ordinal_fi(number):
     if number < 10 ** 6 and number % 1000 == 0:
         thousands = number // 1000
         return 'tuhannes' if thousands == 1 else \
-            pronounce_ordinal_fi(thousands) + 'tuhannes'
-    if number == 10 ** 6:
-        return 'miljoonas'
-    # compose: ordinal prefix from the largest round part + remainder
+            _ordinal_multiplier_fi(thousands) + 'tuhannes'
+    if number < 10 ** 9 and number % 10 ** 6 == 0:
+        millions = number // 10 ** 6
+        return 'miljoonas' if millions == 1 else \
+            _ordinal_multiplier_fi(millions) + 'miljoonas'
+    if number >= 10 ** 9:
+        # above the supported "miljoonas" scale: fall back to digits rather
+        # than composing an unidiomatic mix of words and figures
+        return str(number)
+    # compose: ordinal prefix from the largest round part + remainder.
+    # ``head`` must be a strict prefix of ``number`` or the recursion never
+    # shrinks; an exact multiple of a base is handled by the branches above,
+    # so a base yielding ``head == number`` here is out of representable range.
     for base in (10 ** 6, 1000, 100):
         if number > base:
             head = (number // base) * base
+            if head == number:
+                continue
             return pronounce_ordinal_fi(head) + \
                 pronounce_ordinal_fi(number - head)
     return str(number)
