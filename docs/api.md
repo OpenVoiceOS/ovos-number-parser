@@ -5,9 +5,26 @@ take a BCP-47 language code (`lang`). Language dialects resolve by prefix, so
 `"pt-BR"`, `"pt-PT"` and `"pt"` all reach the Portuguese parser (with variant
 handling where it matters, e.g. Brazilian vs European Portuguese).
 
-If a language is not supported by a function, `NotImplementedError` is raised.
-`pronounce_number` and `pronounce_ordinal` fall back to
-[unicode-rbnf](https://github.com/rhasspy/unicode-rbnf) before giving up.
+All 40 supported languages provide every public function. Where a language has
+no hand-written implementation, a documented generic fallback fills in:
+`pronounce_number` / `pronounce_ordinal` use
+[unicode-rbnf](https://github.com/rhasspy/unicode-rbnf); the rest use the
+parity fallbacks described in
+[Full function parity](languages.md#full-function-parity). A `lang` outside the
+supported set (or a value the fallback genuinely cannot handle) raises
+`NotImplementedError`.
+
+Every function returns `int`/`float`/`str`/`bool` as documented below; the
+extraction and classification helpers return `False` (not `None`) when no
+number is present, so test with `is not False` rather than truthiness (a valid
+`0` or `0.0` is falsy).
+
+Language-specific `*_<code>` variants (e.g. `pronounce_number_de`,
+`nice_number_de`) are also importable from the top-level package if you want to
+skip the dispatcher; `nice_number_<code>` (formats a `float` as a mixed
+fraction with a spoken denominator, e.g. `nice_number_de(5.5)` →
+`"5 und ein halb"`) has no top-level dispatcher and is only exposed
+per-language.
 
 ## `pronounce_number(number, lang, places=3, short_scale=True, scientific=False, ordinals=False, digits=..., gender=...)`
 
