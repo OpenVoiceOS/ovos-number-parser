@@ -711,6 +711,7 @@ def _extract_whole_number_with_text_tr(tokens, short_scale, ordinals):
     val = False
     prev_val = None
     next_val = None
+    negative = False
     to_sum = []
     for idx, token in enumerate(tokens):
         current_val = None
@@ -720,6 +721,7 @@ def _extract_whole_number_with_text_tr(tokens, short_scale, ordinals):
 
         word = token.word.lower()
         if word in _NEGATIVES_TR:
+            negative = True
             number_words.append(token)
             continue
 
@@ -791,7 +793,11 @@ def _extract_whole_number_with_text_tr(tokens, short_scale, ordinals):
         if word in multiplies:
             if not prev_val:
                 prev_val = 1
-            val = prev_val * val
+            if current_val is None or prev_val < current_val:
+                val = prev_val * val
+            # else: the scale word is smaller than what came before it, so it
+            # opens a new addend ("bin yüz" = 1000 + 100) already accumulated
+            # by the summing branch above rather than a multiplier
 
         # is this a spoken fraction?
         # bir buçuk fincan - yarım fincan
@@ -819,8 +825,8 @@ def _extract_whole_number_with_text_tr(tokens, short_scale, ordinals):
                 prev_val = temp
 
         # is this a negative number?
-        if val and prev_word and prev_word in _NEGATIVES_TR:
-            val = 0 - val
+        # the sign is applied once to the whole number after parsing,
+        # so no per-token negation happens here
 
         # let's make sure it isn't a fraction
         if not val:
@@ -867,6 +873,8 @@ def _extract_whole_number_with_text_tr(tokens, short_scale, ordinals):
 
     if val is not None and to_sum:
         val += sum(to_sum)
+    if negative and val not in (None, False):
+        val = -val
     return val, number_words
 
 
