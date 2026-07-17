@@ -106,6 +106,38 @@ class TestExtractNumberEt(unittest.TestCase):
             self.assertEqual(is_ordinal(spoken, "et"), n, spoken)
 
 
+class TestLongScaleEt(unittest.TestCase):
+    def test_scale_anchors_pronounce(self):
+        # long scale: 10^9 = miljard, 10^12 = biljon
+        cases = {10 ** 6: "miljon", 10 ** 9: "miljard",
+                 10 ** 12: "biljon", 3 * 10 ** 12: "kolm biljonit"}
+        for n, expected in cases.items():
+            self.assertEqual(pronounce_number(n, "et"), expected, n)
+
+    def test_scale_anchors_extract(self):
+        cases = {"miljon": 10 ** 6, "miljard": 10 ** 9,
+                 "biljon": 10 ** 12, "kolm biljonit": 3 * 10 ** 12}
+        for spoken, expected in cases.items():
+            self.assertEqual(extract_number(spoken, "et"), expected, spoken)
+
+    def test_roundtrip_both_directions(self):
+        for n in (10 ** 6, 10 ** 9, 10 ** 12, 2 * 10 ** 12,
+                  1500000000000, 1000000000001):
+            spoken = pronounce_number(n, "et")
+            self.assertNotEqual(spoken, str(n), n)  # must be words, not digits
+            self.assertEqual(extract_number(spoken, "et"), n, spoken)
+
+    def test_boundary_beyond_scale(self):
+        # 10^15 exceeds the supported scale words and falls back to digits
+        self.assertEqual(pronounce_number(10 ** 15, "et"), str(10 ** 15))
+        self.assertNotEqual(pronounce_number(10 ** 15 - 1, "et"),
+                            str(10 ** 15 - 1))
+
+    def test_negative_trillion(self):
+        self.assertEqual(pronounce_number(-10 ** 12, "et"), "miinus biljon")
+        self.assertEqual(extract_number("miinus biljon", "et"), -10 ** 12)
+
+
 class TestExtractNumbersEt(unittest.TestCase):
     def test_multiple(self):
         self.assertEqual(

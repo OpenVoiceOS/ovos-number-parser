@@ -112,7 +112,8 @@ def _pronounce_int_et(num):
     if num == 0:
         return _NUM_STRING_ET[0]
     words = []
-    for value, name, partitive in ((10 ** 9, 'miljard', 'miljardit'),
+    for value, name, partitive in ((10 ** 12, 'biljon', 'biljonit'),
+                                   (10 ** 9, 'miljard', 'miljardit'),
                                    (10 ** 6, 'miljon', 'miljonit')):
         count = num // value
         if count:
@@ -140,6 +141,10 @@ def pronounce_number_et(number, places=2, short_scale=True, scientific=False,
 
     For example, 5.2 becomes "viis koma kaks".
 
+    Estonian uses the long scale (Wikipedia, "Long and short scales",
+    https://en.wikipedia.org/wiki/Long_and_short_scales): the milliard-cognate
+    "miljard" names 10^9 and the billion-cognate "biljon" names 10^12.
+
     Args:
         number(float or int): the number to pronounce
         places(int): maximum decimal places to speak
@@ -151,7 +156,7 @@ def pronounce_number_et(number, places=2, short_scale=True, scientific=False,
     """
     if ordinals:
         return pronounce_ordinal_et(number)
-    if abs(number) >= 10 ** 12:  # beyond the supported scale words
+    if abs(number) >= 10 ** 15:  # beyond the supported scale words
         return str(number)
     if number < 0:
         return "miinus " + pronounce_number_et(abs(number), places)
@@ -271,6 +276,8 @@ _SCALE_WORDS_ET = {
     'miljonit': 10 ** 6,
     'miljard': 10 ** 9,
     'miljardit': 10 ** 9,
+    'biljon': 10 ** 12,
+    'biljonit': 10 ** 12,
 }
 
 

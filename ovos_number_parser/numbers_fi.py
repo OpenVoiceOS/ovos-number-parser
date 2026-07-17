@@ -124,7 +124,8 @@ def _pronounce_int_fi(num):
     if num == 0:
         return _NUM_STRING_FI[0]
     words = []
-    for value, name in ((10 ** 9, 'miljardi'), (10 ** 6, 'miljoona')):
+    for value, name in ((10 ** 12, 'biljoona'), (10 ** 9, 'miljardi'),
+                        (10 ** 6, 'miljoona')):
         count = num // value
         if count:
             if count == 1:
@@ -158,6 +159,10 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     allomorphs "sataa"/"tuhatta" when the multiplier exceeds one, while
     miljoona/miljardi are separate nouns in the partitive ("kaksi miljoonaa").
 
+    Finnish uses the long scale (Wikipedia, "Long and short scales",
+    https://en.wikipedia.org/wiki/Long_and_short_scales): the milliard-cognate
+    "miljardi" names 10^9 and the billion-cognate "biljoona" names 10^12.
+
     Args:
         number(float or int): the number to pronounce
         places(int): maximum decimal places to speak
@@ -169,7 +174,7 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     """
     if ordinals:
         return pronounce_ordinal_fi(number)
-    if abs(number) >= 10 ** 12:  # beyond the supported scale words
+    if abs(number) >= 10 ** 15:  # beyond the supported scale words
         return str(number)
     if number < 0:
         return "miinus " + pronounce_number_fi(abs(number), places)
@@ -316,6 +321,8 @@ _SCALE_WORDS_FI = {
     'miljoonaa': 10 ** 6,
     'miljardi': 10 ** 9,
     'miljardia': 10 ** 9,
+    'biljoona': 10 ** 12,
+    'biljoonaa': 10 ** 12,
 }
 
 
