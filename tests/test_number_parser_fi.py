@@ -111,6 +111,29 @@ class TestExtractNumberFi(unittest.TestCase):
             spoken = pronounce_number(n, "fi")
             self.assertEqual(extract_number(spoken, "fi"), n, spoken)
 
+    def test_post_million_remainder(self):
+        # a bare leading scale noun ("miljoona", "miljardi") must not swallow
+        # the remainder that follows it
+        cases = {
+            1500000: "miljoona viisisataatuhatta",
+            1000001: "miljoona yksi",
+            1000300000: "miljardi kolmesataatuhatta",
+            1002000000: "miljardi kaksi miljoonaa",
+            1001000000: "miljardi miljoona",
+            1234567: None,
+            7654321: None,
+        }
+        for n, spoken in cases.items():
+            said = pronounce_number(n, "fi")
+            if spoken is not None:
+                self.assertEqual(said, spoken)
+            self.assertEqual(extract_number(said, "fi"), n, said)
+
+    def test_roundtrip_millions_sweep(self):
+        for n in range(1000000, 10000001, 12345):
+            spoken = pronounce_number(n, "fi")
+            self.assertEqual(extract_number(spoken, "fi"), n, spoken)
+
     def test_ordinal_roundtrip_sweep(self):
         for n in list(range(1, 101)) + [200, 1000, 1000000]:
             spoken = pronounce_ordinal(n, "fi")

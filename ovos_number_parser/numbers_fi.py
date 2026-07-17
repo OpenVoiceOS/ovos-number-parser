@@ -151,7 +151,12 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     """
     Convert a number to its spoken Finnish equivalent.
 
-    For example, 5.2 becomes "viisi pilkku kaksi".
+    For example, 5.2 becomes "viisi pilkku kaksi". Cardinals are composed by
+    the multiplication-based rule of Kotimaisten kielten keskus (Kotus),
+    Kielitoimiston ohjepankki, "Luvut ja numerot: peruslukujen taivuttaminen":
+    the sub-thousand part is one agglutinated word with the partitive
+    allomorphs "sataa"/"tuhatta" when the multiplier exceeds one, while
+    miljoona/miljardi are separate nouns in the partitive ("kaksi miljoonaa").
 
     Args:
         number(float or int): the number to pronounce
@@ -429,8 +434,27 @@ def _extract_span_fi(tokens, idx):
         return None
     end = idx + 1
 
-    # separate scale nouns: "kaksi miljoonaa"
+    # Large numbers read as a sequence of "[multiplier] scale" groups followed
+    # by a sub-million remainder, and the split follows the written form: the
+    # sub-thousand part, the thousands part and each scale part are their own
+    # words (Kotus, Kielitoimiston ohjepankki, "Luvut ja numerot: numeroina
+    # vai kirjoitettuina sanoina?"). A multiplier of one is written bare
+    # ("miljoona", not "yksi miljoonaa"), so a scale noun can head the number
+    # with no preceding multiplier; the remainder that follows must still be
+    # added ("miljoona viisisataatuhatta" = 1 500 000).
     total = 0
+    if token in _SCALE_WORDS_FI:
+        total = _SCALE_WORDS_FI[token]
+        val = 0
+        if end < len(tokens):
+            nxt = _parse_number_word_fi(tokens[end])
+            if nxt is not None and (end + 1 >= len(tokens)
+                                    or tokens[end + 1] in _SCALE_WORDS_FI
+                                    or nxt < 10 ** 6):
+                val = nxt
+                end += 1
+
+    # separate scale nouns: "kaksi miljoonaa"
     while end < len(tokens) and tokens[end] in _SCALE_WORDS_FI:
         total += val * _SCALE_WORDS_FI[tokens[end]]
         end += 1
@@ -472,6 +496,15 @@ def _extract_span_fi(tokens, idx):
 def extract_number_fi(text, short_scale=True, ordinals=False):
     """
     Extract the first number from Finnish text.
+
+    A written Finnish number splits into parts the same way as its digits: the
+    sub-thousand part is one agglutinated word, the thousands part is one word,
+    and each scale part (miljoona, miljardi) is its own word, per Kotimaisten
+    kielten keskus (Kotus), Kielitoimiston ohjepankki, "Luvut ja numerot:
+    numeroina vai kirjoitettuina sanoina?" and "peruslukujen taivuttaminen".
+    A multiplier of one is written bare ("miljoona", not "yksi miljoonaa"), so
+    a scale noun may head the number with the remainder following it
+    ("miljoona viisisataatuhatta" = 1 500 000).
 
     Args:
         text (str): the string to normalize
