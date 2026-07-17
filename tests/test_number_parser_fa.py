@@ -1,6 +1,9 @@
 import unittest
 
 from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser.numbers_fa import (extract_numbers_fa,
+                                           is_fractional_fa,
+                                           pronounce_number_fa)
 
 
 class TestPersianPronounce(unittest.TestCase):
@@ -53,6 +56,90 @@ class TestPersianRoundTrip(unittest.TestCase):
 
     def test_round_trip_negative_and_decimal(self):
         for number in [-7, -42, 2.5, 3.14, -3.5, 0.5]:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="fa")
+                self.assertEqual(extract_number(spoken, lang="fa"), number)
+
+
+class TestPersianEasternDigits(unittest.TestCase):
+    """Persian (Eastern Arabic) digits must be understood."""
+
+    def test_eastern_integer(self):
+        self.assertEqual(extract_number("۲۱", lang="fa"), 21)
+
+    def test_eastern_decimal(self):
+        self.assertEqual(extract_number("۳.۱۴", lang="fa"), 3.14)
+
+    def test_eastern_in_sentence(self):
+        self.assertEqual(extract_number("من ۲۱ گربه دارم", lang="fa"), 21)
+
+    def test_western_still_works(self):
+        self.assertEqual(extract_number("21", lang="fa"), 21)
+
+
+class TestPersianScientific(unittest.TestCase):
+    """Scientific notation must not crash for a zero exponent."""
+
+    def test_single_digit_exponent_zero(self):
+        # mantissa 1..9 has exponent 0 -> value is just the mantissa
+        self.assertEqual(pronounce_number_fa(5, scientific=True), "پنج")
+
+    def test_one(self):
+        self.assertEqual(pronounce_number_fa(1, scientific=True), "یک")
+
+    def test_negative_exponent_zero(self):
+        self.assertEqual(pronounce_number_fa(-3, scientific=True), "منفی سه")
+
+    def test_zero(self):
+        self.assertEqual(pronounce_number_fa(0, scientific=True), "صفر")
+
+    def test_nonzero_exponent_unaffected(self):
+        self.assertEqual(pronounce_number_fa(5000000, scientific=True),
+                         "پنج ضرب در ده به توان شش")
+
+
+class TestPersianNeverEmpty(unittest.TestCase):
+    """pronounce_number must never yield an empty string."""
+
+    def test_underflow_rounds_to_zero(self):
+        # 0.001 underflows the default 2 decimal places
+        self.assertEqual(pronounce_number_fa(0.001), "صفر")
+
+    def test_exact_zero(self):
+        self.assertEqual(pronounce_number_fa(0), "صفر")
+
+
+class TestPersianExtractAdversarial(unittest.TestCase):
+    """Boundary and malformed inputs."""
+
+    def test_empty_string(self):
+        self.assertIn(extract_number("", lang="fa"), (False, None))
+
+    def test_only_junk(self):
+        self.assertIn(extract_number("سلام دنیا", lang="fa"), (False, None))
+
+    def test_multiple_numbers(self):
+        self.assertEqual(extract_numbers_fa("دو گربه و سه سگ"), [2, 3])
+
+    def test_negative_in_sentence(self):
+        self.assertEqual(extract_number("منفی سه و چهارده صدم", lang="fa"),
+                         -3.14)
+
+
+class TestPersianFractional(unittest.TestCase):
+    def test_third(self):
+        self.assertAlmostEqual(is_fractional_fa("سوم"), 1.0 / 3.0)
+
+    def test_half(self):
+        self.assertEqual(is_fractional_fa("نیم"), 0.5)
+
+    def test_not_a_fraction(self):
+        self.assertIs(is_fractional_fa("گربه"), False)
+
+
+class TestPersianBigRoundTrip(unittest.TestCase):
+    def test_large_values(self):
+        for number in [1234567, 1000000000, 1234567890, 999999999]:
             with self.subTest(number=number):
                 spoken = pronounce_number(number, lang="fa")
                 self.assertEqual(extract_number(spoken, lang="fa"), number)
