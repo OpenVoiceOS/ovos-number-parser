@@ -4,17 +4,21 @@ Pronunciation defaults to the masculine citation forms (the forms used for
 counting in the abstract). Extraction accepts both genders, since Arabic
 numerals 3-10 take the opposite gender of the counted noun (gender
 polarity), both nominative and oblique dual/plural case endings
-(``اثنان``/``اثنين``, ``عشرون``/``عشرين``), and both Western (0-9) and
-Eastern Arabic-Indic (٠-٩) digits.
+(``اثنان``/``اثنين``, ``عشرون``/``عشرين``), Western (0-9), Eastern
+Arabic-Indic (٠-٩) and Persian/Urdu (۰-۹) digits, and numbers written
+immediately adjacent to punctuation (``٢٠٢٤،``, ``25.``).
 """
 
 from ovos_number_parser.util import convert_to_mixed_fraction
 
 _AR_SEPARATOR = " و"  # the conjunction attaches to the following word
 
-# Arabic-Indic digits and decimal/thousands separators, hamza/taa
-# normalization and diacritics stripping used to match typed variants
+# Arabic-Indic and Persian (extended Arabic-Indic) digits, decimal/thousands
+# separators, hamza/taa normalization and diacritics stripping used to match
+# typed variants
 _NORM_TABLE = {ord(e): w for e, w in zip("٠١٢٣٤٥٦٧٨٩", "0123456789")}
+# Persian / Urdu digits (U+06F0..U+06F9) carry the same values as 0-9
+_NORM_TABLE.update({ord(e): w for e, w in zip("۰۱۲۳۴۵۶۷۸۹", "0123456789")})
 _NORM_TABLE[ord("٫")] = "."  # Arabic decimal separator
 _NORM_TABLE[ord("٬")] = None  # Arabic thousands separator
 _NORM_TABLE[ord("أ")] = "ا"
