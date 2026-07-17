@@ -161,6 +161,39 @@ class TestExtractNumberFi(unittest.TestCase):
             self.assertEqual(is_ordinal(spoken, "fi"), n, spoken)
 
 
+class TestLongScaleFi(unittest.TestCase):
+    def test_scale_anchors_pronounce(self):
+        # long scale: 10^9 = miljardi, 10^12 = biljoona
+        cases = {10 ** 6: "miljoona", 10 ** 9: "miljardi",
+                 10 ** 12: "biljoona", 2 * 10 ** 12: "kaksi biljoonaa"}
+        for n, expected in cases.items():
+            self.assertEqual(pronounce_number(n, "fi"), expected, n)
+
+    def test_scale_anchors_extract(self):
+        cases = {"miljoona": 10 ** 6, "miljardi": 10 ** 9,
+                 "biljoona": 10 ** 12, "kaksi biljoonaa": 2 * 10 ** 12}
+        for spoken, expected in cases.items():
+            self.assertEqual(extract_number(spoken, "fi"), expected, spoken)
+
+    def test_roundtrip_both_directions(self):
+        for n in (10 ** 6, 10 ** 9, 10 ** 12, 3 * 10 ** 12,
+                  1500000000000, 1000000000001):
+            spoken = pronounce_number(n, "fi")
+            self.assertNotEqual(spoken, str(n), n)  # must be words, not digits
+            self.assertEqual(extract_number(spoken, "fi"), n, spoken)
+
+    def test_boundary_beyond_scale(self):
+        # 10^15 exceeds the supported scale words and falls back to digits
+        self.assertEqual(pronounce_number(10 ** 15, "fi"), str(10 ** 15))
+        # just below the cap still pronounces
+        self.assertNotEqual(pronounce_number(10 ** 15 - 1, "fi"),
+                            str(10 ** 15 - 1))
+
+    def test_negative_trillion(self):
+        self.assertEqual(pronounce_number(-10 ** 12, "fi"), "miinus biljoona")
+        self.assertEqual(extract_number("miinus biljoona", "fi"), -10 ** 12)
+
+
 class TestExtractNumbersFi(unittest.TestCase):
     def test_multiple(self):
         self.assertEqual(
