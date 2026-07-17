@@ -698,11 +698,11 @@ class TestRoundTripSweep(unittest.TestCase):
 class TestAdversarialNumberInputs(unittest.TestCase):
     """Malformed and boundary inputs."""
 
-    def test_none_raises_predictably(self):
-        # None is not a valid string input
-        for fn in (PT_PT.extract_number, PT_PT.is_fractional):
-            with self.assertRaises(AttributeError):
-                fn(None)
+    def test_none_returns_false(self):
+        # non-string input is "no number", not an error
+        self.assertIs(PT_PT.extract_number(None), False)
+        for bad in (None, 123, 4.5, [], {}):
+            self.assertIs(PT_PT.extract_number(bad), False)
 
     def test_pronounce_rejects_non_numbers(self):
         for bad in ("not a number", None, [1, 2]):

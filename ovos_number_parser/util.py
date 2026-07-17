@@ -478,6 +478,11 @@ class RomanceNumberExtractor:
         Returns:
             int or float: The extracted number if found; otherwise, False.
         """
+        # no text, no number: honour the "no number" sentinel instead of
+        # raising on None or other non-string input
+        if not isinstance(text, str):
+            return False
+
         scale = scale or self.vocab.DEFAULT_SCALE
         numbers_map = self.vocab.get_number_strings(scale)
         ordinals_map = self.vocab.get_ordinal_strings(scale)
