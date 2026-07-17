@@ -1,7 +1,7 @@
 import unittest
 
 from ovos_number_parser import (extract_number, pronounce_number,
-                                 pronounce_ordinal, is_ordinal)
+                                 pronounce_ordinal, is_ordinal, is_fractional)
 from ovos_number_parser.numbers_eu import (extract_number_eu,
                                            pronounce_number_eu,
                                            pronounce_ordinal_eu,
@@ -219,6 +219,26 @@ class TestBasqueOrdinalSweep(unittest.TestCase):
         for text in ["", "garren", "katua", "hogei"]:
             with self.subTest(text=text):
                 self.assertFalse(is_ordinal_eu(text))
+
+
+class TestBasqueFractions(unittest.TestCase):
+    """Basque fraction nouns, including capitalized forms."""
+
+    def test_basic(self):
+        self.assertEqual(is_fractional("erdi", lang="eu"), 0.5)
+        self.assertEqual(is_fractional("heren", lang="eu"), 1.0 / 3)
+        self.assertEqual(is_fractional("laurden", lang="eu"), 0.25)
+        self.assertEqual(is_fractional("ehunen", lang="eu"), 0.01)
+
+    def test_capitalized_input_does_not_crash(self):
+        self.assertEqual(is_fractional("Erdi", lang="eu"), 0.5)
+        self.assertEqual(is_fractional("LAURDEN", lang="eu"), 0.25)
+        self.assertEqual(is_fractional("Ehunen", lang="eu"), 0.01)
+
+    def test_non_fraction_returns_false(self):
+        for word in ["", "kaixo", "bost"]:
+            with self.subTest(word=word):
+                self.assertFalse(is_fractional(word, lang="eu"))
 
 
 if __name__ == "__main__":

@@ -354,6 +354,7 @@ def is_fractional_eu(input_str):
         (bool) or (float): False if not a fraction, otherwise the fraction
 
     """
+    input_str = input_str.lower()
     if input_str.endswith('s', -1):
         input_str = input_str[:len(input_str) - 1]  # e.g. "fifths"
 
@@ -363,15 +364,15 @@ def is_fractional_eu(input_str):
              "bederatziren": 9, "bederatzirena": 9, "hamarren": 10, "hamarrena": 10,
              "hamaikaren": 11, "hamaikarena": 11, "hamabiren": 12, "hamabirena": 12}
 
-    if input_str.lower() in aFrac:
+    if input_str in aFrac:
         return 1.0 / aFrac[input_str]
-    if (input_str == "hogeiren" or input_str == "hogeirena"):
+    if input_str in ("hogeiren", "hogeirena"):
         return 1.0 / 20
-    if (input_str == "hogeita hamarren" or input_str == "hogeita hamarrena"):
+    if input_str in ("hogeita hamarren", "hogeita hamarrena"):
         return 1.0 / 30
-    if (input_str == "ehunen" or input_str == "ehunena"):
+    if input_str in ("ehunen", "ehunena"):
         return 1.0 / 100
-    if (input_str == "milaren" or input_str == "milarena"):
+    if input_str in ("milaren", "milarena"):
         return 1.0 / 1000
     return False
 
