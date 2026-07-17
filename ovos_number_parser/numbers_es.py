@@ -696,7 +696,9 @@ def pronounce_number_es(number, places=2, short_scale=False):
             else:
                 q, r = divmod(n, 100)
                 if q == 1:
-                    _partial = "ciento"
+                    # exactly one hundred is "cien"; "ciento" only combines
+                    # with a following remainder ("ciento uno")
+                    _partial = "ciento" if r else "cien"
                 elif q == 5:
                     _partial = "quinientos"
                 elif q == 7:
