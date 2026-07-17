@@ -1,7 +1,7 @@
 import unittest
 
 from ovos_number_parser.util import GrammaticalGender
-from ovos_number_parser.numbers_mwl import MWL
+from ovos_number_parser.numbers_mwl import MWL, swap_gender_mwl
 
 
 # ============================================================
@@ -244,3 +244,98 @@ class TestIntegrationMWL(unittest.TestCase):
         text_f = MWL.pronounce_number(2, gender=GrammaticalGender.FEMININE)
         self.assertEqual(text_f, "dues")
         self.assertEqual(MWL.extract_number(text_f), 2)
+
+
+# ============================================================
+# Grammatical gender agreement (adversarial)
+# ============================================================
+
+class TestGenderAgreementMWL(unittest.TestCase):
+    """In Mirandese only 1, 2 and the hundreds inflect for gender.
+
+    Units 3-9 (and zero) are invariant. Earlier the generic '-o -> -a'
+    rule wrongly produced *quatra / *cinca / *uita.
+    """
+
+    def test_invariant_units_feminine(self):
+        # These cardinals never change ending for gender
+        for n, word in [(3, "trés"), (4, "quatro"), (5, "cinco"),
+                        (6, "seis"), (7, "siete"), (8, "uito"),
+                        (9, "nuobe"), (0, "zero")]:
+            self.assertEqual(
+                MWL.pronounce_number(n, gender=GrammaticalGender.FEMININE),
+                word, f"unit {n} must be gender invariant")
+
+    def test_hundreds_inflect_feminine(self):
+        # The hundreds DO agree in gender: duzientos -> duzientas
+        self.assertEqual(
+            MWL.pronounce_number(200, gender=GrammaticalGender.FEMININE),
+            "duzientas")
+        self.assertEqual(
+            MWL.pronounce_number(300, gender=GrammaticalGender.FEMININE),
+            "trezientas")
+
+    def test_decimal_digits_not_gendered(self):
+        # Feminine gender must not bleed into the fractional digits
+        self.assertEqual(
+            MWL.pronounce_number(1.5, gender=GrammaticalGender.FEMININE),
+            "ũa bírgula cinco")
+        self.assertEqual(
+            MWL.pronounce_number(2.5, gender=GrammaticalGender.FEMININE),
+            "dues bírgula cinco")
+
+    def test_swap_gender_one_roundtrip(self):
+        # ũa is the feminine of un; masculinising it returns un (not ũa)
+        self.assertEqual(
+            swap_gender_mwl("un", GrammaticalGender.FEMININE), "ũa")
+        self.assertEqual(
+            swap_gender_mwl("ũa", GrammaticalGender.MASCULINE), "un")
+
+    def test_invariant_scale_words_feminine(self):
+        # 4 million feminine keeps "quatro" and "milhones" invariant
+        self.assertEqual(
+            MWL.pronounce_number(4_000_000, gender=GrammaticalGender.FEMININE),
+            "quatro milhones")
+
+
+# ============================================================
+# Adversarial / robustness
+# ============================================================
+
+class TestRobustnessMWL(unittest.TestCase):
+    """Empty, junk and boundary inputs must not crash and must not fabricate."""
+
+    def test_empty_and_junk(self):
+        for junk in ["", "   ", "palabra sin númaro", "xyz"]:
+            self.assertFalse(MWL.extract_number(junk))
+
+    def test_zero_and_negatives(self):
+        self.assertEqual(MWL.pronounce_number(0), "zero")
+        self.assertEqual(MWL.extract_number("zero"), 0)
+        self.assertEqual(MWL.extract_number("menos dieç"), -10)
+
+    def test_wide_gender_invariant_roundtrip(self):
+        # Feminine pronunciation must still extract back to the same value
+        for n in [3, 4, 5, 8, 40, 45, 88, 405]:
+            text = MWL.pronounce_number(n, gender=GrammaticalGender.FEMININE)
+            self.assertEqual(MWL.extract_number(text), n,
+                             f"feminine round trip failed for {n}: {text!r}")
+
+
+# ============================================================
+# Round-trip sweep
+# ============================================================
+
+class TestSweepMWL(unittest.TestCase):
+
+    def test_dense_sweep_masculine(self):
+        for n in range(0, 1000):
+            text = MWL.pronounce_number(n)
+            self.assertEqual(MWL.extract_number(text), n,
+                             f"masc round trip failed for {n}: {text!r}")
+
+    def test_dense_sweep_feminine(self):
+        for n in range(0, 1000):
+            text = MWL.pronounce_number(n, gender=GrammaticalGender.FEMININE)
+            self.assertEqual(MWL.extract_number(text), n,
+                             f"fem round trip failed for {n}: {text!r}")
