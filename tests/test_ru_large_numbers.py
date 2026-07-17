@@ -10,7 +10,7 @@ INF_WORD = "бесконечность"
 # (whose str() carries no "e") and values past the float ceiling
 FINITE_SWEEP = [
     1e60, 1e93, 1e120, 1e123, 1e150, 1e200, 1e303, 1e306, 1.7e308,
-    10 ** 120, 10 ** 200, 10 ** 306, 10 ** 320, 10 ** 500,
+    10 ** 120, 10 ** 200, 10 ** 306, 10 ** 320, 10 ** 400, 2 ** 1024, 10 ** 500,
 ]
 
 
@@ -31,6 +31,16 @@ class TestRussianLargeNumbers(unittest.TestCase):
     def test_small_numbers_unchanged(self):
         self.assertEqual(pronounce_number_ru(5), "пять")
         self.assertEqual(pronounce_number_ru(-3.5), "минус три точка пять")
+
+    def test_rounds_not_truncates(self):
+        self.assertEqual(pronounce_number_ru(3.14159, places=4),
+                         "три точка один четыре один шесть")
+
+    def test_rounding_carries_into_integer(self):
+        self.assertEqual(pronounce_number_ru(0.999999, places=2), "один")
+
+    def test_rounds_to_zero_has_no_minus(self):
+        self.assertEqual(pronounce_number_ru(-0.004, places=2), "ноль")
 
     def test_other_backend_no_false_infinity(self):
         # a sibling backend that falls back to a raw digit string must also

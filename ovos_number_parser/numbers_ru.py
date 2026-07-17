@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import math
 from collections import OrderedDict
+from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
     invert_dict, ReplaceableNumber, partition_list, tokenize, Token
@@ -433,6 +435,14 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
         return "бесконечность"
     elif num == float("-inf"):
         return "минус бесконечность"
+    # Round (not truncate) the value to `places` decimals: half-away-from-zero
+    # per ISO 80000-1 and NIST SP 811 (2008) B.7. Rounding here also carries
+    # into the integer part and collapses a value that rounds to zero to a
+    # plain "ноль" (never "минус ноль").
+    if not scientific and isinstance(num, float) and math.isfinite(num) \
+            and num != int(num):
+        num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
+                                               rounding=ROUND_HALF_UP)) or 0.0
     if scientific:
         try:
             number = '%E' % num
