@@ -58,5 +58,80 @@ class TestGermanRoundTrip(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="de"), number)
 
 
+class TestGermanNaturalSentences(unittest.TestCase):
+    """Numbers embedded in natural German utterances."""
+
+    def test_first_number_in_sentence(self):
+        self.assertEqual(
+            extract_number("ich hätte gern drei äpfel und zwei birnen", lang="de"), 3)
+        self.assertEqual(
+            extract_number("stell den wecker auf sieben minuten", lang="de"), 7)
+        self.assertEqual(
+            extract_number("in zweiundzwanzig tagen", lang="de"), 22)
+        self.assertEqual(
+            extract_number("zweihundertdreiundvierzig gäste", lang="de"), 243)
+
+    def test_fractions(self):
+        self.assertEqual(extract_number("zweieinhalb", lang="de"), 2.5)
+        self.assertEqual(extract_number("dreiviertel", lang="de"), 0.75)
+        self.assertEqual(extract_number("ein halb", lang="de"), 0.5)
+
+    def test_ordinals_only(self):
+        self.assertEqual(extract_number("der erste", lang="de", ordinals=True), 1)
+        self.assertEqual(extract_number("der dritte", lang="de", ordinals=True), 3)
+        self.assertEqual(
+            extract_number("der einundzwanzigste", lang="de", ordinals=True), 21)
+
+
+class TestGermanAdversarial(unittest.TestCase):
+    """Malformed, boundary and junk inputs must not crash or misparse."""
+
+    def test_empty_and_junk(self):
+        for text in ["", "   ", "hallo welt", "!!!", "\n\t"]:
+            with self.subTest(text=text):
+                self.assertIn(extract_number(text, lang="de"), (False, None))
+
+    def test_case_insensitive(self):
+        self.assertEqual(extract_number("MINUS SIEBEN".lower(), lang="de"), -7)
+        self.assertEqual(extract_number("Einundzwanzig".lower(), lang="de"), 21)
+
+    def test_leading_trailing_junk(self):
+        self.assertEqual(extract_number("  zwei  ", lang="de"), 2)
+        self.assertEqual(
+            extract_number("also dann bitte einundzwanzig okay", lang="de"), 21)
+
+    def test_lang_code_variants(self):
+        for lang in ("de", "de-de", "de-DE"):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number("einundzwanzig", lang=lang), 21)
+
+    def test_negative_and_zero_boundaries(self):
+        self.assertEqual(extract_number("null", lang="de"), 0)
+        self.assertEqual(extract_number("minus null", lang="de"), 0)
+        self.assertEqual(extract_number("minus zweiundvierzig", lang="de"), -42)
+
+    def test_large_numbers(self):
+        self.assertEqual(extract_number("einhunderttausend", lang="de"), 100000)
+        self.assertEqual(extract_number("eine Million", lang="de"), 1000000)
+
+
+class TestGermanRoundTripSweep(unittest.TestCase):
+    """Every integer up to 10000 must survive pronounce -> extract."""
+
+    def test_sweep_dense(self):
+        for number in range(0, 2001):
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="de")
+                self.assertEqual(extract_number(spoken, lang="de"), number)
+
+    def test_sweep_large(self):
+        for number in [3000, 4567, 9999, 10000, 12345, 99999,
+                       100000, 123456, 999999, 1000000, 2000000,
+                       1234567, 1000000000]:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="de")
+                self.assertEqual(extract_number(spoken, lang="de"), number)
+
+
 if __name__ == "__main__":
     unittest.main()
