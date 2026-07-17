@@ -612,7 +612,7 @@ def _extract_whole_number_with_text_sk(tokens, short_scale, ordinals):
                 break
             prev_val = val
 
-            if word in multiplies and next_word not in multiplies:
+            if word in multiplies:
                 # handle long numbers: if all remaining scale words are
                 # smaller than the current one, set the current value aside
                 # and start assembling the next portion
@@ -659,6 +659,14 @@ def _initialize_number_data_sk(short_scale):
 def extract_number_sk(text, short_scale=True, ordinals=False):
     """
     This function extracts a number from a text string
+
+    Numeral structure follows the Rules of Slovak Orthography
+    (Pravidlá slovenského pravopisu, Jazykovedný ústav Ľudovíta Štúra SAV,
+    3rd ed. 2000): the million/milliard groups are separate lexical words that
+    multiply the group before them, while the thousand and hundred groups form
+    their own additive portions ("dvestopäťdesiattritisíc štyristo dvadsaťosem").
+    Each such group is set aside and summed independently, so a millions group
+    followed by a hundred-thousands group accumulates correctly.
 
     Args:
         text (str): the string to normalize
@@ -762,6 +770,11 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
     Convert a number to its spoken Slovak equivalent
 
     For example, '5.2' would return 'päť celá dva'
+
+    Word forms follow the Rules of Slovak Orthography (Pravidlá slovenského
+    pravopisu, Jazykovedný ústav Ľudovíta Štúra SAV, 3rd ed. 2000): million and
+    milliard groups are spoken as separate words, so the output round-trips
+    through extract_number_sk.
 
     Args:
         number(float or int): the number to pronounce

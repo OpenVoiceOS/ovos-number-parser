@@ -140,5 +140,41 @@ class TestSlovakRoundTrip(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="sk"), number)
 
 
+class TestSlovakScaleAccumulation(unittest.TestCase):
+    """Millions combined with hundred-thousands must accumulate correctly.
+
+    Anchored on the Rules of Slovak Orthography (Pravidlá slovenského
+    pravopisu, JÚĽŠ SAV): million groups are separate words and the
+    thousand/hundred groups form their own additive portions.
+    """
+
+    def test_million_plus_hundred_thousands_anchor(self):
+        # "jeden milión päťsto tisíc" = 1 500 000
+        self.assertEqual(pronounce_number(1500000, lang="sk"),
+                         "jeden milión päťsto tisíc")
+        self.assertEqual(extract_number("jeden milión päťsto tisíc",
+                                        lang="sk"), 1500000)
+
+    def test_million_thousand_hundred_round_trip(self):
+        for number in [1000500, 1100000, 1200000, 1500000, 8186976,
+                       2500000, 9999999, 10000000, 1186976]:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="sk")
+                self.assertEqual(extract_number(spoken, lang="sk"), number)
+
+    def test_negative_scale_round_trip(self):
+        for number in [-9997, -1499, -1500000, -8186976, -104979, -1000500]:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="sk")
+                self.assertEqual(extract_number(spoken, lang="sk"), number)
+
+    def test_property_round_trip_both_signs(self):
+        for base in range(0, 10000001, 5417):
+            for number in (base, -base):
+                spoken = pronounce_number(number, lang="sk")
+                self.assertEqual(extract_number(spoken, lang="sk"), number,
+                                 msg=f"round-trip failed for {number}: {spoken!r}")
+
+
 if __name__ == "__main__":
     unittest.main()
