@@ -1,7 +1,11 @@
 import collections
 
 import re
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions
+from typing import Optional, Union
+
+from ovos_number_parser.util import (convert_to_mixed_fraction, Scale,
+                                     GrammaticalGender, NumberVocabulary,
+                                     RomanceNumberExtractor)
 
 _SHORT_ORDINAL_STRING_IT = {
     1: 'primo',
@@ -354,381 +358,219 @@ def is_fractional_it(input_str, short_scale=False):
     return False
 
 
-def _extract_number_long_it(word):
+# ---------------------------------------------------------------------------
+# Vocabulary-driven extraction on the shared RomanceNumberExtractor engine.
+#
+# Italian writes cardinals as a single fused word ("ventitré", "milleduecento-
+# trentaquattro"), joining the parts with vowel elisions and the accented -tré
+# ending. The rules encoded here follow the Accademia della Crusca consulenza
+# "Quarantaquattro gatti in fila per sei col resto di due, o di quando e come
+# scrivere i numeri in lettere"
+# (https://accademiadellacrusca.it/it/consulenza/quarantaquattro-gatti-in-fila-
+# per-sei-col-resto-di-due-o-di-quando-e-come-scrivere-i-numeri-in-lettere/1077):
+# the tens elide their final vowel before "uno" and "otto" (venti->ventuno,
+# venti->ventotto, trenta->trentuno/trentotto ...); "tre" carries a written
+# accent in every compound (ventitré, trentatré, centotré); "cento" is
+# invariable and "mille" pluralises to "mila" (duemila).
+# ---------------------------------------------------------------------------
+
+
+def swap_gender_it(word: str, gender: GrammaticalGender) -> str:
+    """Only "uno" and the fraction noun "mezzo" inflect for gender in Italian."""
+    if gender == GrammaticalGender.FEMININE:
+        if word == "uno":
+            return "una"
+        if word == "mezzo":
+            return "mezza"
+    return word
+
+
+def pluralize_it(word: str) -> str:
+    """Regular Italian plural for the scale and fraction words used here."""
+    if word == "mille":
+        return "mila"                      # duemila, tremila
+    if word.endswith(("e", "o")):
+        return word[:-1] + "i"             # milione->milioni, quarto->quarti
+    return word
+
+
+_UNITS_IT = {0: 'zero', 1: 'uno', 2: 'due', 3: 'tre', 4: 'quattro',
+             5: 'cinque', 6: 'sei', 7: 'sette', 8: 'otto', 9: 'nove'}
+
+_TENS_IT = {10: 'dieci', 11: 'undici', 12: 'dodici', 13: 'tredici',
+            14: 'quattordici', 15: 'quindici', 16: 'sedici', 17: 'diciassette',
+            18: 'diciotto', 19: 'diciannove', 20: 'venti', 30: 'trenta',
+            40: 'quaranta', 50: 'cinquanta', 60: 'sessanta', 70: 'settanta',
+            80: 'ottanta', 90: 'novanta'}
+
+_IT = NumberVocabulary(
+    LANG="it",
+    swap_gender=swap_gender_it,
+    pluralize=pluralize_it,
+
+    HUNDRED_PARTICLE="cento",          # cento is invariable
+    DENOMINATOR_PARTICLE="",
+    DIVIDED_BY_ZERO="diviso zero",
+    NO_PREV_UNIT=[1000],               # "mille", never "un mille"
+    NO_PLURAL=[1000],                  # "duemila", pluralised as "mila"
+
+    NUMBER_OVERFLOW="numero davvero enorme",
+    # Italy follows the long scale: milione 10^6, miliardo 10^9, bilione 10^12
+    DEFAULT_SCALE=Scale.LONG,
+    JOIN_WORD=["e"],
+    JOINER_ON_TWENTYS=False,           # fused forms carry no spoken joiner
+    JOINER_ON_HUNDREDS=False,
+    JOINER_ON_THOUSANDS=False,
+    JOINER_ON_SCALE_REMAINDER=False,
+    MULTIPLY_HUNDREDS=True,            # "duecento" split to "due cento" = 200
+    FRACTIONS_ALWAYS_MULTIPLY=True,    # "un quarto" = 1/4, "tre quarti" = 3/4
+
+    DECIMAL_MARKER=["virgola", "punto"],
+    NEGATIVE_SIGN=["meno"],
+    UNITS=_UNITS_IT,
+    TENS=_TENS_IT,
+    HUNDREDS={},                       # the hundreds multiply the units instead
+    FRACTION={2: 'mezzo', 3: 'terzo', 4: 'quarto', 5: 'quinto', 6: 'sesto',
+              7: 'settimo', 8: 'ottavo', 9: 'nono', 10: 'decimo',
+              11: 'undicesimo', 12: 'dodicesimo', 13: 'tredicesimo',
+              14: 'quattordicesimo', 15: 'quindicesimo', 16: 'sedicesimo',
+              17: 'diciassettesimo', 18: 'diciottesimo', 19: 'diciannovesimo',
+              20: 'ventesimo', 100: 'centesimo', 1000: 'millesimo'},
+    FRACTION_FEMALE={2: 'mezza'},
+    SHORT_SCALE={1000: 'mille', 10 ** 6: 'milione', 10 ** 9: 'miliardo',
+                 10 ** 12: 'bilione', 10 ** 15: 'biliardo', 10 ** 18: 'trilione',
+                 10 ** 21: 'triliardo', 10 ** 24: 'quadrilione'},
+    LONG_SCALE={1000: 'mille', 10 ** 6: 'milione', 10 ** 9: 'miliardo',
+                10 ** 12: 'bilione', 10 ** 18: 'trilione', 10 ** 24: 'quadrilione',
+                10 ** 30: 'quintilione', 10 ** 36: 'sestilione'},
+
+    GENDERED_SPELLINGS={GrammaticalGender.FEMININE: {1: 'una'}},
+    DIGIT_SPELLINGS={},
+    ALT_SPELLINGS={
+        'un': 1,                       # "un milione"
+        'mila': 1000,                  # plural of mille inside compounds
+        'milioni': 10 ** 6,
+        'miliardi': 10 ** 9,
+    },
+    ORDINAL_UNITS={1: 'primo', 2: 'secondo', 3: 'terzo', 4: 'quarto',
+                   5: 'quinto', 6: 'sesto', 7: 'settimo', 8: 'ottavo', 9: 'nono'},
+    ORDINAL_TENS={10: 'decimo', 20: 'ventesimo', 30: 'trentesimo',
+                  40: 'quarantesimo', 50: 'cinquantesimo', 60: 'sessantesimo',
+                  70: 'settantesimo', 80: 'ottantesimo', 90: 'novantesimo'},
+    ORDINAL_HUNDREDS={100: 'centesimo'},
+    ORDINAL_SHORT_SCALE={1000: 'millesimo', 10 ** 6: 'milionesimo'},
+    ORDINAL_LONG_SCALE={1000: 'millesimo', 10 ** 6: 'milionesimo'},
+)
+
+
+# --- fused-compound splitter ----------------------------------------------
+# Italian glues a whole numeral into one word ("milleduecentotrentaquattro").
+# The shared engine tokenises on spaces, so a per-language hook first breaks the
+# fused word back into the space-separated numeral morphemes the vocabulary
+# knows, restoring the vowel elided at each join.
+
+_MORPHEMES_IT = {}
+for _d in (_UNITS_IT, _TENS_IT):
+    for _v in _d.values():
+        _MORPHEMES_IT[_v] = _v
+_MORPHEMES_IT['cento'] = 'cento'
+for _s in ('mille', 'mila', 'milione', 'milioni', 'miliardo', 'miliardi',
+           'bilione', 'bilioni'):
+    _MORPHEMES_IT[_s] = _s
+# elided tens ("vent-", "trent-", ... appear only before "uno"/"otto"): the
+# full tens word above is matched first, so these only fire on an elision.
+for _full in ('venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta',
+              'settanta', 'ottanta', 'novanta'):
+    _MORPHEMES_IT[_full[:-1]] = _full
+# longest surface first, so "trenta" wins over "trent" and "sette" over "sei"
+_MORPHEME_SURFACES_IT = sorted(_MORPHEMES_IT, key=len, reverse=True)
+
+
+def _split_fused_it(word: str) -> str:
+    """Break a fused Italian numeral into space-separated morphemes.
+
+    Restores the accent (ventitré -> ventitre) and the vowel elided before
+    "uno"/"otto" in the tens and hundreds (ventuno -> venti uno, centotto ->
+    cento otto). A word that does not decompose cleanly into numeral morphemes
+    is returned unchanged, so non-numbers ("trentini") stay non-numbers.
     """
-     This function converts a long textual number like
-     milleventisette -> 1027 diecimila -> 10041 in
-     integer value, covers from  0 to 999999999999999
-     for now limited to 999_e21 but ready for 999_e63
-     example:
-        milleventisette -> 1027
-        diecimilaquarantuno-> 10041
-        centottomiladuecentotredici -> 108213
-    Args:
-         word (str): the word to convert in number
-    Returns:
-         (bool) or (int): The extracted number or False if no number
-                                   was found
-    """
-
-    # accented endings are the standard spelling of fused units
-    # (ventitré, trentatré, ...) and must parse like their bare forms
-    word = word.replace('é', 'e').replace('è', 'e')
-    # restore the vowel elided before -uno / -otto in the hundreds
-    # (centotto -> cento otto, centuno -> cento uno)
-    word = word.replace('centotto', 'centootto').replace('centuno', 'centouno')
-
-    units = {'zero': 0, 'uno': 1, 'due': 2, 'tre': 3, 'quattro': 4,
-             'cinque': 5, 'sei': 6, 'sette': 7, 'otto': 8, 'nove': 9}
-
-    tens = {'dieci': 10, 'venti': 20, 'trenta': 30, 'quaranta': 40,
-            'cinquanta': 50, 'sessanta': 60, 'settanta': 70, 'ottanta': 80,
-            'novanta': 90}
-
-    tens_short = {'vent': 20, 'trent': 30, 'quarant': 40, 'cinquant': 50,
-                  'sessant': 60, 'settant': 70, 'ottant': 80, 'novant': 90}
-
-    nums_long = {'undici': 11, 'dodici': 12, 'tredici': 13, 'quattordici': 14,
-                 'quindici': 15, 'sedici': 16, 'diciassette': 17,
-                 'diciotto': 18, 'diciannove': 19}
-
-    multipli_it = collections.OrderedDict([
-        # (1e63, 'deciliardi'),
-        # (1e60, 'decilioni'),
-        # (1e57, 'noviliardi'),
-        # (1e54, 'novilioni'),
-        # (1e51, 'ottiliardi'),
-        # (1e48, 'ottilioni'),
-        # (1e45, 'settiliardi'),
-        # (1e42, 'settilioni'),
-        # (1e39, 'sestiliardi'),
-        # (1e36, 'sestilioni'),
-        # (1e33, 'quintiliardi'),
-        # (1e30, 'quintilioni'),
-        # (1e27, 'quadriliardi'),
-        # (1e24, 'quadrilioni'),    # yotta
-        (1e21, 'triliardi'),  # zetta
-        (1e18, 'trilioni'),  # exa
-        (1e15, 'biliardi'),  # peta
-        (1e12, 'bilioni'),  # tera
-        (1e9, 'miliardi'),  # giga
-        (1e6, 'milioni')  # mega
-    ])
-
-    multiplier = {}
-    un_multiplier = {}
-
-    for num in multipli_it:
-        if num > 1000 and num <= 1e21:
-            # plurali
-            multiplier[multipli_it[num]] = int(num)
-            # singolari - modificare per eccezioni *liardo
-            if multipli_it[num][-5:-1] == 'iard':
-                un_multiplier['un' + multipli_it[num][:-1] + 'o'] = int(num)
-            else:
-                un_multiplier['un' + multipli_it[num][:-1] + 'e'] = int(num)
-
-    value = False
-
-    # normalizza ordinali singoli o plurali -esimo -esimi
-    if word[-5:-1] == 'esim':
-        base = word[:-5]
-        normalize_ita3 = {'tre': '', 'ttr': 'o', 'sei': '', 'ott': 'o'}
-        normalize_ita2 = {'un': 'o', 'du': 'e', 'qu': 'e', 'tt': 'e',
-                          'ov': 'e'}
-
-        if base[-3:] in normalize_ita3:
-            base += normalize_ita3[base[-3:]]
-        elif base[-2:] in normalize_ita2:
-            base += normalize_ita2[base[-2:]]
-
-        word = base
-
-    for item in un_multiplier:
-        components = word.split(item, 1)
-        if len(components) == 2:
-            if not components[0]:  # inizia con un1^x
-                if not components[1]:  # unmilione
-                    word = str(int(un_multiplier[item]))
-                else:  # unmilione + x
-                    word = str(int(un_multiplier[item]) +
-                               _extract_number_long_it(components[1]))
-
-    for item in multiplier:
-        components = word.split(item, 1)
-        if len(components) == 2:
-            if not components[0]:  # inizia con un1^x
-                word = str(int(multiplier[item]) +
-                           _extract_number_long_it(components[1]))
-            else:
-                if not components[1]:
-                    word = str(_extract_number_long_it(components[0])) + '*' \
-                           + str(int(multiplier[item]))
-                else:
-                    word = str(_extract_number_long_it(components[0])) + '*' \
-                           + str(int(multiplier[item])) + '+' \
-                           + str(_extract_number_long_it(components[1]))
-
-    for item in tens:
-        word = word.replace(item, '+' + str(tens[item]))
-
-    for item in tens_short:
-        word = word.replace(item, '+' + str(tens_short[item]))
-
-    for item in nums_long:
-        word = word.replace(item, '+' + str(nums_long[item]))
-
-    word = word.replace('cento', '+1xx')
-    word = word.replace('cent', '+1xx')
-    word = word.replace('mille', '+1000')  # unmilionemille
-    word = word.replace('mila', '*1000')  # unmilioneduemila
-
-    for item in units:
-        word = word.replace(item, '+' + str(units[item]))
-
-    # normalizzo i cento
-    occorrenze = word.count('+1xx')
-    for _ in range(0, occorrenze):
-        components = word.rsplit('+1xx', 1)
-        if len(components[0]) > 1 and components[0].endswith('0'):
-            word = components[0] + '+100' + components[1]
+    w = word.lower().replace('é', 'e').replace('è', 'e')
+    # cento elides its final -o before uno/otto (centuno, centotto)
+    w = w.replace('centuno', 'centouno').replace('centotto', 'centootto')
+    out = []
+    i = 0
+    while i < len(w):
+        for surf in _MORPHEME_SURFACES_IT:
+            if w.startswith(surf, i):
+                out.append(_MORPHEMES_IT[surf])
+                i += len(surf)
+                break
         else:
-            word = components[0] + '*100' + components[1]
+            return word
+    return ' '.join(out)
 
-    components = word.rsplit('*1000', 1)
-    if len(components) == 2:
-        if components[0].startswith('*'):  # centomila
-            components[0] = components[0][1:]
-        word = str(_extract_number_long_it(components[0])) + \
-               '*1000' + str(components[1])
 
-    # gestione eccezioni
-    if word.startswith('*') or word.startswith('+'):
-        word = word[1:]
+class ItalianNumberExtractor(RomanceNumberExtractor):
+    """Italian number engine.
 
-    addends = word.split('+')
-    for c, _ in enumerate(addends):
-        if '*' in addends[c]:
-            factors = addends[c].split('*')
-            result = int(factors[0]) * int(factors[1])
-            if len(factors) == 3:
-                result *= int(factors[2])
-            addends[c] = str(result)
+    Adds the one Italian-specific surface convention the shared engine does not
+    model: cardinals are written as a single fused word. The extractor splits
+    each fused token back into numeral morphemes before delegating to the shared
+    vocabulary-driven parser.
+    """
 
-    # check if all token are numbers
-    if all([s.isdecimal() for s in addends]):
-        value = sum([int(s) for s in addends])
-    else:
-        value = False
-    return value
+    def _presplit(self, text: str) -> str:
+        # a comma glued to a word is a group separator ("duemila, ventitre"),
+        # not part of the number
+        text = re.sub(r"(?<=[^\W\d]),", " ", text)
+        return " ".join(_split_fused_it(tok) for tok in text.split())
+
+    def extract_number(self,
+                       text: str,
+                       ordinals: bool = False,
+                       scale: Optional[Scale] = None
+                       ) -> Union[int, float, bool]:
+        if isinstance(text, str):
+            text = self._presplit(text)
+        return super().extract_number(text, ordinals=ordinals, scale=scale)
+
+    def numbers_to_digits(self,
+                          utterance: str,
+                          scale: Optional[Scale] = None) -> str:
+        return super().numbers_to_digits(self._presplit(utterance), scale=scale)
+
+
+IT = ItalianNumberExtractor(_IT)
 
 
 def extract_number_it(text, short_scale=False, ordinals=False):
-    """
-    This function extracts a number from a text string,
-    handles pronunciations in long scale and short scale
+    """Extract a number from Italian text.
 
-    https://en.wikipedia.org/wiki/Names_of_large_numbers
+    Delegates to the shared :class:`RomanceNumberExtractor`. Italian writes each
+    cardinal as a single fused word, so a per-language splitter first tokenises
+    the fused form back into numeral morphemes, restoring the vowel elided
+    before "uno"/"otto" (ventuno -> venti uno, centotto -> cento otto) and the
+    accented -tré ending (ventitré -> venti tre). These fusion, elision and
+    accent rules follow the Accademia della Crusca consulenza "Quarantaquattro
+    gatti in fila per sei col resto di due, o di quando e come scrivere i numeri
+    in lettere"
+    (https://accademiadellacrusca.it/it/consulenza/quarantaquattro-gatti-in-
+    fila-per-sei-col-resto-di-due-o-di-quando-e-come-scrivere-i-numeri-in-
+    lettere/1077): the tens drop their final vowel before "uno" and "otto"
+    (ventuno, ventotto, trentuno, quarantotto), "tre" is written "-tré" in every
+    compound, "cento" is invariable and "mille" pluralises to "mila" (duemila).
+    The ``scale`` defaults to the long scale used in Italy (miliardo 10^9,
+    bilione 10^12).
 
     Args:
-        text (str): the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
+        text (str): the string to extract a number from
+        short_scale (bool): use the short scale instead of the default long scale
+        ordinals (bool): also recognise ordinal words
     Returns:
-        (int) or (float) or False: The extracted number or False if no number
-                                   was found
-
+        (int, float) or False: the extracted number, or False if none is found
     """
-
-    text = re.sub(r"(?<=[^\W\d]),", " ", text.lower())
-    _words0 = text.split()
-    if _words0 and _words0[0] == "meno":
-        _rest = extract_number_it(" ".join(_words0[1:]), short_scale, ordinals)
-        if _rest is not False and _rest is not None:
-            return -_rest
-        return _rest
-    string_num_ordinal_it = {}
-    # first, second...
-    if ordinals:
-        if short_scale:
-            for num in _SHORT_ORDINAL_STRING_IT:
-                num_string = _SHORT_ORDINAL_STRING_IT[num]
-                string_num_ordinal_it[num_string] = num
-                _STRING_NUM_IT[num_string] = num
-        else:
-            for num in _LONG_ORDINAL_STRING_IT:
-                num_string = _LONG_ORDINAL_STRING_IT[num]
-                string_num_ordinal_it[num_string] = num
-                _STRING_NUM_IT[num_string] = num
-
-    # negate next number (-2 = 0 - 2)
-    negatives = ['meno']  # 'negativo' non è usuale in italiano
-
-    # multiply the previous number (one hundred = 1 * 100)
-    multiplies = ['decina', 'decine', 'dozzina', 'dozzine',
-                  'centinaia', 'centinaio', 'migliaia', 'migliaio', 'mila']
-
-    # split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
-    fraction_marker = [' e ']
-
-    # decimal marker ( 1 point 5 = 1 + 0.5)
-    decimal_marker = [' punto ', ' virgola ']
-
-    if short_scale:
-        for num in _SHORT_SCALE_IT:
-            num_string = _SHORT_SCALE_IT[num]
-            _STRING_NUM_IT[num_string] = num
-            multiplies.append(num_string)
-    else:
-        for num in _LONG_SCALE_IT:
-            num_string = _LONG_SCALE_IT[num]
-            _STRING_NUM_IT[num_string] = num
-            multiplies.append(num_string)
-
-    # 2 e 3/4 ed altri casi
-    for separator in fraction_marker:
-        components = text.split(separator)
-        zeros = 0
-
-        if len(components) == 2:
-            # count zeros in fraction part
-            sub_components = components[1].split(' ')
-            for element in sub_components:
-                if element == 'zero' or element == '0':
-                    zeros += 1
-                else:
-                    break
-            # ensure first is not a fraction and second is a fraction
-            num1 = extract_number_it(components[0])
-            num2 = extract_number_it(components[1])
-            if num1 is not None and num2 is not None \
-                    and num1 >= 1 and 0 < num2 < 1:
-                return num1 + num2
-            # sette e quaranta  sette e zero zero due
-            elif num1 is not None and num2 is not None \
-                    and num1 >= 1 and num2 > 1:
-                return num1 + num2 / pow(10, len(str(num2)) + zeros)
-
-    # 2 punto 5
-    for separator in decimal_marker:
-        zeros = 0
-        # count zeros in fraction part
-        components = text.split(separator)
-
-        if len(components) == 2:
-            sub_components = components[1].split(' ')
-            for element in sub_components:
-                if element == 'zero' or element == '0':
-                    zeros += 1
-                else:
-                    break
-
-            number = int(extract_number_it(components[0]))
-            # read the decimal tail digit by digit ("uno quattro" -> .14)
-            digits = ""
-            for element in sub_components:
-                if element.isdigit():
-                    digits += element
-                elif element in _STRING_NUM_IT \
-                        and 0 <= _STRING_NUM_IT[element] <= 9:
-                    digits += str(int(_STRING_NUM_IT[element]))
-                else:
-                    digits = ""
-                    break
-            if digits and number is not None:
-                return number + float("0." + digits)
-            decimal = int(extract_number_it(components[1]))
-            if number is not None and decimal is not None:
-                if '.' not in str(decimal):
-                    return number + decimal / pow(10,
-                                                  len(str(decimal)) + zeros)
-
-    all_words = text.split()
-    val = False
-    prev_val = None
-    to_sum = []
-    for idx, word in enumerate(all_words):
-
-        if not word:
-            continue
-        prev_word = all_words[idx - 1] if idx > 0 else ''
-        next_word = all_words[idx + 1] if idx + 1 < len(all_words) else ''
-
-        # is this word already a number ?
-        if is_numeric(word):
-            val = float(word)
-
-        # is this word the name of a number ?
-        if word in _STRING_NUM_IT:
-            val = _STRING_NUM_IT[word]
-
-        #  tre quarti  un quarto  trenta secondi
-        if is_fractional_it(word) and prev_val:
-            if word[:-1] == 'second' and not ordinals:
-                val = prev_val * 2
-            else:
-                val = prev_val
-
-        # is the prev word a number and should we multiply it?
-        # twenty hundred, six hundred
-        if word in multiplies:
-            if not prev_val:
-                prev_val = 1
-            if prev_val < val:
-                val = prev_val * val
-            else:
-                # the multiplier is smaller than what came before it, so it
-                # opens a new lower-order addend rather than scaling it
-                # ("mille cento" = 1000 + 100, not 1000 * 100)
-                to_sum.append(prev_val)
-                prev_val = 0
-
-        # is this a spoken fraction?
-        # mezza tazza
-        if val is False:
-            val = is_fractional_it(word, short_scale=short_scale)
-
-        # 2 quinti
-        if not ordinals:
-            next_value = is_fractional_it(next_word, short_scale=short_scale)
-            if next_value:
-                if not val:
-                    val = 1
-                val = val * next_value
-
-        # is this a negative number?
-        if val and prev_word and prev_word in negatives:
-            val = 0 - val
-
-        if not val:
-            val = _extract_number_long_it(word)
-
-        # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like '2/3'
-            all_pieces = word.split('/')
-            if look_for_fractions(all_pieces):
-                val = float(all_pieces[0]) / float(all_pieces[1])
-        else:
-            prev_val = val
-            # handle long numbers
-            # six hundred sixty six
-            # two million five hundred thousand
-            if word in multiplies and next_word not in multiplies:
-                to_sum.append(val)
-                val = 0
-                prev_val = 0
-            elif _extract_number_long_it(word) > 100 and \
-                    _extract_number_long_it(next_word) and \
-                    next_word not in multiplies:
-                to_sum.append(val)
-                val = 0
-                prev_val = 0
-
-    if val is not None:
-        for addend in to_sum:
-            val = val + addend
-    return val
+    scale = Scale.SHORT if short_scale else _IT.DEFAULT_SCALE
+    return IT.extract_number(text, ordinals=ordinals, scale=scale)
 
 
 def nice_number_it(number, speech=True, denominators=range(1, 21)):

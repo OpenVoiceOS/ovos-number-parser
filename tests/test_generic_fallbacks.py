@@ -5,16 +5,18 @@ from ovos_number_parser import numbers_to_digits
 
 
 class TestGenericNumbersToDigitsEdges(unittest.TestCase):
-    def test_adjacent_separate_numbers(self):
-        # two separate numbers stay separate ("cinque tre" is not 53)
+    def test_adjacent_bare_numbers_sum(self):
+        # the shared Romance engine accumulates adjacent bare numbers
+        # ("cinque tre" = 5 + 3), exactly as it does for es/ca
         out = numbers_to_digits("cinque tre", "it")
-        self.assertEqual(out, "5 3")
+        self.assertEqual(out, "8")
 
-    def test_connector_merge_follows_extractor(self):
-        # the Italian extractor reads "due e tre" as the decimal 2.3, and
-        # numbers_to_digits mirrors extract_number semantics
+    def test_e_is_not_a_cardinal_conjunction(self):
+        # standard Italian cardinals carry no conjunction ("venticinque", never
+        # "venti e cinque"), so "e" separates two numbers instead of joining
+        # them and numbers_to_digits converts each on its own
         out = numbers_to_digits("due e tre", "it")
-        self.assertEqual(out, "2.3")
+        self.assertEqual(out, "2 e 3")
 
     def test_decimal_marker_not_merged(self):
         # "virgola" is not a connector: both numbers convert separately

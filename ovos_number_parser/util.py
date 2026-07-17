@@ -332,6 +332,12 @@ class NumberVocabulary:
     # ("două sute" = 200) instead of being added to them
     MULTIPLY_HUNDREDS: bool = False
 
+    # extraction: a fraction noun always multiplies the preceding cardinal
+    # ("un quarto" = 1/4, "tre quarti" = 3/4) instead of adding to it, even in
+    # its singular form. Languages that also say "e mezzo" ("two and a half")
+    # keep this off so the singular still adds.
+    FRACTIONS_ALWAYS_MULTIPLY: bool = False
+
     # full spelling of "one <scale>" groups when they use an article or a
     # special form of "one" ("o mie", "un milion")
     SCALE_ONE: Dict[int, str] = field(default_factory=dict)
@@ -563,7 +569,7 @@ class RomanceNumberExtractor:
                     # so leave it pending for the scale branch to multiply
                     current += fraction
                 else:
-                    if token in plural_fractions:
+                    if token in plural_fractions or self.vocab.FRACTIONS_ALWAYS_MULTIPLY:
                         result += (current or 1) * fraction
                     else:
                         result += current + fraction

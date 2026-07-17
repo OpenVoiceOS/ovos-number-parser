@@ -147,6 +147,18 @@ class TestItalianFusedRoundTrip(unittest.TestCase):
                 spoken = pronounce_number(number, lang="it")
                 self.assertEqual(extract_number(spoken, lang="it"), number)
 
+    def test_dense_fused_ranges_both_signs(self):
+        # dense over the fused-compound ranges (20-99, 100-999, thousands) plus
+        # a sampled sweep up to ten million, on both signs
+        numbers = (list(range(0, 1000)) +
+                   list(range(1000, 100000, 7)) +
+                   list(range(100000, 10_000_001, 4001)))
+        for n in numbers:
+            for value in (n, -n):
+                spoken = pronounce_number(value, lang="it")
+                self.assertEqual(extract_number(spoken, lang="it"), value,
+                                 f"{value} -> {spoken!r}")
+
 
 if __name__ == "__main__":
     unittest.main()
