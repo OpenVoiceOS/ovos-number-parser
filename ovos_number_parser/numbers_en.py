@@ -814,6 +814,7 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
     val = False
     prev_val = None
     next_val = None
+    negative = False
     to_sum = []
     for idx, token in enumerate(tokens):
         current_val = None
@@ -918,11 +919,7 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
         if (prev_word in _SUMS_EN and val and val < 10) or all([prev_word in
                                                                 multiplies,
                                                                 val < prev_val if prev_val else False]):
-            if prev_val < 0:
-                # continue a negated number: "minus forty two" = -(40+2)
-                val = prev_val - val
-            else:
-                val = prev_val + val
+            val = prev_val + val
 
         # is the prev word a number and should we multiply it?
         # twenty hundred, six hundred
@@ -949,9 +946,11 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
                 val = val * next_val
                 number_words.append(tokens[idx + 1])
 
-        # is this a negative number?
+        # is this a negative number? Track the sign for the whole segment and
+        # apply it once at the end so every "place" of a compound number
+        # ("minus nine hundred and ninety nine") is negated together.
         if val and prev_word and prev_word in _NEGATIVES_EN:
-            val = 0 - val
+            negative = True
 
         # let's make sure it isn't a fraction
         if not val:
@@ -1046,6 +1045,9 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
 
     if val is not None and to_sum:
         val += sum(to_sum)
+
+    if negative and val:
+        val = -val
 
     return val, number_words
 
