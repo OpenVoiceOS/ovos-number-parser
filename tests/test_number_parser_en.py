@@ -37,7 +37,7 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(extract_number_en("three quarters"), 0.75)
         self.assertEqual(extract_number_en("a hundred"), 100)
         self.assertEqual(extract_number_en("one hundred and five"), 105)
-        self.assertEqual(extract_number_en("two thousand and one"), 2001)
+        self.assertEqual(extract_number_en("two thousand, one"), 2001)
         self.assertEqual(extract_number_en("nine hundred and ninety nine"), 999)
         self.assertEqual(extract_number_en("two million five hundred thousand"),
                          2500000)
@@ -64,22 +64,41 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(extract_number_en("MINUS FIVE"), -5)
 
     def test_extract_number_roundtrip_en(self):
-        # pronounce_number -> extract_number must recover the original integer.
-        # 4-digit values in 1000..1999 are intentionally spoken in date style
-        # ("nineteen seventy two"), so they are excluded from the sweep.
-        def date_styled(n):
-            s = str(abs(n))
-            return (len(s) == 4 and
-                    not (s[1:4] == '000' or s[1:3] == '00' or int(s[0:2]) >= 20))
-
-        for n in list(range(-1050, 1050)) + [
-                2001, 2020, 5678, 12345, 999999, 1000000, -1000000,
+        # pronounce_number -> extract_number must recover the original integer
+        # for every value, including the 1000..1999 range that used to be
+        # spoken in date style by default.
+        for n in list(range(-1050, 2101)) + [
+                5678, 12345, 999999, 1000000, -1000000,
                 -12345, 87654321]:
-            if date_styled(n):
-                continue
             spoken = pronounce_number_en(n)
             self.assertEqual(extract_number_en(spoken), n,
                              f"roundtrip failed for {n} -> {spoken!r}")
+
+    def test_pronounce_number_default_cardinal_en(self):
+        # 4-digit numbers pronounce as plain cardinals by default so they
+        # round-trip; the year-style forms must not leak in.
+        self.assertEqual(pronounce_number_en(1234),
+                         "one thousand, two hundred and thirty four")
+        self.assertEqual(pronounce_number_en(1010),
+                         "one thousand, ten")
+        self.assertEqual(pronounce_number_en(1900),
+                         "one thousand, nine hundred")
+        self.assertEqual(pronounce_number_en(1972),
+                         "one thousand, nine hundred and seventy two")
+
+    def test_pronounce_number_year_style_en(self):
+        # date style is available on demand behind the explicit year flag.
+        self.assertEqual(pronounce_number_en(1972, year=True),
+                         "nineteen seventy two")
+        self.assertEqual(pronounce_number_en(1010, year=True),
+                         "ten ten")
+        self.assertEqual(pronounce_number_en(1900, year=True),
+                         "nineteen hundred")
+        self.assertEqual(pronounce_number_en(1960, year=True),
+                         "nineteen sixty")
+        # values outside the date-styled band fall back to cardinal
+        self.assertEqual(pronounce_number_en(2001, year=True),
+                         "two thousand, one")
 
     def test_pronounce_number_boundaries_en(self):
         self.assertEqual(pronounce_number_en(0), "zero")
