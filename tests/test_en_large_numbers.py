@@ -11,7 +11,7 @@ from ovos_number_parser.numbers_en import (
 FINITE_SWEEP = [
     1e33, 1e66, 1e100, 1e120, 1e123, 1e126, 1e150, 1e200, 1e303, 1e306,
     1.7e308, 10 ** 123, 10 ** 126, 10 ** 150, 10 ** 200, 10 ** 306, 10 ** 320,
-    10 ** 500,
+    10 ** 400, 2 ** 1024, 10 ** 500,
 ]
 
 
@@ -40,6 +40,29 @@ class TestEnglishLargeNumbers(unittest.TestCase):
         for x in [1e123, 1e126, 1e150, 1e153, 1e300, 1e303, 1e306]:
             name = pronounce_number_en(x)
             self.assertEqual(extract_number_en(name), x, name)
+
+    def test_arbitrary_precision_int_never_empty(self):
+        # Python bigints past the float ceiling must still name, never ""
+        for x in [10 ** 400, 2 ** 1024, 10 ** 700]:
+            self.assertTrue(pronounce_number_en(x), f"empty for {x!r}")
+
+    def test_rounds_not_truncates(self):
+        self.assertEqual(pronounce_number_en(3.14159, places=4),
+                         "three point one four one six")
+        self.assertEqual(pronounce_number_en(3.14159, places=2),
+                         "three point one four")
+        self.assertEqual(pronounce_number_en(2.675, places=2),
+                         "two point six eight")
+
+    def test_rounding_carries_into_integer(self):
+        self.assertEqual(pronounce_number_en(0.999999, places=2), "one")
+        self.assertEqual(pronounce_number_en(1.999, places=2), "two")
+
+    def test_rounds_to_zero_has_no_minus(self):
+        self.assertEqual(pronounce_number_en(-0.004, places=2), "zero")
+        # a value that does not round away stays negative and correctly rounded
+        self.assertEqual(pronounce_number_en(-0.005, places=2),
+                         "minus zero point zero one")
 
     def test_googol(self):
         self.assertEqual(extract_number_en("one googol"), 1e100)
