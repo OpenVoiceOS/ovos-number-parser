@@ -812,6 +812,7 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
     val = False
     prev_val = None
     next_val = None
+    negative = False
     to_sum = []
     # print(tokens, ordinals)
     for idx, token in enumerate(tokens):
@@ -822,6 +823,7 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
 
         word = token.word.lower()
         if word in _NEGATIVES_AZ:
+            negative = True
             number_words.append(token)
             continue
 
@@ -939,8 +941,8 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
             # print("g", prev_val)
 
         # is this a negative number?
-        if val and prev_word and prev_word in _NEGATIVES_AZ:
-            val = 0 - val
+        # the sign is applied once to the whole number after parsing,
+        # so no per-token negation happens here
             # print("h")
 
         # let's make sure it isn't a fraction
@@ -1040,6 +1042,8 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
     if val is not None and to_sum:
         # print("m", to_sum)
         val += sum(to_sum)
+    if negative and val not in (None, False):
+        val = -val
     # print(val, number_words, "end")
     return val, number_words
 
