@@ -791,7 +791,11 @@ def _extract_whole_number_with_text_tr(tokens, short_scale, ordinals):
         if word in multiplies:
             if not prev_val:
                 prev_val = 1
-            val = prev_val * val
+            if current_val is None or prev_val < current_val:
+                val = prev_val * val
+            # else: the scale word is smaller than what came before it, so it
+            # opens a new addend ("bin yüz" = 1000 + 100) already accumulated
+            # by the summing branch above rather than a multiplier
 
         # is this a spoken fraction?
         # bir buçuk fincan - yarım fincan
