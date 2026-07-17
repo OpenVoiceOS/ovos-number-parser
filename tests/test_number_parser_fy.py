@@ -45,6 +45,11 @@ class TestWestFrisianPronounce(unittest.TestCase):
             with self.subTest(number=number):
                 self.assertEqual(pronounce_ordinal(number, lang="fy"), spoken)
 
+    def test_pronounce_ordinal_zero(self):
+        # zeroth previously raised KeyError in the compound branch; it now
+        # takes the regular suffix like the sibling Dutch "nulste"
+        self.assertEqual(pronounce_ordinal(0, lang="fy"), "nulste")
+
 
 class TestWestFrisianExtract(unittest.TestCase):
     """Anchors for extracting numbers from West Frisian text."""
