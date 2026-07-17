@@ -301,6 +301,10 @@ def pronounce_number_tr(number, places=2, short_scale=True, scientific=False,
 
     For example, '5.2' would return 'beş virgül iki'
 
+    Word forms follow the Türk Dil Kurumu spelling rules ("Sayıların
+    Yazılışı"): each numeral group (yüz, bin, milyon) is spoken as separate
+    words, so the output round-trips through extract_number_tr.
+
     Args:
         num(float or int): the number to pronounce (under 100)
         places(int): maximum decimal places to speak
@@ -848,7 +852,7 @@ def _extract_whole_number_with_text_tr(tokens, short_scale, ordinals):
                 break
             prev_val = val
 
-            if word in multiplies and next_word not in multiplies:
+            if word in multiplies:
                 # handle long numbers
                 # altı yüz altmış altı
                 # iki milyon beş yüz bin
@@ -931,6 +935,14 @@ def is_fractional_tr(input_str, short_scale=True, spoken=True):
 def extract_number_tr(text, short_scale=True, ordinals=False):
     """
     This function extracts a number from a text string
+
+    Numeral structure follows the Türk Dil Kurumu spelling rules
+    ("Sayıların Yazılışı"): multi-word numbers are written separately
+    (bin iki yüz elli bir = 1251, üç yüz altmış beş = 365), where bin and
+    milyon multiply the group before them and the yüz/tens/units groups form
+    their own additive portions. Each such group is set aside and summed
+    independently, so a millions group followed by a thousands group
+    accumulates correctly.
 
     Args:
         text (str): the string to normalize
