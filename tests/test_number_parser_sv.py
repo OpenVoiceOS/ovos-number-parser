@@ -1,7 +1,29 @@
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser import extract_number, pronounce_number, is_fractional
 from ovos_number_parser.numbers_sv import pronounce_ordinal_sv
+
+
+class TestSwedishFractions(unittest.TestCase):
+    """Swedish fraction nouns, including inflected and capitalized forms."""
+
+    def test_basic_and_inflected(self):
+        self.assertEqual(is_fractional("halv", lang="sv"), 0.5)
+        self.assertEqual(is_fractional("halva", lang="sv"), 0.5)
+        self.assertEqual(is_fractional("tredjedel", lang="sv"), 1.0 / 3)
+        self.assertEqual(is_fractional("fjärdedel", lang="sv"), 0.25)
+        self.assertEqual(is_fractional("kvart", lang="sv"), 0.25)
+        self.assertEqual(is_fractional("trekvart", lang="sv"), 0.75)
+
+    def test_capitalized_input_does_not_crash(self):
+        self.assertEqual(is_fractional("Halv", lang="sv"), 0.5)
+        self.assertEqual(is_fractional("HALV", lang="sv"), 0.5)
+        self.assertEqual(is_fractional("Kvart", lang="sv"), 0.25)
+
+    def test_non_fraction_returns_false(self):
+        for word in ["", "hej", "fem"]:
+            with self.subTest(word=word):
+                self.assertFalse(is_fractional(word, lang="sv"))
 
 
 class TestSwedishOrdinals(unittest.TestCase):

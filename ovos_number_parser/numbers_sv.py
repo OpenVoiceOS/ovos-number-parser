@@ -678,6 +678,7 @@ def is_fractional_sv(input_str, short_scale=True):
         (bool) or (float): False if not a fraction, otherwise the fraction
 
     """
+    input_str = input_str.lower()
     if input_str.endswith('ars', -3):
         input_str = input_str[:len(input_str) - 3]  # e.g. "femtedelar"
     if input_str.endswith('ar', -2):
@@ -690,7 +691,7 @@ def is_fractional_sv(input_str, short_scale=True):
     aFrac = ["hel", "halv", "tredjedel", "fjärdedel", "femtedel", "sjättedel",
              "sjundedel", "åttondel", "niondel", "tiondel", "elftedel",
              "tolftedel"]
-    if input_str.lower() in aFrac:
+    if input_str in aFrac:
         return 1.0 / (aFrac.index(input_str) + 1)
     if input_str == "kvart":
         return 1.0 / 4
