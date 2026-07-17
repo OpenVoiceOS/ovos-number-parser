@@ -1,5 +1,6 @@
 from typing import List
 import collections
+import math
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
                                      is_numeric, tokenize, Token)
@@ -258,6 +259,41 @@ _SHORT_SCALE_CA = collections.OrderedDict([
 ])
 
 
+def _build_scale_lookup_ca(scale):
+    """Reverse a value->word scale table into a word->value lookup.
+
+    Catalan scale words appear in speech in both singular and plural
+    ("un miliard" / "dos miliards", "un bilió" / "dos bilions"), so each
+    listed form is registered together with its regularly-formed variant.
+    """
+    lookup = {}
+    for value, word in scale.items():
+        forms = {word}
+        if word.endswith("ons"):
+            forms.add(word[:-3] + "ó")      # milions -> milió
+        elif word.endswith("ó"):
+            forms.add(word[:-1] + "ons")    # sextilió -> sextilions
+        elif word.endswith("rds"):
+            forms.add(word[:-1])            # miliards -> miliard
+        elif word.endswith("s"):
+            forms.add(word[:-1])            # generic plural -> singular
+        else:
+            forms.add(word + "s")
+        # magnitudes beyond the float range (1e309+) overflow to inf; keep
+        # them as floats rather than forcing an int conversion that would raise
+        numeric = int(value) if math.isfinite(float(value)) else float(value)
+        for form in forms:
+            lookup[form] = numeric
+    return lookup
+
+
+# Long and short scales assign different magnitudes to the same word
+# (e.g. "bilió" is 10^12 on the long scale but 10^9 on the short scale),
+# see https://en.wikipedia.org/wiki/Long_and_short_scales
+_LONG_SCALE_LOOKUP_CA = _build_scale_lookup_ca(_LONG_SCALE_CA)
+_SHORT_SCALE_LOOKUP_CA = _build_scale_lookup_ca(_SHORT_SCALE_CA)
+
+
 _TENS_CA = {
     "vint": 20,
     "trenta": 30,
@@ -501,6 +537,10 @@ def pronounce_number_ca(number, places=2, short_scale=False, scientific=False):
             result += "zero"
         result += " coma"
         _num_str = str(number)
+        if "." not in _num_str:
+            # tiny/large floats stringify in scientific notation ("1e-09"),
+            # which has no decimal point to split on; render it in fixed form
+            _num_str = f"{number:.{places}f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + _NUM_STRING_CA[int(char)]
@@ -564,7 +604,7 @@ def is_fractional_ca(input_str, short_scale=True):
     return False
 
 
-def extract_number_ca(text, short_scale=True, ordinals=False):
+def extract_number_ca(text, short_scale=False, ordinals=False):
     """
     This function prepares the given text for parsing by making
     numbers consistent, getting rid of contractions, etc.
@@ -576,15 +616,23 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
     group that precedes them, and the products are summed, so
     "un milió dos-cents trenta-quatre mil sis-cents" reads 1 234 600.
 
+    Scale words above a million are read according to ``short_scale``. Catalan
+    uses the long scale, where each new scale word steps by a factor of a
+    million ("miliard" is 10^9, "bilió" is 10^12); on the short scale the same
+    word "bilió" instead denotes 10^9. See
+    https://en.wikipedia.org/wiki/Long_and_short_scales. The default is the
+    long scale, matching ``pronounce_number_ca`` so the two round-trip.
+
     Args:
         text (str): the string to normalize
+        short_scale (bool): interpret large scale words on the short scale
+            (default False, the long scale used in Catalan)
+        ordinals (bool): unused, kept for API compatibility
     Returns:
         (int) or (float): The value of extracted number
 
     """
-    # TODO: short_scale and ordinals don't do anything here.
-    # The parameters are present in the function signature for API compatibility
-    # reasons.
+    scale_lookup = _SHORT_SCALE_LOOKUP_CA if short_scale else _LONG_SCALE_LOOKUP_CA
     text = text.lower()
     aWords = text.split()
     negative = False
@@ -603,6 +651,7 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
     current = 0
     while count < len(aWords):
         val = 0
+        is_scale = False
         word = aWords[count]
         next_next_word = None
         if count + 1 < len(aWords):
@@ -615,6 +664,10 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
         # is current word a number?
         if word in _NUMBERS_CA:
             val = _NUMBERS_CA[word]
+        elif word in scale_lookup:
+            # long/short scale word above a million ("miliard", "bilió", ...)
+            val = scale_lookup[word]
+            is_scale = True
         elif '-' in word:
             wordparts = word.split('-')
             # trenta-cinc > 35
@@ -656,9 +709,10 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
                 result = float(result) / float(val)
                 total = result
                 current = 0
-            elif val in (1000, 1000000, 1000000000):
-                # a thousand/million scale word multiplies the group being
-                # built and banks the product ("cinc-cents mil" -> 500*1000)
+            elif is_scale or val in (1000, 1000000):
+                # a thousand/million/higher scale word multiplies the group
+                # being built and banks the product ("cinc-cents mil" ->
+                # 500*1000, "dos miliards" -> 2*10^9)
                 total += (current or 1) * val
                 current = 0
                 result = total + current
@@ -688,7 +742,7 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
             for word in newWords:
                 newText += word + " "
 
-            afterAndVal = extract_number_ca(newText[:-1])
+            afterAndVal = extract_number_ca(newText[:-1], short_scale)
             if afterAndVal:
                 if result < afterAndVal or result < 20:
                     while afterAndVal > 1:
@@ -708,7 +762,7 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
                 newText = ""
                 for word in newWords:
                     newText += word + " "
-                afterAndVal = extract_number_ca(newText[:-1])
+                afterAndVal = extract_number_ca(newText[:-1], short_scale)
                 if afterAndVal:
                     if result is None:
                         result = 0
@@ -739,7 +793,7 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
             if digits:
                 afterDotVal = digits
             else:
-                afterDotVal = str(extract_number_ca(newText[:-1]))
+                afterDotVal = str(extract_number_ca(newText[:-1], short_scale))
                 afterDotVal = zeros * "0" + afterDotVal
             result = float(str(result or 0) + "." + afterDotVal)
             break

@@ -390,7 +390,7 @@ def pronounce_number(number: Union[int, float], lang: str,
     if lang.startswith("bg"):
         return pronounce_number_bg(number, places, short_scale, scientific, ordinals)
     if lang.startswith("ca"):
-        return pronounce_number_ca(number, places)
+        return pronounce_number_ca(number, places, short_scale=short_scale)
     if lang.startswith("ast"):
         return AST.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("oc"):

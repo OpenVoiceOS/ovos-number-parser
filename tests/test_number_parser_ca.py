@@ -1,6 +1,7 @@
 import unittest
 
 from ovos_number_parser import extract_number, pronounce_number, is_fractional
+from ovos_number_parser.util import Scale
 
 
 class TestCatalanPronounce(unittest.TestCase):
@@ -76,6 +77,83 @@ class TestCatalanRoundTrip(unittest.TestCase):
             with self.subTest(number=number):
                 spoken = pronounce_number(number, lang="ca")
                 self.assertEqual(extract_number(spoken, lang="ca"), number)
+
+
+class TestCatalanLongScale(unittest.TestCase):
+    """Catalan is a long-scale language: miliard=10^9, bilió=10^12.
+
+    See https://en.wikipedia.org/wiki/Long_and_short_scales
+    """
+
+    def test_extract_long_scale_words(self):
+        expected = {
+            'un miliard': 10 ** 9,
+            'un bilió': 10 ** 12,
+            'dos miliards': 2 * 10 ** 9,
+            'tres bilions': 3 * 10 ** 12,
+            'cinc miliards': 5 * 10 ** 9,
+            'un bilió dos miliards': 10 ** 12 + 2 * 10 ** 9,
+            'dos milions cinc-cents mil': 2500000,
+        }
+        for spoken, number in expected.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(
+                    extract_number(spoken, lang="ca", scale=Scale.LONG), number)
+
+    def test_short_scale_reads_billion_as_ten_pow_nine(self):
+        # the same word "bilió" is 10^9 on the short scale
+        self.assertEqual(
+            extract_number('un bilió', lang="ca", scale=Scale.SHORT), 10 ** 9)
+        self.assertEqual(
+            extract_number('un trilió', lang="ca", scale=Scale.SHORT), 10 ** 12)
+
+    def test_pronounce_long_scale(self):
+        self.assertEqual(
+            pronounce_number(10 ** 9, lang="ca", scale=Scale.LONG), 'un miliard')
+        self.assertEqual(
+            pronounce_number(10 ** 12, lang="ca", scale=Scale.LONG), 'un bilió')
+
+    def test_round_trip_both_directions(self):
+        # pronounce -> extract and (word -> extract -> pronounce) at each order
+        for scale in (Scale.LONG, Scale.SHORT):
+            for number in (10 ** 6, 10 ** 9, 10 ** 12):
+                with self.subTest(scale=scale, number=number):
+                    spoken = pronounce_number(number, lang="ca", scale=scale)
+                    self.assertEqual(
+                        extract_number(spoken, lang="ca", scale=scale), number)
+
+    def test_long_and_short_disagree_above_million(self):
+        long_val = extract_number('un bilió', lang="ca", scale=Scale.LONG)
+        short_val = extract_number('un bilió', lang="ca", scale=Scale.SHORT)
+        self.assertNotEqual(long_val, short_val)
+        self.assertEqual(long_val, 10 ** 12)
+        self.assertEqual(short_val, 10 ** 9)
+
+    def test_scale_word_alone_without_multiplier(self):
+        # a bare scale word ("miliard") still counts as one unit
+        self.assertEqual(
+            extract_number('miliard', lang="ca", scale=Scale.LONG), 10 ** 9)
+
+    def test_unknown_scale_word_for_scale_is_ignored(self):
+        # "miliard" is not a short-scale word; extraction must not invent it
+        self.assertEqual(
+            extract_number('un miliard', lang="ca", scale=Scale.SHORT), 1)
+
+    def test_no_number_still_false_with_scale(self):
+        self.assertIn(
+            extract_number("hola com estàs", lang="ca", scale=Scale.LONG),
+            (False, None))
+
+
+class TestCatalanTinyFloat(unittest.TestCase):
+    """Scientific-notation floats must not crash pronunciation."""
+
+    def test_tiny_float_does_not_crash(self):
+        for number in (1e-9, 1e-12, -1e-9, 1e-300):
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="ca")
+                self.assertIsInstance(spoken, str)
+                self.assertTrue(spoken)
 
 
 class TestCatalanFractions(unittest.TestCase):
