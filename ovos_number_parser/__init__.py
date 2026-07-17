@@ -96,6 +96,58 @@ from ovos_number_parser.numbers_uk import nice_number_uk
 from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
 
 
+# --- canonical short/long scale convention per language --------------------
+#
+# Short scale: 10^9 = "billion", 10^12 = "trillion".
+# Long scale:  10^9 = "thousand million / milliard", 10^12 = "billion".
+# Getting the default wrong mis-scales every number >= 10^9 by 1000x.
+#
+# The convention each language uses is a fixed property of that language, not a
+# caller preference, so a caller that passes no ``scale=`` must get the
+# language's canonical convention. Sources: Wikipedia "Long and short scales"
+# (https://en.wikipedia.org/wiki/Long_and_short_scales), which tabulates the
+# convention per country/language and cites the national language academies,
+# cross-referenced with those academies where they legislate cardinal-numeral
+# spelling (e.g. Euskaltzaindia Araua 7 for Basque, which makes Basque long
+# scale: 10^9 = "mila milioi", "bilioi" = 10^12).
+#
+# Languages absent from this set default to the short scale (en, ru, uk, bg,
+# el, tr, id, ms, az, ...), matching their modern standard usage.
+_LONG_SCALE_LANGS = {
+    "de", "fr", "es", "it", "nl", "pl", "sv", "da", "nb", "nn", "no",
+    "gl", "ca", "eu", "cs", "sl", "sk", "hr", "hu", "fi", "et", "ro",
+    "ast", "oc", "an", "mwl", "fy",
+}
+
+
+def _canonical_scale(lang: str) -> Scale:
+    """The scale convention a language uses when the caller specifies none.
+
+    European Portuguese is long scale (10^9 = "mil milhões") while Brazilian
+    Portuguese is short scale (10^9 = "um bilhão"), so ``pt`` is resolved by
+    region rather than by the bare language code.
+    """
+    lang2 = lang.lower().split("-")[0]
+    if lang2 == "pt":
+        return Scale.SHORT if "br" in lang.lower() else Scale.LONG
+    return Scale.LONG if lang2 in _LONG_SCALE_LANGS else Scale.SHORT
+
+
+def _resolve_scale(lang: str,
+                   scale: Optional[Scale],
+                   short_scale: Optional[bool] = None) -> Scale:
+    """Resolve the effective scale for a dispatch call.
+
+    An explicit ``scale`` wins; the deprecated ``short_scale`` flag is honoured
+    next for backward compatibility; otherwise the language's canonical
+    convention applies. This keeps pronounce/extract/ordinal/numbers_to_digits
+    consistent about what "no scale given" means.
+    """
+    if scale is not None:
+        return scale
+    if short_scale is not None:
+        return Scale.SHORT if short_scale else Scale.LONG
+    return _canonical_scale(lang)
 
 
 # --- generic language fallbacks -------------------------------------------
@@ -299,6 +351,7 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
     Raises:
         NotImplementedError: If the specified language is not supported.
     """
+    scale = _resolve_scale(lang, scale)
     if lang.startswith("ast"):
         return AST.numbers_to_digits(utterance)
     if lang.startswith("oc"):
@@ -353,11 +406,16 @@ def pronounce_number(number: Union[int, float], lang: str,
         number (int or float): The number to pronounce.
         lang (str): BCP-47 language code specifying the language for pronunciation.
         places (int, optional): Number of decimal places to include (default is 3).
-        short_scale (bool, optional): Whether to use the short scale for large numbers (default is True).
+        short_scale (bool, optional): DEPRECATED, use the ``scale`` enum instead.
         scientific (bool, optional): If True, pronounce the number in scientific notation.
         ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one").
         digits (DigitPronunciation, optional): Style for pronouncing digits (default is FULL_NUMBER).
         gender (GrammaticalGender, optional): Grammatical gender for languages that require it (default is MASCULINE).
+        scale (Scale, optional): Short or long scale for large numbers. When
+            omitted, the language's canonical convention applies (see
+            ``_canonical_scale``), per Wikipedia "Long and short scales"
+            (https://en.wikipedia.org/wiki/Long_and_short_scales); an explicit
+            value always overrides it.
      
     Returns:
         str: The pronounced form of the number.
@@ -374,10 +432,7 @@ def pronounce_number(number: Union[int, float], lang: str,
         formatting does ``"%E" % nan`` -> ``"NAN"`` and then fails to split off an
         exponent, while cardinal formatting fails converting NaN to ``int``.
     """
-    scale = scale or Scale.SHORT
-    if short_scale is not None:
-        # TODO log warning
-        pass
+    scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
     if isinstance(number, float) and number != number:
         raise ValueError("cannot pronounce NaN (not a number)")
@@ -524,10 +579,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     Raises:
         NotImplementedError: If the language is not supported.
     """
-    scale = scale or Scale.SHORT
-    if short_scale is not None:
-        # TODO log warning
-        pass
+    scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
     if lang.startswith("pt"):
         return PT_BR.pronounce_ordinal(number, scale=scale, gender=gender) if "br" in lang.lower() \
@@ -615,10 +667,12 @@ def extract_number(text: str, lang: str,
 
     Args:
         text (str): the string to extract a number from
-        short_scale (bool): Use "short scale" or "long scale" for large
-            numbers -- over a million.  The default is short scale, which
-            is now common in most English speaking countries.
-            See https://en.wikipedia.org/wiki/Names_of_large_numbers
+        short_scale (bool): DEPRECATED, use the ``scale`` enum instead.
+            When neither ``scale`` nor this flag is given, the language's
+            canonical short/long convention applies, per Wikipedia "Long and
+            short scales" (https://en.wikipedia.org/wiki/Long_and_short_scales).
+            Short scale: 10^9 = "billion". Long scale: 10^9 = "milliard",
+            10^12 = "billion".
         ordinals (bool): consider ordinal numbers, e.g. third=3 instead of 1/3
         lang (str, optional): an optional BCP-47 language code, if omitted
                               the default language will be used.
@@ -629,10 +683,7 @@ def extract_number(text: str, lang: str,
     if not isinstance(text, str):
         # non-string input carries no number to extract
         return False
-    scale = scale or Scale.SHORT
-    if short_scale is not None:
-        # TODO log warning
-        pass
+    scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
     if lang.startswith("en"):
         return extract_number_en(text, short_scale, ordinals)
@@ -739,10 +790,7 @@ def is_fractional(input_str: str, lang: str,
     if not isinstance(input_str, str):
         # non-string input cannot be a fraction
         return False
-    scale = scale or Scale.SHORT
-    if short_scale is not None:
-        # TODO log warning
-        pass
+    scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
     if lang.startswith("en"):
         return is_fractional_en(input_str, short_scale)

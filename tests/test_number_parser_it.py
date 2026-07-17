@@ -7,7 +7,7 @@ class TestItalianPronounce(unittest.TestCase):
     """Anchors for spoken Italian numbers."""
 
     def test_pronounce_number(self):
-        expected = {0: 'zero', 1: 'uno', 2: 'due', 3: 'tre', 4: 'quattro', 5: 'cinque', 6: 'sei', 7: 'sette', 8: 'otto', 9: 'nove', 10: 'dieci', 11: 'undici', 12: 'dodici', 13: 'tredici', 14: 'quattordici', 15: 'quindici', 16: 'sedici', 17: 'diciassette', 18: 'diciotto', 19: 'diciannove', 20: 'venti', 21: 'ventuno', 30: 'trenta', 42: 'quarantadue', 50: 'cinquanta', 66: 'sessantasei', 70: 'settanta', 80: 'ottanta', 90: 'novanta', 99: 'novantanove', 100: 'cento', 101: 'cento uno', 123: 'cento ventitre', 200: 'duecento', 500: 'cinquecento', 999: 'novecento novantanove', 1000: 'mille', 2000: 'duemila', 2023: 'duemila, ventitre', 1000000: 'un milione', 2000000: 'duemilioni'}
+        expected = {0: 'zero', 1: 'uno', 2: 'due', 3: 'tre', 4: 'quattro', 5: 'cinque', 6: 'sei', 7: 'sette', 8: 'otto', 9: 'nove', 10: 'dieci', 11: 'undici', 12: 'dodici', 13: 'tredici', 14: 'quattordici', 15: 'quindici', 16: 'sedici', 17: 'diciassette', 18: 'diciotto', 19: 'diciannove', 20: 'venti', 21: 'ventuno', 30: 'trenta', 42: 'quarantadue', 50: 'cinquanta', 66: 'sessantasei', 70: 'settanta', 80: 'ottanta', 90: 'novanta', 99: 'novantanove', 100: 'cento', 101: 'cento uno', 123: 'cento ventitre', 200: 'duecento', 500: 'cinquecento', 999: 'novecento novantanove', 1000: 'mille', 2000: 'duemila', 2023: 'duemila, ventitre', 1000000: 'un milione', 2000000: 'due milioni'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="it"), spoken)
@@ -23,7 +23,7 @@ class TestItalianExtract(unittest.TestCase):
     """Anchors for extracting numbers from Italian text."""
 
     def test_extract_number(self):
-        expected = {0: 'zero', 1: 'uno', 2: 'due', 3: 'tre', 4: 'quattro', 5: 'cinque', 6: 'sei', 7: 'sette', 8: 'otto', 9: 'nove', 10: 'dieci', 11: 'undici', 12: 'dodici', 13: 'tredici', 14: 'quattordici', 15: 'quindici', 16: 'sedici', 17: 'diciassette', 18: 'diciotto', 19: 'diciannove', 20: 'venti', 21: 'ventuno', 30: 'trenta', 42: 'quarantadue', 50: 'cinquanta', 66: 'sessantasei', 70: 'settanta', 80: 'ottanta', 90: 'novanta', 99: 'novantanove', 100: 'cento', 101: 'cento uno', 123: 'cento ventitre', 200: 'duecento', 500: 'cinquecento', 999: 'novecento novantanove', 1000: 'mille', 2000: 'duemila', 2023: 'duemila, ventitre', 1000000: 'un milione', 2000000: 'duemilioni'}
+        expected = {0: 'zero', 1: 'uno', 2: 'due', 3: 'tre', 4: 'quattro', 5: 'cinque', 6: 'sei', 7: 'sette', 8: 'otto', 9: 'nove', 10: 'dieci', 11: 'undici', 12: 'dodici', 13: 'tredici', 14: 'quattordici', 15: 'quindici', 16: 'sedici', 17: 'diciassette', 18: 'diciotto', 19: 'diciannove', 20: 'venti', 21: 'ventuno', 30: 'trenta', 42: 'quarantadue', 50: 'cinquanta', 66: 'sessantasei', 70: 'settanta', 80: 'ottanta', 90: 'novanta', 99: 'novantanove', 100: 'cento', 101: 'cento uno', 123: 'cento ventitre', 200: 'duecento', 500: 'cinquecento', 999: 'novecento novantanove', 1000: 'mille', 2000: 'duemila', 2023: 'duemila, ventitre', 1000000: 'un milione', 2000000: 'due milioni'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="it"), number)

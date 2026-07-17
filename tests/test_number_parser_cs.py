@@ -7,7 +7,7 @@ class TestCzechPronounce(unittest.TestCase):
     """Anchors for spoken Czech numbers."""
 
     def test_pronounce_number(self):
-        expected = {0: 'nula', 1: 'jedna', 2: 'dva', 3: 'tři', 4: 'čtyři', 5: 'pět', 6: 'šest', 7: 'sedm', 8: 'osm', 9: 'devět', 10: 'deset', 11: 'jedenáct', 12: 'dvanáct', 13: 'třináct', 14: 'čtrnáct', 15: 'patnáct', 16: 'šestnáct', 17: 'sedmnáct', 18: 'osmnáct', 19: 'devatenáct', 20: 'dvacet', 21: 'dvacet jedna', 30: 'třicet', 42: 'čtyřicet dva', 50: 'padesát', 66: 'šedesát šest', 70: 'sedmdesát', 80: 'osmdesát', 90: 'devadesát', 99: 'devadesát devět', 100: 'sto', 101: 'sto jedna', 123: 'sto dvacet tři', 200: 'dvě stě', 500: 'pět set', 999: 'devět set devadesát devět', 1000: 'tisíc', 2000: 'dva tisíc', 2023: 'dva tisíc, dvacet tři', 1000000: 'million', 2000000: 'dva million'}
+        expected = {0: 'nula', 1: 'jedna', 2: 'dva', 3: 'tři', 4: 'čtyři', 5: 'pět', 6: 'šest', 7: 'sedm', 8: 'osm', 9: 'devět', 10: 'deset', 11: 'jedenáct', 12: 'dvanáct', 13: 'třináct', 14: 'čtrnáct', 15: 'patnáct', 16: 'šestnáct', 17: 'sedmnáct', 18: 'osmnáct', 19: 'devatenáct', 20: 'dvacet', 21: 'dvacet jedna', 30: 'třicet', 42: 'čtyřicet dva', 50: 'padesát', 66: 'šedesát šest', 70: 'sedmdesát', 80: 'osmdesát', 90: 'devadesát', 99: 'devadesát devět', 100: 'sto', 101: 'sto jedna', 123: 'sto dvacet tři', 200: 'dvě stě', 500: 'pět set', 999: 'devět set devadesát devět', 1000: 'tisíc', 2000: 'dva tisíc', 2023: 'dva tisíc, dvacet tři', 1000000: 'milion', 2000000: 'dva milion'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="cs"), spoken)
@@ -23,7 +23,7 @@ class TestCzechExtract(unittest.TestCase):
     """Anchors for extracting numbers from Czech text."""
 
     def test_extract_number(self):
-        expected = {0: 'nula', 1: 'jedna', 2: 'dva', 3: 'tři', 4: 'čtyři', 5: 'pět', 6: 'šest', 7: 'sedm', 8: 'osm', 9: 'devět', 10: 'deset', 11: 'jedenáct', 12: 'dvanáct', 13: 'třináct', 14: 'čtrnáct', 15: 'patnáct', 16: 'šestnáct', 17: 'sedmnáct', 18: 'osmnáct', 19: 'devatenáct', 20: 'dvacet', 21: 'dvacet jedna', 30: 'třicet', 42: 'čtyřicet dva', 50: 'padesát', 66: 'šedesát šest', 70: 'sedmdesát', 80: 'osmdesát', 90: 'devadesát', 99: 'devadesát devět', 100: 'sto', 101: 'sto jedna', 123: 'sto dvacet tři', 200: 'dvě stě', 500: 'pět set', 999: 'devět set devadesát devět', 1000: 'tisíc', 2000: 'dva tisíc', 2023: 'dva tisíc, dvacet tři', 1000000: 'million', 2000000: 'dva million'}
+        expected = {0: 'nula', 1: 'jedna', 2: 'dva', 3: 'tři', 4: 'čtyři', 5: 'pět', 6: 'šest', 7: 'sedm', 8: 'osm', 9: 'devět', 10: 'deset', 11: 'jedenáct', 12: 'dvanáct', 13: 'třináct', 14: 'čtrnáct', 15: 'patnáct', 16: 'šestnáct', 17: 'sedmnáct', 18: 'osmnáct', 19: 'devatenáct', 20: 'dvacet', 21: 'dvacet jedna', 30: 'třicet', 42: 'čtyřicet dva', 50: 'padesát', 66: 'šedesát šest', 70: 'sedmdesát', 80: 'osmdesát', 90: 'devadesát', 99: 'devadesát devět', 100: 'sto', 101: 'sto jedna', 123: 'sto dvacet tři', 200: 'dvě stě', 500: 'pět set', 999: 'devět set devadesát devět', 1000: 'tisíc', 2000: 'dva tisíc', 2023: 'dva tisíc, dvacet tři', 1000000: 'milion', 2000000: 'dva milion'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="cs"), number)
