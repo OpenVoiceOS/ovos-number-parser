@@ -637,8 +637,11 @@ def extract_number_ca(text, short_scale=True, ordinals=False):
             # TODO: caution, review use of "ens" word
             if next_word == "ens":
                 result = float(result) / float(val)
-            elif val in (100, 1000, 1000000, 1000000000) and result:
-                # scale word multiplies what came before ("dos mil")
+            elif val in (100, 1000, 1000000, 1000000000) and result \
+                    and result < val:
+                # scale word multiplies what came before ("dos mil"); it only
+                # scales a strictly smaller value, so a bare hundred after a
+                # larger number is an addend ("mil cent" = 1000 + 100)
                 result = result * val
             else:
                 power = 10
