@@ -42,11 +42,71 @@ class TestBasqueLargeNumbers(unittest.TestCase):
             12345: 'hamabi mila hirurehun eta berrogeita bost',
             1000000: 'milioi bat',
             2000000: 'bi milioi',
-            1000000000: 'bilioi bat',
+            # long scale (Araua 7): 10^9 has no distinct word, it is the
+            # composed "thousand-million"
+            1000000000: 'mila milioi',
         }
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="eu"), spoken)
+
+
+class TestBasqueLongScale(unittest.TestCase):
+    """Basque is a long-scale language per Euskaltzaindia Araua 7 ("Zenbakien
+    idazkeraz", 1994), which fixes the numeral words: milioi = 10^6,
+    bilioi = 10^12, trilioi = 10^18, and 10^9 = "mila milioi" (thousand-
+    million), a composed form with no single word of its own."""
+
+    def test_pronounce_academy_words(self):
+        expected = {
+            10 ** 6: 'milioi bat',
+            10 ** 9: 'mila milioi',
+            2 * 10 ** 9: 'bi mila milioi',
+            10 ** 12: 'bilioi bat',
+            3 * 10 ** 12: 'hiru bilioi',
+            10 ** 18: 'trilioi bat',
+        }
+        for number, spoken in expected.items():
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_number(number, lang="eu"), spoken)
+
+    def test_extract_academy_words(self):
+        # extraction agrees with the same long-scale word values
+        expected = {
+            'milioi bat': 10 ** 6,
+            'mila milioi': 10 ** 9,
+            'bi mila milioi': 2 * 10 ** 9,
+            'bilioi bat': 10 ** 12,
+            'hiru bilioi': 3 * 10 ** 12,
+            'trilioi bat': 10 ** 18,
+        }
+        for text, number in expected.items():
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="eu"), number)
+
+    def test_round_trip_scale_boundaries(self):
+        # pronounce <-> extract must round-trip at and around each scale word
+        for number in (10 ** 6, 10 ** 6 + 1, 5 * 10 ** 6,
+                       10 ** 9, 10 ** 9 + 200, 2 * 10 ** 9,
+                       10 ** 12, 10 ** 12 + 10 ** 6, 4 * 10 ** 12,
+                       10 ** 18):
+            with self.subTest(number=number):
+                spoken = pronounce_number_eu(number)
+                self.assertEqual(extract_number_eu(spoken), number,
+                                 f"{number} spoken as {spoken!r}")
+
+    def test_bilioi_is_not_ten_to_the_nine(self):
+        # regression: "bilioi" is 10^12, never 10^9; 10^9 never emits "bilioi"
+        self.assertEqual(extract_number('bilioi bat', lang="eu"), 10 ** 12)
+        self.assertNotIn('bilioi', pronounce_number(10 ** 9, lang="eu"))
+
+    def test_tiny_and_huge_floats_do_not_crash(self):
+        # scientific-notation floats must not raise (IndexError / KeyError)
+        self.assertIsInstance(pronounce_number(1e-9, lang="eu"), str)
+        self.assertIsInstance(pronounce_number(6.022e23, lang="eu"), str)
+        self.assertIsInstance(pronounce_number(-1e-12, lang="eu"), str)
+        # a value that rounds away at the requested places carries no koma tail
+        self.assertNotIn('koma', pronounce_number(1e-9, lang="eu"))
 
 
 class TestBasqueOrdinals(unittest.TestCase):
