@@ -359,13 +359,24 @@ def pronounce_number(number: Union[int, float], lang: str,
         str: The pronounced form of the number.
      
     Raises:
+        ValueError: If ``number`` is NaN, which has no cardinal spoken form.
         NotImplementedError: If the specified language is not supported.
+
+    Note:
+        NaN is rejected up front so every language fails the same way. IEEE 754
+        defines NaN as a value that "does not represent any numeric quantity"
+        (IEEE 754-2019, clause 6.2), so it has no cardinal reading. Without this
+        guard each backend crashes differently while formatting it: scientific
+        formatting does ``"%E" % nan`` -> ``"NAN"`` and then fails to split off an
+        exponent, while cardinal formatting fails converting NaN to ``int``.
     """
     scale = scale or Scale.SHORT
     if short_scale is not None:
         # TODO log warning
         pass
     short_scale = scale == Scale.SHORT
+    if isinstance(number, float) and number != number:
+        raise ValueError("cannot pronounce NaN (not a number)")
     if lang.startswith("en"):
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
     if lang.startswith("az"):
