@@ -58,5 +58,69 @@ class TestDanishRoundTrip(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="da"), number)
 
 
+class TestDanishNaturalSentences(unittest.TestCase):
+    """Numbers embedded in everyday Danish sentences."""
+
+    def test_sentences(self):
+        cases = {
+            'jeg vil gerne have to øl': 2,
+            'der er femten personer': 15,
+            'jeg har enogtyve katte': 21,
+            'giv mig fem æbler': 5,
+            'der bor treogtredive mennesker her': 33,
+        }
+        for text, value in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="da"), value)
+
+    def test_negative_in_sentence(self):
+        self.assertEqual(extract_number("temperaturen er minus fem grader",
+                                        lang="da"), -5)
+
+    def test_fractions(self):
+        self.assertEqual(extract_number("giv mig en halv", lang="da"), 0.5)
+        self.assertEqual(extract_number("en kvart", lang="da"), 0.25)
+        self.assertEqual(extract_number("tre en halv", lang="da"), 3.5)
+        self.assertEqual(extract_number("halvdelen", lang="da"), 0.5)
+
+
+class TestDanishAdversarial(unittest.TestCase):
+    """Malformed, boundary and mixed input must not misbehave."""
+
+    def test_empty_and_junk(self):
+        for text in ["", "   ", "!!!", "hej hvordan går det"]:
+            with self.subTest(text=text):
+                self.assertIn(extract_number(text, lang="da"), (False, None))
+
+    def test_case_insensitive(self):
+        self.assertEqual(extract_number("ENOGTYVE katte", lang="da"), 21)
+        self.assertEqual(extract_number("Enogtyve Katte", lang="da"), 21)
+
+    def test_lang_code_variants(self):
+        self.assertEqual(extract_number("enogtyve", lang="da"), 21)
+        self.assertEqual(extract_number("enogtyve", lang="da-dk"), 21)
+
+    def test_boundaries(self):
+        self.assertEqual(extract_number("nul", lang="da"), 0)
+        self.assertEqual(extract_number("titusinde", lang="da"), 10000)
+        self.assertEqual(extract_number("en million", lang="da"), 1000000)
+
+
+class TestDanishSweep(unittest.TestCase):
+    """Dense round-trip sweep to catch off-by-one and carry errors."""
+
+    def test_sweep_0_200(self):
+        for number in range(0, 201):
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="da")
+                self.assertEqual(extract_number(spoken, lang="da"), number)
+
+    def test_sweep_hundreds_and_thousands(self):
+        for number in range(200, 10001, 137):
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="da")
+                self.assertEqual(extract_number(spoken, lang="da"), number)
+
+
 if __name__ == "__main__":
     unittest.main()
