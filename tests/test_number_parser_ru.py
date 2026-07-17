@@ -58,5 +58,65 @@ class TestRussianRoundTrip(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="ru"), number)
 
 
+class TestRussianDeclinedForms(unittest.TestCase):
+    """Case-inflected number words as they appear in natural speech."""
+
+    def test_one_declensions(self):
+        # "один" declines by gender/case; all still mean the value 1
+        for phrase in ["один", "одна", "одно", "одной", "одним",
+                       "одну", "одною"]:
+            with self.subTest(phrase=phrase):
+                self.assertEqual(extract_number(phrase, lang="ru"), 1)
+
+    def test_one_in_context(self):
+        # accusative feminine "одну" is the common spoken form for durations
+        self.assertEqual(
+            extract_number("напомни через одну минуту", lang="ru"), 1)
+        self.assertEqual(
+            extract_number("подожди одну секунду", lang="ru"), 1)
+        self.assertEqual(
+            extract_number("у меня одна кошка", lang="ru"), 1)
+        self.assertEqual(
+            extract_number("дай мне одну книгу", lang="ru"), 1)
+
+    def test_two_declensions(self):
+        for phrase in ["два", "две", "двух", "двум", "двумя"]:
+            with self.subTest(phrase=phrase):
+                self.assertEqual(extract_number(phrase, lang="ru"), 2)
+
+    def test_two_in_context(self):
+        self.assertEqual(
+            extract_number("около двух часов", lang="ru"), 2)
+        self.assertEqual(
+            extract_number("две тысячи двадцать четыре", lang="ru"), 2024)
+
+
+class TestRussianAdversarial(unittest.TestCase):
+    """Malformed, empty and junk inputs must never raise."""
+
+    def test_empty_and_whitespace(self):
+        for text in ["", "   ", "\n\t"]:
+            with self.subTest(text=repr(text)):
+                self.assertIn(extract_number(text, lang="ru"), (False, None))
+
+    def test_junk_and_punctuation(self):
+        for text in ["!!!", "@#$", "тест привет", "..."]:
+            with self.subTest(text=text):
+                self.assertIn(extract_number(text, lang="ru"), (False, None))
+
+    def test_lang_code_variants(self):
+        for lang in ["ru", "ru-ru", "ru-RU"]:
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    extract_number("сорок два", lang=lang), 42)
+
+    def test_number_among_words_keeps_value(self):
+        # only part of the string is a number
+        self.assertEqual(
+            extract_number("поставь будильник на семь", lang="ru"), 7)
+        self.assertEqual(
+            extract_number("осталось двадцать три дня", lang="ru"), 23)
+
+
 if __name__ == "__main__":
     unittest.main()
