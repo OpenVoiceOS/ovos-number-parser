@@ -10,7 +10,8 @@ from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_bg import numbers_to_digits_bg, pronounce_number_bg, extract_number_bg, \
     is_fractional_bg, nice_number_bg
-from ovos_number_parser.numbers_ca import numbers_to_digits_ca, pronounce_number_ca, is_fractional_ca, extract_number_ca
+from ovos_number_parser.numbers_ca import (numbers_to_digits_ca, pronounce_number_ca,
+    is_fractional_ca, extract_number_ca, CA)
 from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, \
     extract_number_cs, pronounce_ordinal_cs
 from ovos_number_parser.numbers_da import numbers_to_digits_da, pronounce_number_da, is_fractional_da, is_ordinal_da, \
@@ -445,7 +446,7 @@ def pronounce_number(number: Union[int, float], lang: str,
     if lang.startswith("bg"):
         return pronounce_number_bg(number, places, short_scale, scientific, ordinals)
     if lang.startswith("ca"):
-        return pronounce_number_ca(number, places, short_scale=short_scale)
+        return CA.pronounce_number(number, places, scale, ordinals, gender=gender)
     if lang.startswith("ast"):
         return AST.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("oc"):
@@ -546,6 +547,8 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = N
             else PT_PT.pronounce_fraction(fraction_word, scale=scale)
     elif lang.startswith("ast"):
         return AST.pronounce_fraction(fraction_word, scale=scale)
+    elif lang.startswith("ca"):
+        return CA.pronounce_fraction(fraction_word, scale=scale)
     elif lang.startswith("oc"):
         return OC.pronounce_fraction(fraction_word, scale=scale)
     elif lang.startswith("an"):
@@ -590,6 +593,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return RO.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang.startswith("ast"):
         return AST.pronounce_ordinal(number, scale=scale, gender=gender)
+    if lang.startswith("ca"):
+        return CA.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang.startswith("oc"):
         return OC.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang.startswith("an"):
@@ -694,7 +699,7 @@ def extract_number(text: str, lang: str,
     if lang.startswith("bg"):
         return extract_number_bg(text, short_scale, ordinals)
     if lang.startswith("ca"):
-        return extract_number_ca(text, short_scale, ordinals)
+        return CA.extract_number(text, ordinals=ordinals, scale=scale)
     if lang.startswith("cs"):
         return extract_number_cs(text, short_scale, ordinals)
     if lang.startswith("da"):
@@ -801,7 +806,7 @@ def is_fractional(input_str: str, lang: str,
     if lang.startswith("bg"):
         return is_fractional_bg(input_str, short_scale)
     if lang.startswith("ca"):
-        return is_fractional_ca(input_str, short_scale)
+        return CA.is_fractional(input_str)
     if lang.startswith("cs"):
         return is_fractional_cs(input_str, short_scale)
     if lang.startswith("da"):
@@ -895,6 +900,8 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return RO.is_ordinal(input_str)
     if lang.startswith("ast"):
         return AST.is_ordinal(input_str)
+    if lang.startswith("ca"):
+        return CA.is_ordinal(input_str)
     if lang.startswith("oc"):
         return OC.is_ordinal(input_str)
     if lang.startswith("an"):

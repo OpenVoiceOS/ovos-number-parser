@@ -180,3 +180,28 @@ class TestCatalanFractions(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCatalanRoundTripSweep(unittest.TestCase):
+    """pronounce -> extract identity across the whole 0..10,000,000 range.
+
+    Dense at the low end where every tens-units and hundreds compound occurs,
+    then strided through the millions; every value is checked with both signs.
+    """
+
+    def _sweep(self):
+        for n in range(0, 3000):
+            yield n
+        for n in range(3000, 100000, 137):
+            yield n
+        for n in range(100000, 10_000_001, 4999):
+            yield n
+
+    def test_round_trip_both_signs(self):
+        bad = []
+        for n in self._sweep():
+            for value in (n, -n):
+                spoken = pronounce_number(value, lang="ca")
+                if extract_number(spoken, lang="ca") != value:
+                    bad.append((value, spoken))
+        self.assertEqual(bad, [], f"round-trip failures: {bad[:10]}")
