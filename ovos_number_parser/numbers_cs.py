@@ -262,7 +262,7 @@ def generate_plurals_cs(originals):
 
 
 # negate next number (-2 = 0 - 2)
-_NEGATIVES = {"záporné", "mínus"}
+_NEGATIVES = {"záporné", "mínus", "minus"}
 
 # sum the next number (twenty two = 20 + 2)
 _SUMS = {'dvacet', '20', 'třicet', '30', 'čtyřicet', '40', 'padesát', '50',
@@ -689,7 +689,12 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
         if word in multiplies:
             if not prev_val:
                 prev_val = 1
-            val = prev_val * val
+                val = prev_val * val
+            elif current_val is not None and current_val > prev_val:
+                # ascending scale word multiplies ("dvě stě" = 2 * 100)
+                val = prev_val * val
+            # a descending scale word ("tisíc sto" = 1000 + 100) has already
+            # been summed above; multiplying here would corrupt the value
 
         # is this a spoken fraction?
         # half cup
@@ -1109,40 +1114,9 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
         result = "záporné " if scientific else "mínus "
     num = abs(num)
 
-    if not ordinals:
-        try:
-            # deal with 4 digits
-            # usually if it's a 4 digit num it should be said like a date
-            # i.e. 1972 => nineteen seventy two
-            if len(str(num)) == 4 and isinstance(num, int):
-                _num = str(num)
-                # deal with 1000, 2000, 2001, 2100, 3123, etc
-                # is skipped as the rest of the
-                # functin deals with this already
-                if _num[1:4] == '000' or _num[1:3] == '00' or int(_num[0:2]) >= 20:
-                    pass
-                # deal with 1900, 1300, etc
-                # i.e. 1900 => nineteen hundred
-                elif _num[2:4] == '00':
-                    first = number_names[int(_num[0:2])]
-                    last = number_names[100]
-                    return first + " " + last
-                # deal with 1960, 1961, etc
-                # i.e. 1960 => nineteen sixty
-                #      1961 => nineteen sixty one
-                else:
-                    first = number_names[int(_num[0:2])]
-                    if _num[3:4] == '0':
-                        last = number_names[int(_num[2:4])]
-                    else:
-                        second = number_names[int(_num[2:3]) * 10]
-                        last = second + " " + number_names[int(_num[3:4])]
-                    return first + " " + last
-        # exception used to catch any unforseen edge cases
-        # will default back to normal subroutine
-        except Exception as e:
-            # TODO this probably shouldn't go to stdout
-            print('ERROR: Exception in pronounce_number_cs: {}' + repr(e))
+    # Czech does not group years into digit pairs the way English does
+    # ("nineteen seventy two"); numbers are spoken with full scale words
+    # ("tisíc devět set sedmdesát dva"), handled by the routine below.
 
     # check for a direct match
     if num in number_names and not ordinals:
