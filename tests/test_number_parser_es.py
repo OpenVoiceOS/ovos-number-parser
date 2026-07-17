@@ -58,5 +58,106 @@ class TestSpanishRoundTrip(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="es"), number)
 
 
+class TestSpanishMagnitudes(unittest.TestCase):
+    """Compound scale numbers must combine, not multiply, across magnitudes."""
+
+    def test_million_plus_thousand(self):
+        cases = {
+            "un millón dos mil": 1002000,
+            "un millón dos mil quinientos": 1002500,
+            "un millón cien mil": 1100000,
+            "dos millones quinientos mil": 2500000,
+            "tres millones dos mil": 3002000,
+            "un millón uno": 1000001,
+            "un millón dos mil trescientos cuarenta y cinco": 1002345,
+        }
+        for spoken, value in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="es"), value)
+
+    def test_thousands(self):
+        cases = {
+            "mil": 1000, "mil uno": 1001, "mil y uno": 1001,
+            "dos mil veintitrés": 2023, "cien mil": 100000,
+            "doscientos mil": 200000, "ciento cincuenta mil": 150000,
+            "novecientos noventa y nueve mil novecientos noventa y nueve": 999999,
+        }
+        for spoken, value in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="es"), value)
+
+    def test_hundreds_gendered(self):
+        for spoken in ("doscientos", "doscientas"):
+            self.assertEqual(extract_number(spoken, lang="es"), 200)
+        self.assertEqual(extract_number("doscientas cincuenta y dos", lang="es"), 252)
+
+
+class TestSpanishFusedAndGendered(unittest.TestCase):
+    def test_veintiuno_forms(self):
+        for spoken in ("veintiuno", "veintiún", "veintiuna"):
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="es"), 21)
+
+    def test_una(self):
+        self.assertEqual(extract_number("una", lang="es"), 1)
+
+    def test_cien_vs_ciento(self):
+        self.assertEqual(extract_number("cien", lang="es"), 100)
+        self.assertEqual(extract_number("ciento", lang="es"), 100)
+        self.assertEqual(extract_number("ciento uno", lang="es"), 101)
+
+
+class TestSpanishFractions(unittest.TestCase):
+    def test_simple_fractions(self):
+        self.assertEqual(extract_number("un cuarto", lang="es"), 0.25)
+        self.assertEqual(extract_number("tres cuartos", lang="es"), 0.75)
+        self.assertEqual(extract_number("medio", lang="es"), 0.5)
+
+    def test_number_and_half(self):
+        # nice_number renders 5.5 as "cinco y medio"
+        self.assertEqual(extract_number("cinco y medio", lang="es"), 5.5)
+        self.assertEqual(extract_number("dos y medio", lang="es"), 2.5)
+
+
+class TestSpanishAdversarial(unittest.TestCase):
+    def test_empty(self):
+        self.assertFalse(extract_number("", lang="es"))
+
+    def test_none(self):
+        self.assertFalse(extract_number(None, lang="es"))
+
+    def test_junk(self):
+        self.assertIn(extract_number("hola qué tal amigo", lang="es"), (False, None))
+
+    def test_mixed_case(self):
+        self.assertEqual(extract_number("Cuarenta Y Dos", lang="es"), 42)
+
+    def test_number_in_sentence(self):
+        self.assertEqual(extract_number("quiero cuarenta y dos manzanas", lang="es"), 42)
+
+    def test_negative_and_decimal(self):
+        self.assertEqual(extract_number("menos cinco", lang="es"), -5)
+        self.assertEqual(extract_number("tres coma uno cuatro", lang="es"), 3.14)
+
+
+class TestSpanishRoundTripLarge(unittest.TestCase):
+    """Sweep a wide integer range plus compound magnitudes."""
+
+    def test_sweep(self):
+        numbers = list(range(0, 3000, 7)) + [
+            5000, 9999, 12345, 100000, 250000, 999999,
+            1000000, 1000001, 1002000, 1002345, 2000000,
+            2500000, 3002000, 1100000, 1234567,
+        ]
+        for number in numbers:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="es")
+                got = extract_number(spoken, lang="es")
+                if number == 0:
+                    self.assertIn(got, (0, False))
+                else:
+                    self.assertEqual(got, number, spoken)
+
+
 if __name__ == "__main__":
     unittest.main()

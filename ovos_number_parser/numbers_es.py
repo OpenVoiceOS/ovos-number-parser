@@ -64,6 +64,9 @@ _STRING_NUM_ES = {
     "diecinueve": 19,
     "veinte": 20,
     "veintiuno": 21,
+    "veintiún": 21,
+    "veintiun": 21,
+    "veintiuna": 21,
     "veintidos": 22,
     "veintitres": 23,
     "veintidós": 22,
@@ -348,13 +351,23 @@ def extract_number_es(text, short_scale=True, ordinals=False):
     #
     # Returns incorrect output on certain fractional phrases like, "cuarto de dos"
     #  TODO: numbers greater than 999999
+    if not text:
+        return False
     aWords = text.lower().split()
     negative = False
     while aWords and aWords[0] in ['menos']:
         negative = True
         aWords = aWords[1:]
     count = 0
-    result = None
+    result = None   # locked sum of completed magnitude groups
+    group = 0       # value accumulated within the current magnitude group
+
+    def _combine():
+        # collapse the pending group into the running total
+        nonlocal result, group
+        result = (result or 0) + group
+        group = 0
+
     while count < len(aWords):
         val = 0
         word = aWords[count]
@@ -374,9 +387,11 @@ def extract_number_es(text, short_scale=True, ordinals=False):
         elif is_numeric(word):
             val = float(word)
         elif is_fractional_es(word):
-            if not result:
-                result = 1
-            result = result * is_fractional_es(word)
+            base = (result or 0) + group
+            if base == 0:
+                base = 1
+            result = base * is_fractional_es(word)
+            group = 0
             count += 1
             continue
 
@@ -389,70 +404,36 @@ def extract_number_es(text, short_scale=True, ordinals=False):
                 val = float(aPieces[0]) / float(aPieces[1])
 
         if val:
-            if result is None:
-                result = 0
-            # handle fractions
-            if next_word != "avos":
-                if val in (100, 1000, 1000000, 1000000000) and result:
-                    # scale word multiplies what came before ("dos mil")
-                    result = result * val
-                else:
-                    power = 10
-                    merged = False
-                    while result and power <= result:
-                        if result % power == 0 and val < power:
-                            # lower-magnitude continuation
-                            # ("dos mil veintitres" -> 2000 + 23)
-                            result = result + val
-                            merged = True
-                            break
-                        power *= 10
-                    if not merged:
-                        result = val
+            if next_word == "avos":
+                # denominator: what came before divided by this value
+                base = (result or 0) + group
+                result = float(base) / float(val)
+                group = 0
+            elif val >= 1000:
+                # scale word ("mil", "millón"): multiply the pending group
+                # and lock it into the running total so a following smaller
+                # scale starts a fresh group ("un millón dos mil" -> 1002000)
+                group = (group or 1) * val
+                _combine()
+            elif val == 100:
+                # "cien"/"ciento" scales the units before it ("cien mil")
+                group = (group or 1) * 100
             else:
-                result = float(result) / float(val)
+                group += val
 
         if next_word is None:
             break
 
         # number word and fraction
         ands = ["y"]
-        if next_word in ands:
-            zeros = 0
-            if result is None:
-                count += 1
-                continue
-            newWords = aWords[count + 2:]
-            newText = ""
-            for word in newWords:
-                newText += word + " "
-
-            afterAndVal = extract_number_es(newText[:-1])
-            if afterAndVal:
-                if result < afterAndVal or result < 20:
-                    while afterAndVal > 1:
-                        afterAndVal = afterAndVal / 10.0
-                    for word in newWords:
-                        if word == "cero" or word == "0":
-                            zeros += 1
-                        else:
-                            break
-                for _ in range(0, zeros):
-                    afterAndVal = afterAndVal / 10.0
-                result += afterAndVal
-                break
-        elif next_next_word is not None:
-            if next_next_word in ands and next_word not in _STRING_NUM_ES:
-                newWords = aWords[count + 3:]
-                newText = ""
-                for word in newWords:
-                    newText += word + " "
-                afterAndVal = extract_number_es(newText[:-1])
-                if afterAndVal:
-                    if result is None:
-                        result = 0
-                    result += afterAndVal
-                    break
+        # "y" only joins tens and units within a group ("noventa y nueve"),
+        # which the group accumulator already handles once the joiner is
+        # skipped. The one exception is a trailing fraction ("cinco y medio").
+        if next_word in ands and next_next_word and \
+                is_fractional_es(next_next_word):
+            _combine()
+            result = (result or 0) + is_fractional_es(next_next_word)
+            break
 
         decimals = ["punto", "coma", ".", ","]
         if next_word in decimals:
@@ -480,9 +461,14 @@ def extract_number_es(text, short_scale=True, ordinals=False):
             else:
                 afterDotVal = str(extract_number_es(newText[:-1]))
                 afterDotVal = zeros * "0" + afterDotVal
+            _combine()
             result = float(str(result or 0) + "." + afterDotVal)
             break
         count += 1
+
+    # collapse any pending group left after the final word
+    if group:
+        result = (result or 0) + group
 
     # Return the $str with the number related words removed
     # (now empty strings, so strlen == 0)
