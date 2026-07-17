@@ -46,8 +46,12 @@ _NUM_STRING_EU = {
     "zortzirehun": 800,
     "bederatzirehun": 900,
     "mila": 1000,
+    # Basque is a long-scale language (Euskaltzaindia Araua 7, "Zenbakien
+    # idazkeraz", 1994): 10^6 = milioi, 10^9 has no single word and is spoken
+    # "mila milioi" (thousand-million), 10^12 = bilioi, 10^18 = trilioi.
     "milioi": 1000000,
-    "bilioi": 1000000000}
+    "bilioi": 1000000000000,
+    "trilioi": 1000000000000000000}
 
 NUM_STRING_EU = {
     0: 'zero',
@@ -231,12 +235,17 @@ def _spell_cardinal_eu(n):
         return NUM_STRING_EU[0]
     if n < 1000:
         return _under_1000_eu(n)
-    for divisor, word in ((1_000_000_000, "bilioi"), (1_000_000, "milioi")):
+    # Long scale (Araua 7): milioi 10^6, bilioi 10^12, trilioi 10^18. 10^9 has
+    # no distinct word -- it falls out of the milioi branch as a count of one
+    # thousand, spelled "mila milioi".
+    for divisor, word in ((10 ** 18, "trilioi"), (10 ** 12, "bilioi"),
+                          (10 ** 6, "milioi")):
         if n >= divisor:
             count, rem = divmod(n, divisor)
-            # "a million" is "milioi bat"; N million is "<N> milioi"
+            # "a million" is "milioi bat"; N million is "<N> milioi", where the
+            # count is composed recursively so 1000 million reads "mila milioi".
             head = f"{word} {NUM_STRING_EU[1]}" if count == 1 \
-                else f"{_under_1000_eu(count)} {word}"
+                else f"{_spell_cardinal_eu(count)} {word}"
             return head if rem == 0 else f"{head} {_join_rem_eu(rem)}"
     # thousands
     thousands, rem = divmod(n, 1000)
@@ -250,10 +259,14 @@ def pronounce_number_eu(num, places=2):
     """
     Convert a number to its spoken Basque equivalent.
 
-    For example, '5.2' would return 'bost koma bi'. Integers of any magnitude
-    up to the thousand-millions (``bilioi``) are composed with the vigesimal
-    ``eta`` rule of Euskaltzaindia Araua 7 ("Zenbakien idazkeraz", 1994); the
-    fractional part is read digit by digit after ``koma``.
+    For example, '5.2' would return 'bost koma bi'. Integers are composed with
+    the vigesimal ``eta`` rule of Euskaltzaindia Araua 7 ("Zenbakien
+    idazkeraz", 1994), which defines Basque as a long-scale system: ``milioi``
+    is 10^6, ``bilioi`` is 10^12 and ``trilioi`` is 10^18, while 10^9 has no
+    distinct word and is spoken ``mila milioi`` (thousand-million). The
+    fractional part is read digit by digit after ``koma``; magnitudes small
+    enough to round away at ``places`` decimals and integer-valued floats
+    (including scientific-notation values) are rendered without the koma tail.
 
     Args:
         num(float or int): the number to pronounce
@@ -272,10 +285,15 @@ def pronounce_number_eu(num, places=2):
     # Deal with decimal part; in Basque the comma is commonly used instead of
     # the dot, and when pronounced it is read as "koma".
     if not num == int(num) and places > 0:
-        result += " koma"
-        _num_str = str(num).split(".")[1][0:places]
-        for char in _num_str:
-            result += " " + NUM_STRING_EU[int(char)]
+        # Fixed-point formatting avoids scientific notation (e.g. ``1e-09``),
+        # which has no fractional part to split and would otherwise crash;
+        # trailing zeros left by rounding are dropped so tiny magnitudes that
+        # round to the whole part carry no empty ``koma`` tail.
+        _num_str = f"{num:.{places}f}".split(".")[1].rstrip("0")
+        if _num_str:
+            result += " koma"
+            for char in _num_str:
+                result += " " + NUM_STRING_EU[int(char)]
 
     return result
 
@@ -388,7 +406,7 @@ def is_fractional_eu(input_str):
 # current group, because Basque composes tens and hundreds additively:
 # "berrehun eta berrogeita hamasei" = 200 + (40 + 16) = 256 (Euskaltzaindia
 # Araua 7, "Zenbakien idazkeraz", 1994).
-_SCALES_EU = (1000, 1000000, 1000000000)
+_SCALES_EU = (1000, 10 ** 6, 10 ** 12, 10 ** 18)
 
 
 def _word_value_eu(word):
@@ -420,9 +438,12 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
     hundreds (``berrehun`` 200 ...) join their remainders with ``eta``, and a
     trailing scale word multiplies the whole preceding group ("berrehun eta
     berrogeita hamasei mila" = (200 + 56) x 1000 = 256000). The composition is
-    that of Euskaltzaindia Araua 7 ("Zenbakien idazkeraz", 1994); ``milioi``
-    and ``bilioi`` take the head-final "bat" idiom for a count of one
-    ("milioi bat" = 1000000).
+    that of Euskaltzaindia Araua 7 ("Zenbakien idazkeraz", 1994), which
+    defines Basque as a long-scale system: ``milioi`` is 10^6, ``bilioi`` is
+    10^12 and ``trilioi`` is 10^18, and 10^9 is the composed ``mila milioi``
+    (thousand-million) rather than a distinct word. ``milioi``, ``bilioi`` and
+    ``trilioi`` take the head-final "bat" idiom for a count of one ("milioi
+    bat" = 1000000).
 
     Args:
         text (str): the string to normalize
@@ -474,16 +495,21 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
             got_number = True
             if val in _SCALES_EU:
                 if val == 1000:
-                    total += (current or 1) * val
-                elif current:
-                    total += current * val
+                    # thousands stay in the current group so a following
+                    # million-scale word multiplies them too, which is how the
+                    # long-scale 10^9 is built: "mila milioi" = 1000 x 10^6.
+                    current = (current or 1) * val
                 else:
-                    # bare "milioi"/"bilioi": count is one, spelled with a
-                    # following "bat" ("milioi bat" = 1000000)
-                    total += val
-                    if idx + 1 < n and aWords[idx + 1] == 'bat':
+                    # long-scale million and up (milioi 10^6, bilioi 10^12,
+                    # trilioi 10^18) flush a finished group into the total.
+                    current = (current or 1) * val
+                    # a bare scale word carries the count-of-one idiom
+                    # "<scale> bat" ("milioi bat" = 1000000); consume the bat
+                    if current == val and idx + 1 < n \
+                            and aWords[idx + 1] == 'bat':
                         idx += 1
-                current = 0
+                    total += current
+                    current = 0
             else:
                 current += val
             idx += 1
