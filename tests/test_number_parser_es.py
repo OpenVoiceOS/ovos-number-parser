@@ -1,6 +1,6 @@
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser import extract_number, pronounce_number, is_fractional
 
 
 class TestSpanishPronounce(unittest.TestCase):
@@ -157,6 +157,28 @@ class TestSpanishRoundTripLarge(unittest.TestCase):
                     self.assertIn(got, (0, False))
                 else:
                     self.assertEqual(got, number, spoken)
+
+
+class TestSpanishFractions(unittest.TestCase):
+    """Spanish fraction nouns, including gendered and capitalized forms."""
+
+    def test_basic_and_gendered(self):
+        self.assertEqual(is_fractional("medio", lang="es"), 0.5)
+        self.assertEqual(is_fractional("media", lang="es"), 0.5)
+        self.assertEqual(is_fractional("tercio", lang="es"), 1.0 / 3)
+        self.assertEqual(is_fractional("cuarta", lang="es"), 0.25)
+        self.assertEqual(is_fractional("centésima", lang="es"), 0.01)
+
+    def test_capitalized_input_does_not_crash(self):
+        # a sentence-initial or shouted fraction must not raise
+        self.assertEqual(is_fractional("Medio", lang="es"), 0.5)
+        self.assertEqual(is_fractional("MEDIO", lang="es"), 0.5)
+        self.assertEqual(is_fractional("Centésimo", lang="es"), 0.01)
+
+    def test_non_fraction_returns_false(self):
+        for word in ["", "hola", "cinco"]:
+            with self.subTest(word=word):
+                self.assertFalse(is_fractional(word, lang="es"))
 
 
 if __name__ == "__main__":

@@ -313,6 +313,7 @@ def is_fractional_es(input_str, short_scale=True):
         (bool) or (float): False if not a fraction, otherwise the fraction
 
     """
+    input_str = input_str.lower()
     if input_str.endswith('s', -1):
         input_str = input_str[:len(input_str) - 1]  # e.g. "fifths"
 
@@ -322,15 +323,15 @@ def is_fractional_es(input_str, short_scale=True):
              "noveno": 9, "novena": 9, "décimo": 10, "décima": 10,
              "onceavo": 11, "onceava": 11, "doceavo": 12, "doceava": 12}
 
-    if input_str.lower() in aFrac:
+    if input_str in aFrac:
         return 1.0 / aFrac[input_str]
-    if (input_str == "vigésimo" or input_str == "vigésima"):
+    if input_str in ("vigésimo", "vigésima"):
         return 1.0 / 20
-    if (input_str == "trigésimo" or input_str == "trigésima"):
+    if input_str in ("trigésimo", "trigésima"):
         return 1.0 / 30
-    if (input_str == "centésimo" or input_str == "centésima"):
+    if input_str in ("centésimo", "centésima"):
         return 1.0 / 100
-    if (input_str == "milésimo" or input_str == "milésima"):
+    if input_str in ("milésimo", "milésima"):
         return 1.0 / 1000
     return False
 
