@@ -159,6 +159,19 @@ class TestSpanishRoundTripLarge(unittest.TestCase):
                 else:
                     self.assertEqual(got, number, spoken)
 
+    def test_full_sweep_both_signs(self):
+        # every pronounced value across the whole 0..10,000,000 range must be
+        # read back to itself, in both signs (stepped to keep the run brisk
+        # while still crossing every apocopation, hundreds and scale boundary)
+        for magnitude in range(0, 10_000_001, 4999):
+            for number in (magnitude, -magnitude):
+                spoken = pronounce_number(number, lang="es")
+                got = extract_number(spoken, lang="es")
+                if number == 0:
+                    self.assertIn(got, (0, False), spoken)
+                else:
+                    self.assertEqual(got, number, spoken)
+
 
 class TestSpanishFractions(unittest.TestCase):
     """Spanish fraction nouns, including gendered and capitalized forms."""

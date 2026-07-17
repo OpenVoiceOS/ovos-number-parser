@@ -1,116 +1,264 @@
-import math
-from collections import OrderedDict
-from typing import List
+from typing import List, Optional, Union
 
-from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
-                                     is_numeric, tokenize, Token)
+from ovos_number_parser.util import (convert_to_mixed_fraction, tokenize, Token,
+                                     Scale, GrammaticalGender, DigitPronunciation,
+                                     NumberVocabulary, RomanceNumberExtractor)
 
-_ARTICLES_ES = {'el', 'la', 'los', 'las'}
 
-_NUM_STRING_ES = {
-    0: 'cero',
-    1: 'uno', 
-    2: 'dos',
-    3: 'tres',
-    4: 'cuatro',
-    5: 'cinco',
-    6: 'seis',
-    7: 'siete',
-    8: 'ocho',
-    9: 'nueve',
-    10: 'diez',
-    11: 'once',
-    12: 'doce',
-    13: 'trece',
-    14: 'catorce',
-    15: 'quince',
-    16: 'dieciséis',
-    17: 'diecisiete',
-    18: 'dieciocho',
-    19: 'diecinueve',
-    20: 'veinte',
-    30: 'treinta',
-    40: 'cuarenta',
-    50: 'cincuenta',
-    60: 'sesenta',
-    70: 'setenta',
-    80: 'ochenta',
-    90: 'noventa'
-}
+def swap_gender_es(word: str, gender: GrammaticalGender) -> str:
+    """Swap a Castilian number word to the requested grammatical gender.
 
-_STRING_NUM_ES = {
-    "cero": 0,
-    "un": 1,
-    "uno": 1,
-    "una": 1,
-    "dos": 2,
-    "tres": 3,
-    "trés": 3,
-    "cuatro": 4,
-    "cinco": 5,
-    "seis": 6,
-    "siete": 7,
-    "ocho": 8,
-    "nueve": 9,
-    "diez": 10,
-    "once": 11,
-    "doce": 12,
-    "trece": 13,
-    "catorce": 14,
-    "quince": 15,
-    "dieciseis": 16,
-    "dieciséis": 16,
-    "diecisiete": 17,
-    "dieciocho": 18,
-    "diecinueve": 19,
-    "veinte": 20,
-    "veintiuno": 21,
-    "veintiún": 21,
-    "veintiun": 21,
-    "veintiuna": 21,
-    "veintidos": 22,
-    "veintitres": 23,
-    "veintidós": 22,
-    "veintitrés": 23,
-    "veinticuatro": 24,
-    "veinticinco": 25,
-    "veintiséis": 26,
-    "veintiseis": 26,
-    "veintisiete": 27,
-    "veintiocho": 28,
-    "veintinueve": 29,
-    "treinta": 30,
-    "cuarenta": 40,
-    "cincuenta": 50,
-    "sesenta": 60,
-    "setenta": 70,
-    "ochenta": 80,
-    "noventa": 90,
-    "cien": 100,
-    "ciento": 100,
-    "doscientos": 200,
-    "doscientas": 200,
-    "trescientos": 300,
-    "trescientas": 300,
-    "cuatrocientos": 400,
-    "cuatrocientas": 400,
-    "quinientos": 500,
-    "quinientas": 500,
-    "seiscientos": 600,
-    "seiscientas": 600,
-    "setecientos": 700,
-    "setecientas": 700,
-    "ochocientos": 800,
-    "ochocientas": 800,
-    "novecientos": 900,
-    "novecientas": 900,
-    "mil": 1000,
-    "millón": 1000000,
-    "millon": 1000000,
-    "millones": 1000000,
-    "millardo": 1000000000,
-    "millardos": 1000000000}
+    Only the words that actually inflect change: "uno"/"veintiuno" and the
+    hundreds series ("doscientos".."novecientos", "quinientos"). Everything
+    else - and the apocopated NEUTRAL forms used before scale nouns - is
+    returned unchanged.
+    """
+    if gender == GrammaticalGender.FEMININE:
+        if word.endswith("ientos"):  # doscientas ... quinientas ... novecientas
+            return word[:-2] + "as"
+        if word == "uno":
+            return "una"
+        if word.endswith("uno"):  # veintiuno -> veintiuna
+            return word[:-1] + "a"
+    return word
 
+
+def pluralize_es(word: str) -> str:
+    if word.endswith("ón"):  # millón -> millones, billón -> billones
+        return word[:-2] + "ones"
+    if not word.endswith("s"):
+        return word + "s"
+    return word
+
+
+# https://blocs.xtec.cat/elruidodelalluvia/files/2013/12/nueva_ortografia_lengua_espanola.pdf
+# RAE, Ortografía de la lengua española (2010): the series of ten and twenty are
+# written as a single word ("dieciséis", "veintiuno"); from thirty on they are
+# written apart ("treinta y uno"), with "y" joining only tens to units.
+_ES = NumberVocabulary(
+    LANG="es-ES",
+    swap_gender=swap_gender_es,  # used for feminine forms
+    pluralize=pluralize_es,  # used for plural forms
+
+    HUNDRED_PARTICLE="ciento",  # "ciento uno" - "cien" only stands alone
+    DENOMINATOR_PARTICLE="avos",  # for fractions  X / N {PARTICLE}
+    DIVIDED_BY_ZERO="dividido por cero",  # how to read X/0 values
+    NO_PREV_UNIT=[100, 1000],  # "cien"/"mil", never "un cien"/"un mil"
+    NO_PLURAL=[1000],  # "dos mil", never "dos miles"
+
+    NUMBER_OVERFLOW="número exageradamente grande",
+    # Spain follows the long scale: millón 10^6, millardo 10^9, billón 10^12
+    DEFAULT_SCALE=Scale.LONG,
+    JOIN_WORD=["y"],
+
+    JOINER_ON_TWENTYS=True,  # "treinta y uno"; 21-29 are fused, joiner kept for extraction
+    JOINER_ON_HUNDREDS=False,  # "ciento cuatro", never "ciento y cuatro"
+    JOINER_ON_THOUSANDS=False,  # "mil doscientos"
+    JOINER_ON_SCALE_REMAINDER=False,  # "dos mil veintitrés", never "dos mil y..."
+
+    # "uno" apocopates to "un" ("veintiuno" to "veintiún") before a scale noun;
+    # NEUTRAL carries that pre-scale spelling so the standalone masculine stays "uno"
+    SCALE_GENDERS={
+        1000: GrammaticalGender.NEUTRAL,
+        10 ** 6: GrammaticalGender.NEUTRAL,
+        10 ** 9: GrammaticalGender.NEUTRAL,
+        10 ** 12: GrammaticalGender.NEUTRAL,
+        10 ** 18: GrammaticalGender.NEUTRAL,
+        10 ** 24: GrammaticalGender.NEUTRAL,
+        10 ** 30: GrammaticalGender.NEUTRAL,
+        10 ** 36: GrammaticalGender.NEUTRAL,
+    },
+    SCALE_ONE={
+        10 ** 6: "un millón",
+        10 ** 9: "un millardo",
+        10 ** 12: "un billón",
+        10 ** 18: "un trillón",
+        10 ** 24: "un cuatrillón",
+        10 ** 30: "un quintillón",
+        10 ** 36: "un sextillón",
+    },
+
+    DECIMAL_MARKER=["coma", "punto", ".", ","],
+    NEGATIVE_SIGN=["menos"],
+    UNITS={
+        0: 'cero',
+        1: 'uno',
+        2: 'dos',
+        3: 'tres',
+        4: 'cuatro',
+        5: 'cinco',
+        6: 'seis',
+        7: 'siete',
+        8: 'ocho',
+        9: 'nueve'
+    },
+    TENS={
+        10: 'diez',
+        11: 'once',
+        12: 'doce',
+        13: 'trece',
+        14: 'catorce',
+        15: 'quince',
+        16: 'dieciséis',
+        17: 'diecisiete',
+        18: 'dieciocho',
+        19: 'diecinueve',
+        20: 'veinte',
+        # the twenties are written solid (RAE Ort. 2010, p. 671)
+        21: 'veintiuno',
+        22: 'veintidós',
+        23: 'veintitrés',
+        24: 'veinticuatro',
+        25: 'veinticinco',
+        26: 'veintiséis',
+        27: 'veintisiete',
+        28: 'veintiocho',
+        29: 'veintinueve',
+        30: 'treinta',
+        40: 'cuarenta',
+        50: 'cincuenta',
+        60: 'sesenta',
+        70: 'setenta',
+        80: 'ochenta',
+        90: 'noventa'
+    },
+    HUNDREDS={
+        100: 'cien',
+        200: 'doscientos',
+        300: 'trescientos',
+        400: 'cuatrocientos',
+        500: 'quinientos',
+        600: 'seiscientos',
+        700: 'setecientos',
+        800: 'ochocientos',
+        900: 'novecientos'
+    },
+    FRACTION={
+        2: 'medio',
+        3: 'tercio',
+        4: 'cuarto',
+        5: 'quinto',
+        6: 'sexto',
+        7: 'séptimo',
+        8: 'octavo',
+        9: 'noveno',
+        10: 'décimo',
+        11: 'onceavo',
+        12: 'doceavo',
+        13: 'treceavo',
+        14: 'catorceavo',
+        15: 'quinceavo',
+        16: 'dieciseisavo',
+        17: 'diecisieteavo',
+        18: 'dieciochoavo',
+        19: 'diecinueveavo',
+        20: 'veinteavo',
+        100: 'centésimo',
+        1000: 'milésimo'
+    },
+    FRACTION_FEMALE={
+        2: "media",
+        4: "cuarta",
+        100: "centésima",
+        1000: "milésima"
+    },
+    SHORT_SCALE={
+        10 ** 3: "mil",
+        10 ** 6: "millón",
+        10 ** 9: "billón",
+        10 ** 12: "trillón",
+        10 ** 15: "cuatrillón",
+        10 ** 18: "quintillón",
+        10 ** 21: "sextillón"
+    },
+    LONG_SCALE={
+        10 ** 3: "mil",
+        10 ** 6: "millón",
+        10 ** 9: "millardo",
+        10 ** 12: "billón",
+        10 ** 18: "trillón",
+        10 ** 24: "cuatrillón",
+        10 ** 30: "quintillón",
+        10 ** 36: "sextillón"
+    },
+
+    GENDERED_SPELLINGS={
+        GrammaticalGender.FEMININE: {
+            1: "una",
+        },
+        # apocopated masculine used before a scale noun ("un millón",
+        # "veintiún mil", "treinta y un mil")
+        GrammaticalGender.NEUTRAL: {
+            1: "un",
+            21: "veintiún",
+        },
+    },
+    DIGIT_SPELLINGS={},
+    ALT_SPELLINGS={
+        # apocopated forms and accent-free variants, accepted for extraction
+        "un": 1,
+        "trés": 3,
+        "dieciseis": 16,
+        "veintiún": 21,
+        "veintidos": 22,
+        "veintitres": 23,
+        "veintiseis": 26,
+        "ciento": 100,
+        "millon": 10 ** 6,
+        # "millardo" (10^9) is RAE-accepted alongside "mil millones"
+        "millardo": 10 ** 9,
+        "millardos": 10 ** 9,
+    },
+    ORDINAL_UNITS={
+        1: 'primero',
+        2: 'segundo',
+        3: 'tercero',
+        4: 'cuarto',
+        5: 'quinto',
+        6: 'sexto',
+        7: 'séptimo',
+        8: 'octavo',
+        9: 'noveno'
+    },
+    ORDINAL_TENS={
+        10: 'décimo',
+        20: 'vigésimo',
+        30: 'trigésimo',
+        40: 'cuadragésimo',
+        50: 'quincuagésimo',
+        60: 'sexagésimo',
+        70: 'septuagésimo',
+        80: 'octogésimo',
+        90: 'nonagésimo'
+    },
+    ORDINAL_HUNDREDS={
+        100: 'centésimo',
+        200: 'ducentésimo',
+        300: 'tricentésimo',
+        400: 'cuadringentésimo',
+        500: 'quingentésimo',
+        600: 'sexcentésimo',
+        700: 'septingentésimo',
+        800: 'octingentésimo',
+        900: 'noningentésimo'
+    },
+    ORDINAL_SHORT_SCALE={
+        10 ** 3: "milésimo",
+        10 ** 6: "millonésimo",
+        10 ** 9: "billonésimo",
+        10 ** 12: "trillonésimo"
+    },
+    ORDINAL_LONG_SCALE={
+        10 ** 3: "milésimo",
+        10 ** 6: "millonésimo",
+        10 ** 12: "billonésimo",
+        10 ** 18: "trillonésimo"
+    }
+)
+
+ES = RomanceNumberExtractor(_ES)
+
+# fraction denominator spellings kept for nice_number_es
 _FRACTION_STRING_ES = {
     2: 'medio',
     3: 'tercio',
@@ -133,478 +281,53 @@ _FRACTION_STRING_ES = {
     20: 'veinteavo'
 }
 
-# https://www.grobauer.at/es_eur/zahlnamen.php
-_LONG_SCALE_ES = OrderedDict([
-    (100, 'cien'),
-    (1000, 'mil'),
-    (1000000, 'millones'),
-    (1e9, "millardos"),
-    (1e12, "billones"),
-    (1e18, 'trillones'),
-    (1e24, "cuatrillones"),
-    (1e30, "quintillones"),
-    (1e36, "sextillones"),
-    (1e42, "septillones"),
-    (1e48, "octillones"),
-    (1e54, "nonillones"),
-    (1e60, "decillones"),
-    (1e66, "undecillones"),
-    (1e72, "duodecillones"),
-    (1e78, "tredecillones"),
-    (1e84, "cuatrodecillones"),
-    (1e90, "quindecillones"),
-    (1e96, "sexdecillones"),
-    (1e102, "septendecillones"),
-    (1e108, "octodecillones"),
-    (1e114, "novendecillones"),
-    (1e120, "vigintillones"),
-    (1e306, "unquinquagintillones"),
-    (1e312, "duoquinquagintillones"),
-    (1e336, "sexquinquagintillones"),
-    (1e366, "unsexagintillones")
-])
 
-_SHORT_SCALE_ES = OrderedDict([
-    (100, 'cien'),
-    (1000, 'mil'),
-    (1000000, 'millones'),
-    (1e9, "billones"),
-    (1e12, 'trillones'),
-    (1e15, "cuatrillones"),
-    (1e18, "quintillones"),
-    (1e21, "sextillones"),
-    (1e24, "septillones"),
-    (1e27, "octillones"),
-    (1e30, "nonillones"),
-    (1e33, "decillones"),
-    (1e36, "undecillones"),
-    (1e39, "duodecillones"),
-    (1e42, "tredecillones"),
-    (1e45, "cuatrodecillones"),
-    (1e48, "quindecillones"),
-    (1e51, "sexdecillones"),
-    (1e54, "septendecillones"),
-    (1e57, "octodecillones"),
-    (1e60, "novendecillones"),
-    (1e63, "vigintillones"),
-    (1e66, "unvigintillones"),
-    (1e69, "uuovigintillones"),
-    (1e72, "tresvigintillones"),
-    (1e75, "quattuorvigintillones"),
-    (1e78, "quinquavigintillones"),
-    (1e81, "qesvigintillones"),
-    (1e84, "septemvigintillones"),
-    (1e87, "octovigintillones"),
-    (1e90, "novemvigintillones"),
-    (1e93, "trigintillones"),
-    (1e96, "untrigintillones"),
-    (1e99, "duotrigintillones"),
-    (1e102, "trestrigintillones"),
-    (1e105, "quattuortrigintillones"),
-    (1e108, "quinquatrigintillones"),
-    (1e111, "sestrigintillones"),
-    (1e114, "septentrigintillones"),
-    (1e117, "octotrigintillones"),
-    (1e120, "noventrigintillones"),
-    (1e123, "quadragintillones"),
-    (1e153, "quinquagintillones"),
-    (1e183, "sexagintillones"),
-    (1e213, "septuagintillones"),
-    (1e243, "octogintillones"),
-    (1e273, "nonagintillones"),
-    (1e303, "centillones"),
-    (1e306, "uncentillones"),
-    (1e309, "duocentillones"),
-    (1e312, "trescentillones"),
-    (1e333, "decicentillones"),
-    (1e336, "undecicentillones"),
-    (1e363, "viginticentillones"),
-    (1e366, "unviginticentillones"),
-    (1e393, "trigintacentillones"),
-    (1e423, "quadragintacentillones"),
-    (1e453, "quinquagintacentillones"),
-    (1e483, "sexagintacentillones"),
-    (1e513, "septuagintacentillones"),
-    (1e543, "octogintacentillones"),
-    (1e573, "nonagintacentillones"),
-    (1e603, "ducentillones"),
-    (1e903, "trecentillones"),
-    (1e1203, "quadringentillones"),
-    (1e1503, "quingentillones"),
-    (1e1803, "sexcentillones"),
-    (1e2103, "septingentillones"),
-    (1e2403, "octingentillones"),
-    (1e2703, "nongentillones"),
-    (1e3003, "millinillones")
-])
+def extract_number_es(text, short_scale=True, ordinals=False):
+    """Extract a number from Castilian Spanish text.
 
-def _es_scale_words(short_scale):
-    """Map large-magnitude Spanish scale words to their numeric value.
+    Delegates to the shared :class:`RomanceNumberExtractor`. The Spanish
+    vocabulary follows RAE, *Ortografía de la lengua española* (2010, p. 671):
+    the twenties are written solid ("veintiuno".."veintinueve") while from
+    thirty on the parts stand apart ("treinta y uno"), "y" joins only tens to
+    units, and "cien" apocopates to "ciento" inside compounds. The ``scale``
+    defaults to the long scale used in Spain (millón 10^6, billón 10^12).
 
-    Spain and most Spanish-speaking regions use the *long scale*, where
-    ``billón`` is 10^12 (a million millions) and ``millardo`` is 10^9, in
-    contrast to the English short scale where "billion" is 10^9.
-    See https://en.wikipedia.org/wiki/Long_and_short_scales.
-
-    Both the plural forms listed in the pronunciation tables (``billones``)
-    and their singular counterparts (``billón``) are included so extraction
-    round-trips with :func:`pronounce_number_es`.
+    Args:
+        text (str): the string to extract a number from
+        short_scale (bool): use the short scale instead of the default long scale
+        ordinals (bool): also recognise ordinal words
+    Returns:
+        (int, float) or False: the extracted number, or False if none is found
     """
-    table = _SHORT_SCALE_ES if short_scale else _LONG_SCALE_ES
-    words = {}
-    for magnitude, plural in table.items():
-        if not math.isfinite(magnitude):
-            # magnitudes beyond float range (1e309+) cannot be represented
-            continue
-        magnitude = int(magnitude)
-        if magnitude < 1000000:
-            # "cien"/"mil" are handled by the base number vocabulary
-            continue
-        words[plural] = magnitude
-        # derive the singular: "billones" -> "billón", "millardos" -> "millardo"
-        if plural.endswith("ones"):
-            words[plural[:-4] + "ón"] = magnitude
-            words[plural[:-4] + "on"] = magnitude  # unaccented variant
-        elif plural.endswith("s"):
-            words[plural[:-1]] = magnitude
-    return words
-
-
-# TODO: female forms.
-_ORDINAL_STRING_BASE_ES = {
-    1: 'primero',
-    2: 'segundo',
-    3: 'tercero',
-    4: 'cuarto',
-    5: 'quinto',
-    6: 'sexto',
-    7: 'séptimo',
-    8: 'octavo',
-    9: 'noveno',
-    10: 'décimo',
-    11: 'undécimo',
-    12: 'duodécimo',
-    13: 'decimotercero',
-    14: 'decimocuarto',
-    15: 'decimoquinto',
-    16: 'decimosexto',
-    17: 'decimoséptimo',
-    18: 'decimoctavo',
-    19: 'decimonoveno',
-    20: 'vigésimo',
-    30: 'trigésimo',
-    40: "cuadragésimo",
-    50: "quincuagésimo",
-    60: "sexagésimo",
-    70: "septuagésimo",
-    80: "octogésimo",
-    90: "nonagésimo",
-    10e3: "centésimó",
-    1e3: "milésimo"
-}
-
-_SHORT_ORDINAL_STRING_ES = {
-    1e6: "millonésimo",
-    1e9: "milmillonésimo",
-    1e12: "billonésimo",
-    1e15: "milbillonésimo",
-    1e18: "trillonésimo",
-    1e21: "miltrillonésimo",
-    1e24: "cuatrillonésimo",
-    1e27: "milcuatrillonésimo",
-    1e30: "quintillonésimo",
-    1e33: "milquintillonésimo"
-    # TODO > 1e-33
-}
-_SHORT_ORDINAL_STRING_ES.update(_ORDINAL_STRING_BASE_ES)
-
-_LONG_ORDINAL_STRING_ES = {
-    1e6: "millonésimo",
-    1e12: "billionth",
-    1e18: "trillonésimo",
-    1e24: "cuatrillonésimo",
-    1e30: "quintillonésimo",
-    1e36: "sextillonésimo",
-    1e42: "septillonésimo",
-    1e48: "octillonésimo",
-    1e54: "nonillonésimo",
-    1e60: "decillonésimo"
-    # TODO > 1e60
-}
-_LONG_ORDINAL_STRING_ES.update(_ORDINAL_STRING_BASE_ES)
+    scale = Scale.SHORT if short_scale else _ES.DEFAULT_SCALE
+    return ES.extract_number(text, ordinals=ordinals, scale=scale)
 
 
 def is_fractional_es(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
+    """Return the fractional value of a Spanish fraction word, else False."""
+    return ES.is_fractional(input_str)
+
+
+def pronounce_number_es(number, places=2, short_scale=False):
+    """Convert a number to its spoken Castilian Spanish form.
+
+    Decimals are read digit by digit ("tres coma uno cuatro").
 
     Args:
-        text (str): the string to check if fractional
-
-        short_scale (bool): use short scale if True, long scale if False
+        number (float or int): the number to pronounce
+        places (int): maximum decimal places to speak
+        short_scale (bool): use the short scale instead of the default long scale
     Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
+        (str): the pronounced number
     """
-    input_str = input_str.lower()
-    if input_str.endswith('s', -1):
-        input_str = input_str[:len(input_str) - 1]  # e.g. "fifths"
-
-    aFrac = {"medio": 2, "media": 2, "tercio": 3, "cuarto": 4,
-             "cuarta": 4, "quinto": 5, "quinta": 5, "sexto": 6, "sexta": 6,
-             "séptimo": 7, "séptima": 7, "octavo": 8, "octava": 8,
-             "noveno": 9, "novena": 9, "décimo": 10, "décima": 10,
-             "onceavo": 11, "onceava": 11, "doceavo": 12, "doceava": 12}
-
-    if input_str in aFrac:
-        return 1.0 / aFrac[input_str]
-    if input_str in ("vigésimo", "vigésima"):
-        return 1.0 / 20
-    if input_str in ("trigésimo", "trigésima"):
-        return 1.0 / 30
-    if input_str in ("centésimo", "centésima"):
-        return 1.0 / 100
-    if input_str in ("milésimo", "milésima"):
-        return 1.0 / 1000
-    return False
+    scale = Scale.SHORT if short_scale else _ES.DEFAULT_SCALE
+    return ES.pronounce_number(number, places=places, scale=scale,
+                               digits=DigitPronunciation.DIGIT_BY_DIGIT)
 
 
-def extract_number_es(text, short_scale=True, ordinals=False):
-    """
-    This function prepares the given text for parsing by making
-    numbers consistent, getting rid of contractions, etc.
-
-    Large-magnitude words follow the requested scale. Spanish (Spain and
-    most of Latin America) conventionally uses the *long scale*, in which
-    ``billón`` is 10^12 and ``millardo`` is 10^9, whereas the short scale
-    reads ``billón`` as 10^9. See
-    https://en.wikipedia.org/wiki/Long_and_short_scales.
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): interpret ``billón`` and larger words on the
-            short scale (10^9) when True, long scale (10^12) when False.
-    Returns:
-        (int) or (float): The value of extracted number
-
-    """
-    # TODO: ordinals don't do anything here.
-    #
-    # Returns incorrect output on certain fractional phrases like, "cuarto de dos"
-    #  TODO: numbers greater than 999999
-    if not text:
-        return False
-    aWords = text.lower().split()
-    scale_words = _es_scale_words(short_scale)
-    negative = False
-    while aWords and aWords[0] in ['menos']:
-        negative = True
-        aWords = aWords[1:]
-    count = 0
-    result = None   # locked sum of completed magnitude groups
-    group = 0       # value accumulated within the current magnitude group
-
-    def _combine():
-        # collapse the pending group into the running total
-        nonlocal result, group
-        result = (result or 0) + group
-        group = 0
-
-    while count < len(aWords):
-        val = 0
-        word = aWords[count]
-        next_next_word = None
-        if count + 1 < len(aWords):
-            next_word = aWords[count + 1]
-            if count + 2 < len(aWords):
-                next_next_word = aWords[count + 2]
-        else:
-            next_word = None
-
-        # is current word a number?
-        if word in scale_words:
-            val = scale_words[word]
-        elif word in _STRING_NUM_ES:
-            val = _STRING_NUM_ES[word]
-        elif word.isdigit():  # doesn't work with decimals
-            val = int(word)
-        elif is_numeric(word):
-            val = float(word)
-        elif is_fractional_es(word):
-            base = (result or 0) + group
-            if base == 0:
-                base = 1
-            result = base * is_fractional_es(word)
-            group = 0
-            count += 1
-            continue
-
-        if not val:
-            # look for fractions like "2/3"
-            aPieces = word.split('/')
-            # if (len(aPieces) == 2 and is_numeric(aPieces[0])
-            #   and is_numeric(aPieces[1])):
-            if look_for_fractions(aPieces):
-                val = float(aPieces[0]) / float(aPieces[1])
-
-        if val:
-            if next_word == "avos":
-                # denominator: what came before divided by this value
-                base = (result or 0) + group
-                result = float(base) / float(val)
-                group = 0
-            elif val >= 1000:
-                # scale word ("mil", "millón"): multiply the pending group
-                # and lock it into the running total so a following smaller
-                # scale starts a fresh group ("un millón dos mil" -> 1002000)
-                group = (group or 1) * val
-                _combine()
-            elif val == 100:
-                # "cien"/"ciento" scales the units before it ("cien mil")
-                group = (group or 1) * 100
-            else:
-                group += val
-
-        if next_word is None:
-            break
-
-        # number word and fraction
-        ands = ["y"]
-        # "y" only joins tens and units within a group ("noventa y nueve"),
-        # which the group accumulator already handles once the joiner is
-        # skipped. The one exception is a trailing fraction ("cinco y medio").
-        if next_word in ands and next_next_word and \
-                is_fractional_es(next_next_word):
-            _combine()
-            result = (result or 0) + is_fractional_es(next_next_word)
-            break
-
-        decimals = ["punto", "coma", ".", ","]
-        if next_word in decimals:
-            zeros = 0
-            newWords = aWords[count + 2:]
-            newText = ""
-            for word in newWords:
-                newText += word + " "
-            for word in newWords:
-                if word == "cero" or word == "0":
-                    zeros += 1
-                else:
-                    break
-            # read the decimal tail digit by digit ("uno cuatro" -> .14)
-            digits = ""
-            for word in newWords:
-                if word.isdigit():
-                    digits += word
-                elif word in _STRING_NUM_ES and _STRING_NUM_ES[word] < 10:
-                    digits += str(_STRING_NUM_ES[word])
-                else:
-                    break
-            if digits:
-                afterDotVal = digits
-            else:
-                afterDotVal = str(extract_number_es(newText[:-1]))
-                afterDotVal = zeros * "0" + afterDotVal
-            _combine()
-            result = float(str(result or 0) + "." + afterDotVal)
-            break
-        count += 1
-
-    # collapse any pending group left after the final word
-    if group:
-        result = (result or 0) + group
-
-    # Return the $str with the number related words removed
-    # (now empty strings, so strlen == 0)
-    # aWords = [word for word in aWords if len(word) > 0]
-    # text = ' '.join(aWords)
-    if "." in str(result):
-        integer, dec = str(result).split(".")
-        # cast float to int
-        if dec == "0":
-            result = int(integer)
-
-    if negative and result is not None and result is not False:
-        result = -result
-    return result or False
-
-
-def _es_number_parse(words, i):
-    # TODO Not parsing 'cero'
-
-    def es_cte(i, s):
-        if i < len(words) and s == words[i]:
-            return s, i + 1
-        return None
-
-    def es_number_word(i, mi, ma):
-        if i < len(words):
-            v = _STRING_NUM_ES.get(words[i])
-            if v and v >= mi and v <= ma:
-                return v, i + 1
-        return None
-
-    def es_number_1_99(i):
-        r1 = es_number_word(i, 1, 29)
-        if r1:
-            return r1
-
-        r1 = es_number_word(i, 30, 90)
-        if r1:
-            v1, i1 = r1
-            r2 = es_cte(i1, "y")
-            if r2:
-                i2 = r2[1]
-                r3 = es_number_word(i2, 1, 9)
-                if r3:
-                    v3, i3 = r3
-                    return v1 + v3, i3
-            return r1
-        return None
-
-    def es_number_1_999(i):
-        # [2-9]cientos [1-99]?
-        r1 = es_number_word(i, 100, 900)
-        if r1:
-            v1, i1 = r1
-            r2 = es_number_1_99(i1)
-            if r2:
-                v2, i2 = r2
-                return v1 + v2, i2
-            else:
-                return r1
-
-        # [1-99]
-        r1 = es_number_1_99(i)
-        if r1:
-            return r1
-
-        return None
-
-    def es_number(i):
-        # check for cero
-        r1 = es_number_word(i, 0, 0)
-        if r1:
-            return r1
-
-        # check for [1-999] (mil [0-999])?
-        r1 = es_number_1_999(i)
-        if r1:
-            v1, i1 = r1
-            r2 = es_cte(i1, "mil")
-            if r2:
-                i2 = r2[1]
-                r3 = es_number_1_999(i2)
-                if r3:
-                    v3, i3 = r3
-                    return v1 * 1000 + v3, i3
-                else:
-                    return v1 * 1000, i2
-            else:
-                return r1
-        return None
-
-    return es_number(i)
+def numbers_to_digits_es(utterance: str) -> str:
+    """Replace written numbers in Spanish text with their digit equivalents."""
+    return ES.numbers_to_digits(utterance)
 
 
 def nice_number_es(number, speech=True, denominators=range(1, 21)):
@@ -636,7 +359,7 @@ def nice_number_es(number, speech=True, denominators=range(1, 21)):
     if not speech:
         if num == 0:
             strNumber = '{:,}'.format(whole)
-            strNumber = strNumber.replace(",", " ")
+            strNumber = strNumber.replace(",", " ")
             strNumber = strNumber.replace(".", ",")
             return strNumber
         else:
@@ -673,213 +396,3 @@ def nice_number_es(number, speech=True, denominators=range(1, 21)):
             strNumber += 's'
 
     return strNumber
-
-
-def pronounce_number_es(number, places=2, short_scale=False):
-    """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'cinco coma dos'
-
-    Args:
-        num(float or int): the number to pronounce 
-        places(int): maximum decimal places to speak
-    Returns:
-        (str): The pronounced number
-    """
-    
-    result = ""
-    if number < 0:
-        result = "menos "
-    number = abs(number)
-
-    number_names = _NUM_STRING_ES.copy()
-
-    if short_scale:
-        number_names.update(_SHORT_SCALE_ES)
-    else:
-        number_names.update(_LONG_SCALE_ES)      
-
-    digits = [number_names[n] for n in range(0, 20)]
-
-    tens = [number_names[n] for n in range(10, 100, 10)]
-
-    if short_scale==True:
-        hundreds = [_SHORT_SCALE_ES[n] for n in _SHORT_SCALE_ES.keys()]
-    else:
-        hundreds = [_LONG_SCALE_ES[n] for n in _LONG_SCALE_ES.keys()]
-    
-        
-    
-    if number in number_names: # check for a direct match 
-        result += number_names[number]
-    else:
-        def _sub_thousand(n):
-            assert 0 <= n <= 999
-            if n <= 19:
-                return digits[n]
-            elif n <= 99:
-                q, r = divmod(n, 10)
-                _deci = tens[q - 1]
-                _unit = r
-                _partial = _deci
-                if _unit > 0:
-                    if q == 2:
-                        _partial = _partial[:-1]
-                        if r == 2:
-                            _partial += "idós"
-                        elif r == 3:
-                            _partial += "itrés"
-                        elif r == 6:
-                            _partial += "iséis"
-                        else:
-                            _partial += "i" + number_names[_unit]
-                    else:
-                        _partial = _partial + " y " + number_names[_unit]
-                return _partial
-            else:
-                q, r = divmod(n, 100)
-                if q == 1:
-                    # exactly one hundred is "cien"; "ciento" only combines
-                    # with a following remainder ("ciento uno")
-                    _partial = "ciento" if r else "cien"
-                elif q == 5:
-                    _partial = "quinientos"
-                elif q == 7:
-                    _partial = "setecientos"
-                elif q == 9:
-                    _partial = "novecientos"
-                else:    
-                    _partial = digits[q] + "cientos"
-                _partial += (
-                    " " + _sub_thousand(r) if r else "")  # separa centenars
-        
-                return _partial
-            
-        def _un_uno(number):
-            if number[-9:] == "veintiuno":
-                number = number.replace("veintiuno", "veintiún")
-            elif number[-3:] == "uno":
-                number = number[:-1]
-            return number
-
-        def _short_scale(n):
-            if n >= max(_SHORT_SCALE_ES.keys()):
-                return "número exageradamente grande"
-            n = int(n)
-            assert 0 <= n
-            res = []
-            for i, z in enumerate(_split_by(n, 1000)):
-                if not z:
-                    continue
-                number = _sub_thousand(z)
-                if i > 0: 
-                    number = _un_uno(number)
-                if i:
-                    number += " "  # separa ordres de magnitud
-                    number += hundreds[i]
-                    if number == "un mil":
-                        number = "mil"
-                res.append(number)
-            return " ".join(reversed(res))
-
-        def _split_by(n, split=1000):
-            assert 0 <= n
-            res = []
-            while n:
-                n, r = divmod(n, split)
-                res.append(r)
-            return res
-
-        def _long_scale(n):
-            if n >= max(_LONG_SCALE_ES.keys()):
-                return "número exageradamente grande"
-            n = int(n)
-            assert 0 <= n
-            res = []
-            for i, z in enumerate(_split_by(n, 1000000)):
-                if not z:
-                    continue
-                number = pronounce_number_es(z, places, True)
-                
-                
-                # strip off the comma after the thousand
-                if i:
-                    # plus one as we skip 'thousand'
-                    # (and 'hundred', but this is excluded by index value)
-                    number = number.replace(',', '')
-                    number = _un_uno(number)
-                    number += " " + hundreds[i + 1]
-                res.append(number)
-            return " ".join(reversed(res))
-
-        if short_scale:
-            result += _short_scale(number)
-        else:
-            result += _long_scale(number)
-
-    big_nums = [_LONG_SCALE_ES[a] for a in _LONG_SCALE_ES]
-    if result in big_nums:
-        if result[-4:] == "rdos":
-            result = "un " + result[:-1]
-        elif result[-4:] == "ones":
-            result = "un " + result[:-4] + "ón"
-
-    if len(result.split(" ")) > 1 and result.split(" ")[0] in ["un", "uno"]:
-        big_num = result.split(" ")[1]
-        if big_num in big_nums:
-            new_big_num = big_num
-            if big_num[-4:] == "rdos":
-                new_big_num = big_num[:-1]
-
-            elif big_num[-4:] == "ones":
-                new_big_num = big_num[:-4] + "ón"             
-            result = result.replace(big_num, new_big_num)
-
-
-    # Deal with decimal part, in spanish is commonly used the comma
-    # instead the dot. Decimal part can be written both with comma
-    # and dot, but when pronounced, its pronounced "coma"
-    if not number == int(number) and places > 0:
-        if abs(number) < 1.0 and (result == "menos " or not result):
-            result += "cero"
-        result += " coma"
-        _num_str = str(number)
-        if "." in _num_str:
-            _num_str = _num_str.split(".")[1][0:places]
-        else:
-            # tiny/large floats stringify in scientific notation ("1e-09"),
-            # which has no decimal point to split on; expand to fixed notation
-            _num_str = "{:.{places}f}".format(number, places=places
-                                              ).split(".")[1][0:places]
-        for char in _num_str:
-            result += " " + _NUM_STRING_ES[int(char)]
-    return result
-
-
-def numbers_to_digits_es(utterance: str) -> str:
-    """
-    Replace written numbers in a Spanish text with their digit equivalents.
-
-    Args:
-        utterance (str): Input string possibly containing written numbers.
-
-    Returns:
-        str: Text with written numbers replaced by digits.
-    """
-    # TODO - above twenty it's ambiguous, "twenty one" is 2 words but only 1 number
-    number_replacements = {
-        "uno": "1", "dos": "2", "tres": "3", "cuatro": "4",
-        "cinco": "5", "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",
-        "diez": "10", "once": "11", "doce": "12", "trece": "13", "catorce": "14",
-        "quince": "15", "dieciséis": "16", "diecisiete": "17", "dieciocho": "18",
-        "diecinueve": "19", "veinte": "20"
-        # Extend this dictionary for higher numbers as needed
-    }
-    words: List[Token] = tokenize(utterance)
-    for idx, tok in enumerate(words):
-        if tok.word in number_replacements:
-            words[idx] = number_replacements[tok.word]
-        else:
-            words[idx] = tok.word
-    return " ".join(words)
