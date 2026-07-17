@@ -1222,9 +1222,9 @@ def _text_ru_inflection_normalize(word, arg):
         return "тысяча"
 
     if arg == 1:  # _extract_whole_number_with_text_ru
-        if word in ["одна", "одним", "одно", "одной"]:
+        if word in ["одна", "одним", "одно", "одной", "одну", "одною"]:
             return "один"
-        if word == "две":
+        if word in ["две", "двух", "двум", "двумя"]:
             return "два"
         if word == "пару":
             return "пара"
