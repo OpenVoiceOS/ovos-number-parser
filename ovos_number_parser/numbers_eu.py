@@ -252,7 +252,8 @@ def pronounce_number_eu(num, places=2):
 
     For example, '5.2' would return 'bost koma bi'. Integers of any magnitude
     up to the thousand-millions (``bilioi``) are composed with the vigesimal
-    ``eta`` rule; the fractional part is read digit by digit after ``koma``.
+    ``eta`` rule of Euskaltzaindia Araua 7 ("Zenbakien idazkeraz", 1994); the
+    fractional part is read digit by digit after ``koma``.
 
     Args:
         num(float or int): the number to pronounce
@@ -382,232 +383,162 @@ def is_fractional_eu(input_str):
     return False
 
 
+# Scale words that flush the accumulated group; everything else (units,
+# teens, the vigesimal twenties and the lexical hundreds) adds into the
+# current group, because Basque composes tens and hundreds additively:
+# "berrehun eta berrogeita hamasei" = 200 + (40 + 16) = 256 (Euskaltzaindia
+# Araua 7, "Zenbakien idazkeraz", 1994).
+_SCALES_EU = (1000, 1000000, 1000000000)
+
+
+def _word_value_eu(word):
+    """Value of a single Basque cardinal token, or None.
+
+    Handles the vigesimal ``-ta`` joiner form of the twenties: ``hogeita``
+    (from ``hogei`` 20), ``berrogeita`` (40), ``hirurogeita`` (60) and
+    ``laurogeita`` (80), which are written joined to the following ten/unit
+    (Araua 7).
+    """
+    if word in _NUM_STRING_EU:
+        return _NUM_STRING_EU[word]
+    if word.endswith("ta"):
+        stem = word[:-2]
+        if stem in _NUM_STRING_EU and _NUM_STRING_EU[stem] in (20, 40, 60, 80):
+            return _NUM_STRING_EU[stem]
+    return None
+
+
 # TODO: short_scale and ordinals don't do anything here.
 # The parameters are present in the function signature for API compatibility
 # reasons.
-#
-# Returns incorrect output on certain fractional phrases like, "cuarto de dos"
 def extract_number_eu(text, short_scale=True, ordinals=False):
     """
-    This function prepares the given text for parsing by making
-    numbers consistent, getting rid of contractions, etc.
+    Extract the first number from Basque text.
+
+    Basque cardinals are vigesimal and compose additively: the twenties
+    (``hogei``, ``berrogei``, ``hirurogei``, ``laurogei``) and the lexical
+    hundreds (``berrehun`` 200 ...) join their remainders with ``eta``, and a
+    trailing scale word multiplies the whole preceding group ("berrehun eta
+    berrogeita hamasei mila" = (200 + 56) x 1000 = 256000). The composition is
+    that of Euskaltzaindia Araua 7 ("Zenbakien idazkeraz", 1994); ``milioi``
+    and ``bilioi`` take the head-final "bat" idiom for a count of one
+    ("milioi bat" = 1000000).
+
     Args:
         text (str): the string to normalize
     Returns:
-        (int) or (float): The value of extracted number
-
+        (int) or (float): The value of extracted number, or False
     """
     aWords = text.lower().split()
     negative = False
-    while aWords and aWords[0] in ['minus', 'ken']:
+    while aWords and aWords[0] in ('minus', 'ken'):
         negative = True
         aWords = aWords[1:]
-    count = 0
-    result = None
-    while count < len(aWords):
-        val = 0
-        word = aWords[count]
-        next_next_word = None
-        if count + 1 < len(aWords):
-            next_word = aWords[count + 1]
-            if count + 2 < len(aWords):
-                next_next_word = aWords[count + 2]
-        else:
-            next_word = None
 
-        # is current word a number?
-        if word in _NUM_STRING_EU:
-            val = _NUM_STRING_EU[word]
-        elif word.endswith("ta") and word[:-2] in _NUM_STRING_EU and \
-                _NUM_STRING_EU[word[:-2]] in (20, 40, 60, 80):
-            # vigesimal joiner: "hogeita bat" = 20 + 1,
-            # "berrogeita hamar" = 40 + 10
-            val = _NUM_STRING_EU[word[:-2]]
-            if next_word is not None and \
-                    _NUM_STRING_EU.get(next_word, 100) < 20:
-                val += _NUM_STRING_EU[next_word]
-                aWords[count + 1] = ""
-                next_word = next_next_word
-        elif word.isdigit():  # doesn't work with decimals
-            val = int(word)
-        elif is_numeric(word):
-            val = float(word)
-        elif is_fractional_eu(word):
-            if next_word in _NUM_STRING_EU:
-                # erdi bat, heren bat, etab
-                result = _NUM_STRING_EU[next_word]
-                # hurrengo hitza (bat, bi, ...) salto egin
-                next_word = None
-                count += 2
-            elif not result:
-                result = 1
-                count += 1
-            result = result * is_fractional_eu(word)
+    decimals = ('puntu', 'koma', '.', ',')
+    total = 0          # sum of flushed scale groups
+    current = 0        # value being built for the current scale group
+    result = None      # explicit result (decimal / fraction), overrides total
+    got_number = False
+    idx = 0
+    n = len(aWords)
+    while idx < n:
+        word = aWords[idx]
+
+        if word == 'eta':          # copulative joiner, carries no value
+            idx += 1
             continue
 
-        if not val:
-            # look for fractions like "2/3"
-            aPieces = word.split('/')
-            # if (len(aPieces) == 2 and is_numeric(aPieces[0])
-            #   and is_numeric(aPieces[1])):
-            if look_for_fractions(aPieces):
-                val = float(aPieces[0]) / float(aPieces[1])
-
-        if val:
-            if result is None:
-                result = 0
-            # handle fractions
-            if next_word == "en" or next_word == "ren":
-                result = float(result) / float(val)
-            elif next_word in _NUM_STRING_EU \
-                    and _NUM_STRING_EU[next_word] in (1000, 1000000,
-                                                      1000000000) \
-                    and val < _NUM_STRING_EU[next_word]:
-                # small multiplier of the scale word that follows it, added to
-                # whatever larger total precedes ("milioi bat bi mila ..." ->
-                # 1000000 + 2 * 1000). Consume the scale word here so it is not
-                # re-processed against the (now larger) running total.
-                result += val * _NUM_STRING_EU[next_word]
-                # blank the scale word so it is not re-processed; it is the
-                # next non-empty token (count+1 normally, but a vigesimal
-                # remainder may already have blanked count+1)
-                for j in range(count + 1, len(aWords)):
-                    if aWords[j]:
-                        aWords[j] = ""
-                        break
-            elif val in (100, 1000, 1000000, 1000000000) and result \
-                    and result < val:
-                # scale word multiplies a smaller multiplier before it
-                # ("bi mila" = 2 * 1000). When the running total is already
-                # larger than the scale ("mila ehun" = 1000 + 100) the scale
-                # is a lower-magnitude continuation and must be added, handled
-                # by the power loop below.
-                result = result * val
-            elif val == 1 and result in (1000000, 1000000000):
-                # head-final idiom "milioi bat"/"bilioi bat" = the scale itself
-                pass
-            else:
-                power = 10
-                merged = False
-                while result and power <= result:
-                    if result % power == 0 and val < power:
-                        # lower-magnitude continuation
-                        # ("bi mila hogeita hiru" -> 2000 + 23)
-                        result = result + val
-                        merged = True
-                        break
-                    power *= 10
-                if not merged:
-                    result = val
-
-        if next_word is None:
-            break
-
-        # number word and fraction
-        ands = ["eta"]
-        if next_word in ands:
-            zeros = 0
-            if result is None:
-                count += 1
-                continue
-            newWords = aWords[count + 2:]
-            newText = ""
-            for word in newWords:
-                newText += word + " "
-
-            # "ehun eta bat mila ..." joins the hundreds with the small
-            # remainder that *precedes* the scale word (101), which the scale
-            # then multiplies -- not the whole tail. Add the pre-scale chunk
-            # and hand the scale word back to the main loop.
-            scale_words = ("mila", "milioi", "bilioi")
-            scale_idx = next((i for i, w in enumerate(newWords)
-                              if i > 0 and w in scale_words), None)
-            if scale_idx is not None:
-                scale_val = _NUM_STRING_EU[newWords[scale_idx]]
-                pre = extract_number_eu(" ".join(newWords[:scale_idx]))
-                rest = extract_number_eu(" ".join(newWords[scale_idx + 1:]))
-                rest = rest if rest else 0
-                if pre:
-                    if result < scale_val:
-                        # the running total is the head of the multiplier group
-                        # ("ehun eta bat mila" = (100 + 1) * 1000)
-                        result = (result + pre) * scale_val + rest
-                    else:
-                        # the running total is a higher scale already; the tail
-                        # is an independent summand ("milioi bat eta bi mila")
-                        result += pre * scale_val + rest
-                    break
-
-            afterAndVal = extract_number_eu(newText[:-1])
-            if afterAndVal:
-                if result < afterAndVal or result < 20:
-                    while afterAndVal > 1:
-                        afterAndVal = afterAndVal / 10.0
-                    for word in newWords:
-                        if word == "zero" or word == "0":
-                            zeros += 1
-                        else:
-                            break
-                for _ in range(0, zeros):
-                    afterAndVal = afterAndVal / 10.0
-                result += afterAndVal
-                break
-        elif next_next_word is not None:
-            if next_next_word in ands and next_word not in _NUM_STRING_EU:
-                newWords = aWords[count + 3:]
-                newText = ""
-                for word in newWords:
-                    newText += word + " "
-                afterAndVal = extract_number_eu(newText[:-1])
-                if afterAndVal:
-                    if result is None:
-                        result = 0
-                    result += afterAndVal
-                    break
-
-        decimals = ["puntu", "koma", ".", ","]
-        if next_word in decimals:
-            zeros = 0
-            newWords = aWords[count + 2:]
-            newText = ""
-            for word in newWords:
-                newText += word + " "
-            for word in newWords:
-                if word == "zero" or word == "0":
-                    zeros += 1
-                else:
-                    break
-            # read the decimal tail digit by digit ("uno cuatro" -> .14)
+        if word in decimals and got_number:
+            # read the decimal tail digit by digit ("koma bat lau" -> .14)
             digits = ""
-            for word in newWords:
-                if word.isdigit():
-                    digits += word
-                elif word in _NUM_STRING_EU and _NUM_STRING_EU[word] < 10:
-                    digits += str(_NUM_STRING_EU[word])
+            j = idx + 1
+            while j < n:
+                w = aWords[j]
+                if w.isdigit():
+                    digits += w
                 else:
-                    break
+                    dv = _word_value_eu(w)
+                    if dv is not None and dv < 10:
+                        digits += str(dv)
+                    else:
+                        break
+                j += 1
             if digits:
-                afterDotVal = digits
-            else:
-                afterDotVal = str(extract_number_eu(newText[:-1]))
-                afterDotVal = zeros * "0" + afterDotVal
-            result = float(str(result or 0) + "." + afterDotVal)
+                result = float(f"{total + current}.{digits}")
+                idx = j
             break
-        count += 1
 
-    # Return the $str with the number related words removed
-    # (now empty strings, so strlen == 0)
-    # aWords = [word for word in aWords if len(word) > 0]
-    # text = ' '.join(aWords)
-    if "." in str(result):
-        integer, dec = str(result).split(".")
-        # cast float to int
-        if dec == "0":
-            result = int(integer)
+        val = _word_value_eu(word)
+        if val is not None:
+            got_number = True
+            if val in _SCALES_EU:
+                if val == 1000:
+                    total += (current or 1) * val
+                elif current:
+                    total += current * val
+                else:
+                    # bare "milioi"/"bilioi": count is one, spelled with a
+                    # following "bat" ("milioi bat" = 1000000)
+                    total += val
+                    if idx + 1 < n and aWords[idx + 1] == 'bat':
+                        idx += 1
+                current = 0
+            else:
+                current += val
+            idx += 1
+            continue
 
-    if negative and result is not None and result is not False:
+        if word.isdigit():
+            current += int(word)
+            got_number = True
+            idx += 1
+            continue
+
+        if is_numeric(word):
+            result = float(word)
+            got_number = True
+            idx += 1
+            break
+
+        aPieces = word.split('/')
+        if look_for_fractions(aPieces):
+            result = float(aPieces[0]) / float(aPieces[1])
+            got_number = True
+            idx += 1
+            break
+
+        frac = is_fractional_eu(word)
+        if frac:
+            base = (total + current) if got_number else 1
+            if not got_number and idx + 1 < n:
+                nxt = _word_value_eu(aWords[idx + 1])
+                if nxt is not None:
+                    # "erdi bat", "bi heren"
+                    base = nxt
+                    idx += 1
+            result = base * frac
+            got_number = True
+            idx += 1
+            break
+
+        # unrecognised token: skip leading junk until a number begins, but
+        # stop once the running number is interrupted by non-number text
+        if got_number:
+            break
+        idx += 1
+
+    if result is None:
+        if not got_number:
+            return False
+        result = total + current
+
+    if isinstance(result, float) and result.is_integer():
+        result = int(result)
+
+    if negative:
         result = -result
-    return result or False
+    return result if result is not False else False
 
 
 # TODO Not parsing 'cero'
