@@ -904,14 +904,14 @@ def _extract_decimal_with_text_uk(tokens, short_scale, ordinals):
                 _prev_end = _num.end_index
             if len(_digits) > 1:
                 _frac = float("0." + _digits)
-                return (number.value - _frac if number.value < 0
+                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES for _t in number.tokens))
                         else number.value + _frac), \
                     number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
                 _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if number.value < 0
+                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES for _t in number.tokens))
                         else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None

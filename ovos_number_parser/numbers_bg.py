@@ -655,14 +655,14 @@ def _extract_decimal_with_text_bg(tokens, short_scale, ordinals):
                 _prev_end = _num.end_index
             if len(_digits) > 1:
                 _frac = float("0." + _digits)
-                return (number.value - _frac if number.value < 0
+                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_BG for _t in number.tokens))
                         else number.value + _frac), \
                     number.tokens + partitions[1] + _digit_tokens
 
             if "." not in str(decimal.text) and \
                     float(decimal.value) == int(decimal.value):
                 _frac2 = float('0.' + str(int(decimal.value)))
-                return (number.value - _frac2 if number.value < 0
+                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_BG for _t in number.tokens))
                         else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
