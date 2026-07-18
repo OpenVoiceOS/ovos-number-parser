@@ -945,7 +945,7 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
             aPieces = word.split('/')
             if look_for_fractions(aPieces):
                 val = float(aPieces[0]) / float(aPieces[1])
-                number_words.append(tokens[idx + 1])
+                current_val = val
         else:
             if all([
                 prev_word in _SUMS,
