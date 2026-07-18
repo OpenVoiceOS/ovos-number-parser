@@ -284,6 +284,21 @@ _CA = NumberVocabulary(
     ORDINAL_HUNDREDS={
         100: 'centè'
     },
+    # Unit ordinals used inside a hyphenated tens-units compound. Catalan forms
+    # these from the cardinal plus "-è" ("dos" -> "dosè", "quatre" -> "quatrè"),
+    # which differs from the standalone ordinals for 1-4 ("primer", "segon",
+    # "tercer", "quart"): "vint-i-dosè", not "vint-i-segon".
+    ORDINAL_COMPOUND_UNITS={
+        1: 'unè',
+        2: 'dosè',
+        3: 'tresè',
+        4: 'quatrè',
+        5: 'cinquè',
+        6: 'sisè',
+        7: 'setè',
+        8: 'vuitè',
+        9: 'novè',
+    },
     ORDINAL_SHORT_SCALE={
         10 ** 3: 'milè',
         10 ** 6: 'milionè'
@@ -298,10 +313,65 @@ _CA = NumberVocabulary(
 class CatalanNumberExtractor(RomanceNumberExtractor):
     """Catalan number engine.
 
-    Adds the two Catalan-specific surface conventions the shared engine does
-    not model: hyphenated tens-units compounds on output and a digit-by-digit
-    decimal reading ("tres coma un quatre" for 3.14).
+    Adds the Catalan-specific surface conventions the shared engine does not
+    model: hyphenated tens-units compounds on output, a digit-by-digit decimal
+    reading ("tres coma un quatre" for 3.14), and the ordinal composition rule
+    below.
     """
+
+    def _pronounce_ordinal_up_to_999(
+            self, n: int,
+            gender: GrammaticalGender = GrammaticalGender.MASCULINE) -> str:
+        """Ordinal word for 0-999 following the Institut d'Estudis Catalans rule.
+
+        Catalan ordinals are single fused words for 1-19 and the round tens/
+        hundreds ("onzè", "vintè", "centè"); every larger number is written as
+        the cardinal with only its final element carrying the ordinal ending.
+        The masculine ending is the cardinal + "-è" and the feminine the
+        cardinal + "-na" ("22è vint-i-dosè" / "22a vint-i-dosena", "54è
+        cinquanta-quatrè", "353è tres-cents cinquanta-tresè"), so a tens-units
+        compound keeps a cardinal tens word ("vint-i-", "trenta-") and turns
+        only the unit ordinal, unlike the shared engine's tens-ordinal + unit-
+        ordinal composition ("desè primer", "vintè primer") which is wrong here.
+
+        Source: Consorci per a la Normalització Lingüística, "Els numerals
+        ordinals" (reproducing the IEC / Institut d'Estudis Catalans normativa);
+        Optimot fitxa "Guionet en els numerals compostos".
+        """
+        if not 0 <= n <= 999:
+            raise ValueError("Number must be between 0 and 999.")
+        if n == 0:
+            return self.vocab.UNITS[0]
+
+        parts = []
+        if n >= 100:
+            hundred = n // 100 * 100
+            n %= 100
+            if n == 0:
+                # round hundred takes the ordinal ending itself:
+                # "cent" -> "centè", "dos-cents" -> "dos-centè"
+                word = self.vocab.ORDINAL_HUNDREDS.get(hundred) \
+                    or self.vocab.HUNDREDS[hundred][:-1] + "è"
+                return self.vocab.swap_gender(word, gender)
+            # otherwise the hundreds stay cardinal; only the tail is ordinal
+            parts.append(self.vocab.HUNDRED_PARTICLE if hundred == 100
+                         else self.vocab.HUNDREDS[hundred])
+
+        # n is now 1-99
+        if n in self.vocab.ORDINAL_TENS:
+            # fused single word: teens 11-19 and the round tens 20, 30 ... 90
+            parts.append(self.vocab.swap_gender(self.vocab.ORDINAL_TENS[n], gender))
+        elif n < 10:
+            parts.append(self.vocab.swap_gender(self.vocab.ORDINAL_UNITS[n], gender))
+        else:
+            ten = n // 10 * 10
+            unit = n % 10
+            unit_word = self.vocab.swap_gender(
+                self.vocab.ORDINAL_COMPOUND_UNITS[unit], gender)
+            joiner = "-i-" if ten == 20 else "-"
+            parts.append(f"{self.vocab.TENS[ten]}{joiner}{unit_word}")
+
+        return " ".join(parts)
 
     def pronounce_number(self,
                          number: Union[int, float],
