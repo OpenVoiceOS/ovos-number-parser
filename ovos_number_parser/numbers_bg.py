@@ -760,7 +760,8 @@ def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
         # двадесет [и] три, сто [и] пет
         if (prev_word in _SUMS_BG and val and val < 10) \
                 or (prev_word in _SUMS_BG and val and val < 100 and prev_val >= 100) \
-                or all([prev_word in _MULTIPLIES_BG, val < prev_val if prev_val else False]):
+                or all([prev_word in _MULTIPLIES_BG, word not in _MULTIPLIES_BG,
+                        val < prev_val if prev_val else False]):
             if prev_val < 0:
                 # continue a negated number: "минус четиридесет и две" = -(40+2)
                 val = prev_val - val
@@ -771,6 +772,12 @@ def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
         # две хиляди, три милиона
         if word in _MULTIPLIES_BG:
             if not prev_val:
+                prev_val = 1
+            if prev_val >= current_val:
+                # a bare larger scale already sits in prev_val ("милион
+                # хиляда"): this smaller scale word opens a new additive group
+                # of one, rather than multiplying the larger scale by itself
+                to_sum.append(prev_val)
                 prev_val = 1
             val = prev_val * val
 
