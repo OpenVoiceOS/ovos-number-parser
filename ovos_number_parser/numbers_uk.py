@@ -1024,7 +1024,8 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
         # twenty two, fifty six
         if (prev_word in _SUMS and val and val < 10) \
                 or (prev_word in _SUMS and val and val < 100 and prev_val >= 100) \
-                or all([prev_word in multiplies, val < prev_val if prev_val else False]):
+                or all([prev_word in multiplies, word not in multiplies,
+                        val < prev_val if prev_val else False]):
             if prev_val < 0:
                 # continue a negated number: "minus forty two" = -(40+2)
                 val = prev_val - val
@@ -1035,6 +1036,12 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
         multiplies.update({"тисячa", "тисячі", "тисячу", "тисячах", "тисячaми", "тисячею", "тисяч"})
         if word in multiplies:
             if not prev_val:
+                prev_val = 1
+            if prev_val >= current_val:
+                # a bare larger scale already sits in prev_val ("мільйон
+                # тисяча"): this smaller scale word opens a new additive group
+                # of one, rather than multiplying the larger scale by itself
+                to_sum.append(prev_val)
                 prev_val = 1
             val = prev_val * val
 
