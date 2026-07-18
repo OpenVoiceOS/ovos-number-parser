@@ -203,13 +203,20 @@ def is_numeric(input_str: str) -> bool:
         input_str (str): The string to test for numeric value.
 
     Returns:
-        bool: True if the string can be converted to a float, False otherwise.
+        bool: True if the string is a finite number (or a plain integer string,
+            which stays exact even when it exceeds float range), False for a
+            non-finite token such as "inf", "nan" or "1e309".
     """
     try:
-        float(input_str)
-        return True
+        val = float(input_str)
     except ValueError:
         return False
+    if math.isfinite(val):
+        return True
+    # a plain integer string that overflows float to inf is still a usable
+    # number (Python ints are unbounded); a non-finite token such as "inf",
+    # "nan" or "1e309" carries no usable number and must not be treated as one
+    return input_str.strip().lstrip("+-").isdigit()
 
 
 def look_for_fractions(split_list: List[str]) -> bool:
@@ -507,6 +514,11 @@ class RomanceNumberExtractor:
             t = tok.strip(".,!?;:").replace(",", ".")
             if t and t.lstrip("-").replace(".", "", 1).isdigit():
                 val = float(t)
+                # an out-of-range digit token (e.g. "1e309" or a 400-digit
+                # string) overflows to inf/nan; it carries no usable number,
+                # so skip it rather than return a non-finite value
+                if not math.isfinite(val):
+                    continue
                 return int(val) if val.is_integer() else val
             if tok in numbers_map or tok in ordinals_map or tok in scales_map:
                 break

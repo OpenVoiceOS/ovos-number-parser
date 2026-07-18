@@ -23,7 +23,7 @@ Sources:
     - https://ordbokene.no (Språkrådet/UiB: Bokmålsordboka & Nynorskordboka;
       every pronounced form in this module is an attested entry)
 """
-from math import floor
+from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
                                      ReplaceableNumber, Token, look_for_fractions)
@@ -736,7 +736,12 @@ def _extract_number(text, t, ordinals=False):
     numbers = _extract_numbers_with_text(tokenize(text), t)
     if not numbers:
         return False
-    number = float(numbers[0].value)
+    try:
+        number = float(numbers[0].value)
+    except (OverflowError, ValueError):
+        return False
+    if not isfinite(number):
+        return False
     if number.is_integer():
         number = int(number)
     return number

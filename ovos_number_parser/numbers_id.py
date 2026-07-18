@@ -22,6 +22,7 @@ take the ``ke-`` prefix ("kedua" = 2nd) with the irregular "pertama"
 """
 import re
 from dataclasses import dataclass, field
+from math import isfinite
 from typing import Dict, List, Optional, Union
 
 _UNITS_COMMON = {
@@ -310,6 +311,8 @@ def _extract_number(text: str, lang: _LangDef,
         clean = tok.strip(".!?;:")
         if re.fullmatch(r"-?\d+(?:[.,]\d+)?", clean):
             val = float(clean.replace(",", "."))
+            if not isfinite(val):
+                return False
             # "2 setengah" = 2.5
             if i + 1 < len(tokens) and tokens[i + 1] in fractions:
                 val += fractions[tokens[i + 1]]

@@ -102,8 +102,9 @@ class NumberVariantFA(IntEnum):
 
 def _is_number(s):
     try:
-        float(s)
-        return True
+        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
+        # string) carries no usable number and must not be treated as one
+        return math.isfinite(float(s))
     except ValueError:
         return False
 

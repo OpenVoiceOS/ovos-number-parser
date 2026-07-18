@@ -8,6 +8,7 @@ spellings, and unaccented input: matching is done on text with the Greek
 tonos and diaeresis stripped and the final sigma folded.
 """
 
+from math import isfinite
 from ovos_number_parser.util import convert_to_mixed_fraction
 
 # tonos/diaeresis stripping + final sigma folding, applied after casefold
@@ -352,8 +353,9 @@ def _build_ordinal_lookup():
 
 def _is_number(s):
     try:
-        float(s)
-        return True
+        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
+        # string) carries no usable number and must not be treated as one
+        return isfinite(float(s))
     except ValueError:
         return False
 

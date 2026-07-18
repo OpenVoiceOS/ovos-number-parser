@@ -289,12 +289,16 @@ def extract_number_es(text, short_scale=True, ordinals=False):
     vocabulary follows RAE, *Ortografía de la lengua española* (2010, p. 671):
     the twenties are written solid ("veintiuno".."veintinueve") while from
     thirty on the parts stand apart ("treinta y uno"), "y" joins only tens to
-    units, and "cien" apocopates to "ciento" inside compounds. The ``scale``
-    defaults to the long scale used in Spain (millón 10^6, billón 10^12).
+    units, and "cien" apocopates to "ciento" inside compounds.
+
+    This low-level entry point defaults ``short_scale`` to ``True``. The public
+    :func:`ovos_number_parser.extract_number` wrapper instead resolves the scale
+    from the language configuration, applying the long scale used in Spain
+    (millón 10^6, billón 10^12) that Castilian Spanish speakers expect.
 
     Args:
         text (str): the string to extract a number from
-        short_scale (bool): use the short scale instead of the default long scale
+        short_scale (bool): use the short scale (default) instead of the long scale
         ordinals (bool): also recognise ordinal words
     Returns:
         (int, float) or False: the extracted number, or False if none is found
