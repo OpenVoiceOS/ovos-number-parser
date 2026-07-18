@@ -531,18 +531,33 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     # merge lower-magnitude continuations ("2000 23" -> 2023)
     scales = {100, 1000, 1000000, 1000000000, 1000000000000}
     merged = []
-    for w in expanded:
+    for idx, w in enumerate(expanded):
         if merged and w.isdigit() and merged[-1].isdigit():
             prev, nxt = int(merged[-1]), int(w)
             if nxt in scales and prev < nxt:
                 # "två miljoner" -> 2 * 1000000
                 merged[-1] = str(prev * nxt)
                 continue
-            if _merge_values_sv(prev, nxt):
+            follow = int(expanded[idx + 1]) if idx + 1 < len(expanded) \
+                and expanded[idx + 1].isdigit() else None
+            # a small value that a following scale word will multiply belongs
+            # to that scale, not the preceding group ("en miljon ett tusen")
+            if not (follow in scales and nxt < follow) \
+                    and _merge_values_sv(prev, nxt):
                 # "tvåtusen tjugotre" -> 2000 + 23
                 merged[-1] = str(prev + nxt)
                 continue
         merged.append(w)
+    # fold descending scale groups the forward pass left apart
+    # ("1000000", "1710" -> 1001710)
+    collapsed = []
+    for w in merged:
+        if collapsed and w.isdigit() and collapsed[-1].isdigit() \
+                and _merge_values_sv(int(collapsed[-1]), int(w)):
+            collapsed[-1] = str(int(collapsed[-1]) + int(w))
+        else:
+            collapsed.append(w)
+    merged = collapsed
     # spoken decimals: "två komma fem" -> "2.5"
     out = []
     i = 0
