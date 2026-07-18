@@ -419,6 +419,7 @@ def _parse_number_span(tokens, i):
     current = 0
     started = False
     last_rank = 4
+    last_scale = None
     n = len(tokens)
     j = i
     while j < n:
@@ -455,11 +456,26 @@ def _parse_number_span(tokens, i):
         if tok in _SCALES_LOOKUP:
             scale = _SCALES_LOOKUP[tok]
             if started and current == 0:
-                break  # a scale word was already consumed for this group
+                # a bare scale word directly after another scale word
+                if last_scale is not None and scale < last_scale:
+                    # descending sequence ("εκατομμύριο χίλια"): add one of it
+                    total += scale
+                    last_scale = scale
+                    j += 1
+                    continue
+                if last_scale is not None and scale == last_scale:
+                    break  # a repeat of the same scale ends the number
+                # ascending sequence ("χίλια δισεκατομμύρια"): the smaller
+                # scale multiplies the larger one that follows
+                total *= scale
+                last_scale = scale
+                j += 1
+                continue
             total += (current if current else 1) * scale
             current = 0
             started = True
             last_rank = 4
+            last_scale = scale
             j += 1
             continue
         if tok in _FRACTIONS_LOOKUP:
