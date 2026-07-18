@@ -187,7 +187,9 @@ _FRACTION_NUMERATOR_OVERRIDES = {
 # words that may join two spoken numbers ("vingt et un", "sto in ena")
 _NUMBER_CONNECTORS = {
     "ar": {"و"}, "bg": {"и"}, "ca": {"i"}, "da": {"og"}, "en": {"and"}, "es": {"y"}, "eu": {"eta"},
-    "fr": {"et"}, "fy": {"en"}, "it": {"e"}, "nl": {"en"}, "sv": {"och"},
+    # standard Italian cardinals carry no conjunction ("venticinque", not
+    # "venti e cinque"), so "e" separates two numbers rather than joining them
+    "fr": {"et"}, "fy": {"en"}, "it": set(), "nl": {"en"}, "sv": {"och"},
     "fa": {"و"}, "hr": {"i"}, "sl": {"in"}, "hu": set(), "fi": set(),
     "et": set(), "kab": {"u", "d", "ed"},
 }
