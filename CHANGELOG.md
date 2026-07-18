@@ -1,12 +1,14 @@
 # Changelog
 
-## [0.18.9a29](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a29) (2026-07-18)
+## [0.18.9a31](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a31) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.5a1...0.18.9a29)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.5a1...0.18.9a31)
 
 **Merged pull requests:**
 
+- refactor: Italian numbers on the shared Romance extractor [\#179](https://github.com/OpenVoiceOS/ovos-number-parser/pull/179) ([JarbasAl](https://github.com/JarbasAl))
 - fix: round spoken decimals instead of truncating them [\#178](https://github.com/OpenVoiceOS/ovos-number-parser/pull/178) ([JarbasAl](https://github.com/JarbasAl))
+- refactor: French numbers on the shared Romance extractor [\#177](https://github.com/OpenVoiceOS/ovos-number-parser/pull/177) ([JarbasAl](https://github.com/JarbasAl))
 - fix: pronounce complex numbers instead of crashing [\#176](https://github.com/OpenVoiceOS/ovos-number-parser/pull/176) ([JarbasAl](https://github.com/JarbasAl))
 - fix: stop pronouncing large finite numbers as infinity in Russian [\#175](https://github.com/OpenVoiceOS/ovos-number-parser/pull/175) ([JarbasAl](https://github.com/JarbasAl))
 - fix: name every finite short-scale magnitude in English [\#174](https://github.com/OpenVoiceOS/ovos-number-parser/pull/174) ([JarbasAl](https://github.com/JarbasAl))
@@ -201,7 +203,6 @@
 **Merged pull requests:**
 
 - Release 0.13.0a1 [\#77](https://github.com/OpenVoiceOS/ovos-number-parser/pull/77) ([github-actions[bot]](https://github.com/apps/github-actions))
-- feat: Kabyle \(kab\) number support [\#71](https://github.com/OpenVoiceOS/ovos-number-parser/pull/71) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.12.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.12.0a1) (2026-07-16)
 
@@ -210,7 +211,6 @@
 **Merged pull requests:**
 
 - Release 0.12.0a1 [\#74](https://github.com/OpenVoiceOS/ovos-number-parser/pull/74) ([github-actions[bot]](https://github.com/apps/github-actions))
-- feat\(engine\): declarative knobs for scale linkers, articled scale groups and ordinal particles [\#72](https://github.com/OpenVoiceOS/ovos-number-parser/pull/72) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.11.0a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.11.0a2) (2026-07-16)
 
