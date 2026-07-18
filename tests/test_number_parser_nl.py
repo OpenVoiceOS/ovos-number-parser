@@ -142,6 +142,15 @@ class TestDutchWideRoundTrip(unittest.TestCase):
                 spoken = pronounce_number(number, lang="nl")
                 self.assertEqual(extract_number(spoken, lang="nl"), number)
 
+    def test_round_trip_negative_millions_with_remainder(self):
+        # the negative marker only reaches the first scale group, so the
+        # trailing groups of "min ... miljoen ..." must still inherit the sign
+        for number in [-1500000, -1225280, -2540830, -5443013, -6634040,
+                       -1001710]:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="nl")
+                self.assertEqual(extract_number(spoken, lang="nl"), number)
+
 
 if __name__ == "__main__":
     unittest.main()
