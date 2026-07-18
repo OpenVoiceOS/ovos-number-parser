@@ -645,10 +645,16 @@ class TestLookForFractions(unittest.TestCase):
 
     def test_look_for_fractions_edge_cases(self):
         """Test look_for_fractions with edge cases."""
-        self.assertTrue(look_for_fractions(["0", "0"]))  # Zero fraction
         self.assertTrue(look_for_fractions(["inf", "1"]))  # Infinity (is_numeric returns True)
         self.assertTrue(look_for_fractions(["1", "inf"]))  # Infinity denominator
         self.assertTrue(look_for_fractions(["nan", "1"]))  # NaN (is_numeric returns True)
+
+    def test_look_for_fractions_zero_denominator(self):
+        """A zero denominator is not a fraction; callers divide by it."""
+        self.assertFalse(look_for_fractions(["1", "0"]))
+        self.assertFalse(look_for_fractions(["0", "0"]))
+        self.assertFalse(look_for_fractions(["5", "0.0"]))
+        self.assertTrue(look_for_fractions(["0", "5"]))  # zero numerator is fine
 
     def test_look_for_fractions_mixed_valid_invalid(self):
         """Test look_for_fractions with mixed valid/invalid combinations."""
