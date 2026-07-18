@@ -1,3 +1,5 @@
+import math
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 from typing import Union
 
@@ -429,6 +431,56 @@ def _pronounce_complex(number: complex, lang: str, places: int,
     return f"{_speak(number.real)} {connective} {magnitude}{i_w}"
 
 
+def _round_for_speech(number: Union[int, float], places: int) -> Union[int, float]:
+    """Round a real number to ``places`` decimals, half away from zero.
+
+    The per-language cardinal formatters keep only the first ``places``
+    fractional digits by slicing the decimal string, which truncates rather
+    than rounds: 3.14159 at 2 places would drop to "...one four" instead of the
+    expected "...one four two". Rounding here, before dispatch, means every
+    backend truncates a value that is already correct to ``places`` digits, so
+    the spoken output is correctly rounded for every language at once and
+    carries into the integer part where needed (0.999999 at 2 places -> 1).
+
+    ROUND_HALF_UP is chosen over Python's default banker's rounding because
+    half-away-from-zero is the convention people expect when a value is read
+    aloud. Rounding of numerical values follows ISO 80000-1 (Quantities and
+    units -- General) and NIST SP 811 (2008 ed.) Appendix B.7.
+
+    Integers and non-finite floats (inf) are returned unchanged, and literal
+    negative zero is normalised to plain zero so no language speaks "minus
+    zero"; NaN and complex inputs are handled by the caller before reaching
+    here. A non-zero value whose magnitude is smaller than the rounding quantum
+    is left untouched, so its sub-quantum fractional reading and sign survive
+    rather than collapsing to an unsigned zero.
+    """
+    if isinstance(number, int) or not isinstance(number, float):
+        return number
+    if not math.isfinite(number):
+        return number
+    if number == 0:
+        # normalise -0.0 to 0.0 so no language speaks "minus zero"
+        return 0.0
+    if number.is_integer():
+        # no fractional part to shorten; also avoids quantize overflow on very
+        # large integer-valued floats (1e300)
+        return number
+    quantum = Decimal(1).scaleb(-places)
+    try:
+        rounded = Decimal(str(number)).quantize(quantum, rounding=ROUND_HALF_UP)
+    except (ArithmeticError, ValueError):
+        # a value too large to quantize at this precision is already far coarser
+        # than ``places`` decimals; leave it untouched
+        return number
+    if rounded == 0:
+        # magnitude below the rounding quantum: hand the original value to the
+        # backend so its sub-quantum reading and sign are preserved
+        return number
+    if rounded == rounded.to_integral_value():
+        return int(rounded)
+    return float(rounded)
+
+
 def pronounce_number(number: Union[int, float], lang: str,
                      places: int = 3,
                      short_scale: Optional[bool] = None,  # DEPRECATED
@@ -446,6 +498,11 @@ def pronounce_number(number: Union[int, float], lang: str,
         number (int or float): The number to pronounce.
         lang (str): BCP-47 language code specifying the language for pronunciation.
         places (int, optional): Number of decimal places to include (default is 3).
+            The fractional part is rounded to this precision half away from zero
+            before pronunciation, following ISO 80000-1 (Quantities and units --
+            General) and NIST SP 811 (2008 ed.) Appendix B.7 on the rounding of
+            numerical values; rounding that carries into the integer part is
+            spoken as such (0.999999 at 2 places -> "one").
         short_scale (bool, optional): DEPRECATED, use the ``scale`` enum instead.
         scientific (bool, optional): If True, pronounce the number in scientific notation.
         ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one").
@@ -478,6 +535,9 @@ def pronounce_number(number: Union[int, float], lang: str,
         return _pronounce_complex(number, lang, places, scale, digits, gender)
     if isinstance(number, float) and number != number:
         raise ValueError("cannot pronounce NaN (not a number)")
+    # Round to the spoken precision before dispatch so every backend speaks a
+    # rounded value instead of a truncated one (see _round_for_speech).
+    number = _round_for_speech(number, places)
     if lang.startswith("en"):
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
     if lang.startswith("az"):
