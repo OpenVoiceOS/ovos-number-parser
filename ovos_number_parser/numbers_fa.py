@@ -169,7 +169,8 @@ def _parse_sentence(text):
         elif x in _FARSI_BIG:
             current_words.append(x)
             d = _FARSI_BIG.index(x)
-            if mode == 'init' and d == 1:
+            if s == 0:
+                # a bare scale word ("... و هزار") means one of that scale
                 s = 1
             s *= 10 ** (3 * d)
             current_number += s
