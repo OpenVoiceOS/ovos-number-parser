@@ -1,7 +1,93 @@
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number, is_fractional
-from ovos_number_parser.util import Scale
+from ovos_number_parser import (extract_number, pronounce_number, is_fractional,
+                                pronounce_ordinal)
+from ovos_number_parser.util import Scale, GrammaticalGender
+
+
+class TestCatalanOrdinals(unittest.TestCase):
+    """Catalan ordinals verified against the Institut d'Estudis Catalans normativa.
+
+    Source: Consorci per a la Normalització Lingüística, "Els numerals ordinals"
+    (reproducing the IEC normativa) and the Optimot fitxa "Guionet en els
+    numerals compostos". The masculine ordinal is the cardinal + "-è" and the
+    feminine the cardinal + "-na"; only the final element of a compound carries
+    the ordinal ending, so a tens-units compound keeps a cardinal tens word
+    ("vint-i-unè", not "vintè primer").
+    """
+
+    # (number, masculine, feminine)
+    IEC_ANCHORS = [
+        (1, "primer", "primera"),
+        (2, "segon", "segona"),
+        (3, "tercer", "tercera"),
+        (4, "quart", "quarta"),
+        (5, "cinquè", "cinquena"),
+        (8, "vuitè", "vuitena"),
+        (10, "desè", "desena"),
+        # teens each own their own word, never desè + unit
+        (11, "onzè", "onzena"),
+        (12, "dotzè", "dotzena"),
+        (13, "tretzè", "tretzena"),
+        (16, "setzè", "setzena"),
+        (17, "dissetè", "dissetena"),
+        (19, "dinovè", "dinovena"),
+        # round tens
+        (20, "vintè", "vintena"),
+        (30, "trentè", "trentena"),
+        (40, "quarantè", "quarantena"),
+        (90, "norantè", "norantena"),
+        # twenties keep the fused "-i-"; the unit takes the -è/-na form
+        (21, "vint-i-unè", "vint-i-unena"),
+        (22, "vint-i-dosè", "vint-i-dosena"),
+        (23, "vint-i-tresè", "vint-i-tresena"),
+        (24, "vint-i-quatrè", "vint-i-quatrena"),
+        (29, "vint-i-novè", "vint-i-novena"),
+        # thirties onward join with a plain hyphen
+        (31, "trenta-unè", "trenta-unena"),
+        (42, "quaranta-dosè", "quaranta-dosena"),
+        (54, "cinquanta-quatrè", "cinquanta-quatrena"),
+        # hundreds: round hundreds take the ending, compounds stay cardinal
+        (100, "centè", "centena"),
+        (200, "dos-centè", "dos-centena"),
+        (300, "tres-centè", "tres-centena"),
+        (121, "cent vint-i-unè", "cent vint-i-unena"),
+        (353, "tres-cents cinquanta-tresè", "tres-cents cinquanta-tresena"),
+        # thousands
+        (1000, "milè", "milena"),
+        (2000, "dos milè", "dos milena"),
+    ]
+
+    def test_masculine_and_feminine(self):
+        for n, masc, fem in self.IEC_ANCHORS:
+            with self.subTest(number=n, gender="m"):
+                self.assertEqual(pronounce_ordinal(n, lang="ca"), masc)
+            with self.subTest(number=n, gender="f"):
+                self.assertEqual(
+                    pronounce_ordinal(n, lang="ca",
+                                      gender=GrammaticalGender.FEMININE), fem)
+
+    def test_skill_path_pronounce_number_ordinals(self):
+        # ovos-skill-count reaches ordinals through pronounce_number(ordinals=True)
+        for n, masc, _ in self.IEC_ANCHORS:
+            with self.subTest(number=n):
+                self.assertEqual(
+                    pronounce_number(n, lang="ca", ordinals=True), masc)
+
+    def test_compound_is_not_naive_tens_plus_unit(self):
+        # regression guard: the shared engine used to emit "desè primer" (11)
+        # and "vintè primer" (21) by concatenating tens and unit ordinals
+        for n in (11, 12, 13, 21, 22, 31):
+            spoken = pronounce_ordinal(n, lang="ca")
+            self.assertNotIn(" primer", spoken)
+            self.assertNotIn("desè ", spoken)
+            self.assertNotIn("vintè ", spoken)
+
+    def test_ordinals_round_trip_through_is_fractional(self):
+        # the -è ordinal words double as the fraction denominators
+        for word, value in (("onzè", 1 / 11), ("dotzè", 1 / 12),
+                            ("vintè", 1 / 20), ("centè", 1 / 100)):
+            self.assertAlmostEqual(is_fractional(word, lang="ca"), value)
 
 
 class TestCatalanPronounce(unittest.TestCase):
