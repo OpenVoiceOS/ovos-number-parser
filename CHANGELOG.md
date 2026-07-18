@@ -1,11 +1,12 @@
 # Changelog
 
-## [0.18.9a24](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a24) (2026-07-18)
+## [0.18.9a29](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a29) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.5a1...0.18.9a24)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.5a1...0.18.9a29)
 
 **Merged pull requests:**
 
+- fix: round spoken decimals instead of truncating them [\#178](https://github.com/OpenVoiceOS/ovos-number-parser/pull/178) ([JarbasAl](https://github.com/JarbasAl))
 - fix: pronounce complex numbers instead of crashing [\#176](https://github.com/OpenVoiceOS/ovos-number-parser/pull/176) ([JarbasAl](https://github.com/JarbasAl))
 - fix: stop pronouncing large finite numbers as infinity in Russian [\#175](https://github.com/OpenVoiceOS/ovos-number-parser/pull/175) ([JarbasAl](https://github.com/JarbasAl))
 - fix: name every finite short-scale magnitude in English [\#174](https://github.com/OpenVoiceOS/ovos-number-parser/pull/174) ([JarbasAl](https://github.com/JarbasAl))
@@ -214,10 +215,6 @@
 ## [0.11.0a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.11.0a2) (2026-07-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.11.0a1...0.11.0a2)
-
-**Merged pull requests:**
-
-- Release 0.11.0a2 [\#70](https://github.com/OpenVoiceOS/ovos-number-parser/pull/70) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [0.11.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.11.0a1) (2026-07-16)
 
