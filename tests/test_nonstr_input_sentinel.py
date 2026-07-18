@@ -29,6 +29,15 @@ class TestNonStringInputSentinel(unittest.TestCase):
         for lang in LANGS:
             self.assertFalse(extract_number("", lang))
 
+    def test_zero_denominator_fraction_does_not_raise(self):
+        # a spoken "1/0" must not raise ZeroDivisionError for languages that
+        # route fractions through the shared look_for_fractions helper
+        shared = [l for l in LANGS if l not in ("pl", "id", "ms")]
+        for lang in shared:
+            for text in ("1/0", "5/0", "1/0 apples"):
+                self.assertFalse(extract_number(text, lang),
+                                 f"extract_number({text!r}, {lang!r})")
+
 
 if __name__ == "__main__":
     unittest.main()

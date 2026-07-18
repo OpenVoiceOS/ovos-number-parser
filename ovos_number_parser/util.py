@@ -225,7 +225,9 @@ def look_for_fractions(split_list: List[str]) -> bool:
 
     if len(split_list) == 2:
         if is_numeric(split_list[0]) and is_numeric(split_list[1]):
-            return True
+            # a zero denominator is not a fraction; callers divide by it, so
+            # reject it here rather than raise ZeroDivisionError downstream
+            return float(split_list[1]) != 0
 
     return False
 
