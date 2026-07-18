@@ -1,5 +1,5 @@
 from ovos_number_parser.util import (convert_to_mixed_fraction)
-from math import floor
+from math import floor, isfinite
 _NUM_STRING_HU = {
     0: 'nulla',
     1: 'egy',
@@ -434,9 +434,10 @@ def extract_number_hu(text, short_scale=True, ordinals=False):
         cleaned = token.replace(',', '.')
         try:
             val = float(cleaned)
-            if val == int(val) and '.' not in cleaned:
-                val = int(val)
-            return -val if negative else val
+            if isfinite(val):
+                if val == int(val) and '.' not in cleaned:
+                    val = int(val)
+                return -val if negative else val
         except ValueError:
             pass
 

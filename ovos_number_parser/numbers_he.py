@@ -8,6 +8,7 @@ value times two (``מאתיים`` = 200, ``אלפיים`` = 2000). Niqqud (vowel
 points and cantillation marks) is stripped before matching.
 """
 
+from math import isfinite
 from ovos_number_parser.util import convert_to_mixed_fraction
 
 # niqqud and cantillation marks are stripped so vocalized text matches
@@ -311,8 +312,9 @@ _ORDINAL_UNITS_LOOKUP.update({w: v for v, w in _ORDINALS_FEM_HE.items()})
 
 def _is_number(s):
     try:
-        float(s)
-        return True
+        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
+        # string) carries no usable number and must not be treated as one
+        return isfinite(float(s))
     except ValueError:
         return False
 

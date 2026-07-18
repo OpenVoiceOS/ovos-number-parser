@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from math import floor
+from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, ReplaceableNumber, Token,
                                      look_for_fractions)
@@ -901,7 +901,12 @@ def extract_number_de(text, short_scale=True, ordinals=False):
     number = numbers[0].value if numbers else None
 
     if number:
-        number = float(number)
+        try:
+            number = float(number)
+        except (OverflowError, ValueError):
+            return False
+        if not isfinite(number):
+            return False
         if number.is_integer():
             number = int(number)
 

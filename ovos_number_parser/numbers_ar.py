@@ -9,6 +9,7 @@ Arabic-Indic (٠-٩) and Persian/Urdu (۰-۹) digits, and numbers written
 immediately adjacent to punctuation (``٢٠٢٤،``, ``25.``).
 """
 
+from math import isfinite
 from ovos_number_parser.util import convert_to_mixed_fraction
 
 _AR_SEPARATOR = " و"  # the conjunction attaches to the following word
@@ -376,8 +377,9 @@ def _group_slot(tokens, j):
 
 def _is_number(s):
     try:
-        float(s)
-        return True
+        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
+        # string) carries no usable number and must not be treated as one
+        return isfinite(float(s))
     except ValueError:
         return False
 

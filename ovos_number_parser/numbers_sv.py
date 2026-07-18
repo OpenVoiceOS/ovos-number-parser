@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from math import floor
+from math import floor, isfinite
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, is_numeric, look_for_fractions, Token)
 
@@ -584,7 +584,9 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     count = 0
     while count < len(aWords):
         word = aWords[count]
-        if is_numeric(word):
+        if is_numeric(word) and isfinite(float(word)):
+            # an overflowing digit string ("9" * 400) or a non-finite token
+            # floats to inf; it carries no usable number, so it is skipped
             val = float(word)
             if count + 1 < len(aWords):
                 valNext = is_fractional_sv(aWords[count + 1])

@@ -1,4 +1,4 @@
-from math import floor
+from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
                                      ReplaceableNumber, Token, look_for_fractions)
@@ -931,7 +931,12 @@ def extract_number_da(text, short_scale=False, ordinals=False):
 
     if not numbers:
         return False
-    number = float(numbers[0].value)
+    try:
+        number = float(numbers[0].value)
+    except (OverflowError, ValueError):
+        return False
+    if not isfinite(number):
+        return False
     if number.is_integer():
         number = int(number)
     return number

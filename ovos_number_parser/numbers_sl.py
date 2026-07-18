@@ -1,3 +1,4 @@
+from math import isfinite
 from collections import OrderedDict
 
 from ovos_number_parser.util import (convert_to_mixed_fraction)
@@ -623,9 +624,10 @@ def extract_number_sl(text, short_scale=True, ordinals=False):
         cleaned = token.replace(',', '.')
         try:
             val = float(cleaned)
-            if val == int(val) and '.' not in cleaned:
-                val = int(val)
-            return -val if negative else val
+            if isfinite(val):
+                if val == int(val) and '.' not in cleaned:
+                    val = int(val)
+                return -val if negative else val
         except ValueError:
             pass
 

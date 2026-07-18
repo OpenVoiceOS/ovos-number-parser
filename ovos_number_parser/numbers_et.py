@@ -13,7 +13,7 @@ References:
     * https://et.wikipedia.org/wiki/Arvs%C3%B5na
     * https://en.wiktionary.org/wiki/Appendix:Estonian_numbers
 """
-from math import floor
+from math import floor, isfinite
 
 from ovos_number_parser.util import convert_to_mixed_fraction
 
@@ -405,9 +405,10 @@ def _extract_span_et(tokens, idx):
     cleaned = token.replace(',', '.')
     try:
         val = float(cleaned)
-        if val == int(val) and '.' not in cleaned:
-            val = int(val)
-        return val, idx + 1
+        if isfinite(val):
+            if val == int(val) and '.' not in cleaned:
+                val = int(val)
+            return val, idx + 1
     except ValueError:
         pass
 
