@@ -722,7 +722,14 @@ def _extract_whole_number_with_text_fy(tokens, short_scale, ordinals):
                 prev_val = 0
 
     if val is not None and to_sum:
-        val += sum(to_sum)
+        # The negative marker only reaches the first scale group, so a spoken
+        # "min fiif miljoen ..." leaves the trailing groups positive. When the
+        # leading group is negative the whole magnitude is, so recombine the
+        # absolute parts and restore the sign once.
+        if to_sum[0] < 0:
+            val = -(abs(val) + sum(abs(part) for part in to_sum))
+        else:
+            val += sum(to_sum)
 
     return val, number_words
 
