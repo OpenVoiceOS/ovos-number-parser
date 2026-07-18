@@ -191,6 +191,29 @@ class TestNumberParserFr(unittest.TestCase):
             pronounce_number_fr(10 ** 12 + 3 * 10 ** 9),
             "un billion trois milliards")
 
+    def test_round_trip_dense_vigesimal(self):
+        # Exhaustive 0..9999 both signs: densely covers every 70s/80s/90s
+        # vigesimal compound in each hundred, plus the "et"/cents rules.
+        for n in range(0, 10000):
+            self.assertEqual(extract_number_fr(pronounce_number_fr(n)), n, n)
+            self.assertEqual(extract_number_fr(pronounce_number_fr(-n)), -n, -n)
+
+    def test_round_trip_seventies_eighties_nineties(self):
+        # Every X70..X99 ending, sampled across the whole 0..10,000,000 range,
+        # both signs - the hard vigesimal band must round-trip everywhere.
+        for base in range(0, 10 ** 7, 1000):
+            for tail in range(70, 100):
+                n = base + tail
+                self.assertEqual(extract_number_fr(pronounce_number_fr(n)), n, n)
+                self.assertEqual(
+                    extract_number_fr(pronounce_number_fr(-n)), -n, -n)
+
+    def test_round_trip_sweep_to_ten_million(self):
+        # Strided sweep across 0..10,000,000 both signs.
+        for n in range(0, 10 ** 7 + 1, 4999):
+            self.assertEqual(extract_number_fr(pronounce_number_fr(n)), n, n)
+            self.assertEqual(extract_number_fr(pronounce_number_fr(-n)), -n, -n)
+
     def test_scientific_notation_does_not_crash(self):
         # Very small / very large / scientific floats must not raise.
         for value in [1e-9, 1e-5, 6.022e23, 1e15, -1e-9]:
