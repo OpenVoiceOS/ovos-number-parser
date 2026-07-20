@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.19.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.4a1) (2026-07-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.3a3...0.19.4a1)
+
+**Merged pull requests:**
+
+- fix: Swedish bare cardinal 1 is the neuter counting form 'ett' [\#266](https://github.com/OpenVoiceOS/ovos-number-parser/pull/266) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.19.3a3](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.3a3) (2026-07-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.3a2...0.19.3a3)
+
 ## [0.19.3a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.3a2) (2026-07-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.3a1...0.19.3a2)
@@ -105,19 +117,19 @@
 
 ## [0.18.13a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.13a1) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.12a1...0.18.13a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.11a1...0.18.13a1)
 
 **Merged pull requests:**
 
 - fix: guard non-finite/overflow string tokens in extract\_number [\#234](https://github.com/OpenVoiceOS/ovos-number-parser/pull/234) ([JarbasAl](https://github.com/JarbasAl))
 
-## [0.18.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.12a1) (2026-07-18)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.11a1...0.18.12a1)
-
 ## [0.18.11a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.11a1) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.10a1...0.18.11a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.12a1...0.18.11a1)
+
+## [0.18.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.12a1) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.10a1...0.18.12a1)
 
 **Merged pull requests:**
 
@@ -292,7 +304,7 @@
 
 ## [0.18.6a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.6a1) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.4a1...0.18.6a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.5a1...0.18.6a1)
 
 **Merged pull requests:**
 
@@ -349,13 +361,13 @@
 - test: guard English "X hundred and Y" digit fusion [\#127](https://github.com/OpenVoiceOS/ovos-number-parser/pull/127) ([JarbasAl](https://github.com/JarbasAl))
 - fix: return the no-number sentinel for non-string input in Romance numbers [\#123](https://github.com/OpenVoiceOS/ovos-number-parser/pull/123) ([JarbasAl](https://github.com/JarbasAl))
 
-## [0.18.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.4a1) (2026-07-17)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.5a1...0.18.4a1)
-
 ## [0.18.5a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.5a1) (2026-07-17)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.3a1...0.18.5a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.4a1...0.18.5a1)
+
+## [0.18.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.4a1) (2026-07-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.3a1...0.18.4a1)
 
 **Merged pull requests:**
 
@@ -397,7 +409,6 @@
 - fix\(sl\): correct compound Slovene ordinals above one hundred [\#108](https://github.com/OpenVoiceOS/ovos-number-parser/pull/108) ([JarbasAl](https://github.com/JarbasAl))
 - fix: harden Swedish number extraction against non-string input [\#107](https://github.com/OpenVoiceOS/ovos-number-parser/pull/107) ([JarbasAl](https://github.com/JarbasAl))
 - test: expand German number parser coverage [\#106](https://github.com/OpenVoiceOS/ovos-number-parser/pull/106) ([JarbasAl](https://github.com/JarbasAl))
-- fix: parse elided and accented Italian fused numerals [\#105](https://github.com/OpenVoiceOS/ovos-number-parser/pull/105) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.18.1a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.1a2) (2026-07-17)
 
