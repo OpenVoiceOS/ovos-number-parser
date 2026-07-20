@@ -158,18 +158,25 @@ def _cardinal_he(number, feminine=False):
     return _join_he(parts)
 
 
-def pronounce_number_he(number, places=2, scientific=False, ordinals=False):
+def pronounce_number_he(number, places=2, scientific=False, ordinals=False,
+                        feminine=True):
     """
     Convert a number to its spoken Hebrew equivalent.
 
-    Uses masculine citation forms; the decimal part is read digit by digit
-    after "נקודה" (e.g. 5.2 -> "חמישה נקודה שניים").
+    Uses the feminine forms, which are the abstract counting forms in Hebrew:
+    the Academy of the Hebrew Language rules that an unspecified number -- in
+    arithmetic, phone numbers, counting aloud -- is expressed in the feminine,
+    independent of any noun's gender ("4.3 השימוש בשם המספר"). The decimal part
+    is read digit by digit after "נקודה" (e.g. 5.2 -> "חמש נקודה שתיים").
 
     Args:
         number (float or int): the number to pronounce
         places (int): maximum decimal places to speak
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "ראשון" instead of "אחד"
+        feminine (bool): use the feminine (abstract counting) forms; True by
+            default per the Academy ruling. Callers with a masculine noun
+            context (some date fields) pass feminine=False.
     Returns:
         (str): The pronounced number
     """
@@ -183,24 +190,30 @@ def pronounce_number_he(number, places=2, scientific=False, ordinals=False):
         n, power = ('%E' % number).replace("+", "").split("E")
         power = int(power)
         if power != 0:
-            mantissa = pronounce_number_he(abs(float(n)), places)
-            exponent = pronounce_number_he(abs(power), places)
+            mantissa = pronounce_number_he(abs(float(n)), places,
+                                           feminine=feminine)
+            exponent = pronounce_number_he(abs(power), places,
+                                           feminine=feminine)
             return "{}{} כפול עשר בחזקת {}{}".format(
                 _MINUS_HE + " " if float(n) < 0 else "", mantissa,
                 _MINUS_HE + " " if power < 0 else "", exponent)
     if ordinals:
         return pronounce_ordinal_he(number)
     if number < 0:
-        return _MINUS_HE + " " + pronounce_number_he(abs(number), places)
+        return _MINUS_HE + " " + pronounce_number_he(abs(number), places,
+                                                     feminine=feminine)
 
     whole = int(number)
-    result = _cardinal_he(whole)
+    # "אפס" (zero) is genderless; the feminine ones-list carries "" at index 0
+    # because there it means "no units digit", so spell a zero whole part
+    # explicitly
+    result = _cardinal_he(whole, feminine=feminine) if whole else _ONES_HE[0]
     if isinstance(number, float) and number != whole and places > 0:
         digits = ("%." + str(places) + "f") % (number - whole)
         digits = digits.split(".")[1].rstrip("0")
         if digits:
             result += " " + _DECIMAL_HE + " " + \
-                " ".join(_ONES_HE[int(d)] for d in digits)
+                " ".join(_ONES_FEM_HE[int(d)] or _ONES_HE[0] for d in digits)
     return result
 
 
