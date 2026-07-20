@@ -362,7 +362,14 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
         if num > 99:
             hundreds = floor(num / 100)
             if hundreds > 0:
-                result += _NUM_STRING_NL[hundreds] + _EXTRA_SPACE_NL + 'honderd' + _EXTRA_SPACE_NL
+                # 100 is "honderd", never "eenhonderd": Dutch drops the "een"
+                # before "honderd" and "duizend" (Nederlandse Taalunie,
+                # Taaladvies "Aaneenschrijven van telwoorden": 800 =
+                # "achthonderd", 135 = "honderdvijfendertig"), so the leading
+                # "one" is written only from two hundred up.
+                if hundreds > 1:
+                    result += _NUM_STRING_NL[hundreds] + _EXTRA_SPACE_NL
+                result += 'honderd' + _EXTRA_SPACE_NL
                 num -= hundreds * 100
         if num == 0:
             result += ''  # do nothing
@@ -417,8 +424,12 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             if scale_level == 0:
                 result += "een"
             elif scale_level == 1:
-                result += 'een' + _EXTRA_SPACE_NL + 'duizend' + _EXTRA_SPACE_NL
+                # 1000 is "duizend", not "eenduizend" (same Taalunie rule)
+                result += 'duizend' + _EXTRA_SPACE_NL
             else:
+                # from a million up the count word IS written ("één miljoen"):
+                # here "een" would read as the article "a million", so the
+                # accented "één" marks the numeral
                 result += "één " + _NUM_POWERS_OF_TEN[scale_level] + ' '
         elif last_triplet > 1:
             result += pronounce_triplet_nl(last_triplet)
