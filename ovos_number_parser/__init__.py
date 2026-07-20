@@ -308,7 +308,7 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
             continue
         j = i
 
-        def _continues(next_j):
+        def _continues(next_j, via_connector=False):
             """The span only grows if the combined words form one larger
             number ("vingt et un" = 21) rather than two separate numbers
             ("due e tre")."""
@@ -319,14 +319,29 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
                 return False
             current_val = extract_number(current, lang)
             next_val = extract_number(_clean(tokens[next_j]), lang)
-            return extended_val != current_val and extended_val != next_val \
-                and abs(extended_val) > abs(current_val)
+            if current_val is False or current_val is None:
+                return False
+            if extended_val == current_val \
+                    or abs(extended_val) <= abs(current_val):
+                return False
+            if extended_val != next_val:
+                return True
+            # "one hundred": multiplying a scale word by one leaves the value
+            # unchanged, so the value comparison above cannot tell that the
+            # multiplier is grammatically required. Directly adjacent to a
+            # scale word it is, so the span must keep growing; behind a
+            # connector ("one and three") it is a separate number and must
+            # not be absorbed.
+            return not via_connector and abs(current_val) == 1 \
+                and next_val is not False and next_val is not None \
+                and abs(next_val) >= 100
 
         while j + 1 < len(tokens):
             if _is_num(tokens[j + 1]) and _continues(j + 1):
                 j += 1
             elif _clean(tokens[j + 1]) in connectors and j + 2 < len(tokens) \
-                    and _is_num(tokens[j + 2]) and _continues(j + 2):
+                    and _is_num(tokens[j + 2]) \
+                    and _continues(j + 2, via_connector=True):
                 j += 2
             else:
                 break
