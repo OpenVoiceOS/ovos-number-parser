@@ -104,7 +104,7 @@ class TestSwedishPronounce(unittest.TestCase):
     """Anchors for spoken Swedish numbers."""
 
     def test_pronounce_number(self):
-        expected = {0: 'noll', 1: 'en', 2: 'två', 3: 'tre', 4: 'fyra', 5: 'fem', 6: 'sex', 7: 'sju', 8: 'åtta', 9: 'nio', 10: 'tio', 11: 'elva', 12: 'tolv', 13: 'tretton', 14: 'fjorton', 15: 'femton', 16: 'sexton', 17: 'sjutton', 18: 'arton', 19: 'nitton', 20: 'tjugo', 21: 'tjugoen', 30: 'trettio', 42: 'fyrtiotvå', 50: 'femtio', 66: 'sextiosex', 70: 'sjuttio', 80: 'åttio', 90: 'nittio', 99: 'nittionio', 100: 'etthundra', 101: 'etthundraett', 123: 'etthundratjugotre', 200: 'tvåhundra', 500: 'femhundra', 999: 'niohundranittionio', 1000: 'ettusen ', 2000: 'tvåtusen ', 2023: 'tvåtusen tjugotre', 1000000: 'en miljon ', 2000000: 'tvåmiljoner '}
+        expected = {0: 'noll', 1: 'ett', 2: 'två', 3: 'tre', 4: 'fyra', 5: 'fem', 6: 'sex', 7: 'sju', 8: 'åtta', 9: 'nio', 10: 'tio', 11: 'elva', 12: 'tolv', 13: 'tretton', 14: 'fjorton', 15: 'femton', 16: 'sexton', 17: 'sjutton', 18: 'arton', 19: 'nitton', 20: 'tjugo', 21: 'tjugoett', 30: 'trettio', 42: 'fyrtiotvå', 50: 'femtio', 66: 'sextiosex', 70: 'sjuttio', 80: 'åttio', 90: 'nittio', 99: 'nittionio', 100: 'etthundra', 101: 'etthundraett', 123: 'etthundratjugotre', 200: 'tvåhundra', 500: 'femhundra', 999: 'niohundranittionio', 1000: 'ettusen ', 2000: 'tvåtusen ', 2023: 'tvåtusen tjugotre', 1000000: 'en miljon ', 2000000: 'två miljoner '}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="sv"), spoken)
@@ -120,7 +120,7 @@ class TestSwedishExtract(unittest.TestCase):
     """Anchors for extracting numbers from Swedish text."""
 
     def test_extract_number(self):
-        expected = {0: 'noll', 1: 'en', 2: 'två', 3: 'tre', 4: 'fyra', 5: 'fem', 6: 'sex', 7: 'sju', 8: 'åtta', 9: 'nio', 10: 'tio', 11: 'elva', 12: 'tolv', 13: 'tretton', 14: 'fjorton', 15: 'femton', 16: 'sexton', 17: 'sjutton', 18: 'arton', 19: 'nitton', 20: 'tjugo', 21: 'tjugoen', 30: 'trettio', 42: 'fyrtiotvå', 50: 'femtio', 66: 'sextiosex', 70: 'sjuttio', 80: 'åttio', 90: 'nittio', 99: 'nittionio', 100: 'etthundra', 101: 'etthundraett', 123: 'etthundratjugotre', 200: 'tvåhundra', 500: 'femhundra', 999: 'niohundranittionio', 1000: 'ettusen ', 2000: 'tvåtusen ', 2023: 'tvåtusen tjugotre', 1000000: 'en miljon ', 2000000: 'tvåmiljoner '}
+        expected = {0: 'noll', 1: 'ett', 2: 'två', 3: 'tre', 4: 'fyra', 5: 'fem', 6: 'sex', 7: 'sju', 8: 'åtta', 9: 'nio', 10: 'tio', 11: 'elva', 12: 'tolv', 13: 'tretton', 14: 'fjorton', 15: 'femton', 16: 'sexton', 17: 'sjutton', 18: 'arton', 19: 'nitton', 20: 'tjugo', 21: 'tjugoett', 30: 'trettio', 42: 'fyrtiotvå', 50: 'femtio', 66: 'sextiosex', 70: 'sjuttio', 80: 'åttio', 90: 'nittio', 99: 'nittionio', 100: 'etthundra', 101: 'etthundraett', 123: 'etthundratjugotre', 200: 'tvåhundra', 500: 'femhundra', 999: 'niohundranittionio', 1000: 'ettusen ', 2000: 'tvåtusen ', 2023: 'tvåtusen tjugotre', 1000000: 'en miljon ', 2000000: 'två miljoner '}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="sv"), number)

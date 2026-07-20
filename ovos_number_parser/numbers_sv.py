@@ -212,7 +212,10 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
             if ones > 0:
                 result += _NUM_STRING_SV[ones]
             if tens > 0:
-                result += _NUM_STRING_SV[tens]
+                # a bare cardinal ends in the neuter counting form: 21 is
+                # "tjugoett", not "tjugoen" ("en" is the common-gender
+                # attributive form, used only before a noun)
+                result += 'ett' if tens == 1 else _NUM_STRING_SV[tens]
 
         return result
 
@@ -239,10 +242,9 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
 
         if last_triplet == 1:
             if scale_level == 0:
-                if result != '':
-                    result += '' + 'ett'
-                else:
-                    result += 'en'
+                # the counting form of 1 is "ett" (räkna: ett, två, tre),
+                # not the common-gender "en"
+                result += 'ett'
             elif scale_level == 1:
                 result += 'ettusen' + _EXTRA_SPACE_SV
             else:
@@ -253,8 +255,9 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
             if scale_level == 1:
                 result += 'tusen' + _EXTRA_SPACE_SV
             if scale_level >= 2:
-                result += _NUM_POWERS_OF_TEN_SV[scale_level]
-            if scale_level >= 2:
+                # miljon/miljard are separate words ("två miljoner"), unlike
+                # the glued "tusen" ("tvåtusen")
+                result += ' ' + _NUM_POWERS_OF_TEN_SV[scale_level]
                 result += 'er' + _EXTRA_SPACE_SV  # MiljonER
 
         num = floor(num / 1000)
