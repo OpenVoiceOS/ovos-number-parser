@@ -394,9 +394,27 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
             if number == int(number):
                 number = int(number)
 
-        return super().pronounce_number(number, places, scale, ordinals,
-                                        digits, gender,
-                                        _force_hundreds_join, _under_higher_scale)
+        result = super().pronounce_number(number, places, scale, ordinals,
+                                          digits, gender,
+                                          _force_hundreds_join,
+                                          _under_higher_scale)
+        return _fix_vingt_cent_plural_fr(result)
+
+
+#: "quatre-vingts" and "cents" lose their plural -s directly before "mille".
+#: Académie française (Dictionnaire, 9e éd., "vingt"/"cent"): vingt and cent
+#: "restent invariables s'ils sont suivis d'un autre nombre ou de mille"
+#: ("quatre-vingt mille", "trois cent mille"), but they DO agree before
+#: millier/million/milliard, "qui sont des noms et non des adjectifs numéraux"
+#: ("deux cents millions"), so only " mille" drops the -s. The -s is added
+#: unconditionally when the group is a round hundred/eighty, which is correct
+#: when the group is terminal or precedes a noun scale; this trims it back for
+#: the one case where it is wrong.
+_VINGT_CENT_BEFORE_MILLE_FR = re.compile(r"(quatre-vingt|cent)s(?= mille\b)")
+
+
+def _fix_vingt_cent_plural_fr(text: str) -> str:
+    return _VINGT_CENT_BEFORE_MILLE_FR.sub(r"\1", text)
 
 
 FR = FrenchNumberExtractor(_FR)
