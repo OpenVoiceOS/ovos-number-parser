@@ -514,6 +514,69 @@ def _round_for_speech(number: Union[int, float], places: int) -> Union[int, floa
     return float(rounded)
 
 
+# Words for positive / negative infinity, keyed by language prefix.
+# Any language not listed falls back to the English default.
+_INFINITY_WORDS = {
+    "en": ("infinity", "negative infinity"),
+    "es": ("infinito", "infinito negativo"),
+    "pt": ("infinito", "infinito negativo"),
+    "it": ("infinito", "meno infinito"),
+    "fr": ("infini", "moins infini"),
+    "de": ("unendlich", "minus unendlich"),
+}
+
+
+#: Spoken connective for a scientific reading, keyed by language prefix, as
+#: "<mantissa> <connective> <exponent>". Languages absent from this table fall
+#: back to English rather than to a crash; that is a known and deliberate
+#: limitation, not a claim of coverage.
+_SCIENTIFIC_WORDS = {
+    "en": "times ten to the power of",
+    "es": "por diez elevado a",
+    "pt": "vezes dez elevado a",
+    "it": "per dieci alla",
+    "fr": "fois dix puissance",
+    "de": "mal zehn hoch",
+}
+
+
+def _base_lang(lang: str) -> str:
+    """Bare language code, so "pt-BR" and "pt" resolve to the same entry."""
+    return lang.lower().split("-")[0]
+
+
+def _pronounce_infinity(number: float, lang: str) -> str:
+    """Spoken form of +/-infinity for any language (English default)."""
+    pos, neg = _INFINITY_WORDS.get(_base_lang(lang), _INFINITY_WORDS["en"])
+    return neg if number < 0 else pos
+
+
+def _pronounce_bignum_fallback(number: Union[int, float], lang: str,
+                               places: int) -> str:
+    """
+    Spoken scientific reading for finite numbers too large for a language's
+    named-scale table, computed from the decimal string so it never overflows
+    the float range.
+
+    Mantissa, sign and exponent are all pronounced by the target language.
+    Only the connective joining them is looked up, and falls back to English
+    for languages missing from _SCIENTIFIC_WORDS.
+    """
+    digits = str(abs(int(number)))
+    exponent = len(digits) - 1
+    tail = digits[1:1 + places].rstrip("0")
+    mantissa = float(digits[0] + ("." + tail if tail else ""))
+    # the sign rides on the mantissa so each language speaks its own minus
+    # word ("menos dois...") instead of an English prefix
+    if number < 0:
+        mantissa = -mantissa
+    mantissa_words = pronounce_number(mantissa, lang=lang, places=places)
+    exponent_words = pronounce_number(exponent, lang=lang)
+    connective = _SCIENTIFIC_WORDS.get(_base_lang(lang),
+                                       _SCIENTIFIC_WORDS["en"])
+    return f"{mantissa_words} {connective} {exponent_words}"
+
+
 def pronounce_number(number: Union[int, float], lang: str,
                      places: int = 3,
                      short_scale: Optional[bool] = None,  # DEPRECATED
@@ -568,9 +631,30 @@ def pronounce_number(number: Union[int, float], lang: str,
         return _pronounce_complex(number, lang, places, scale, digits, gender)
     if isinstance(number, float) and number != number:
         raise ValueError("cannot pronounce NaN (not a number)")
+    # Infinity is not tied to any named-scale table; handle it uniformly for
+    # every language so no per-language path has to convert it to an integer.
+    if isinstance(number, float) and math.isinf(number):
+        return _pronounce_infinity(number, lang)
     # Round to the spoken precision before dispatch so every backend speaks a
     # rounded value instead of a truncated one (see _round_for_speech).
     number = _round_for_speech(number, places)
+    try:
+        return _pronounce_number_dispatch(
+            number, lang, places, short_scale, scientific, ordinals,
+            digits, gender, scale)
+    except (IndexError, KeyError, OverflowError):
+        # A finite number overflowed a language's named-scale table. Kabyle
+        # has a documented finite ceiling (raises above 9999), so keep that
+        # contract; every other language falls back to a spoken scientific
+        # reading rather than crashing. Ordinary-magnitude numbers keep their
+        # original error so genuine bugs are not masked.
+        if not lang.startswith("kab") and abs(number) >= 10 ** 15:
+            return _pronounce_bignum_fallback(number, lang, places)
+        raise
+
+
+def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
+                               ordinals, digits, gender, scale):
     if lang.startswith("en"):
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
     if lang.startswith("az"):
