@@ -17,10 +17,10 @@ _FRACTION_STRING_FA = {
     12: 'دوازدهم',
     13: 'سیزدهم',
     14: 'چهاردهم',
-    15: 'پونزدهم',
-    16: 'شونزدهم',
-    17: 'هیفدهم',
-    18: 'هیجدهم',
+    15: 'پانزدهم',
+    16: 'شانزدهم',
+    17: 'هفدهم',
+    18: 'هجدهم',
     19: 'نوزدهم',
     20: 'بیستم'
 }
@@ -41,10 +41,10 @@ _FARSI_ONES = [
     "دوازده",
     "سیزده",
     "چهارده",
-    "پونزده",
-    "شونزده",
-    "هیفده",
-    "هیجده",
+    "پانزده",
+    "شانزده",
+    "هفده",
+    "هجده",
     "نوزده",
 ]
 
@@ -83,11 +83,15 @@ _FARSI_BIG = [
     "تریلیارد",
 ]
 
-_FORMAL_VARIANT = {
-    'هفده': 'هیفده',
-    'هجده': 'هیجده',
-    'شانزده': 'شونزده',
-    'پانزده': 'پونزده',
+# accept the Tehrani colloquial spellings on input and normalise them to the
+# standard written forms used for output (پانزده, شانزده, هفده, هجده). Standard
+# forms per Persian dictionaries; see ویراستاران "عددنویسی", archived under
+# papers/linguistics/fa/.
+_COLLOQUIAL_VARIANT = {
+    'هیفده': 'هفده',
+    'هیجده': 'هجده',
+    'شونزده': 'شانزده',
+    'پونزده': 'پانزده',
 }
 
 _FARSI_FRAC = ["", "ده", "صد"]
@@ -110,7 +114,7 @@ def _is_number(s):
 
 
 def _parse_sentence(text):
-    for key, value in _FORMAL_VARIANT.items():
+    for key, value in _COLLOQUIAL_VARIANT.items():
         text = text.replace(key, value)
     ar = text.split()
     result = []
