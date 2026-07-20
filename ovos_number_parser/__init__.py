@@ -537,6 +537,12 @@ _SCIENTIFIC_WORDS = {
     "it": "per dieci alla",
     "fr": "fois dix puissance",
     "de": "mal zehn hoch",
+    "nl": "maal tien tot de macht",
+    "ca": "per deu elevat a",
+    "gl": "veces dez elevado a",
+    "ro": "ori zece la puterea",
+    "da": "gange ti i",
+    "sv": "gånger tio upphöjt till",
 }
 
 
@@ -549,6 +555,41 @@ def _pronounce_infinity(number: float, lang: str) -> str:
     """Spoken form of +/-infinity for any language (English default)."""
     pos, neg = _INFINITY_WORDS.get(_base_lang(lang), _INFINITY_WORDS["en"])
     return neg if number < 0 else pos
+
+
+#: a run of digits this long in "spoken" output means a backend gave up and
+#: handed back the numeral instead of reading it
+_DIGIT_RUN = re.compile(r"\d{7,}")
+
+
+def _has_padded_scale_words(spoken: str) -> bool:
+    """
+    Whether a backend padded a magnitude by repeating its largest scale word.
+
+    Some backends do not raise past their named-scale table; they repeat the
+    biggest word they know until the magnitude is covered
+    ("trilioi trilioi trilioi", "sextiliões vigintiliões vigintiliões").
+    No natural numeral repeats a scale word back to back, so two identical
+    adjacent words mark output that is not a reading at all.
+
+    Only sound for a *composed* reading -- a digit-by-digit rendering repeats
+    words legitimately ("11" -> "um um") -- so callers must scope this check.
+    """
+    words = spoken.split()
+    return any(a == b for a, b in zip(words, words[1:]))
+
+
+def _has_unread_digits(spoken: str) -> bool:
+    """
+    Whether a backend gave up and handed back the numeral instead of reading it.
+
+    Unlike padded scale words this is not nonsense: a bare numeral is a
+    documented fallback for some languages (Finnish and Estonian pin it), and
+    a TTS engine will read the digits itself. It is only worth replacing when
+    a localized scientific reading is available -- swapping it for one glued
+    together with English words would be a downgrade, not a fix.
+    """
+    return bool(_DIGIT_RUN.search(spoken))
 
 
 def _pronounce_bignum_fallback(number: Union[int, float], lang: str,
@@ -639,7 +680,7 @@ def pronounce_number(number: Union[int, float], lang: str,
     # rounded value instead of a truncated one (see _round_for_speech).
     number = _round_for_speech(number, places)
     try:
-        return _pronounce_number_dispatch(
+        spoken = _pronounce_number_dispatch(
             number, lang, places, short_scale, scientific, ordinals,
             digits, gender, scale)
     except (IndexError, KeyError, OverflowError):
@@ -651,6 +692,20 @@ def pronounce_number(number: Union[int, float], lang: str,
         if not lang.startswith("kab") and abs(number) >= 10 ** 15:
             return _pronounce_bignum_fallback(number, lang, places)
         raise
+    # A backend that does not raise past its scale table returns padded or
+    # unread output instead (see _is_spoken_reading). Only composed readings
+    # of large numbers are checked: a digit-by-digit rendering repeats words
+    # legitimately, and Kabyle's finite ceiling is a documented contract.
+    if abs(number) >= 10 ** 15 and not lang.startswith("kab") \
+            and not scientific and digits == DigitPronunciation.FULL_NUMBER:
+        # padded scale words are never a reading, so always replace them
+        if _has_padded_scale_words(spoken):
+            return _pronounce_bignum_fallback(number, lang, places)
+        # a bare numeral is a legitimate fallback the TTS can read; only
+        # improve on it where the scientific reading is fully localized
+        if _has_unread_digits(spoken) and _base_lang(lang) in _SCIENTIFIC_WORDS:
+            return _pronounce_bignum_fallback(number, lang, places)
+    return spoken
 
 
 def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
