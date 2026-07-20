@@ -42,3 +42,30 @@ language ICU is only pretending to support.
 
 Those 8 languages are precisely where we offer coverage ICU does not, and they
 must be validated against their own grammars instead.
+
+
+## `multi_diff.py` — three-way differential (ICU + num2words)
+
+One reference can be wrong or absent for a language. `multi_diff.py` adds
+[num2words](https://pypi.org/project/num2words/) as a second, independent
+oracle and reads the two as a vote:
+
+```bash
+uv pip install --python icuenv/bin/python PyICU num2words -e .
+icuenv/bin/python benchmarks/multi_diff.py          # all languages
+icuenv/bin/python benchmarks/multi_diff.py pl nl    # selected
+```
+
+* both references agree with us → almost certainly correct;
+* **both agree with each other but not us → the strongest bug signal**; this
+  is what to hunt. It found the Dutch `eenhonderd`/`eenduizend` and the Polish
+  `dwadzieścia jeden tysiące`/spurious-`jeden` bugs;
+* the two references disagree with **each other** → the value is genuinely
+  contested (dialect, scale, orthography, grammatical gender). Adjudicate
+  against a cited grammar, never auto-trust either library. Known-contested,
+  not bugs: ru/uk `тысяча` vs `одна тысяча`, da/sv `en` vs `et`/`ett`
+  (gender of one), ar `مئة` vs `مائة`, he masculine vs feminine counting forms.
+
+Neither library is ground truth. A disagreement is a lead; the expected value
+in a test always comes from a cited canonical source. Both PyICU and num2words
+stay development-only, never runtime dependencies.
