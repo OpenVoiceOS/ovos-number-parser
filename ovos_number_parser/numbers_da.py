@@ -91,7 +91,7 @@ _NUM_STRING_DA = {
     8: 'otte',
     9: 'ni',
     10: 'ti',
-    11: 'elve',
+    11: 'elleve',
     12: 'tolv',
     13: 'tretten',
     14: 'fjorten',
@@ -242,46 +242,53 @@ def is_ordinal_da(input_str):
         (bool) or (float): False if not an ordinal, otherwise the number
         corresponding to the ordinal
 
-    ordinals for 1, 3, 7 and 8 are irregular
+    ordinals for 0-19 are irregular (see pronounce_ordinal_da)
 
-    only works for ordinals corresponding to the numbers in _DA_NUMBERS
-
+    for candidates covering 20-99, first tries the fast _DA_NUMBERS lookup,
+    falling back to extract_number_da (which already understands arbitrary
+    "X og Y" compounds like "toogtredive") for compounds not individually
+    listed in _DA_NUMBERS
     """
+
+    def _cardinal_value(word):
+        if word in _DA_NUMBERS:
+            return _DA_NUMBERS[word]
+        n = extract_number_da(word)
+        if isinstance(n, bool):
+            return None
+        if isinstance(n, (int, float)):
+            return n
+        return None
 
     lowerstr = input_str.lower()
 
-    if lowerstr.startswith("første"):
-        return 1
-    if lowerstr.startswith("anden"):
-        return 2
-    if lowerstr.startswith("tredie"):
-        return 3
-    if lowerstr.startswith("fjerde"):
-        return 4
-    if lowerstr.startswith("femte"):
-        return 5
-    if lowerstr.startswith("sjette"):
-        return 6
-    if lowerstr.startswith("elfte"):
-        return 1
-    if lowerstr.startswith("tolvfte"):
-        return 12
+    irregular = {
+        "nulte": 0, "første": 1, "anden": 2,
+        "tredje": 3, "tredie": 3,
+        "fjerde": 4, "femte": 5, "sjette": 6, "syvende": 7, "ottende": 8,
+        "niende": 9, "tiende": 10,
+        "ellevte": 11,
+        "tolvte": 12, "tolvfte": 12,  # "tolvfte" kept for older input
+        "trettende": 13, "fjortende": 14, "femtende": 15, "sekstende": 16,
+        "syttende": 17, "attende": 18, "nittende": 19,
+    }
+    if lowerstr in irregular:
+        return irregular[lowerstr]
+
+    if lowerstr.endswith("te"):
+        value = _cardinal_value(lowerstr[:-2] + "e")
+        if value is not None:
+            return value
 
     if lowerstr[-3:] == "nde":
-        # from 20 suffix is -ste*
-        lowerstr = lowerstr[:-3]
-        if lowerstr in _DA_NUMBERS:
-            return _DA_NUMBERS[lowerstr]
+        value = _cardinal_value(lowerstr[:-3])
+        if value is not None:
+            return value
 
-    if lowerstr[-4:] in ["ende"]:
-        lowerstr = lowerstr[:-4]
-        if lowerstr in _DA_NUMBERS:
-            return _DA_NUMBERS[lowerstr]
-
-    if lowerstr[-2:] == "te":  # below 20 suffix is -te*
-        lowerstr = lowerstr[:-2]
-        if lowerstr in _DA_NUMBERS:
-            return _DA_NUMBERS[lowerstr]
+    if lowerstr[-4:] == "ende":
+        value = _cardinal_value(lowerstr[:-4])
+        if value is not None:
+            return value
 
     return False
 
@@ -462,30 +469,32 @@ def pronounce_ordinal_da(number):
         (str): The pronounced number string.
     """
 
-    # ordinals for 1, 3, 7 and 8 are irregular
+    # ordinals 0-19 are irregular (11/12 use a -te suffix on a truncated
+    # stem, 13-19 use -de not -ende since the cardinal already ends "-en")
     # this produces the base form, it will have to be adapted for genus,
     # casus, numerus
 
-    ordinals = ["nulte", "første", "anden", "tredie", "fjerde", "femte",
-                "sjette", "syvende", "ottende", "niende", "tiende"]
+    # ellevte, tolvte, trettende, fjortende, femtende, sekstende,
+    # syttende, attende, nittende
+
+    ordinals = ["nulte", "første", "anden", "tredje", "fjerde", "femte",
+                "sjette", "syvende", "ottende", "niende", "tiende",
+                "ellevte", "tolvte", "trettende", "fjortende", "femtende",
+                "sekstende", "syttende", "attende", "nittende"]
 
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
-    if number < 10:
+    if number < 20:
         return ordinals[number]
-    if number < 30:
-        if pronounce_number_da(number)[-1:] == 'e':
-            return pronounce_number_da(number) + "nde"
-        else:
-            return pronounce_number_da(number) + "ende"
-    if number < 40:
-        return pronounce_number_da(number) + "fte"
-    else:
-        if pronounce_number_da(number)[-1:] == 'e':
-            return pronounce_number_da(number) + "nde"
-        else:
-            return pronounce_number_da(number) + "ende"
+    if 30 <= number < 40:
+        # tredive -> tredivte, enogtredive -> enogtredivte: drop the
+        # trailing unstressed -e and add -te (distinct from the plain
+        # +ende suffix used everywhere else)
+        return pronounce_number_da(number)[:-1] + "te"
+    # 20-29 and 40+ both just append the cardinal's usual +nde/+ende
+    cardinal = pronounce_number_da(number)
+    return cardinal + ("nde" if cardinal[-1:] == 'e' else "ende")
 
 
 def numbers_to_digits_da(text, short_scale=False,

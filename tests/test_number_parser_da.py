@@ -1,13 +1,13 @@
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser import extract_number, is_ordinal, pronounce_number, pronounce_ordinal
 
 
 class TestDanishPronounce(unittest.TestCase):
     """Anchors for spoken Danish numbers."""
 
     def test_pronounce_number(self):
-        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'ethundrede', 101: 'ethundredeet', 123: 'ethundredetreogtyve', 200: 'tohundrede', 500: 'femhundrede', 999: 'nihundredenioghalvfems', 1000: 'ettusinde', 2000: 'totusinde', 2023: 'totusindetreogtyve', 1000000: 'en million ', 2000000: 'to millioner '}
+        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elleve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'ethundrede', 101: 'ethundredeet', 123: 'ethundredetreogtyve', 200: 'tohundrede', 500: 'femhundrede', 999: 'nihundredenioghalvfems', 1000: 'ettusinde', 2000: 'totusinde', 2023: 'totusindetreogtyve', 1000000: 'en million ', 2000000: 'to millioner '}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="da"), spoken)
@@ -19,11 +19,46 @@ class TestDanishPronounce(unittest.TestCase):
                 self.assertEqual(pronounce_number(number, lang="da"), spoken)
 
 
+class TestDanishOrdinal(unittest.TestCase):
+    """Anchors for spoken Danish ordinals, verified against standard
+    Danish ordinal tables (1-39 covers everything needed for calendar
+    dates, which is by far the most common real-world use)."""
+
+    def test_pronounce_ordinal_1_to_39(self):
+        expected = {
+            0: 'nulte', 1: 'første', 2: 'anden', 3: 'tredje', 4: 'fjerde',
+            5: 'femte', 6: 'sjette', 7: 'syvende', 8: 'ottende',
+            9: 'niende', 10: 'tiende', 11: 'ellevte', 12: 'tolvte',
+            13: 'trettende', 14: 'fjortende', 15: 'femtende',
+            16: 'sekstende', 17: 'syttende', 18: 'attende',
+            19: 'nittende', 20: 'tyvende', 21: 'enogtyvende',
+            25: 'femogtyvende', 29: 'niogtyvende', 30: 'tredivte',
+            31: 'enogtredivte', 35: 'femogtredivte', 39: 'niogtredivte',
+        }
+        for number, spoken in expected.items():
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_ordinal(number, lang="da"),
+                                 spoken)
+
+
+class TestDanishOrdinalRecognition(unittest.TestCase):
+    """Round-trip: pronounce_ordinal(n) must be recognized by is_ordinal
+    as n again, for every n in the practical 0-99 range (added per
+    CodeRabbit review feedback on the PR that fixed is_ordinal_da's
+    variable-mutation bug)."""
+
+    def test_is_ordinal_round_trip_0_to_99(self):
+        for number in range(100):
+            spoken = pronounce_ordinal(number, lang="da")
+            with self.subTest(number=number, spoken=spoken):
+                self.assertEqual(is_ordinal(spoken, lang="da"), number)
+
+
 class TestDanishExtract(unittest.TestCase):
     """Anchors for extracting numbers from Danish text."""
 
     def test_extract_number(self):
-        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'ethundrede', 101: 'ethundredeet', 123: 'ethundredetreogtyve', 200: 'tohundrede', 500: 'femhundrede', 999: 'nihundredenioghalvfems', 1000: 'ettusinde', 2000: 'totusinde', 2023: 'totusindetreogtyve', 1000000: 'en million ', 2000000: 'to millioner '}
+        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elleve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'ethundrede', 101: 'ethundredeet', 123: 'ethundredetreogtyve', 200: 'tohundrede', 500: 'femhundrede', 999: 'nihundredenioghalvfems', 1000: 'ettusinde', 2000: 'totusinde', 2023: 'totusindetreogtyve', 1000000: 'en million ', 2000000: 'to millioner '}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="da"), number)
