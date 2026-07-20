@@ -73,7 +73,7 @@ class TestInsideLargerNumbers(unittest.TestCase):
 
     def test_hundreds_and_thousands(self):
         self.assertEqual(pronounce_number(122, "nl"),
-                         "eenhonderdtweeëntwintig")
+                         "honderdtweeëntwintig")
         self.assertIn("drieëntwintig", pronounce_number(1023, "nl"))
 
 
