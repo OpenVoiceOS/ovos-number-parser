@@ -433,22 +433,34 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
                     else:
                         hundreds_text = _SHORT_SCALE_PL[float(pow(1000, i))]
                         if z != 1:
-                            _, z_mod = divmod(z, 10)
-                            _, z_mod_tens = divmod(z, 100)
-                            n_main, _ = divmod(z_mod_tens, 10)
+                            z_mod = z % 10
+                            z_tens = (z % 100) // 10
+                            # Polish agreement: a quantity ending in 2, 3 or 4
+                            # -- but NOT 12, 13, 14 -- takes the nominative
+                            # plural ("dwa tysiące", "dwadzieścia dwa
+                            # tysiące"). Everything else takes the genitive
+                            # plural ("pięć tysięcy", and crucially anything
+                            # ending in 1 above one: "dwadzieścia jeden
+                            # tysięcy", not "... tysiące"). Standard grammar
+                            # (zpe.gov.pl "Odmiana liczebnika i zaimka").
+                            nominative_plural = z_tens != 1 and 2 <= z_mod <= 4
                             if i == 1:
-                                if n_main != 1 and 5 > z_mod > 0:
-                                    hundreds_text += "e"
-                                else:
-                                    hundreds_text = "tysięcy"
+                                hundreds_text = hundreds_text + "e" \
+                                    if nominative_plural else "tysięcy"
                             elif i > 1:
-                                hundreds_text += "y" if 5 > z_mod > 0 else "ów"
-
+                                hundreds_text += "y" if nominative_plural \
+                                    else "ów"
+                        else:
+                            # "one thousand" is just "tysiąc", never
+                            # "jeden tysiąc" -- the count word is dropped for a
+                            # single scale unit
+                            number = ""
                         number += hundreds_text
                 res.append(number)
                 ordi = False
 
-            return ", ".join(reversed(res))
+            # groups are spoken with a space, not a comma ("tysiąc sto")
+            return " ".join(reversed(res))
 
         def _split_by(n, split=1000):
             assert 0 <= n
