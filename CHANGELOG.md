@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.18a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.18a1) (2026-07-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.17a1...0.18.18a1)
+
+**Merged pull requests:**
+
+- fix: pronounce infinity and oversized integers without crashing [\#247](https://github.com/OpenVoiceOS/ovos-number-parser/pull/247) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.18.17a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.17a1) (2026-07-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.16a1...0.18.17a1)
@@ -345,10 +353,6 @@
 ## [0.18.1a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.1a2) (2026-07-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.1a1...0.18.1a2)
-
-**Merged pull requests:**
-
-- chore: migrate packaging to pyproject.toml and add LICENSE [\#94](https://github.com/OpenVoiceOS/ovos-number-parser/pull/94) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.18.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.1a1) (2026-07-17)
 
