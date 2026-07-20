@@ -75,7 +75,7 @@ class TestHugeFiniteIntegers(unittest.TestCase):
     def test_ordinary_numbers_unchanged(self):
         # the fallback must not touch in-range values
         self.assertEqual(pronounce_number(1234, "it"),
-                         "mille, duecento trentaquattro")
+                         "milleduecentotrentaquattro")
         self.assertEqual(pronounce_number(10 ** 20, "en"),
                          "one hundred quintillion")
 

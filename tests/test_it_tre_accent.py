@@ -39,8 +39,8 @@ class TestCompoundsOfTreAreAccented(unittest.TestCase):
 
     def test_compound_inside_hundreds(self):
         # the fused tens-unit still gets the accent within a larger number
-        self.assertEqual(pronounce_number(123, "it"), "cento ventitré")
-        self.assertEqual(pronounce_number(2023, "it"), "duemila, ventitré")
+        self.assertEqual(pronounce_number(123, "it"), "centoventitré")
+        self.assertEqual(pronounce_number(2023, "it"), "duemilaventitré")
 
 
 class TestBareTreHasNoAccent(unittest.TestCase):

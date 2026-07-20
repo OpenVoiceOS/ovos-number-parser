@@ -251,6 +251,16 @@ _LONG_SCALE_IT = collections.OrderedDict([
     (1e366, "unsexagintilione")
 ])
 
+#: singular form of the large scale words, used when the count is exactly one
+#: ("un milione", "un miliardo"). The scale tables hold the plurals; most go
+#: -i -> -e, but miliardi -> miliardo is irregular.
+_LONG_SCALE_SINGULAR_IT = {
+    'milioni': 'milione',
+    'miliardi': 'miliardo',
+    'bilioni': 'bilione',
+    'triliardi': 'triliardo',
+}
+
 _SHORT_SCALE_IT = collections.OrderedDict([
     (100, 'cento'),
     (1000, 'mila'),
@@ -495,8 +505,10 @@ def _split_fused_it(word: str) -> str:
     is returned unchanged, so non-numbers ("trentini") stay non-numbers.
     """
     w = word.lower().replace('é', 'e').replace('è', 'e')
-    # cento elides its final -o before uno/otto (centuno, centotto)
-    w = w.replace('centuno', 'centouno').replace('centotto', 'centootto')
+    # cento elides its final -o before uno and before any o-word (otto,
+    # ottanta...): "centuno", "centottanta", "trecentottantotto". Restore the
+    # dropped vowel so the morpheme splitter sees "cento" + remainder.
+    w = w.replace('centuno', 'centouno').replace('centott', 'centoott')
     out = []
     i = 0
     while i < len(w):
@@ -712,8 +724,16 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
                     _partial = "cento"
                 else:
                     _partial = digits[q] + "cento"
-                _partial += (
-                    " " + _sub_thousand(r) if r else "")  # separa centinaia
+                # Crusca (consulenza 1077): "la grafia prevista è, tranne rare
+                # eccezioni, senza spazi: duecentodiecimila". Cardinals below a
+                # million are one fused word, so the hundreds join directly.
+                rest = _sub_thousand(r) if r else ""
+                # "cento" drops its final -o before a word beginning with o
+                # (otto, ottanta...): "centottanta", "trecentottantotto", not
+                # "centoottanta". Both ICU and num2words agree.
+                if rest.startswith("o"):
+                    _partial = _partial[:-1]
+                _partial += rest
                 return _partial
 
         def _short_scale(n):
@@ -734,7 +754,8 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
                     number = number.replace(" ", "") + hundreds[i]
                 res.append(number)
 
-            return ", ".join(reversed(res))
+            # one fused word below a million ("millecentoventidue")
+            return "".join(reversed(res))
 
         def _split_by(n, split=1000):
             assert 0 <= n
@@ -753,18 +774,27 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
             for i, z in enumerate(_split_by(n, 1000000)):
                 if not z:
                     continue
-                number = pronounce_number_it(z, places, True, scientific)
-                # strip off the comma after the thousand
-                if i:
-                    # plus one as we skip 'thousand'
-                    # (and 'hundred', but this is excluded by index value)
-                    # collapse the group to a single token so the following
-                    # scale word ("milioni") multiplies the whole group and
-                    # not just its trailing word
-                    number = number.replace(',', '').replace(" ", "")
-                    number += " " + hundreds[i + 1]
+                if not i:
+                    # the sub-million group is one fused word
+                    number = pronounce_number_it(z, places, True, scientific)
+                    res.append(number)
+                    continue
+                # milione/miliardo are separate words, unlike the fused "mila":
+                # "un milione", "due milioni", "un miliardo" (Crusca allows the
+                # spaced form for these large scale words). The plural table
+                # holds "milioni"/"miliardi"; 1 takes the apocopated "un" and
+                # the singular.
+                plural = hundreds[i + 1]
+                singular = _LONG_SCALE_SINGULAR_IT.get(
+                    plural, plural[:-1] + "e")
+                if z == 1:
+                    number = "un " + singular
+                else:
+                    count = pronounce_number_it(z, places, True, scientific)
+                    number = count + " " + plural
                 res.append(number)
-            return ", ".join(reversed(res))
+            # scale groups are separated by a space ("un milione duecentomila")
+            return " ".join(reversed(res))
 
         if short_scale:
             result += _short_scale(num)
