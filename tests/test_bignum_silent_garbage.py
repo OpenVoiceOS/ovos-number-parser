@@ -117,8 +117,9 @@ class TestReadingValidator(unittest.TestCase):
         self.assertFalse(_has_unread_digits("1984"))
 
     def test_digit_by_digit_shape_would_be_rejected(self):
-        # exactly why the caller scopes the check to composed readings
-        self.assertTrue(_has_padded_scale_words("um um dois"))
+        # exactly why the caller scopes the check to whole numbers: a
+        # digit-by-digit decimal repeats words legitimately
+        self.assertTrue(_has_padded_scale_words("dois vírgula dois dois"))
 
 
 class TestKabyleCeilingPreserved(unittest.TestCase):
