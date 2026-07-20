@@ -267,8 +267,8 @@ def is_ordinal_da(input_str):
         "tredje": 3, "tredie": 3,
         "fjerde": 4, "femte": 5, "sjette": 6, "syvende": 7, "ottende": 8,
         "niende": 9, "tiende": 10,
-        "ellevte": 11, "elfte": 11,
-        "tolvte": 12, "tolvfte": 12,
+        "ellevte": 11,
+        "tolvte": 12, "tolvfte": 12,  # "tolvfte" kept for older input
         "trettende": 13, "fjortende": 14, "femtende": 15, "sekstende": 16,
         "syttende": 17, "attende": 18, "nittende": 19,
     }
@@ -487,21 +487,14 @@ def pronounce_ordinal_da(number):
         return number
     if number < 20:
         return ordinals[number]
-    if number < 30:
-        if pronounce_number_da(number)[-1:] == 'e':
-            return pronounce_number_da(number) + "nde"
-        else:
-            return pronounce_number_da(number) + "ende"
-    if number < 40:
+    if 30 <= number < 40:
         # tredive -> tredivte, enogtredive -> enogtredivte: drop the
         # trailing unstressed -e and add -te (distinct from the plain
         # +ende suffix used everywhere else)
         return pronounce_number_da(number)[:-1] + "te"
-    else:
-        if pronounce_number_da(number)[-1:] == 'e':
-            return pronounce_number_da(number) + "nde"
-        else:
-            return pronounce_number_da(number) + "ende"
+    # 20-29 and 40+ both just append the cardinal's usual +nde/+ende
+    cardinal = pronounce_number_da(number)
+    return cardinal + ("nde" if cardinal[-1:] == 'e' else "ende")
 
 
 def numbers_to_digits_da(text, short_scale=False,

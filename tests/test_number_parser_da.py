@@ -1,6 +1,6 @@
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number, pronounce_ordinal
+from ovos_number_parser import extract_number, is_ordinal, pronounce_number, pronounce_ordinal
 
 
 class TestDanishPronounce(unittest.TestCase):
@@ -39,6 +39,19 @@ class TestDanishOrdinal(unittest.TestCase):
             with self.subTest(number=number):
                 self.assertEqual(pronounce_ordinal(number, lang="da"),
                                  spoken)
+
+
+class TestDanishOrdinalRecognition(unittest.TestCase):
+    """Round-trip: pronounce_ordinal(n) must be recognized by is_ordinal
+    as n again, for every n in the practical 0-99 range (added per
+    CodeRabbit review feedback on the PR that fixed is_ordinal_da's
+    variable-mutation bug)."""
+
+    def test_is_ordinal_round_trip_0_to_99(self):
+        for number in range(100):
+            spoken = pronounce_ordinal(number, lang="da")
+            with self.subTest(number=number, spoken=spoken):
+                self.assertEqual(is_ordinal(spoken, lang="da"), number)
 
 
 class TestDanishExtract(unittest.TestCase):
