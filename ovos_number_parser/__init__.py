@@ -35,7 +35,7 @@ from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa
     pronounce_ordinal_fa
 from ovos_number_parser.numbers_fi import pronounce_number_fi, pronounce_ordinal_fi, extract_number_fi, \
     is_fractional_fi, is_ordinal_fi, nice_number_fi
-from ovos_number_parser.numbers_fr import (pronounce_number_fr, extract_number_fr, is_fractional_fr, FR)
+from ovos_number_parser.numbers_fr import (extract_number_fr, is_fractional_fr, FR)
 from ovos_number_parser.numbers_fy import numbers_to_digits_fy, pronounce_number_fy, pronounce_ordinal_fy, \
     extract_number_fy, is_fractional_fy, nice_number_fy
 from ovos_number_parser.numbers_gl import GL, pronounce_number_gl, extract_number_gl, is_fractional_gl, \
@@ -563,6 +563,7 @@ def _pronounce_infinity(number: float, lang: str) -> str:
 _DEFAULT_DIGIT_PRONUNCIATION = {
     "es": DigitPronunciation.DIGIT_BY_DIGIT,
     "ca": DigitPronunciation.DIGIT_BY_DIGIT,
+    "fr": DigitPronunciation.DIGIT_BY_DIGIT,
 }
 
 
@@ -768,11 +769,7 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("fi"):
         return pronounce_number_fi(number, places, short_scale, scientific, ordinals)
     if lang.startswith("fr"):
-        # NOT routed through FR: the shared engine has no tens entry for
-        # 70/80/90, which French builds by composition ("soixante-dix",
-        # "quatre-vingts"). Until the engine models vigesimal tens, the
-        # legacy path is the correct reading and `digits` stays unused here.
-        return pronounce_number_fr(number, places)
+        return FR.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("he"):
         return pronounce_number_he(number, places, scientific, ordinals)
     if lang.startswith("hr"):

@@ -1,8 +1,10 @@
+import math
 import re
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, is_numeric,
                                      look_for_fractions, Scale, GrammaticalGender,
-                                     NumberVocabulary, RomanceNumberExtractor)
+                                     NumberVocabulary, RomanceNumberExtractor,
+                                     DigitPronunciation)
 
 # Undefined articles ["un", "une"] cannot be supressed,
 # in French, "un cheval" means "a horse" or "one horse".
@@ -287,7 +289,127 @@ _FR = NumberVocabulary(
     }
 )
 
-FR = RomanceNumberExtractor(_FR)
+class FrenchNumberExtractor(RomanceNumberExtractor):
+    """French pronunciation overrides for the shared Romance engine.
+
+    French cannot be produced by the generic addition-based
+    ``_pronounce_up_to_999``: 17-19 are compound ("dix-sept"), the "et"
+    joiner applies only to X1 in the 20s-60s (never 71's "soixante-et-onze"
+    special-case, never 80s/90s), tens/units join with hyphens, 70-99 are
+    vigesimal (60+teens, 4x20+teens), and 200-900 use MULTIPLY_HUNDREDS with
+    a plural "-s" only on a bare round hundred.
+    """
+
+    def _pronounce_1_99_fr(self, n):
+        assert 0 <= n <= 99
+        if n <= 16:
+            return _NUM_STRING_FR[n]
+        if 17 <= n <= 19:
+            return "dix-" + _NUM_STRING_FR[n - 10]
+
+        ten, unit = divmod(n, 10)
+        tens_word = ten * 10
+
+        if unit == 0:
+            if tens_word == 70:
+                return "soixante-dix"
+            if tens_word == 80:
+                return "quatre-vingts"
+            if tens_word == 90:
+                return "quatre-vingt-dix"
+            return _NUM_STRING_FR[tens_word]
+
+        if tens_word == 70:
+            if n == 71:
+                return "soixante-et-onze"
+            if unit < 7:
+                return "soixante-" + _NUM_STRING_FR[10 + unit]
+            return "soixante-dix-" + _NUM_STRING_FR[unit]
+
+        if tens_word == 80:
+            return "quatre-vingt-" + _NUM_STRING_FR[unit]
+
+        if tens_word == 90:
+            if unit < 7:
+                return "quatre-vingt-" + _NUM_STRING_FR[10 + unit]
+            return "quatre-vingt-dix-" + _NUM_STRING_FR[unit]
+
+        # 20-60
+        if unit == 1:
+            return _NUM_STRING_FR[tens_word] + "-et-" + _NUM_STRING_FR[1]
+        return _NUM_STRING_FR[tens_word] + "-" + _NUM_STRING_FR[unit]
+
+    def _pronounce_up_to_999(self, n, gender=GrammaticalGender.MASCULINE,
+                             force_hundreds_join=False, terminal_group=True):
+        assert 0 <= n <= 999
+        if n < 100:
+            return self._pronounce_1_99_fr(n)
+
+        h, rest = divmod(n, 100)
+        if h == 1:
+            part = "cent"
+        else:
+            part = _NUM_STRING_FR[h] + " cent"
+            # "deux cents" (round) but "deux cent un"; a round hundred is
+            # plural even when a scale word ("mille") follows it, so the
+            # engine's terminal_group flag (which is False for a hundreds
+            # group nested under a higher scale) is deliberately ignored here.
+            if rest == 0:
+                part += "s"
+        if rest:
+            part += " " + self._pronounce_1_99_fr(rest)
+        return part
+
+    def pronounce_number(self, number, places=2, scale=None, ordinals=False,
+                         digits=None,
+                         gender=GrammaticalGender.MASCULINE,
+                         _force_hundreds_join=False, _under_higher_scale=False):
+        """French-specific top-level quirks that predate the shared engine.
+
+        Kept as an override rather than a change to the shared engine: (1)
+        very large/small magnitudes and non-integer floats >= 1000 fall back
+        to a raw numeral, matching the legacy ``pronounce_number_fr`` bug
+        that never spoke decimals above 1000; (2) an integer-valued float
+        ("80.0") is normalised to ``int`` first so it never enters the
+        decimal branch, avoiding the shared engine's "quatre-vingts virgule
+        zéro" artifact for a value with no fractional part.
+        """
+        if digits is None:
+            digits = DigitPronunciation.DIGIT_BY_DIGIT
+        if ordinals or not isinstance(number, (int, float)) \
+                or (isinstance(number, float) and not math.isfinite(number)):
+            return super().pronounce_number(number, places, scale, ordinals,
+                                            digits, gender,
+                                            _force_hundreds_join, _under_higher_scale)
+
+        abs_n = abs(number)
+        if abs_n != 0 and (abs_n >= 10 ** 15 or abs_n < 1e-4):
+            sign = "moins " if number < 0 else ""
+            return sign + str(abs_n)
+
+        if isinstance(number, float):
+            if abs_n >= 1000 and int(abs_n) != abs_n:
+                sign = "moins " if number < 0 else ""
+                return sign + str(abs_n)
+            if number == int(number):
+                number = int(number)
+
+        return super().pronounce_number(number, places, scale, ordinals,
+                                        digits, gender,
+                                        _force_hundreds_join, _under_higher_scale)
+
+
+FR = FrenchNumberExtractor(_FR)
+
+
+def pronounce_number_fr(number, places=2):
+    """Thin back-compat wrapper over the shared engine.
+
+    The legacy recursive implementation has been replaced by
+    :class:`FrenchNumberExtractor`; this wrapper only keeps the historical
+    module-level name importable for existing callers.
+    """
+    return FR.pronounce_number(number, places)
 
 # "quatre-vingt(s)" (80) and "quatre-vingt-dix" (90) are vigesimal: the shared
 # engine accumulates by addition, so "quatre" + "vingt" would give 24. This
@@ -401,141 +523,6 @@ def nice_number_fr(number, speech=True, denominators=range(1, 21)):
             strNumber += 's'
 
     return strNumber
-
-
-def _pronounce_sub_thousand_fr(n):
-    """Spoken form of 0-999."""
-    assert 0 <= n <= 999
-    if n < 100:
-        return pronounce_number_fr(n)
-    q, r = divmod(n, 100)
-    if q == 1:
-        part = "cent"
-    else:
-        part = pronounce_number_fr(q) + " cent"
-        if r == 0:
-            part += "s"  # "deux cents" but "deux cent un"
-    if r:
-        part += " " + pronounce_number_fr(r)
-    return part
-
-
-def _pronounce_whole_number_fr(n):
-    """Spoken form of any whole number below 10^15.
-
-    French uses the long scale, where each new named magnitude is 10^6
-    times the previous one: million = 10^6, milliard = 10^9,
-    billion = 10^12 (see Wikipedia, "Long and short scales",
-    https://en.wikipedia.org/wiki/Long_and_short_scales). This differs
-    from the short scale where "billion" means 10^9.
-    """
-    assert n >= 0
-    if n < 1000:
-        return _pronounce_sub_thousand_fr(n)
-    if n < 10 ** 6:
-        thousands, rest = divmod(n, 1000)
-        part = "mille" if thousands == 1 \
-            else _pronounce_sub_thousand_fr(thousands) + " mille"
-        if rest:
-            part += " " + _pronounce_sub_thousand_fr(rest)
-        return part
-    if n < 10 ** 9:
-        millions, rest = divmod(n, 10 ** 6)
-        part = "un million" if millions == 1 \
-            else _pronounce_whole_number_fr(millions) + " millions"
-        if rest:
-            part += " " + _pronounce_whole_number_fr(rest)
-        return part
-    if n < 10 ** 12:
-        milliards, rest = divmod(n, 10 ** 9)
-        part = "un milliard" if milliards == 1 \
-            else _pronounce_whole_number_fr(milliards) + " milliards"
-        if rest:
-            part += " " + _pronounce_whole_number_fr(rest)
-        return part
-    billions, rest = divmod(n, 10 ** 12)
-    part = "un billion" if billions == 1 \
-        else _pronounce_whole_number_fr(billions) + " billions"
-    if rest:
-        part += " " + _pronounce_whole_number_fr(rest)
-    return part
-
-
-def pronounce_number_fr(number, places=2):
-    """
-    Convert a number to it's spoken equivalent
-
-    For example, '5.2' would return 'cinq virgule deux'
-
-    Args:
-        num(float or int): the number to pronounce (under 100)
-        places(int): maximum decimal places to speak
-    Returns:
-        (str): The pronounced number
-    """
-    result = ""
-    if number < 0:
-        result = "moins "
-    number = abs(number)
-
-    # Scientific-notation floats (very small or very large magnitudes) have
-    # no long-scale word form and str() renders them with an exponent, which
-    # has no "." to split for the decimal part. Return the numeric string
-    # rather than raising.
-    if number != 0 and (number >= 10 ** 15 or number < 1e-4):
-        return result + str(number)
-
-    if number >= 100:
-        if number >= 10 ** 15 or int(number) != number and number >= 1000:
-            return result + str(number)
-        result += _pronounce_whole_number_fr(int(number))
-        if number != int(number) and places > 0:
-            result += " virgule"
-            _num_str = str(number).split(".")[1][0:places]
-            for char in _num_str:
-                result += " " + _NUM_STRING_FR[int(char)]
-        return result
-
-    if number > 16:
-        tens = int(number - int(number) % 10)
-        ones = int(number - tens)
-        if ones != 0:
-            if tens > 10 and tens <= 60 and int(number - tens) == 1:
-                result += _NUM_STRING_FR[tens] + "-et-" + _NUM_STRING_FR[ones]
-            elif number == 71:
-                result += "soixante-et-onze"
-            elif tens == 70:
-                result += _NUM_STRING_FR[60] + "-"
-                if ones < 7:
-                    result += _NUM_STRING_FR[10 + ones]
-                else:
-                    result += _NUM_STRING_FR[10] + "-" + _NUM_STRING_FR[ones]
-            elif tens == 90:
-                result += _NUM_STRING_FR[80] + "-"
-                if ones < 7:
-                    result += _NUM_STRING_FR[10 + ones]
-                else:
-                    result += _NUM_STRING_FR[10] + "-" + _NUM_STRING_FR[ones]
-            else:
-                result += _NUM_STRING_FR[tens] + "-" + _NUM_STRING_FR[ones]
-        else:
-            if number == 80:
-                result += "quatre-vingts"
-            else:
-                result += _NUM_STRING_FR[tens]
-    else:
-        result += _NUM_STRING_FR[int(number)]
-
-    # Deal with decimal part
-    if not number == int(number) and places > 0:
-        if abs(number) < 1.0 and (result == "moins " or not result):
-            result += "zéro"
-        result += " virgule"
-        _num_str = str(number)
-        _num_str = _num_str.split(".")[1][0:places]
-        for char in _num_str:
-            result += " " + _NUM_STRING_FR[int(char)]
-    return result
 
 
 def _number_parse_fr(words, i):
