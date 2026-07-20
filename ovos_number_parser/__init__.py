@@ -1,4 +1,5 @@
 import math
+import re
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 from typing import Union
@@ -795,6 +796,28 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
 
 
+#: a hyphen or underscore sitting between two letters is just a spelling of the
+#: space that joins a compound numeral, so "twenty-one", "twenty_one" and
+#: "twenty one" must all read alike. Only letter-letter joins are rewritten: a
+#: leading "-" is a minus sign, and a digit on either side means a range or a
+#: numeral glued to a word ("10-15", "10-segundos"), which must survive intact.
+_COMPOUND_NUMERAL_JOIN = re.compile(r"(?<=[^\W\d_])[-_](?=[^\W\d_])",
+                                    re.UNICODE)
+
+#: languages whose numerals carry a *meaningful* internal hyphen, where the
+#: separator is not interchangeable with a space. Hungarian spells numbers
+#: above two thousand with a hyphen at the thousand boundary
+#: ("kétezer-ötszáz" = 2500), so rewriting it to a space loses the tail.
+_HYPHENATED_NUMERAL_LANGS = ("hu",)
+
+
+def _unglue_compound_numerals(text: str, lang: str) -> str:
+    """Normalise "-"/"_" written between letters to a space."""
+    if lang.lower().split("-")[0] in _HYPHENATED_NUMERAL_LANGS:
+        return text
+    return _COMPOUND_NUMERAL_JOIN.sub(" ", text)
+
+
 def extract_number(text: str, lang: str,
                    short_scale: Optional[bool] = None,  # DEPRECATED
                    ordinals: bool = False,
@@ -821,6 +844,7 @@ def extract_number(text: str, lang: str,
     if not isinstance(text, str):
         # non-string input carries no number to extract
         return False
+    text = _unglue_compound_numerals(text, lang)
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
     if lang.startswith("en"):
