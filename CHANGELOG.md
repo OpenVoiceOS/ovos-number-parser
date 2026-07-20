@@ -1,20 +1,33 @@
 # Changelog
 
+## [0.18.14a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.14a1) (2026-07-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.13a1...0.18.14a1)
+
+**Closed issues:**
+
+- numbers\_to\_digits drops leading "one" before hundred/thousand \(generic fallback engine\) [\#238](https://github.com/OpenVoiceOS/ovos-number-parser/issues/238)
+
+**Merged pull requests:**
+
+- fix: keep a leading one before a scale word in numbers\_to\_digits [\#239](https://github.com/OpenVoiceOS/ovos-number-parser/pull/239) ([JarbasAl](https://github.com/JarbasAl))
+- fix\(da\): correct cardinal 11, ordinals 0-39, and is\_ordinal recognition [\#237](https://github.com/OpenVoiceOS/ovos-number-parser/pull/237) ([andlo](https://github.com/andlo))
+
 ## [0.18.13a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.13a1) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.12a1...0.18.13a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.11a1...0.18.13a1)
 
 **Merged pull requests:**
 
 - fix: guard non-finite/overflow string tokens in extract\_number [\#234](https://github.com/OpenVoiceOS/ovos-number-parser/pull/234) ([JarbasAl](https://github.com/JarbasAl))
 
-## [0.18.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.12a1) (2026-07-18)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.11a1...0.18.12a1)
-
 ## [0.18.11a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.11a1) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.10a1...0.18.11a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.12a1...0.18.11a1)
+
+## [0.18.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.12a1) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.10a1...0.18.12a1)
 
 **Merged pull requests:**
 
@@ -322,9 +335,6 @@
 - fix: point the release workflows at the live gh-automations [\#92](https://github.com/OpenVoiceOS/ovos-number-parser/pull/92) ([JarbasAl](https://github.com/JarbasAl))
 - test: guard indonesian and malay in the parity suite [\#91](https://github.com/OpenVoiceOS/ovos-number-parser/pull/91) ([JarbasAl](https://github.com/JarbasAl))
 - feat: norwegian bokmål and nynorsk number support [\#90](https://github.com/OpenVoiceOS/ovos-number-parser/pull/90) ([JarbasAl](https://github.com/JarbasAl))
-- feat: turkish, indonesian and malay number support [\#89](https://github.com/OpenVoiceOS/ovos-number-parser/pull/89) ([JarbasAl](https://github.com/JarbasAl))
-- feat: greek number support [\#88](https://github.com/OpenVoiceOS/ovos-number-parser/pull/88) ([JarbasAl](https://github.com/JarbasAl))
-- feat: hebrew number support [\#87](https://github.com/OpenVoiceOS/ovos-number-parser/pull/87) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.18.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.0a1) (2026-07-16)
 
