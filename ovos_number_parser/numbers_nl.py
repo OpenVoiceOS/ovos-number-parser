@@ -372,9 +372,19 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             ones = num % 10
             tens = num - ones
             if ones > 0:
-                result += _NUM_STRING_NL[ones] + _EXTRA_SPACE_NL
+                ones_word = _NUM_STRING_NL[ones]
+                result += ones_word + _EXTRA_SPACE_NL
                 if tens > 0:
-                    result += 'en' + _EXTRA_SPACE_NL
+                    # Klinkerbotsing: "twee" and "drie" end in a vowel, so the
+                    # "e" of the joining "en" would be read together with it
+                    # ("tweeen"). Taaladvies.net (Nederlandse Taalunie), entry
+                    # "Klinkerbotsing": the ambiguity is resolved by separating
+                    # the vowels with a trema "in afleidingen en samengestelde
+                    # telwoorden" -- compound numerals are an explicit
+                    # exception to the hyphen used in ordinary compounds, and
+                    # "tweeentwintig" is cited there as "tweeëntwintig".
+                    joiner = 'ën' if ones_word.endswith(('e', 'ie')) else 'en'
+                    result += joiner + _EXTRA_SPACE_NL
             if tens > 0:
                 result += _NUM_STRING_NL[tens] + _EXTRA_SPACE_NL
         return result

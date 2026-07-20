@@ -7,13 +7,13 @@ class TestDutchPronounce(unittest.TestCase):
     """Anchors for spoken Dutch numbers."""
 
     def test_pronounce_number(self):
-        expected = {0: 'nul', 1: 'één', 2: 'twee', 3: 'drie', 4: 'vier', 5: 'vijf', 6: 'zes', 7: 'zeven', 8: 'acht', 9: 'negen', 10: 'tien', 11: 'elf', 12: 'twaalf', 13: 'dertien', 14: 'veertien', 15: 'vijftien', 16: 'zestien', 17: 'zeventien', 18: 'achttien', 19: 'negentien', 20: 'twintig', 21: 'eenentwintig', 30: 'dertig', 42: 'tweeenveertig', 50: 'vijftig', 66: 'zesenzestig', 70: 'zeventig', 80: 'tachtig', 90: 'negentig', 99: 'negenennegentig', 100: 'eenhonderd', 101: 'eenhonderdeen', 123: 'eenhonderddrieentwintig', 200: 'tweehonderd', 500: 'vijfhonderd', 999: 'negenhonderdnegenennegentig', 1000: 'eenduizend', 2000: 'tweeduizend', 2023: 'tweeduizenddrieentwintig', 1000000: 'één miljoen ', 2000000: 'twee miljoen '}
+        expected = {0: 'nul', 1: 'één', 2: 'twee', 3: 'drie', 4: 'vier', 5: 'vijf', 6: 'zes', 7: 'zeven', 8: 'acht', 9: 'negen', 10: 'tien', 11: 'elf', 12: 'twaalf', 13: 'dertien', 14: 'veertien', 15: 'vijftien', 16: 'zestien', 17: 'zeventien', 18: 'achttien', 19: 'negentien', 20: 'twintig', 21: 'eenentwintig', 30: 'dertig', 42: 'tweeënveertig', 50: 'vijftig', 66: 'zesenzestig', 70: 'zeventig', 80: 'tachtig', 90: 'negentig', 99: 'negenennegentig', 100: 'eenhonderd', 101: 'eenhonderdeen', 123: 'eenhonderddrieëntwintig', 200: 'tweehonderd', 500: 'vijfhonderd', 999: 'negenhonderdnegenennegentig', 1000: 'eenduizend', 2000: 'tweeduizend', 2023: 'tweeduizenddrieëntwintig', 1000000: 'één miljoen ', 2000000: 'twee miljoen '}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="nl"), spoken)
 
     def test_pronounce_negative_and_decimal(self):
-        expected = {-7: 'min zeven', -42: 'min tweeenveertig', 2.5: 'twee komma vijf nul nul', 3.14: 'drie komma een vier nul', -3.5: 'min drie komma vijf nul nul', 0.5: 'nul komma vijf nul nul'}
+        expected = {-7: 'min zeven', -42: 'min tweeënveertig', 2.5: 'twee komma vijf nul nul', 3.14: 'drie komma een vier nul', -3.5: 'min drie komma vijf nul nul', 0.5: 'nul komma vijf nul nul'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="nl"), spoken)
@@ -23,13 +23,13 @@ class TestDutchExtract(unittest.TestCase):
     """Anchors for extracting numbers from Dutch text."""
 
     def test_extract_number(self):
-        expected = {0: 'nul', 1: 'één', 2: 'twee', 3: 'drie', 4: 'vier', 5: 'vijf', 6: 'zes', 7: 'zeven', 8: 'acht', 9: 'negen', 10: 'tien', 11: 'elf', 12: 'twaalf', 13: 'dertien', 14: 'veertien', 15: 'vijftien', 16: 'zestien', 17: 'zeventien', 18: 'achttien', 19: 'negentien', 20: 'twintig', 21: 'eenentwintig', 30: 'dertig', 42: 'tweeenveertig', 50: 'vijftig', 66: 'zesenzestig', 70: 'zeventig', 80: 'tachtig', 90: 'negentig', 99: 'negenennegentig', 100: 'eenhonderd', 101: 'eenhonderdeen', 123: 'eenhonderddrieentwintig', 200: 'tweehonderd', 500: 'vijfhonderd', 999: 'negenhonderdnegenennegentig', 1000: 'eenduizend', 2000: 'tweeduizend', 2023: 'tweeduizenddrieentwintig', 1000000: 'één miljoen ', 2000000: 'twee miljoen '}
+        expected = {0: 'nul', 1: 'één', 2: 'twee', 3: 'drie', 4: 'vier', 5: 'vijf', 6: 'zes', 7: 'zeven', 8: 'acht', 9: 'negen', 10: 'tien', 11: 'elf', 12: 'twaalf', 13: 'dertien', 14: 'veertien', 15: 'vijftien', 16: 'zestien', 17: 'zeventien', 18: 'achttien', 19: 'negentien', 20: 'twintig', 21: 'eenentwintig', 30: 'dertig', 42: 'tweeënveertig', 50: 'vijftig', 66: 'zesenzestig', 70: 'zeventig', 80: 'tachtig', 90: 'negentig', 99: 'negenennegentig', 100: 'eenhonderd', 101: 'eenhonderdeen', 123: 'eenhonderddrieëntwintig', 200: 'tweehonderd', 500: 'vijfhonderd', 999: 'negenhonderdnegenennegentig', 1000: 'eenduizend', 2000: 'tweeduizend', 2023: 'tweeduizenddrieëntwintig', 1000000: 'één miljoen ', 2000000: 'twee miljoen '}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="nl"), number)
 
     def test_extract_negative_and_decimal(self):
-        expected = {-7: 'min zeven', -42: 'min tweeenveertig', 2.5: 'twee komma vijf nul nul', 3.14: 'drie komma een vier nul', -3.5: 'min drie komma vijf nul nul', 0.5: 'nul komma vijf nul nul'}
+        expected = {-7: 'min zeven', -42: 'min tweeënveertig', 2.5: 'twee komma vijf nul nul', 3.14: 'drie komma een vier nul', -3.5: 'min drie komma vijf nul nul', 0.5: 'nul komma vijf nul nul'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="nl"), number)
