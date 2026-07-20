@@ -349,6 +349,15 @@ class NumberVocabulary:
 
     # full spelling of "one <scale>" groups when they use an article or a
     # special form of "one" ("o mie", "un milion")
+    #: entries of JOIN_WORD that are *not* additive joiners but partitive or
+    #: multiplicative prepositions, where the value after the word is larger
+    #: than the one before it by design. Romanian inserts "de" before a scale
+    #: above twenty ("douăzeci de mii" = 20 x 1000) and before a fraction's
+    #: base ("jumătate de milion" = half *of* a million), unlike the additive
+    #: "și" ("douăzeci și unu" = 21). Listed here so the descending-joiner rule
+    #: skips them.
+    MULTIPLICATIVE_JOIN_WORD: List[str] = field(default_factory=list)
+
     SCALE_ONE: Dict[int, str] = field(default_factory=dict)
 
     # grammatical gender the count before each scale word agrees with
@@ -507,7 +516,9 @@ class RomanceNumberExtractor:
 
         # normalize and tokenize
         clean_text = text.lower().replace('-', ' ')
-        tokens = [t for t in clean_text.split() if t not in self.vocab.JOIN_WORD]
+        # the joiner is kept: it is what tells "vinte e um" (21, one number)
+        # apart from "tres e vinte" (3 and 20, two numbers)
+        tokens = clean_text.split()
 
         # a digit token wins if it appears before any spoken number word
         for tok in tokens:
@@ -538,6 +549,22 @@ class RomanceNumberExtractor:
             token = tokens[i]
             if token in self.vocab.NEGATIVE_SIGN:
                 is_negative = True
+                i += 1
+                continue
+
+            if token in self.vocab.JOIN_WORD:
+                if token in self.vocab.MULTIPLICATIVE_JOIN_WORD:
+                    i += 1
+                    continue
+                # Romance additive joiners are strictly descending: the value
+                # after the joiner is smaller than the one before it
+                # ("vinte e um" = 21, "mil e quinhentos" = 1500). An ascending
+                # pair is not one number but two ("tres y veinte" = "3:20"),
+                # so the number ends here.
+                nxt = numbers_map.get(tokens[i + 1]) if i + 1 < len(tokens) else None
+                pending = current or result
+                if saw_number and nxt is not None and pending and nxt >= pending:
+                    break
                 i += 1
                 continue
 
@@ -574,7 +601,12 @@ class RomanceNumberExtractor:
             fraction = self.is_fractional(token)
             if fraction is not False:
                 saw_number = True
-                next_token = tokens[i + 1] if i + 1 < len(tokens) else None
+                # look past a joiner: the scale a fraction multiplies may sit
+                # behind one ("jumătate de milion" = half a million)
+                nxt_i = i + 1
+                while nxt_i < len(tokens) and tokens[nxt_i] in self.vocab.JOIN_WORD:
+                    nxt_i += 1
+                next_token = tokens[nxt_i] if nxt_i < len(tokens) else None
                 next_val = numbers_map.get(next_token) if next_token else None
                 if token not in plural_fractions and next_val is not None \
                         and next_val >= 1000:
@@ -683,6 +715,16 @@ class RomanceNumberExtractor:
                 number_span_words = []
                 j = i
                 while j < len(words) and continues_span(j):
+                    if words[j] in self.vocab.JOIN_WORD and number_span_words \
+                            and words[j] not in self.vocab.MULTIPLICATIVE_JOIN_WORD:
+                        # the span only crosses a joiner when the value after
+                        # it is smaller than the value before it ("vinte e um").
+                        # An ascending pair is two numbers, not one, and the
+                        # span has to end so the tail survives ("tres y veinte").
+                        nxt = numbers_map.get(next_word(j))
+                        sofar = self.extract_number(" ".join(number_span_words))
+                        if nxt is None or sofar is False or nxt >= sofar:
+                            break
                     number_span_words.append(words[j])
                     j += 1
 
