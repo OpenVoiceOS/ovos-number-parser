@@ -1,3 +1,4 @@
+import re
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
@@ -176,6 +177,10 @@ _LONG_SCALE = {
 _MULTIPLIER = set(_LONG_SCALE.values())
 
 _STRING_LONG_SCALE = invert_dict(_LONG_SCALE)
+# "tusind" is the count word for 1000 (Retskrivningsordbogen); "tusinde" also
+# occurs. Both must parse, so register the bare form alongside the inverted map.
+_STRING_LONG_SCALE['tusind'] = 1000
+_MULTIPLIER.add('tusind')
 
 # ending manipulation
 for number, item in _LONG_SCALE.items():
@@ -367,12 +372,24 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
         if num > 99:
             hundreds = floor(num / 100)
             if hundreds > 0:
-                if hundreds == 1:
-                    result += 'et' + 'hundrede' + _EXTRA_SPACE_DA
-                else:
-                    result += _NUM_STRING_DA[hundreds] + \
-                              'hundrede' + _EXTRA_SPACE_DA
+                # 100 is "hundrede", never "et hundrede": Retskrivningsordbogen
+                # gives "hundrede" as the correct form (sproget.dk, Politikens
+                # sprogklumme "Den 101. dalmatiner moeder den 101. stryger":
+                # "en helt fjerde form, hundrede, er den korrekte form ifoelge
+                # Retskrivningsordbogen"). Numerals above 100 are also written
+                # as separate words -- "talord over 100 [...] deles op i
+                # modsaetning til talord under 100" -- so the hundreds group is
+                # spaced ("fem tusinde ni hundrede og treoghalvtreds"), while
+                # everything below 100 stays a single fused word.
+                if hundreds > 1:
+                    result += _NUM_STRING_DA[hundreds] + ' '
+                result += 'hundrede'
                 num -= hundreds * 100
+                if num > 0:
+                    # "og" links the hundreds to the remainder; the same source
+                    # marks it optional ("hundred(e) (og) syttende"), and it is
+                    # the conventional written form
+                    result += ' og '
         if num == 0:
             result += ''  # do nothing
         elif num == 1:
@@ -419,13 +436,18 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
                 else:
                     result += "en"
             elif scale_level == 1:
-                result += 'et' + _EXTRA_SPACE_DA + 'tusinde' + _EXTRA_SPACE_DA
+                # 1000 is "tusind", not "et tusinde": Retskrivningsordbogen
+                # gives "tusind" as the count word (a bare "tusinde" also
+                # occurs, but the "et" prefix is not written)
+                result += 'tusind '
             else:
                 result += "en " + _NUM_POWERS_OF_TEN[scale_level] + ' '
         elif last_triplet > 1:
             result += pronounce_triplet_da(last_triplet)
             if scale_level == 1:
-                result += 'tusinde' + _EXTRA_SPACE_DA
+                # a space so the thousands stay a separate word from the
+                # hundreds below them ("fem tusinde ni hundrede ...")
+                result += ' tusinde '
             if scale_level >= 2:
                 result += ' ' + _NUM_POWERS_OF_TEN[scale_level]
             if scale_level >= 2:
@@ -445,7 +467,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
         return "minus " + pronounce_number_da(abs(number), places)
     else:
         if number == int(number):
-            return pronounce_whole_number_da(number)
+            return re.sub(r'\s+', ' ', pronounce_whole_number_da(number)).strip()
         else:
             whole_number_part = floor(number)
             fractional_part = number - whole_number_part
@@ -453,7 +475,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             if places > 0:
                 result += " komma"
                 result += pronounce_fractional_da(fractional_part, places)
-            return result
+            return re.sub(r'\s+', ' ', result).strip()
 
 
 def pronounce_ordinal_da(number):
@@ -896,6 +918,73 @@ def _compound_value_da(parts):
     return total + current
 
 
+#: hundred and thousand compose additively across words; larger scales keep
+#: the token combiner's existing path
+_FOLDABLE_SCALES_DA = {'hundrede': 100, 'hunderede': 100,
+                       'tusinde': 1000, 'tusind': 1000}
+
+
+def _fold_scale_groups_da(text):
+    """Collapse a spelled hundreds/thousands group into one integer token.
+
+    Dansk Sprognaevn writes numerals above 100 as separate words -- "fem
+    tusinde ni hundrede og treoghalvtreds" (5953) -- so the value is spread
+    over several tokens joined by "og". The token combiner did not compose
+    these additively across a scale word, so "tusinde fem hundrede" read as
+    1000 with the 500 dropped. This pass walks each run of number words,
+    hundreds and thousands and the connecting "og", and replaces the run with
+    its summed value. Runs are left untouched once they reach a million-or-
+    larger scale so those keep their existing, working path, and any
+    non-number token ends the run so surrounding text is preserved.
+    """
+    toks = text.split()
+    out = []
+    i = 0
+    while i < len(toks):
+        result = current = 0
+        saw = saw_scale = False
+        j = i
+        while j < len(toks):
+            w = toks[j]
+            if w in _FOLDABLE_SCALES_DA:
+                mult = _FOLDABLE_SCALES_DA[w]
+                if mult == 100:
+                    current = (current or 1) * 100
+                else:
+                    result += (current or 1) * 1000
+                    current = 0
+                saw = saw_scale = True
+                j += 1
+                continue
+            # a plain sub-1000 addend extends the run; a million-or-larger
+            # multiplier, a fraction or a non-number ends it. Guard the digit
+            # test against overflow: a several-hundred-digit token is a number
+            # but nowhere near a foldable addend, so reject it before float().
+            if w.lstrip('-').isdigit():
+                val = int(w) if len(w.lstrip('-')) < 4 else None
+            else:
+                val = is_number_da(w)
+            if isinstance(val, (int, float)) and val is not True \
+                    and float(val).is_integer() and 0 <= val < 1000:
+                current += int(val)
+                saw = True
+                j += 1
+                continue
+            if w == 'og' and saw and j + 1 < len(toks):
+                nxt = toks[j + 1]
+                if nxt in _FOLDABLE_SCALES_DA or nxt.lstrip('-').isdigit()                         or is_number_da(nxt) is not None:
+                    j += 1
+                    continue
+            break
+        if saw_scale and j - i > 1:
+            out.append(str(result + current))
+            i = j
+        else:
+            out.append(toks[i])
+            i += 1
+    return " ".join(out)
+
+
 def _expand_compound_numbers_da(text):
     """Rewrite compound number words as their digit value for parsing."""
     out = []
@@ -906,7 +995,7 @@ def _expand_compound_numbers_da(text):
             out.append(str(int(value)) if value is not None else w)
         else:
             out.append(w)
-    return " ".join(out)
+    return _fold_scale_groups_da(" ".join(out))
 
 
 def extract_number_da(text, short_scale=False, ordinals=False):
