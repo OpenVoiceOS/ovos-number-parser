@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.7a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.7a1) (2026-07-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.6a2...0.19.7a1)
+
+**Merged pull requests:**
+
+- fix: fuse Italian cardinals into one word below a million [\#274](https://github.com/OpenVoiceOS/ovos-number-parser/pull/274) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.19.6a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.6a2) (2026-07-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.6a1...0.19.6a2)
@@ -320,15 +328,15 @@
 
 ## [0.18.8a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.8a1) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.6a1...0.18.8a1)
-
-## [0.18.6a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.6a1) (2026-07-18)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.7a1...0.18.6a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.7a1...0.18.8a1)
 
 ## [0.18.7a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.7a1) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.4a1...0.18.7a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.6a1...0.18.7a1)
+
+## [0.18.6a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.6a1) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.4a1...0.18.6a1)
 
 **Merged pull requests:**
 
@@ -429,7 +437,6 @@
 - fix: add hundreds after thousands in Ukrainian number extraction [\#112](https://github.com/OpenVoiceOS/ovos-number-parser/pull/112) ([JarbasAl](https://github.com/JarbasAl))
 - fix: Galician number vocabulary leftovers [\#111](https://github.com/OpenVoiceOS/ovos-number-parser/pull/111) ([JarbasAl](https://github.com/JarbasAl))
 - fix: Czech number scale words, minus, and year pronunciation [\#110](https://github.com/OpenVoiceOS/ovos-number-parser/pull/110) ([JarbasAl](https://github.com/JarbasAl))
-- fix: negate whole compound negative numbers \(en\) [\#109](https://github.com/OpenVoiceOS/ovos-number-parser/pull/109) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.18.1a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.1a2) (2026-07-17)
 
