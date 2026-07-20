@@ -25,7 +25,8 @@ from ovos_number_parser.numbers_en import numbers_to_digits_en, is_ordinal_en, p
     is_fractional_en
 from ovos_number_parser.numbers_el import pronounce_number_el, pronounce_ordinal_el, \
     extract_number_el, is_fractional_el, is_ordinal_el
-from ovos_number_parser.numbers_es import numbers_to_digits_es, pronounce_number_es, extract_number_es, is_fractional_es
+from ovos_number_parser.numbers_es import (numbers_to_digits_es, pronounce_number_es, extract_number_es,
+                                           is_fractional_es, ES)
 from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu, \
     pronounce_ordinal_eu, is_ordinal_eu
 from ovos_number_parser.numbers_et import pronounce_number_et, pronounce_ordinal_et, extract_number_et, \
@@ -34,10 +35,10 @@ from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa
     pronounce_ordinal_fa
 from ovos_number_parser.numbers_fi import pronounce_number_fi, pronounce_ordinal_fi, extract_number_fi, \
     is_fractional_fi, is_ordinal_fi, nice_number_fi
-from ovos_number_parser.numbers_fr import (pronounce_number_fr, extract_number_fr, is_fractional_fr)
+from ovos_number_parser.numbers_fr import (pronounce_number_fr, extract_number_fr, is_fractional_fr, FR)
 from ovos_number_parser.numbers_fy import numbers_to_digits_fy, pronounce_number_fy, pronounce_ordinal_fy, \
     extract_number_fy, is_fractional_fy, nice_number_fy
-from ovos_number_parser.numbers_gl import pronounce_number_gl, extract_number_gl, is_fractional_gl, \
+from ovos_number_parser.numbers_gl import GL, pronounce_number_gl, extract_number_gl, is_fractional_gl, \
     numbers_to_digits_gl, pronounce_ordinal_gl, is_ordinal_gl, pronounce_fraction_gl
 from ovos_number_parser.numbers_hr import pronounce_number_hr, pronounce_ordinal_hr, extract_number_hr, \
     is_fractional_hr, nice_number_hr, numbers_to_digits_hr
@@ -51,7 +52,7 @@ from ovos_number_parser.numbers_id import (pronounce_number_id, pronounce_number
                                            is_fractional_id, is_fractional_ms,
                                            nice_number_id, nice_number_ms,
                                            numbers_to_digits_id, numbers_to_digits_ms)
-from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, is_fractional_it)
+from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, is_fractional_it, IT)
 from ovos_number_parser.numbers_kab import (pronounce_number_kab, pronounce_ordinal_kab, extract_number_kab,
                                              is_fractional_kab, is_ordinal_kab)
 from ovos_number_parser.numbers_mwl import MWL
@@ -557,6 +558,14 @@ def _pronounce_infinity(number: float, lang: str) -> str:
     return neg if number < 0 else pos
 
 
+#: languages that read the decimal part one digit at a time by convention.
+#: Everything else composes it. Keyed by bare language code.
+_DEFAULT_DIGIT_PRONUNCIATION = {
+    "es": DigitPronunciation.DIGIT_BY_DIGIT,
+    "ca": DigitPronunciation.DIGIT_BY_DIGIT,
+}
+
+
 #: a run of digits this long in "spoken" output means a backend gave up and
 #: handed back the numeral instead of reading it
 _DIGIT_RUN = re.compile(r"\d{7,}")
@@ -572,8 +581,10 @@ def _has_padded_scale_words(spoken: str) -> bool:
     No natural numeral repeats a scale word back to back, so two identical
     adjacent words mark output that is not a reading at all.
 
-    Only sound for a *composed* reading -- a digit-by-digit rendering repeats
-    words legitimately ("11" -> "um um") -- so callers must scope this check.
+    Only sound for a whole number. A digit-by-digit decimal repeats words
+    legitimately ("2.22" -> "dois vírgula dois dois"), so callers must scope
+    this check to integral values -- which is what the oversized-number path
+    deals with anyway.
     """
     words = spoken.split()
     return any(a == b for a, b in zip(words, words[1:]))
@@ -623,7 +634,7 @@ def pronounce_number(number: Union[int, float], lang: str,
                      short_scale: Optional[bool] = None,  # DEPRECATED
                      scientific: bool = False,
                      ordinals: bool = False,
-                     digits: DigitPronunciation = DigitPronunciation.FULL_NUMBER,
+                     digits: Optional[DigitPronunciation] = None,
                      gender: GrammaticalGender = GrammaticalGender.MASCULINE,
                      scale: Optional[Scale] = None) -> str:
     """
@@ -676,6 +687,15 @@ def pronounce_number(number: Union[int, float], lang: str,
     # every language so no per-language path has to convert it to an integer.
     if isinstance(number, float) and math.isinf(number):
         return _pronounce_infinity(number, lang)
+    # How a language conventionally reads the digits after the decimal marker
+    # is a property of the language, not of the caller: Spanish and Catalan
+    # read them one by one ("tres coma uno cuatro") while Portuguese composes
+    # them ("três vírgula catorze"). `digits=None` means "use the language's
+    # convention"; an explicit value always wins.
+    if digits is None:
+        digits = _DEFAULT_DIGIT_PRONUNCIATION.get(
+            _base_lang(lang), DigitPronunciation.FULL_NUMBER)
+
     # Round to the spoken precision before dispatch so every backend speaks a
     # rounded value instead of a truncated one (see _round_for_speech).
     number = _round_for_speech(number, places)
@@ -697,7 +717,8 @@ def pronounce_number(number: Union[int, float], lang: str,
     # of large numbers are checked: a digit-by-digit rendering repeats words
     # legitimately, and Kabyle's finite ceiling is a documented contract.
     if abs(number) >= 10 ** 15 and not lang.startswith("kab") \
-            and not scientific and digits == DigitPronunciation.FULL_NUMBER:
+            and not scientific and (isinstance(number, int)
+                                    or float(number).is_integer()):
         # padded scale words are never a reading, so always replace them
         if _has_padded_scale_words(spoken):
             return _pronounce_bignum_fallback(number, lang, places)
@@ -719,7 +740,7 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("bg"):
         return pronounce_number_bg(number, places, short_scale, scientific, ordinals)
     if lang.startswith("ca"):
-        return CA.pronounce_number(number, places, scale, ordinals, gender=gender)
+        return CA.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("ast"):
         return AST.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("oc"):
@@ -733,11 +754,11 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("de"):
         return pronounce_number_de(number, places, short_scale, scientific, ordinals)
     if lang.startswith("gl"):
-        return pronounce_number_gl(number, places)
+        return GL.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("el"):
         return pronounce_number_el(number, places, scientific, ordinals)
     if lang.startswith("es"):
-        return pronounce_number_es(number, places)
+        return ES.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("eu"):
         return pronounce_number_eu(number, places)
     if lang.startswith("et"):
@@ -747,6 +768,10 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("fi"):
         return pronounce_number_fi(number, places, short_scale, scientific, ordinals)
     if lang.startswith("fr"):
+        # NOT routed through FR: the shared engine has no tens entry for
+        # 70/80/90, which French builds by composition ("soixante-dix",
+        # "quatre-vingts"). Until the engine models vigesimal tens, the
+        # legacy path is the correct reading and `digits` stays unused here.
         return pronounce_number_fr(number, places)
     if lang.startswith("he"):
         return pronounce_number_he(number, places, scientific, ordinals)
@@ -761,6 +786,9 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("tr"):
         return pronounce_number_tr(number, places, short_scale, scientific, ordinals)
     if lang.startswith("it"):
+        # NOT routed through IT: the engine spaces the tens ("venti cinque")
+        # where Italian elides them ("venticinque"). Legacy path until the
+        # engine handles elision, so `digits` stays unused here.
         return pronounce_number_it(number, places, short_scale, scientific)
     if lang.startswith("kab"):
         return pronounce_number_kab(number, places, ordinals, gender)
