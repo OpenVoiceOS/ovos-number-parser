@@ -295,9 +295,24 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
         if not c:
             return False
         try:
-            return extract_number(c, lang) is not False
+            if extract_number(c, lang) is False:
+                return False
         except NotImplementedError:
             return False
+        # extract_number finds a number *inside* a token, so a numeral glued to
+        # an ordinary word ("10-segundos") would otherwise be replaced whole and
+        # the word lost. A hyphenated token only counts as one number when every
+        # part is itself a numeral or a joiner ("vint-i-un", "quatre-vingt-dix").
+        if "-" in c.strip("-"):
+            for part in c.split("-"):
+                if not part or part in connectors:
+                    continue
+                try:
+                    if extract_number(part, lang) is False:
+                        return False
+                except NotImplementedError:
+                    return False
+        return True
 
     out = []
     i = 0
