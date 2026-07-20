@@ -785,6 +785,13 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
     # if result[0:11] == 'unomiliardi':
     # result = result.replace('unomiliardi', 'un miliardo', 1)
 
+    # Every compound of "tre" carries a written acute accent on the final
+    # syllable: ventitré, trentatré, centotré, duemilatré. Accademia della
+    # Crusca, consulenza 1077 "Quarantaquattro gatti ...": "I composti di tre
+    # si scrivono più correttamente con l'accento". The standalone "tre" (3)
+    # takes none, so only a "tre" that ends a longer word is accented.
+    result = re.sub(r"(?<=[a-zàèéìòù])tre\b", "tré", result)
+
     # Deal with fractional part
     if not num == int(num) and places > 0:
         if abs(num) < 1.0 and (result == "meno " or not result):
