@@ -7,13 +7,13 @@ class TestDanishPronounce(unittest.TestCase):
     """Anchors for spoken Danish numbers."""
 
     def test_pronounce_number(self):
-        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elleve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'ethundrede', 101: 'ethundredeet', 123: 'ethundredetreogtyve', 200: 'tohundrede', 500: 'femhundrede', 999: 'nihundredenioghalvfems', 1000: 'ettusinde', 2000: 'totusinde', 2023: 'totusindetreogtyve', 1000000: 'en million ', 2000000: 'to millioner '}
+        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elleve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'hundrede', 101: 'hundrede og et', 123: 'hundrede og treogtyve', 200: 'to hundrede', 500: 'fem hundrede', 999: 'ni hundrede og nioghalvfems', 1000: 'tusind', 2000: 'to tusinde', 2023: 'to tusinde treogtyve', 1000000: 'en million', 2000000: 'to millioner'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="da"), spoken)
 
     def test_pronounce_negative_and_decimal(self):
-        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: ' komma fem nul nul'}
+        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: 'komma fem nul nul'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="da"), spoken)
@@ -58,13 +58,13 @@ class TestDanishExtract(unittest.TestCase):
     """Anchors for extracting numbers from Danish text."""
 
     def test_extract_number(self):
-        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elleve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'ethundrede', 101: 'ethundredeet', 123: 'ethundredetreogtyve', 200: 'tohundrede', 500: 'femhundrede', 999: 'nihundredenioghalvfems', 1000: 'ettusinde', 2000: 'totusinde', 2023: 'totusindetreogtyve', 1000000: 'en million ', 2000000: 'to millioner '}
+        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elleve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'hundrede', 101: 'hundrede og et', 123: 'hundrede og treogtyve', 200: 'to hundrede', 500: 'fem hundrede', 999: 'ni hundrede og nioghalvfems', 1000: 'tusind', 2000: 'to tusinde', 2023: 'to tusinde treogtyve', 1000000: 'en million', 2000000: 'to millioner'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="da"), number)
 
     def test_extract_negative_and_decimal(self):
-        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: ' komma fem nul nul'}
+        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: 'komma fem nul nul'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="da"), number)
