@@ -36,11 +36,22 @@ _NUM_STRING_EU = {
     "hirurehun": 300,
     "laurehun": 400,
     "bostehun": 500,
+    "seiehun": 600,
+    "zazpiehun": 700,
+    "zortziehun": 800,
+    "bederatziehun": 900,
+    # legacy "-rehun" spellings still accepted on input for back-compat
     "seirehun": 600,
     "zazpirehun": 700,
     "zortzirehun": 800,
     "bederatzirehun": 900,
-    "mila": 1000}
+    "mila": 1000,
+    # Basque is a long-scale language (Euskaltzaindia Araua 7, "Zenbakien
+    # idazkeraz", 1994): 10^6 = milioi, 10^9 has no single word and is spoken
+    # "mila milioi" (thousand-million), 10^12 = bilioi, 10^18 = trilioi.
+    "milioi": 1000000,
+    "bilioi": 1000000000000,
+    "trilioi": 1000000000000000000}
 
 NUM_STRING_EU = {
     0: 'zero',
@@ -76,10 +87,10 @@ NUM_STRING_EU = {
     300: 'hirurehun',
     400: 'laurehun',
     500: 'bostehun',
-    600: 'seirehun',
-    700: 'zazpirehun',
-    800: 'zortzirehun',
-    900: 'bederatzirehun',
+    600: 'seiehun',
+    700: 'zazpiehun',
+    800: 'zortziehun',
+    900: 'bederatziehun',
     1000: 'mila'
 }
 
@@ -171,68 +182,190 @@ def nice_number_eu(number, speech=True, denominators=range(1, 21)):
     return strNumber
 
 
+# Vigesimal (base-20) cardinal composer.
+#
+# Basque tens are built on ``hogei`` (20), ``berrogei`` (40 = 2x20),
+# ``hirurogei`` (60 = 3x20) and ``laurogei`` (80 = 4x20); 30/50/70/90 are the
+# preceding twenty *plus ten* (``hogeita hamar`` = 20-and-10 = 30). The
+# copulative ``eta`` ("and") joins groups and contracts to ``-ta`` on the
+# twenties (``hogeita hamaika`` = 31). Spelled verbatim / composed from the
+# rules in Euskaltzaindia Araua 7 ("Zenbakien idazkeraz", 1994).
+_AND_EU = "eta"
+
+_TWENTIES_EU = {1: "hogei", 2: "berrogei", 3: "hirurogei", 4: "laurogei"}
+
+
+def _under_100_eu(n):
+    if n < 20:
+        return NUM_STRING_EU[n]
+    twenties, rem = divmod(n, 20)
+    head = _TWENTIES_EU[twenties]
+    if rem == 0:
+        return head
+    # ``eta`` contracts to ``-ta`` on the twenty head (hogei+eta -> hogeita),
+    # but the "ten" stays a separate word (Araua 7: hogeita hamar, never
+    # *hogeitamar).
+    return f"{head}ta {NUM_STRING_EU[rem]}"
+
+
+def _under_1000_eu(n):
+    if n < 100:
+        return _under_100_eu(n)
+    hundreds, rem = divmod(n, 100)
+    head = NUM_STRING_EU[100] if hundreds == 1 else NUM_STRING_EU[hundreds * 100]
+    if rem == 0:
+        return head
+    return f"{head} {_AND_EU} {_under_100_eu(rem)}"
+
+
+def _join_rem_eu(rem):
+    # Araua 7 ("Oharrak"): ``eta`` links the last two chunks but drops when a
+    # lower remainder follows the hundreds -- ``mila eta berrehun`` (1200) vs
+    # ``mila berrehun eta bi`` (1202). ``eta`` is inserted only when the
+    # remainder is a single terminal chunk (below 100, or a bare hundreds
+    # multiple); a remainder carrying its own internal ``eta`` is juxtaposed.
+    if rem < 100 or rem % 100 == 0:
+        return f"{_AND_EU} {_spell_cardinal_eu(rem)}"
+    return _spell_cardinal_eu(rem)
+
+
+def _spell_cardinal_eu(n):
+    """Spell a non-negative integer as a Basque cardinal (vigesimal)."""
+    if n == 0:
+        return NUM_STRING_EU[0]
+    if n < 1000:
+        return _under_1000_eu(n)
+    # Long scale (Araua 7): milioi 10^6, bilioi 10^12, trilioi 10^18. 10^9 has
+    # no distinct word -- it falls out of the milioi branch as a count of one
+    # thousand, spelled "mila milioi".
+    for divisor, word in ((10 ** 18, "trilioi"), (10 ** 12, "bilioi"),
+                          (10 ** 6, "milioi")):
+        if n >= divisor:
+            count, rem = divmod(n, divisor)
+            # "a million" is "milioi bat"; N million is "<N> milioi", where the
+            # count is composed recursively so 1000 million reads "mila milioi".
+            head = f"{word} {NUM_STRING_EU[1]}" if count == 1 \
+                else f"{_spell_cardinal_eu(count)} {word}"
+            return head if rem == 0 else f"{head} {_join_rem_eu(rem)}"
+    # thousands
+    thousands, rem = divmod(n, 1000)
+    # 1000 is bare "mila", not "*bat mila"
+    head = NUM_STRING_EU[1000] if thousands == 1 \
+        else f"{_under_1000_eu(thousands)} {NUM_STRING_EU[1000]}"
+    return head if rem == 0 else f"{head} {_join_rem_eu(rem)}"
+
+
 def pronounce_number_eu(num, places=2):
     """
-    Convert a number to it's spoken equivalent
+    Convert a number to its spoken Basque equivalent.
 
-    For example, '5.2' would return 'bost koma bi'
+    For example, '5.2' would return 'bost koma bi'. Integers are composed with
+    the vigesimal ``eta`` rule of Euskaltzaindia Araua 7 ("Zenbakien
+    idazkeraz", 1994), which defines Basque as a long-scale system: ``milioi``
+    is 10^6, ``bilioi`` is 10^12 and ``trilioi`` is 10^18, while 10^9 has no
+    distinct word and is spoken ``mila milioi`` (thousand-million). The
+    fractional part is read digit by digit after ``koma``; magnitudes small
+    enough to round away at ``places`` decimals and integer-valued floats
+    (including scientific-notation values) are rendered without the koma tail.
 
     Args:
-        num(float or int): the number to pronounce (under 100)
+        num(float or int): the number to pronounce
         places(int): maximum decimal places to speak
     Returns:
         (str): The pronounced number
     """
-    if abs(num) >= 10000:
-        # TODO: Soporta a números por encima de 1000
-        return str(num)
-
     result = ""
     if num < 0:
         result = "minus "
     num = abs(num)
 
-    thousands = int(num - int(num) % 1000)
-    _num = num - thousands
-    hundreds = int(_num - int(_num) % 100)
-    _num = _num - hundreds
-    tens = int(_num - _num % 10)
-    ones = int(_num - tens)
+    whole = int(num)
+    result += _spell_cardinal_eu(whole)
 
-    if thousands > 0:
-        if thousands > 1000:
-            result += NUM_STRING_EU[int(thousands / 1000)] + ' '
-        result += NUM_STRING_EU[1000]
-        if hundreds > 0 and tens == 0 and ones == 0:
-            result += ' eta '
-        elif hundreds > 0 or tens > 0 or ones > 0:
-            result += ' '
-    if hundreds > 0:
-        result += NUM_STRING_EU[hundreds]
-        if tens > 0 or ones > 0:
-            result += ' eta '
-    if tens or ones:
-        if tens == 0 or tens == 10 or ones == 0:
-            result += NUM_STRING_EU[int(_num)]
-        else:
-            if (tens % 20) == 10:
-                ones = ones + 10
-            result += NUM_STRING_EU[int(tens)].split(' ')[0].replace("ta", "") + str("ta ") + NUM_STRING_EU[int(ones)]
-    if abs(num) < 1.0:
-        result += NUM_STRING_EU[0]
-    # Deal with decimal part, in basque is commonly used the comma
-    # instead the dot. Decimal part can be written both with comma
-    # and dot, but when pronounced, its pronounced "koma"
+    # Deal with decimal part; in Basque the comma is commonly used instead of
+    # the dot, and when pronounced it is read as "koma".
     if not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "minus " or not result):
-            result += NUM_STRING_EU[0]
-        result += " koma"
-        _num_str = str(num)
-        _num_str = _num_str.split(".")[1][0:places]
-        for char in _num_str:
-            result += " " + NUM_STRING_EU[int(char)]
+        # Fixed-point formatting avoids scientific notation (e.g. ``1e-09``),
+        # which has no fractional part to split and would otherwise crash;
+        # trailing zeros left by rounding are dropped so tiny magnitudes that
+        # round to the whole part carry no empty ``koma`` tail.
+        _num_str = f"{num:.{places}f}".split(".")[1].rstrip("0")
+        if _num_str:
+            result += " koma"
+            for char in _num_str:
+                result += " " + NUM_STRING_EU[int(char)]
 
     return result
+
+
+# Ordinals: the suffix is ``-garren``; 1st is suppletive (``lehenengo`` /
+# ``lehen``) and ``bost`` drops its ``t`` before the suffix (``bosgarren``, not
+# *bostgarren). Spelled / ruled in Euskaltzaindia Araua 18 ("Ordinalen eta
+# banatzaileen idazkera", 1994).
+_ORDINAL_SUFFIX_EU = "garren"
+
+ORDINAL_BASE_EU = {
+    1: "lehenengo",
+    2: "bigarren",
+    3: "hirugarren",
+    4: "laugarren",
+    5: "bosgarren",
+    6: "seigarren",
+    7: "zazpigarren",
+    8: "zortzigarren",
+    9: "bederatzigarren",
+    10: "hamargarren",
+}
+
+
+def _ordinalize_word_eu(word):
+    if word.endswith("bost"):
+        word = word[:-1]  # bost -> bos (bosgarren)
+    return f"{word}{_ORDINAL_SUFFIX_EU}"
+
+
+def pronounce_ordinal_eu(num):
+    """
+    Convert an integer to its spoken Basque ordinal (``-garren``).
+
+    1-10 use the attested table (1st suppletive ``lehenengo``). Above ten the
+    suffix attaches to the cardinal's final element, with the euphonic
+    ``bost`` -> ``bos`` drop (``hamabost`` -> ``hamabosgarren``).
+
+    Raises:
+        ValueError: for negative numbers, which have no ordinal form.
+    """
+    num = int(num)
+    if num < 0:
+        raise ValueError(f"Basque ordinals are not defined for {num}")
+    if num in ORDINAL_BASE_EU:
+        return ORDINAL_BASE_EU[num]
+    words = _spell_cardinal_eu(num).split()
+    words[-1] = _ordinalize_word_eu(words[-1])
+    return " ".join(words)
+
+
+# both suppletive forms for "first" are attested; pronunciation emits
+# lehenengo, extraction accepts either
+_ORDINAL_VARIANTS_EU = {"lehen": 1}
+
+
+def is_ordinal_eu(input_str):
+    """Return the number an ordinal string denotes, or False."""
+    s = input_str.lower().strip()
+    if s in _ORDINAL_VARIANTS_EU:
+        return _ORDINAL_VARIANTS_EU[s]
+    for value, word in ORDINAL_BASE_EU.items():
+        if s == word:
+            return value
+    if s.endswith(_ORDINAL_SUFFIX_EU):
+        stem = s[:-len(_ORDINAL_SUFFIX_EU)]
+        if stem.endswith("bos"):
+            stem += "t"  # bos- -> bost for lookup
+        val = extract_number_eu(stem)
+        if val is not False:
+            return val
+    return False
 
 
 def is_fractional_eu(input_str):
@@ -245,6 +378,7 @@ def is_fractional_eu(input_str):
         (bool) or (float): False if not a fraction, otherwise the fraction
 
     """
+    input_str = input_str.lower()
     if input_str.endswith('s', -1):
         input_str = input_str[:len(input_str) - 1]  # e.g. "fifths"
 
@@ -254,198 +388,183 @@ def is_fractional_eu(input_str):
              "bederatziren": 9, "bederatzirena": 9, "hamarren": 10, "hamarrena": 10,
              "hamaikaren": 11, "hamaikarena": 11, "hamabiren": 12, "hamabirena": 12}
 
-    if input_str.lower() in aFrac:
+    if input_str in aFrac:
         return 1.0 / aFrac[input_str]
-    if (input_str == "hogeiren" or input_str == "hogeirena"):
+    if input_str in ("hogeiren", "hogeirena"):
         return 1.0 / 20
-    if (input_str == "hogeita hamarren" or input_str == "hogeita hamarrena"):
+    if input_str in ("hogeita hamarren", "hogeita hamarrena"):
         return 1.0 / 30
-    if (input_str == "ehunen" or input_str == "ehunena"):
+    if input_str in ("ehunen", "ehunena"):
         return 1.0 / 100
-    if (input_str == "milaren" or input_str == "milarena"):
+    if input_str in ("milaren", "milarena"):
         return 1.0 / 1000
     return False
+
+
+# Scale words that flush the accumulated group; everything else (units,
+# teens, the vigesimal twenties and the lexical hundreds) adds into the
+# current group, because Basque composes tens and hundreds additively:
+# "berrehun eta berrogeita hamasei" = 200 + (40 + 16) = 256 (Euskaltzaindia
+# Araua 7, "Zenbakien idazkeraz", 1994).
+_SCALES_EU = (1000, 10 ** 6, 10 ** 12, 10 ** 18)
+
+
+def _word_value_eu(word):
+    """Value of a single Basque cardinal token, or None.
+
+    Handles the vigesimal ``-ta`` joiner form of the twenties: ``hogeita``
+    (from ``hogei`` 20), ``berrogeita`` (40), ``hirurogeita`` (60) and
+    ``laurogeita`` (80), which are written joined to the following ten/unit
+    (Araua 7).
+    """
+    if word in _NUM_STRING_EU:
+        return _NUM_STRING_EU[word]
+    if word.endswith("ta"):
+        stem = word[:-2]
+        if stem in _NUM_STRING_EU and _NUM_STRING_EU[stem] in (20, 40, 60, 80):
+            return _NUM_STRING_EU[stem]
+    return None
 
 
 # TODO: short_scale and ordinals don't do anything here.
 # The parameters are present in the function signature for API compatibility
 # reasons.
-#
-# Returns incorrect output on certain fractional phrases like, "cuarto de dos"
 def extract_number_eu(text, short_scale=True, ordinals=False):
     """
-    This function prepares the given text for parsing by making
-    numbers consistent, getting rid of contractions, etc.
+    Extract the first number from Basque text.
+
+    Basque cardinals are vigesimal and compose additively: the twenties
+    (``hogei``, ``berrogei``, ``hirurogei``, ``laurogei``) and the lexical
+    hundreds (``berrehun`` 200 ...) join their remainders with ``eta``, and a
+    trailing scale word multiplies the whole preceding group ("berrehun eta
+    berrogeita hamasei mila" = (200 + 56) x 1000 = 256000). The composition is
+    that of Euskaltzaindia Araua 7 ("Zenbakien idazkeraz", 1994), which
+    defines Basque as a long-scale system: ``milioi`` is 10^6, ``bilioi`` is
+    10^12 and ``trilioi`` is 10^18, and 10^9 is the composed ``mila milioi``
+    (thousand-million) rather than a distinct word. ``milioi``, ``bilioi`` and
+    ``trilioi`` take the head-final "bat" idiom for a count of one ("milioi
+    bat" = 1000000).
+
     Args:
         text (str): the string to normalize
     Returns:
-        (int) or (float): The value of extracted number
-
+        (int) or (float): The value of extracted number, or False
     """
     aWords = text.lower().split()
     negative = False
-    while aWords and aWords[0] in ['minus', 'ken']:
+    while aWords and aWords[0] in ('minus', 'ken'):
         negative = True
         aWords = aWords[1:]
-    count = 0
-    result = None
-    while count < len(aWords):
-        val = 0
-        word = aWords[count]
-        next_next_word = None
-        if count + 1 < len(aWords):
-            next_word = aWords[count + 1]
-            if count + 2 < len(aWords):
-                next_next_word = aWords[count + 2]
-        else:
-            next_word = None
 
-        # is current word a number?
-        if word in _NUM_STRING_EU:
-            val = _NUM_STRING_EU[word]
-        elif word.endswith("ta") and word[:-2] in _NUM_STRING_EU and \
-                _NUM_STRING_EU[word[:-2]] in (20, 40, 60, 80):
-            # vigesimal joiner: "hogeita bat" = 20 + 1,
-            # "berrogeita hamar" = 40 + 10
-            val = _NUM_STRING_EU[word[:-2]]
-            if next_word is not None and \
-                    _NUM_STRING_EU.get(next_word, 100) < 20:
-                val += _NUM_STRING_EU[next_word]
-                aWords[count + 1] = ""
-                next_word = next_next_word
-        elif word.isdigit():  # doesn't work with decimals
-            val = int(word)
-        elif is_numeric(word):
-            val = float(word)
-        elif is_fractional_eu(word):
-            if next_word in _NUM_STRING_EU:
-                # erdi bat, heren bat, etab
-                result = _NUM_STRING_EU[next_word]
-                # hurrengo hitza (bat, bi, ...) salto egin
-                next_word = None
-                count += 2
-            elif not result:
-                result = 1
-                count += 1
-            result = result * is_fractional_eu(word)
+    decimals = ('puntu', 'koma', '.', ',')
+    total = 0          # sum of flushed scale groups
+    current = 0        # value being built for the current scale group
+    result = None      # explicit result (decimal / fraction), overrides total
+    got_number = False
+    idx = 0
+    n = len(aWords)
+    while idx < n:
+        word = aWords[idx]
+
+        if word == 'eta':          # copulative joiner, carries no value
+            idx += 1
             continue
 
-        if not val:
-            # look for fractions like "2/3"
-            aPieces = word.split('/')
-            # if (len(aPieces) == 2 and is_numeric(aPieces[0])
-            #   and is_numeric(aPieces[1])):
-            if look_for_fractions(aPieces):
-                val = float(aPieces[0]) / float(aPieces[1])
-
-        if val:
-            if result is None:
-                result = 0
-            # handle fractions
-            if next_word == "en" or next_word == "ren":
-                result = float(result) / float(val)
-            elif val in (100, 1000, 1000000) and result:
-                # scale word multiplies what came before ("bi mila")
-                result = result * val
-            else:
-                power = 10
-                merged = False
-                while result and power <= result:
-                    if result % power == 0 and val < power:
-                        # lower-magnitude continuation
-                        # ("bi mila hogeita hiru" -> 2000 + 23)
-                        result = result + val
-                        merged = True
-                        break
-                    power *= 10
-                if not merged:
-                    result = val
-
-        if next_word is None:
-            break
-
-        # number word and fraction
-        ands = ["eta"]
-        if next_word in ands:
-            zeros = 0
-            if result is None:
-                count += 1
-                continue
-            newWords = aWords[count + 2:]
-            newText = ""
-            for word in newWords:
-                newText += word + " "
-
-            afterAndVal = extract_number_eu(newText[:-1])
-            if afterAndVal:
-                if result < afterAndVal or result < 20:
-                    while afterAndVal > 1:
-                        afterAndVal = afterAndVal / 10.0
-                    for word in newWords:
-                        if word == "zero" or word == "0":
-                            zeros += 1
-                        else:
-                            break
-                for _ in range(0, zeros):
-                    afterAndVal = afterAndVal / 10.0
-                result += afterAndVal
-                break
-        elif next_next_word is not None:
-            if next_next_word in ands and next_word not in _NUM_STRING_EU:
-                newWords = aWords[count + 3:]
-                newText = ""
-                for word in newWords:
-                    newText += word + " "
-                afterAndVal = extract_number_eu(newText[:-1])
-                if afterAndVal:
-                    if result is None:
-                        result = 0
-                    result += afterAndVal
-                    break
-
-        decimals = ["puntu", "koma", ".", ","]
-        if next_word in decimals:
-            zeros = 0
-            newWords = aWords[count + 2:]
-            newText = ""
-            for word in newWords:
-                newText += word + " "
-            for word in newWords:
-                if word == "zero" or word == "0":
-                    zeros += 1
-                else:
-                    break
-            # read the decimal tail digit by digit ("uno cuatro" -> .14)
+        if word in decimals and got_number:
+            # read the decimal tail digit by digit ("koma bat lau" -> .14)
             digits = ""
-            for word in newWords:
-                if word.isdigit():
-                    digits += word
-                elif word in _NUM_STRING_EU and _NUM_STRING_EU[word] < 10:
-                    digits += str(_NUM_STRING_EU[word])
+            j = idx + 1
+            while j < n:
+                w = aWords[j]
+                if w.isdigit():
+                    digits += w
                 else:
-                    break
+                    dv = _word_value_eu(w)
+                    if dv is not None and dv < 10:
+                        digits += str(dv)
+                    else:
+                        break
+                j += 1
             if digits:
-                afterDotVal = digits
-            else:
-                afterDotVal = str(extract_number_eu(newText[:-1]))
-                afterDotVal = zeros * "0" + afterDotVal
-            result = float(str(result or 0) + "." + afterDotVal)
+                result = float(f"{total + current}.{digits}")
+                idx = j
             break
-        count += 1
 
-    # Return the $str with the number related words removed
-    # (now empty strings, so strlen == 0)
-    # aWords = [word for word in aWords if len(word) > 0]
-    # text = ' '.join(aWords)
-    if "." in str(result):
-        integer, dec = str(result).split(".")
-        # cast float to int
-        if dec == "0":
-            result = int(integer)
+        val = _word_value_eu(word)
+        if val is not None:
+            got_number = True
+            if val in _SCALES_EU:
+                if val == 1000:
+                    # thousands stay in the current group so a following
+                    # million-scale word multiplies them too, which is how the
+                    # long-scale 10^9 is built: "mila milioi" = 1000 x 10^6.
+                    current = (current or 1) * val
+                else:
+                    # long-scale million and up (milioi 10^6, bilioi 10^12,
+                    # trilioi 10^18) flush a finished group into the total.
+                    current = (current or 1) * val
+                    # a bare scale word carries the count-of-one idiom
+                    # "<scale> bat" ("milioi bat" = 1000000); consume the bat
+                    if current == val and idx + 1 < n \
+                            and aWords[idx + 1] == 'bat':
+                        idx += 1
+                    total += current
+                    current = 0
+            else:
+                current += val
+            idx += 1
+            continue
 
-    if negative and result is not None and result is not False:
+        if word.isdigit():
+            current += int(word)
+            got_number = True
+            idx += 1
+            continue
+
+        if is_numeric(word):
+            result = float(word)
+            got_number = True
+            idx += 1
+            break
+
+        aPieces = word.split('/')
+        if look_for_fractions(aPieces):
+            result = float(aPieces[0]) / float(aPieces[1])
+            got_number = True
+            idx += 1
+            break
+
+        frac = is_fractional_eu(word)
+        if frac:
+            base = (total + current) if got_number else 1
+            if not got_number and idx + 1 < n:
+                nxt = _word_value_eu(aWords[idx + 1])
+                if nxt is not None:
+                    # "erdi bat", "bi heren"
+                    base = nxt
+                    idx += 1
+            result = base * frac
+            got_number = True
+            idx += 1
+            break
+
+        # unrecognised token: skip leading junk until a number begins, but
+        # stop once the running number is interrupted by non-number text
+        if got_number:
+            break
+        idx += 1
+
+    if result is None:
+        if not got_number:
+            return False
+        result = total + current
+
+    if isinstance(result, float) and result.is_integer():
+        result = int(result)
+
+    if negative:
         result = -result
-    return result or False
+    return result if result is not False else False
 
 
 # TODO Not parsing 'cero'
@@ -533,27 +652,3 @@ def eu_number_parse(words, i):
         return None
 
     return eu_number(i)
-
-
-def pronounce_ordinal_eu(number):
-    """
-    Pronounce a number as a Basque ordinal.
-
-    Basque ordinals add the suffix "-garren" to the cardinal; "first" is the
-    irregular "lehen".
-
-    Args:
-        number (int): the number to pronounce
-    Returns:
-        (str): the ordinal in Basque
-    """
-    number = int(number)
-    if number <= 0:
-        raise ValueError("Basque ordinals start at 1")
-    if number == 1:
-        return "lehen"
-    cardinal = pronounce_number_eu(number)
-    # final -t of "bost" assimilates before the suffix
-    if cardinal.endswith("bost"):
-        cardinal = cardinal[:-1]
-    return cardinal + "garren"

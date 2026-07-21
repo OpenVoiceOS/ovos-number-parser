@@ -5,10 +5,22 @@ import warnings
 
 
 def swap_gender_mwl(word: str, gender: GrammaticalGender) -> str:
+    # in composite forms only the final element agrees in gender
+    # ("bint'i quatro" -> "bint'i quatro", "bint'i un" -> "bint'i ũa")
+    if " " in word:
+        head, _, tail = word.rpartition(" ")
+        return f"{head} {swap_gender_mwl(tail, gender)}"
+
+    invariant = {"zero", "quatro", "cinco", "uito", "cien", "ciento",
+                 "mil", "milhon", "bilion", "trilion", "quadrilion",
+                 "quintilion", "sextilion"}
+    if word in invariant:
+        # most mirandese cardinals do not inflect for gender
+        return word
     if word.endswith("un") and gender == GrammaticalGender.FEMININE:
         return word[:-2] + "ũa"
     elif word.endswith("ũa") and gender == GrammaticalGender.MASCULINE:
-        return word[:-2] + "ũa"
+        return word[:-2] + "un"
     elif word == "dous" and gender == GrammaticalGender.FEMININE:
         return "dues"
     elif word == "dues" and gender == GrammaticalGender.MASCULINE:

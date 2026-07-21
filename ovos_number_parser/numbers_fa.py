@@ -17,10 +17,10 @@ _FRACTION_STRING_FA = {
     12: 'دوازدهم',
     13: 'سیزدهم',
     14: 'چهاردهم',
-    15: 'پونزدهم',
-    16: 'شونزدهم',
-    17: 'هیفدهم',
-    18: 'هیجدهم',
+    15: 'پانزدهم',
+    16: 'شانزدهم',
+    17: 'هفدهم',
+    18: 'هجدهم',
     19: 'نوزدهم',
     20: 'بیستم'
 }
@@ -41,10 +41,10 @@ _FARSI_ONES = [
     "دوازده",
     "سیزده",
     "چهارده",
-    "پونزده",
-    "شونزده",
-    "هیفده",
-    "هیجده",
+    "پانزده",
+    "شانزده",
+    "هفده",
+    "هجده",
     "نوزده",
 ]
 
@@ -83,11 +83,15 @@ _FARSI_BIG = [
     "تریلیارد",
 ]
 
-_FORMAL_VARIANT = {
-    'هفده': 'هیفده',
-    'هجده': 'هیجده',
-    'شانزده': 'شونزده',
-    'پانزده': 'پونزده',
+# accept the Tehrani colloquial spellings on input and normalise them to the
+# standard written forms used for output (پانزده, شانزده, هفده, هجده). Standard
+# forms per Persian dictionaries; see ویراستاران "عددنویسی", archived under
+# papers/linguistics/fa/.
+_COLLOQUIAL_VARIANT = {
+    'هیفده': 'هفده',
+    'هیجده': 'هجده',
+    'شونزده': 'شانزده',
+    'پونزده': 'پانزده',
 }
 
 _FARSI_FRAC = ["", "ده", "صد"]
@@ -102,14 +106,15 @@ class NumberVariantFA(IntEnum):
 
 def _is_number(s):
     try:
-        float(s)
-        return True
+        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
+        # string) carries no usable number and must not be treated as one
+        return math.isfinite(float(s))
     except ValueError:
         return False
 
 
 def _parse_sentence(text):
-    for key, value in _FORMAL_VARIANT.items():
+    for key, value in _COLLOQUIAL_VARIANT.items():
         text = text.replace(key, value)
     ar = text.split()
     result = []
@@ -169,7 +174,8 @@ def _parse_sentence(text):
         elif x in _FARSI_BIG:
             current_words.append(x)
             d = _FARSI_BIG.index(x)
-            if mode == 'init' and d == 1:
+            if s == 0:
+                # a bare scale word ("... و هزار") means one of that scale
                 s = 1
             s *= 10 ** (3 * d)
             current_number += s
@@ -383,7 +389,7 @@ def _to_cardinal(number, places):
         return "صفر"
     x, y, l = _float2tuple(number, places)
     if y == 0:
-        return _cardinalPos(x)
+        return _cardinalPos(x) or "صفر"
     if x == 0:
         return _fractional(y, l)
     return _cardinalPos(x) + _FARSI_SEPERATOR + _fractional(y, l)
@@ -424,6 +430,9 @@ def pronounce_number_fa(number, places=2, scientific=False,
                     abs(float(n)), places, False, ordinals=False),
                 'منفی ' if power < 0 else '',
                 pronounce_number_fa(abs(power), places, False, ordinals=False))
+        return '{}{}'.format(
+            'منفی ' if float(n) < 0 else '',
+            pronounce_number_fa(abs(float(n)), places, False, ordinals=False))
     if ordinals:
         return _to_ordinal(number)
     return _to_cardinal(number, places)

@@ -556,12 +556,16 @@ class TestIsNumeric(unittest.TestCase):
         self.assertTrue(is_numeric("1E0"))
 
     def test_is_numeric_special_float_values(self):
-        """Test is_numeric with special float values."""
-        self.assertTrue(is_numeric("inf"))
-        self.assertTrue(is_numeric("-inf"))
-        self.assertTrue(is_numeric("nan"))
-        self.assertTrue(is_numeric("infinity"))
-        self.assertTrue(is_numeric("-infinity"))
+        """Non-finite tokens carry no usable number and are rejected."""
+        self.assertFalse(is_numeric("inf"))
+        self.assertFalse(is_numeric("-inf"))
+        self.assertFalse(is_numeric("nan"))
+        self.assertFalse(is_numeric("infinity"))
+        self.assertFalse(is_numeric("-infinity"))
+        # a digit string that overflows float to inf is still an exact integer
+        self.assertTrue(is_numeric("9" * 400))
+        # scientific notation that overflows to inf is not a usable number
+        self.assertFalse(is_numeric("1e309"))
 
     def test_is_numeric_non_numeric_strings(self):
         """Test is_numeric with non-numeric strings."""
@@ -644,11 +648,17 @@ class TestLookForFractions(unittest.TestCase):
         self.assertFalse(look_for_fractions(["1", "2", "3", "4"]))  # Too long
 
     def test_look_for_fractions_edge_cases(self):
-        """Test look_for_fractions with edge cases."""
-        self.assertTrue(look_for_fractions(["0", "0"]))  # Zero fraction
-        self.assertTrue(look_for_fractions(["inf", "1"]))  # Infinity (is_numeric returns True)
-        self.assertTrue(look_for_fractions(["1", "inf"]))  # Infinity denominator
-        self.assertTrue(look_for_fractions(["nan", "1"]))  # NaN (is_numeric returns True)
+        """A non-finite side is not a usable number, so it is not a fraction."""
+        self.assertFalse(look_for_fractions(["inf", "1"]))  # infinity numerator
+        self.assertFalse(look_for_fractions(["1", "inf"]))  # infinity denominator
+        self.assertFalse(look_for_fractions(["nan", "1"]))  # NaN numerator
+
+    def test_look_for_fractions_zero_denominator(self):
+        """A zero denominator is not a fraction; callers divide by it."""
+        self.assertFalse(look_for_fractions(["1", "0"]))
+        self.assertFalse(look_for_fractions(["0", "0"]))
+        self.assertFalse(look_for_fractions(["5", "0.0"]))
+        self.assertTrue(look_for_fractions(["0", "5"]))  # zero numerator is fine
 
     def test_look_for_fractions_mixed_valid_invalid(self):
         """Test look_for_fractions with mixed valid/invalid combinations."""

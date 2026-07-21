@@ -262,7 +262,7 @@ def generate_plurals_cs(originals):
 
 
 # negate next number (-2 = 0 - 2)
-_NEGATIVES = {"záporné", "mínus"}
+_NEGATIVES = {"záporné", "mínus", "minus"}
 
 # sum the next number (twenty two = 20 + 2)
 _SUMS = {'dvacet', '20', 'třicet', '30', 'čtyřicet', '40', 'padesát', '50',
@@ -578,6 +578,7 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
     val = False
     prev_val = None
     next_val = None
+    negative = False
     to_sum = []
     for idx, token in enumerate(tokens):
         current_val = None
@@ -587,7 +588,8 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
 
         word = token.word
         # if word in _ARTICLES_CS or word in _NEGATIVES:
-        if word in word in _NEGATIVES:
+        if word in _NEGATIVES:
+            negative = True
             number_words.append(token)
             continue
 
@@ -689,7 +691,12 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
         if word in multiplies:
             if not prev_val:
                 prev_val = 1
-            val = prev_val * val
+                val = prev_val * val
+            elif current_val is not None and current_val > prev_val:
+                # ascending scale word multiplies ("dvě stě" = 2 * 100)
+                val = prev_val * val
+            # a descending scale word ("tisíc sto" = 1000 + 100) has already
+            # been summed above; multiplying here would corrupt the value
 
         # is this a spoken fraction?
         # half cup
@@ -706,9 +713,8 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
                 val = val * next_val
                 number_words.append(tokens[idx + 1])
 
-        # is this a negative number?
-        if val and prev_word and prev_word in _NEGATIVES:
-            val = 0 - val
+        # the sign is applied once to the whole number after parsing,
+        # so no per-token negation happens here
 
         # let's make sure it isn't a fraction
         if not val:
@@ -730,7 +736,7 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
                 break
             prev_val = val
 
-            if word in multiplies and next_word not in multiplies:
+            if word in multiplies:
                 # handle long numbers
                 # six hundred sixty six
                 # two million five hundred thousand
@@ -803,6 +809,8 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
 
     if val is not None and to_sum:
         val += sum(to_sum)
+    if negative and val not in (None, False):
+        val = -val
 
     return val, number_words
 
@@ -840,6 +848,15 @@ def extract_number_cs(text, short_scale=True, ordinals=False):
     handles pronunciations in long scale and short scale
 
     https://en.wikipedia.org/wiki/Names_of_large_numbers
+
+    Numeral structure follows the Internetová jazyková příručka of the
+    Ústav pro jazyk český AV ČR (§791, "Členění čísel, víceslovné číslovkové
+    výrazy"): a spelled-out number splits into groups written as separate
+    words (tisíc devět set sedmdesát dva), where million groups multiply the
+    group before them and the thousand and hundred groups form their own
+    additive portions. Each such group is set aside and summed independently,
+    so a millions group followed by a hundred-thousands group accumulates
+    correctly.
 
     Args:
         text (str): the string to normalize
@@ -1047,6 +1064,10 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
 
     For example, '5.2' would return 'five point two'
 
+    Word forms follow the Internetová jazyková příručka of the Ústav pro jazyk
+    český AV ČR (§791): each numeral group is spoken as separate words, so the
+    output round-trips through extract_number_cs.
+
     Args:
         num(float or int): the number to pronounce (under 100)
         places(int): maximum decimal places to speak
@@ -1109,40 +1130,9 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
         result = "záporné " if scientific else "mínus "
     num = abs(num)
 
-    if not ordinals:
-        try:
-            # deal with 4 digits
-            # usually if it's a 4 digit num it should be said like a date
-            # i.e. 1972 => nineteen seventy two
-            if len(str(num)) == 4 and isinstance(num, int):
-                _num = str(num)
-                # deal with 1000, 2000, 2001, 2100, 3123, etc
-                # is skipped as the rest of the
-                # functin deals with this already
-                if _num[1:4] == '000' or _num[1:3] == '00' or int(_num[0:2]) >= 20:
-                    pass
-                # deal with 1900, 1300, etc
-                # i.e. 1900 => nineteen hundred
-                elif _num[2:4] == '00':
-                    first = number_names[int(_num[0:2])]
-                    last = number_names[100]
-                    return first + " " + last
-                # deal with 1960, 1961, etc
-                # i.e. 1960 => nineteen sixty
-                #      1961 => nineteen sixty one
-                else:
-                    first = number_names[int(_num[0:2])]
-                    if _num[3:4] == '0':
-                        last = number_names[int(_num[2:4])]
-                    else:
-                        second = number_names[int(_num[2:3]) * 10]
-                        last = second + " " + number_names[int(_num[3:4])]
-                    return first + " " + last
-        # exception used to catch any unforseen edge cases
-        # will default back to normal subroutine
-        except Exception as e:
-            # TODO this probably shouldn't go to stdout
-            print('ERROR: Exception in pronounce_number_cs: {}' + repr(e))
+    # Czech does not group years into digit pairs the way English does
+    # ("nineteen seventy two"); numbers are spoken with full scale words
+    # ("tisíc devět set sedmdesát dva"), handled by the routine below.
 
     # check for a direct match
     if num in number_names and not ordinals:

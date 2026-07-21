@@ -94,8 +94,12 @@ readings.
 
 ## Known gaps
 
-- `hu` and `sl` have `pronounce_number` but no `extract_number` yet.
-- `fr`, `it`, `eu`, `fa` have no `numbers_to_digits` yet.
+These are cases where the generic parity fallback (see below) is in use and
+its result is rougher than a dedicated implementation would be — the call still
+returns, it is just less polished:
+
+- `fr`, `it`, `eu`, `fa` and other languages marked `·` for `numbers_to_digits`
+  in the README matrix rely on the generic span-replacement fallback.
 - Polish extraction does not merge `tysiąc` groups written with the singular
   form (`jeden tysiąc jeden`); plural forms (`dwa tysiące trzy`) work.
 - Czech pronounces four-digit numbers date-style (`1234` →

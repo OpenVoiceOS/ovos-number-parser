@@ -433,22 +433,34 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
                     else:
                         hundreds_text = _SHORT_SCALE_PL[float(pow(1000, i))]
                         if z != 1:
-                            _, z_mod = divmod(z, 10)
-                            _, z_mod_tens = divmod(z, 100)
-                            n_main, _ = divmod(z_mod_tens, 10)
+                            z_mod = z % 10
+                            z_tens = (z % 100) // 10
+                            # Polish agreement: a quantity ending in 2, 3 or 4
+                            # -- but NOT 12, 13, 14 -- takes the nominative
+                            # plural ("dwa tysiące", "dwadzieścia dwa
+                            # tysiące"). Everything else takes the genitive
+                            # plural ("pięć tysięcy", and crucially anything
+                            # ending in 1 above one: "dwadzieścia jeden
+                            # tysięcy", not "... tysiące"). Standard grammar
+                            # (zpe.gov.pl "Odmiana liczebnika i zaimka").
+                            nominative_plural = z_tens != 1 and 2 <= z_mod <= 4
                             if i == 1:
-                                if n_main != 1 and 5 > z_mod > 0:
-                                    hundreds_text += "e"
-                                else:
-                                    hundreds_text = "tysięcy"
+                                hundreds_text = hundreds_text + "e" \
+                                    if nominative_plural else "tysięcy"
                             elif i > 1:
-                                hundreds_text += "y" if 5 > z_mod > 0 else "ów"
-
+                                hundreds_text += "y" if nominative_plural \
+                                    else "ów"
+                        else:
+                            # "one thousand" is just "tysiąc", never
+                            # "jeden tysiąc" -- the count word is dropped for a
+                            # single scale unit
+                            number = ""
                         number += hundreds_text
                 res.append(number)
                 ordi = False
 
-            return ", ".join(reversed(res))
+            # groups are spoken with a space, not a comma ("tysiąc sto")
+            return " ".join(reversed(res))
 
         def _split_by(n, split=1000):
             assert 0 <= n
@@ -536,7 +548,8 @@ _NEGATIVES = {"ujemne", "minus"}
 _SUMS = {'dwadzieścia', '20', 'trzydzieści', '30', 'czterdzieści', '40', 'pięćdziesiąt', '50',
          'sześćdziesiąt', '60', 'siedemdziesiąt', '70', 'osiemdziesiąt', '80', 'dziewięćdziesiąt', '90'}
 
-_MULTIPLIES_SHORT_SCALE_PL = generate_plurals_pl(_SHORT_SCALE_PL.values())
+_MULTIPLIES_SHORT_SCALE_PL = generate_plurals_pl(_SHORT_SCALE_PL.values()) | \
+    {word for value, word in _SHORT_SCALE_PL.items() if value >= 1000}
 
 # split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
 _FRACTION_MARKER = {'i'}
@@ -789,14 +802,14 @@ def _extract_decimal_with_text_pl(tokens, short_scale, ordinals):
                 _prev_end = _num.end_index
             if len(_digits) > 1:
                 _frac = float("0." + _digits)
-                return (number.value - _frac if number.value < 0
+                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES for _t in number.tokens))
                         else number.value + _frac), \
                     number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
                 _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if number.value < 0
+                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES for _t in number.tokens))
                         else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
@@ -826,6 +839,7 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
     val = False
     prev_val = None
     next_val = None
+    negative = False
     to_sum = []
     for idx, token in enumerate(tokens):
         current_val = None
@@ -843,6 +857,11 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
             word = word[:-1]
 
         word = normalize_word_pl(word)
+
+        if word in _NEGATIVES:
+            negative = True
+            number_words.append(token)
+            continue
 
         if word not in string_num_scale and \
                 word not in _STRING_NUM_PL and \
@@ -901,6 +920,8 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
             _mag = abs(prev_val)
             if (prev_word in string_num_ordinal and val and val < _mag) or \
                     (prev_word in _STRING_NUM_PL and val and val < _mag and val // 10 != _mag // 10) or \
+                    (prev_word in string_num_scale and val and val < _mag
+                     and next_word not in multiplies) or \
                     all([prev_word in multiplies, val < _mag]):
                 # keep the sign: "minus czterdzieści dwa" = -(40 + 2)
                 val = prev_val - val if prev_val < 0 else prev_val + val
@@ -924,9 +945,8 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
                 val *= next_val
                 number_words.append(tokens[idx + 1])
 
-        # is this a negative number?
-        if val and prev_word and prev_word in _NEGATIVES:
-            val = 0 - val
+        # the sign is applied once to the whole number after parsing, so no
+        # per-token negation happens here
 
         if next_word in _STRING_NUM_PL:
             prev_val = val
@@ -937,7 +957,7 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
             aPieces = word.split('/')
             if look_for_fractions(aPieces):
                 val = float(aPieces[0]) / float(aPieces[1])
-                number_words.append(tokens[idx + 1])
+                current_val = val
         else:
             if all([
                 prev_word in _SUMS,
@@ -1023,6 +1043,9 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
 
     if val is not None and to_sum:
         val += sum(to_sum)
+
+    if negative and val not in (None, False):
+        val = -val
 
     return val, number_words
 

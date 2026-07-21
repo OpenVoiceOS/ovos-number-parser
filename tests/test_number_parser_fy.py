@@ -45,6 +45,11 @@ class TestWestFrisianPronounce(unittest.TestCase):
             with self.subTest(number=number):
                 self.assertEqual(pronounce_ordinal(number, lang="fy"), spoken)
 
+    def test_pronounce_ordinal_zero(self):
+        # zeroth previously raised KeyError in the compound branch; it now
+        # takes the regular suffix like the sibling Dutch "nulste"
+        self.assertEqual(pronounce_ordinal(0, lang="fy"), "nulste")
+
 
 class TestWestFrisianExtract(unittest.TestCase):
     """Anchors for extracting numbers from West Frisian text."""
@@ -100,6 +105,15 @@ class TestWestFrisianRoundTrip(unittest.TestCase):
 
     def test_round_trip_negative_and_decimal(self):
         for number in [-7, -42, 2.5, 3.14, -3.5, 0.5]:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="fy")
+                self.assertEqual(extract_number(spoken, lang="fy"), number)
+
+    def test_round_trip_negative_millions_with_remainder(self):
+        # the negative marker only reaches the first scale group, so the
+        # trailing groups of "min ... miljoen ..." must still inherit the sign
+        for number in [-1500000, -1225280, -2540830, -5443013, -6634040,
+                       -1001710]:
             with self.subTest(number=number):
                 spoken = pronounce_number(number, lang="fy")
                 self.assertEqual(extract_number(spoken, lang="fy"), number)

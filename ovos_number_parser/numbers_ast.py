@@ -130,8 +130,13 @@ _AST = NumberVocabulary(
         10 ** 3: "mil"
     },
     LONG_SCALE={
+        10 ** 3: "mil",
         10 ** 6: "millón",
-        10 ** 3: "mil"
+        10 ** 12: "billón",
+        10 ** 18: "trillón",
+        10 ** 24: "cuatrillón",
+        10 ** 30: "quintillón",
+        10 ** 36: "sextillón",
     },
 
     GENDERED_SPELLINGS={

@@ -89,6 +89,7 @@ _RO = NumberVocabulary(
     # "de" links counts of twenty and above to their scale word
     # ("douăzeci de mii") and is dropped during extraction
     JOIN_WORD=["și", "de"],
+    MULTIPLICATIVE_JOIN_WORD=["de"],
     JOINER_ON_TWENTYS=True,  # "douăzeci și unu"
     JOINER_ON_HUNDREDS=False,  # "o sută douăzeci" - no joiner after hundreds
     JOINER_ON_HUNDRED_PARTICLE=False,

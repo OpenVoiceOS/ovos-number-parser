@@ -1,4 +1,5 @@
-from math import floor
+import re
+from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
                                      ReplaceableNumber, Token, look_for_fractions)
@@ -91,7 +92,7 @@ _NUM_STRING_DA = {
     8: 'otte',
     9: 'ni',
     10: 'ti',
-    11: 'elve',
+    11: 'elleve',
     12: 'tolv',
     13: 'tretten',
     14: 'fjorten',
@@ -103,9 +104,9 @@ _NUM_STRING_DA = {
     20: 'tyve',
     30: 'tredive',
     40: 'fyrre',
-    50: 'halvtres',
+    50: 'halvtreds',
     60: 'tres',
-    70: 'halvfjers',
+    70: 'halvfjerds',
     80: 'firs',
     90: 'halvfems',
     100: 'hundrede',
@@ -176,6 +177,10 @@ _LONG_SCALE = {
 _MULTIPLIER = set(_LONG_SCALE.values())
 
 _STRING_LONG_SCALE = invert_dict(_LONG_SCALE)
+# "tusind" is the count word for 1000 (Retskrivningsordbogen); "tusinde" also
+# occurs. Both must parse, so register the bare form alongside the inverted map.
+_STRING_LONG_SCALE['tusind'] = 1000
+_MULTIPLIER.add('tusind')
 
 # ending manipulation
 for number, item in _LONG_SCALE.items():
@@ -183,6 +188,35 @@ for number, item in _LONG_SCALE.items():
         name = item + 'er'
         _MULTIPLIER.add(name)
         _STRING_LONG_SCALE[name] = number
+
+# Base morphemes for splitting spaceless Danish compounds. Danish writes a
+# whole number below a million as one word, so a hundreds group and its scale
+# word run together ("ethundredeettusinde" = 101 * 1000). Splitting must use
+# atoms and never precomposed forms such as "ettusinde" (= 1*1000) or
+# "ethundrede" (= 100): a greedy longest match on those swallows the connecting
+# unit, so "ethundredeettusinde" would split as "ethundrede" + "ettusinde"
+# (100 + 1000 = 100000) and lose the 101. On atoms it splits as
+# et + hundrede + et + tusinde and keeps the 101.
+_DA_ATOM_VALUES = {
+    'nul': 0, 'en': 1, 'et': 1, 'to': 2, 'tre': 3, 'fire': 4, 'fem': 5,
+    'seks': 6, 'syv': 7, 'otte': 8, 'ni': 9, 'ti': 10, 'elve': 11,
+    'elleve': 11, 'tolv': 12, 'tretten': 13, 'fjorten': 14, 'femten': 15,
+    'seksten': 16, 'sytten': 17, 'atten': 18, 'nitten': 19, 'tyve': 20,
+    'tredive': 30, 'fyrre': 40, 'halvtres': 50, 'halvtreds': 50, 'tres': 60,
+    'halvfjers': 70, 'halvfjerds': 70, 'firs': 80, 'halvfems': 90,
+}
+# The vigesimal-derived tens (halvtreds = 50, tres = 60, halvfjerds = 70,
+# firs = 80, halvfems = 90) are atoms in their own right; the ones digit is
+# spoken first and joined with "og" ("fireogtyve" = 4 og 20 = 24).
+_DA_SCALE_VALUES = {'hundrede': 100, 'hunderede': 100,
+                    'tusinde': 1000, 'tusind': 1000}
+for _scale_number, _scale_word in _LONG_SCALE.items():
+    if int(_scale_number) >= 1000000:
+        _DA_SCALE_VALUES[_scale_word] = _scale_number
+        _DA_SCALE_VALUES[_scale_word + 'er'] = _scale_number
+
+_DA_SPLIT_KEYS = sorted(set(_DA_ATOM_VALUES) | set(_DA_SCALE_VALUES),
+                        key=len, reverse=True)
 
 _FRACTION_MARKER = set()
 
@@ -213,46 +247,53 @@ def is_ordinal_da(input_str):
         (bool) or (float): False if not an ordinal, otherwise the number
         corresponding to the ordinal
 
-    ordinals for 1, 3, 7 and 8 are irregular
+    ordinals for 0-19 are irregular (see pronounce_ordinal_da)
 
-    only works for ordinals corresponding to the numbers in _DA_NUMBERS
-
+    for candidates covering 20-99, first tries the fast _DA_NUMBERS lookup,
+    falling back to extract_number_da (which already understands arbitrary
+    "X og Y" compounds like "toogtredive") for compounds not individually
+    listed in _DA_NUMBERS
     """
+
+    def _cardinal_value(word):
+        if word in _DA_NUMBERS:
+            return _DA_NUMBERS[word]
+        n = extract_number_da(word)
+        if isinstance(n, bool):
+            return None
+        if isinstance(n, (int, float)):
+            return n
+        return None
 
     lowerstr = input_str.lower()
 
-    if lowerstr.startswith("første"):
-        return 1
-    if lowerstr.startswith("anden"):
-        return 2
-    if lowerstr.startswith("tredie"):
-        return 3
-    if lowerstr.startswith("fjerde"):
-        return 4
-    if lowerstr.startswith("femte"):
-        return 5
-    if lowerstr.startswith("sjette"):
-        return 6
-    if lowerstr.startswith("elfte"):
-        return 1
-    if lowerstr.startswith("tolvfte"):
-        return 12
+    irregular = {
+        "nulte": 0, "første": 1, "anden": 2,
+        "tredje": 3, "tredie": 3,
+        "fjerde": 4, "femte": 5, "sjette": 6, "syvende": 7, "ottende": 8,
+        "niende": 9, "tiende": 10,
+        "ellevte": 11,
+        "tolvte": 12, "tolvfte": 12,  # "tolvfte" kept for older input
+        "trettende": 13, "fjortende": 14, "femtende": 15, "sekstende": 16,
+        "syttende": 17, "attende": 18, "nittende": 19,
+    }
+    if lowerstr in irregular:
+        return irregular[lowerstr]
+
+    if lowerstr.endswith("te"):
+        value = _cardinal_value(lowerstr[:-2] + "e")
+        if value is not None:
+            return value
 
     if lowerstr[-3:] == "nde":
-        # from 20 suffix is -ste*
-        lowerstr = lowerstr[:-3]
-        if lowerstr in _DA_NUMBERS:
-            return _DA_NUMBERS[lowerstr]
+        value = _cardinal_value(lowerstr[:-3])
+        if value is not None:
+            return value
 
-    if lowerstr[-4:] in ["ende"]:
-        lowerstr = lowerstr[:-4]
-        if lowerstr in _DA_NUMBERS:
-            return _DA_NUMBERS[lowerstr]
-
-    if lowerstr[-2:] == "te":  # below 20 suffix is -te*
-        lowerstr = lowerstr[:-2]
-        if lowerstr in _DA_NUMBERS:
-            return _DA_NUMBERS[lowerstr]
+    if lowerstr[-4:] == "ende":
+        value = _cardinal_value(lowerstr[:-4])
+        if value is not None:
+            return value
 
     return False
 
@@ -303,6 +344,14 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
 
     For example, '5.2' would return 'five point two'
 
+    Danish writes a whole number below a million as a single spaceless word and
+    uses the vigesimal-derived tens prescribed by Dansk Sprognævn, svarbase
+    SV00000047 "De danske tal; halvtreds"
+    (https://sproget.dk/raad-og-regler/artikler-mv/svarbase/sv00000047/):
+    halvtreds (50), tres (60), halvfjerds (70), firs (80), halvfems (90), each a
+    shortened -sindstyve ("times twenty") form. The ones digit precedes the tens
+    and is joined with "og" ("fireogtyve" = 24).
+
     Args:
         number(float or int): the number to pronounce (under 100)
         places(int): maximum decimal places to speak
@@ -323,12 +372,24 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
         if num > 99:
             hundreds = floor(num / 100)
             if hundreds > 0:
-                if hundreds == 1:
-                    result += 'et' + 'hundrede' + _EXTRA_SPACE_DA
-                else:
-                    result += _NUM_STRING_DA[hundreds] + \
-                              'hundrede' + _EXTRA_SPACE_DA
+                # 100 is "hundrede", never "et hundrede": Retskrivningsordbogen
+                # gives "hundrede" as the correct form (sproget.dk, Politikens
+                # sprogklumme "Den 101. dalmatiner moeder den 101. stryger":
+                # "en helt fjerde form, hundrede, er den korrekte form ifoelge
+                # Retskrivningsordbogen"). Numerals above 100 are also written
+                # as separate words -- "talord over 100 [...] deles op i
+                # modsaetning til talord under 100" -- so the hundreds group is
+                # spaced ("fem tusinde ni hundrede og treoghalvtreds"), while
+                # everything below 100 stays a single fused word.
+                if hundreds > 1:
+                    result += _NUM_STRING_DA[hundreds] + ' '
+                result += 'hundrede'
                 num -= hundreds * 100
+                if num > 0:
+                    # "og" links the hundreds to the remainder; the same source
+                    # marks it optional ("hundred(e) (og) syttende"), and it is
+                    # the conventional written form
+                    result += ' og '
         if num == 0:
             result += ''  # do nothing
         elif num == 1:
@@ -375,13 +436,18 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
                 else:
                     result += "en"
             elif scale_level == 1:
-                result += 'et' + _EXTRA_SPACE_DA + 'tusinde' + _EXTRA_SPACE_DA
+                # 1000 is "tusind", not "et tusinde": Retskrivningsordbogen
+                # gives "tusind" as the count word (a bare "tusinde" also
+                # occurs, but the "et" prefix is not written)
+                result += 'tusind '
             else:
                 result += "en " + _NUM_POWERS_OF_TEN[scale_level] + ' '
         elif last_triplet > 1:
             result += pronounce_triplet_da(last_triplet)
             if scale_level == 1:
-                result += 'tusinde' + _EXTRA_SPACE_DA
+                # a space so the thousands stay a separate word from the
+                # hundreds below them ("fem tusinde ni hundrede ...")
+                result += ' tusinde '
             if scale_level >= 2:
                 result += ' ' + _NUM_POWERS_OF_TEN[scale_level]
             if scale_level >= 2:
@@ -401,7 +467,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
         return "minus " + pronounce_number_da(abs(number), places)
     else:
         if number == int(number):
-            return pronounce_whole_number_da(number)
+            return re.sub(r'\s+', ' ', pronounce_whole_number_da(number)).strip()
         else:
             whole_number_part = floor(number)
             fractional_part = number - whole_number_part
@@ -409,7 +475,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             if places > 0:
                 result += " komma"
                 result += pronounce_fractional_da(fractional_part, places)
-            return result
+            return re.sub(r'\s+', ' ', result).strip()
 
 
 def pronounce_ordinal_da(number):
@@ -425,30 +491,32 @@ def pronounce_ordinal_da(number):
         (str): The pronounced number string.
     """
 
-    # ordinals for 1, 3, 7 and 8 are irregular
+    # ordinals 0-19 are irregular (11/12 use a -te suffix on a truncated
+    # stem, 13-19 use -de not -ende since the cardinal already ends "-en")
     # this produces the base form, it will have to be adapted for genus,
     # casus, numerus
 
-    ordinals = ["nulte", "første", "anden", "tredie", "fjerde", "femte",
-                "sjette", "syvende", "ottende", "niende", "tiende"]
+    # ellevte, tolvte, trettende, fjortende, femtende, sekstende,
+    # syttende, attende, nittende
+
+    ordinals = ["nulte", "første", "anden", "tredje", "fjerde", "femte",
+                "sjette", "syvende", "ottende", "niende", "tiende",
+                "ellevte", "tolvte", "trettende", "fjortende", "femtende",
+                "sekstende", "syttende", "attende", "nittende"]
 
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
-    if number < 10:
+    if number < 20:
         return ordinals[number]
-    if number < 30:
-        if pronounce_number_da(number)[-1:] == 'e':
-            return pronounce_number_da(number) + "nde"
-        else:
-            return pronounce_number_da(number) + "ende"
-    if number < 40:
-        return pronounce_number_da(number) + "fte"
-    else:
-        if pronounce_number_da(number)[-1:] == 'e':
-            return pronounce_number_da(number) + "nde"
-        else:
-            return pronounce_number_da(number) + "ende"
+    if 30 <= number < 40:
+        # tredive -> tredivte, enogtredive -> enogtredivte: drop the
+        # trailing unstressed -e and add -te (distinct from the plain
+        # +ende suffix used everywhere else)
+        return pronounce_number_da(number)[:-1] + "te"
+    # 20-29 and 40+ both just append the cardinal's usual +nde/+ende
+    cardinal = pronounce_number_da(number)
+    return cardinal + ("nde" if cardinal[-1:] == 'e' else "ende")
 
 
 def numbers_to_digits_da(text, short_scale=False,
@@ -611,10 +679,13 @@ def _extract_real_number_with_text_da(tokens, short_scale):
             if _val is not None:
                 to_sum.append(_val)
             if to_sum:
-                if to_sum[0] < 0:
-                    val = to_sum[0] - sum(to_sum[1:])
-                else:
-                    val = sum(to_sum)
+                # a leading "minus" negates the whole magnitude even when the
+                # sign never reached the summed parts, as with a scaled group
+                # ("minus en million" -> the product is 1000000, not -1000000
+                # until the marker is reapplied here)
+                magnitude = sum(abs(part) for part in to_sum)
+                val = -magnitude if any(t.word in _NEGATIVES
+                                        for t in number_words) else magnitude
 
             if number_words and (not all([w in _ARTICLES | _NEGATIVES
                                           | _NUMBER_CONNECTORS for w in words_only])
@@ -689,11 +760,12 @@ def _extract_real_number_with_text_da(tokens, short_scale):
             _val = _current_val = None
 
         if not next_word and number_words:
-            if to_sum and to_sum[0] < 0:
-                # negated number: components extend the magnitude
-                val = to_sum[0] - sum(to_sum[1:])
+            if to_sum:
+                magnitude = sum(abs(part) for part in to_sum)
+                val = -magnitude if any(t.word in _NEGATIVES
+                                        for t in number_words) else magnitude
             else:
-                val = sum(to_sum) if to_sum else _val
+                val = _val
 
     return val, number_words
 
@@ -792,23 +864,23 @@ def _split_compound_number_da(word):
     Split a Danish compound number word into its component number words.
 
     "toogfyrre" -> ["to", "og", "fyrre"]
-    "nihundredenioghalvfems" -> ["nihundrede", "ni", "og", "halvfems"]
+    "ethundredeettusinde" -> ["et", "hundrede", "et", "tusinde"]
+
+    Splitting is on base atoms and scale morphemes, so a connecting unit digit
+    between a hundreds group and its scale word is preserved instead of being
+    swallowed by a precomposed form.
 
     Returns None if the word is not composed purely of known number words.
     """
     if word in _DA_NUMBERS:
         return None
-    keys = sorted(set(_DA_NUMBERS) | set(_STRING_LONG_SCALE),
-                  key=len, reverse=True)
     parts, rest = [], word
     while rest:
         if rest.startswith("og") and parts:
-            candidate = rest[2:]
-            if any(candidate.startswith(k) for k in keys):
-                parts.append("og")
-                rest = candidate
-                continue
-        for k in keys:
+            parts.append("og")
+            rest = rest[2:]
+            continue
+        for k in _DA_SPLIT_KEYS:
             if rest.startswith(k):
                 parts.append(k)
                 rest = rest[len(k):]
@@ -819,24 +891,98 @@ def _split_compound_number_da(word):
 
 
 def _compound_value_da(parts):
-    """Evaluate the numeric value of a split compound number word."""
+    """Evaluate the numeric value of a split compound number word.
+
+    A scale morpheme multiplies the group built so far: "hundrede" scales the
+    running hundreds group, while "tusinde" and larger bank the product and
+    open a fresh group, so "et hundrede et tusinde" evaluates 101 * 1000.
+    """
     total = current = 0
     for p in parts:
         if p == "og":
             continue
-        v = _DA_NUMBERS.get(p)
+        v = _DA_ATOM_VALUES.get(p)
+        is_scale = False
         if v is None:
-            v = _STRING_LONG_SCALE.get(p)
+            v = _DA_SCALE_VALUES.get(p)
+            is_scale = True
         if v is None:
             return None
-        if v >= 1000:
+        if is_scale and v >= 1000:
             total += max(current, 1) * v
             current = 0
-        elif v == 100:
+        elif is_scale and v == 100:
             current = max(current, 1) * 100
         else:
             current += v
     return total + current
+
+
+#: hundred and thousand compose additively across words; larger scales keep
+#: the token combiner's existing path
+_FOLDABLE_SCALES_DA = {'hundrede': 100, 'hunderede': 100,
+                       'tusinde': 1000, 'tusind': 1000}
+
+
+def _fold_scale_groups_da(text):
+    """Collapse a spelled hundreds/thousands group into one integer token.
+
+    Dansk Sprognaevn writes numerals above 100 as separate words -- "fem
+    tusinde ni hundrede og treoghalvtreds" (5953) -- so the value is spread
+    over several tokens joined by "og". The token combiner did not compose
+    these additively across a scale word, so "tusinde fem hundrede" read as
+    1000 with the 500 dropped. This pass walks each run of number words,
+    hundreds and thousands and the connecting "og", and replaces the run with
+    its summed value. Runs are left untouched once they reach a million-or-
+    larger scale so those keep their existing, working path, and any
+    non-number token ends the run so surrounding text is preserved.
+    """
+    toks = text.split()
+    out = []
+    i = 0
+    while i < len(toks):
+        result = current = 0
+        saw = saw_scale = False
+        j = i
+        while j < len(toks):
+            w = toks[j]
+            if w in _FOLDABLE_SCALES_DA:
+                mult = _FOLDABLE_SCALES_DA[w]
+                if mult == 100:
+                    current = (current or 1) * 100
+                else:
+                    result += (current or 1) * 1000
+                    current = 0
+                saw = saw_scale = True
+                j += 1
+                continue
+            # a plain sub-1000 addend extends the run; a million-or-larger
+            # multiplier, a fraction or a non-number ends it. Guard the digit
+            # test against overflow: a several-hundred-digit token is a number
+            # but nowhere near a foldable addend, so reject it before float().
+            if w.lstrip('-').isdigit():
+                val = int(w) if len(w.lstrip('-')) < 4 else None
+            else:
+                val = is_number_da(w)
+            if isinstance(val, (int, float)) and val is not True \
+                    and float(val).is_integer() and 0 <= val < 1000:
+                current += int(val)
+                saw = True
+                j += 1
+                continue
+            if w == 'og' and saw and j + 1 < len(toks):
+                nxt = toks[j + 1]
+                if nxt in _FOLDABLE_SCALES_DA or nxt.lstrip('-').isdigit()                         or is_number_da(nxt) is not None:
+                    j += 1
+                    continue
+            break
+        if saw_scale and j - i > 1:
+            out.append(str(result + current))
+            i = j
+        else:
+            out.append(toks[i])
+            i += 1
+    return " ".join(out)
 
 
 def _expand_compound_numbers_da(text):
@@ -849,12 +995,20 @@ def _expand_compound_numbers_da(text):
             out.append(str(int(value)) if value is not None else w)
         else:
             out.append(w)
-    return " ".join(out)
+    return _fold_scale_groups_da(" ".join(out))
 
 
 def extract_number_da(text, short_scale=False, ordinals=False):
     """
     This function extracts a number from a text string
+
+    Spaceless Danish compounds are split on base atoms and scale morphemes so a
+    unit digit joining a hundreds group to its scale word is preserved
+    ("ethundredeettusinde" = 101 * 1000, not 100 + 1000). The tens follow the
+    vigesimal forms prescribed by Dansk Sprognævn, svarbase SV00000047
+    (https://sproget.dk/raad-og-regler/artikler-mv/svarbase/sv00000047/):
+    halvtreds (50), tres (60), halvfjerds (70), firs (80), halvfems (90); the
+    older -sindstyve spellings are also accepted.
 
     Args:
         text (str): the string to normalize
@@ -875,7 +1029,12 @@ def extract_number_da(text, short_scale=False, ordinals=False):
 
     if not numbers:
         return False
-    number = float(numbers[0].value)
+    try:
+        number = float(numbers[0].value)
+    except (OverflowError, ValueError):
+        return False
+    if not isfinite(number):
+        return False
     if number.is_integer():
         number = int(number)
     return number

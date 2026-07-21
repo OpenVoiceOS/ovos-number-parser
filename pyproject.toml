@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ovos-number-parser"
+description = "OpenVoiceOS's multilingual number parsing and formatting library"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+    { name = "JarbasAI", email = "jarbasai@mailfence.com" },
+]
+keywords = ["numbers", "parsing", "nlp", "multilingual", "ovos"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Text Processing :: Linguistic",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+Homepage = "https://github.com/OpenVoiceOS/ovos-number-parser"
+Source = "https://github.com/OpenVoiceOS/ovos-number-parser"
+Issues = "https://github.com/OpenVoiceOS/ovos-number-parser/issues"
+
+[tool.setuptools]
+packages = ["ovos_number_parser"]
+
+[tool.setuptools.dynamic]
+version = { attr = "ovos_number_parser.version.__version__" }
+dependencies = { file = ["requirements.txt"] }

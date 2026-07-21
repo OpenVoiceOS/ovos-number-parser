@@ -334,8 +334,10 @@ def pronounce_ordinal_fy(number):
     if number in _SHORT_ORDINAL_STRING_FY:
         return _SHORT_ORDINAL_STRING_FY[number]
     # compounds: cardinal + table-driven last element, mirroring the
-    # cardinal compounding ("ienentweintich" -> "ienentweintichste")
-    if number < 100:
+    # cardinal compounding ("ienentweintich" -> "ienentweintichste").
+    # zero has no compound tens element, so it takes the regular suffix
+    # like the sibling Dutch "nulste"
+    if 0 < number < 100:
         ones = number % 10
         tens = number - ones
         return _NUM_STRING_FY[ones] + "en" + _ORDINAL_STRING_BASE_FY[tens]
@@ -566,13 +568,13 @@ def _extract_decimal_with_text_fy(tokens, short_scale, ordinals):
                 _prev_end = _num.end_index
             if len(_digits) > 1:
                 _frac = float("0." + _digits)
-                return (number.value - _frac if number.value < 0
+                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_FY for _t in number.tokens))
                         else number.value + _frac), \
                     number.tokens + partitions[1] + _digit_tokens
 
             if "." not in str(decimal.text):
                 _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if number.value < 0
+                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_FY for _t in number.tokens))
                         else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
@@ -720,7 +722,14 @@ def _extract_whole_number_with_text_fy(tokens, short_scale, ordinals):
                 prev_val = 0
 
     if val is not None and to_sum:
-        val += sum(to_sum)
+        # The negative marker only reaches the first scale group, so a spoken
+        # "min fiif miljoen ..." leaves the trailing groups positive. When the
+        # leading group is negative the whole magnitude is, so recombine the
+        # absolute parts and restore the sign once.
+        if to_sum[0] < 0:
+            val = -(abs(val) + sum(abs(part) for part in to_sum))
+        else:
+            val += sum(to_sum)
 
     return val, number_words
 

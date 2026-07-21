@@ -1,5 +1,5 @@
 from ovos_number_parser.util import (convert_to_mixed_fraction)
-from math import floor
+from math import floor, isfinite
 _NUM_STRING_HU = {
     0: 'nulla',
     1: 'egy',
@@ -188,6 +188,8 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
         result = ''
         last_triplet = num % 1000
 
+        higher_groups = floor(num / 1000) > 0
+
         if last_triplet == 1:
             if scale_level == 0:
                 if result != '':
@@ -195,10 +197,16 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
                 else:
                     result += "egy"
             elif scale_level == 1:
-                result += _EXTRA_SPACE_HU + \
-                          _NUM_POWERS_OF_TEN[1] + _EXTRA_SPACE_HU
+                # a lone thousands group is "ezer" on its own, but "egyezer"
+                # once a higher (million+) group precedes it, and then the
+                # group boundary takes a hyphen like any other above 2000
+                if higher_groups:
+                    result += "egy" + _NUM_POWERS_OF_TEN[1] + '-'
+                else:
+                    result += _EXTRA_SPACE_HU + \
+                        _NUM_POWERS_OF_TEN[1] + _EXTRA_SPACE_HU
             else:
-                result += "egy" + _NUM_POWERS_OF_TEN[scale_level]
+                result += "egy" + _NUM_POWERS_OF_TEN[scale_level] + '-'
         elif last_triplet > 1:
             result += pronounce_triplet_hu(last_triplet)
             if scale_level != 0:
@@ -426,9 +434,10 @@ def extract_number_hu(text, short_scale=True, ordinals=False):
         cleaned = token.replace(',', '.')
         try:
             val = float(cleaned)
-            if val == int(val) and '.' not in cleaned:
-                val = int(val)
-            return -val if negative else val
+            if isfinite(val):
+                if val == int(val) and '.' not in cleaned:
+                    val = int(val)
+                return -val if negative else val
         except ValueError:
             pass
 

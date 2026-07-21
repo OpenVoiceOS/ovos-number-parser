@@ -362,7 +362,14 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
         if num > 99:
             hundreds = floor(num / 100)
             if hundreds > 0:
-                result += _NUM_STRING_NL[hundreds] + _EXTRA_SPACE_NL + 'honderd' + _EXTRA_SPACE_NL
+                # 100 is "honderd", never "eenhonderd": Dutch drops the "een"
+                # before "honderd" and "duizend" (Nederlandse Taalunie,
+                # Taaladvies "Aaneenschrijven van telwoorden": 800 =
+                # "achthonderd", 135 = "honderdvijfendertig"), so the leading
+                # "one" is written only from two hundred up.
+                if hundreds > 1:
+                    result += _NUM_STRING_NL[hundreds] + _EXTRA_SPACE_NL
+                result += 'honderd' + _EXTRA_SPACE_NL
                 num -= hundreds * 100
         if num == 0:
             result += ''  # do nothing
@@ -372,9 +379,19 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             ones = num % 10
             tens = num - ones
             if ones > 0:
-                result += _NUM_STRING_NL[ones] + _EXTRA_SPACE_NL
+                ones_word = _NUM_STRING_NL[ones]
+                result += ones_word + _EXTRA_SPACE_NL
                 if tens > 0:
-                    result += 'en' + _EXTRA_SPACE_NL
+                    # Klinkerbotsing: "twee" and "drie" end in a vowel, so the
+                    # "e" of the joining "en" would be read together with it
+                    # ("tweeen"). Taaladvies.net (Nederlandse Taalunie), entry
+                    # "Klinkerbotsing": the ambiguity is resolved by separating
+                    # the vowels with a trema "in afleidingen en samengestelde
+                    # telwoorden" -- compound numerals are an explicit
+                    # exception to the hyphen used in ordinary compounds, and
+                    # "tweeentwintig" is cited there as "tweeëntwintig".
+                    joiner = 'ën' if ones_word.endswith(('e', 'ie')) else 'en'
+                    result += joiner + _EXTRA_SPACE_NL
             if tens > 0:
                 result += _NUM_STRING_NL[tens] + _EXTRA_SPACE_NL
         return result
@@ -407,8 +424,12 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             if scale_level == 0:
                 result += "een"
             elif scale_level == 1:
-                result += 'een' + _EXTRA_SPACE_NL + 'duizend' + _EXTRA_SPACE_NL
+                # 1000 is "duizend", not "eenduizend" (same Taalunie rule)
+                result += 'duizend' + _EXTRA_SPACE_NL
             else:
+                # from a million up the count word IS written ("één miljoen"):
+                # here "een" would read as the article "a million", so the
+                # accented "één" marks the numeral
                 result += "één " + _NUM_POWERS_OF_TEN[scale_level] + ' '
         elif last_triplet > 1:
             result += pronounce_triplet_nl(last_triplet)
@@ -707,14 +728,14 @@ def _extract_decimal_with_text_nl(tokens, short_scale, ordinals):
                 _prev_end = _num.end_index
             if len(_digits) > 1:
                 _frac = float("0." + _digits)
-                return (number.value - _frac if number.value < 0
+                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_NL for _t in number.tokens))
                         else number.value + _frac), \
                     number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
                 _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if number.value < 0
+                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_NL for _t in number.tokens))
                         else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
@@ -869,7 +890,14 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
                 prev_val = 0
 
     if val is not None and to_sum:
-        val += sum(to_sum)
+        # The negative marker only reaches the first scale group, so a spoken
+        # "min vijf miljoen ..." leaves the trailing groups positive. When the
+        # leading group is negative the whole magnitude is, so recombine the
+        # absolute parts and restore the sign once.
+        if to_sum[0] < 0:
+            val = -(abs(val) + sum(abs(part) for part in to_sum))
+        else:
+            val += sum(to_sum)
 
     return val, number_words
 
@@ -935,6 +963,11 @@ def _compound_value_nl(parts, short_scale=True):
     """Evaluate the numeric value of a split compound number word."""
     scale = _SHORT_SCALE_NL if short_scale else _LONG_SCALE_NL
     string_scale = invert_dict(scale)
+    # "tweeëneenhalf" == "twee en een half" == 2.5: the "een" before "half"
+    # is the article "a", not an extra unit to add
+    parts = [p for i, p in enumerate(parts)
+             if not (p == "een" and i + 1 < len(parts)
+                     and parts[i + 1] == "half")]
     total = current = 0
     for p in parts:
         if p == "en":

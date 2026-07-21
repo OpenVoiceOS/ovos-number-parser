@@ -9,9 +9,10 @@ from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
                                 numbers_to_digits, pronounce_fraction,
                                 pronounce_number, pronounce_ordinal)
 
-LANGS = ["an", "ar", "az", "ast", "ca", "cs", "da", "de", "en", "es", "eu", "fa",
-         "fr", "fy", "gl", "hu", "it", "kab", "mwl", "nl", "oc", "pl", "pt", "ro",
-         "ru", "sl", "sv", "uk"]
+LANGS = ["an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en",
+         "es", "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu",
+         "id", "it", "kab", "ms", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
+         "ro", "ru", "sk", "sl", "sv", "tr", "uk"]
 
 
 class TestLanguageParity(unittest.TestCase):
@@ -141,7 +142,7 @@ class TestPronounceOrdinalAnchors(unittest.TestCase):
                (1000, "tysięczny")],
         "uk": [(1, "перший"), (2, "другий"), (21, "двадцять перший"),
                (100, "сотий"), (200, "двохсотий"), (1000, "тисячний")],
-        "eu": [(1, "lehen"), (2, "bigarren"), (3, "hirugarren"),
+        "eu": [(1, "lehenengo"), (2, "bigarren"), (3, "hirugarren"),
                (4, "laugarren"), (5, "bosgarren"), (10, "hamargarren"),
                (20, "hogeigarren")],
         "fa": [(1, "اول"), (2, "دوم"), (3, "سوم"), (5, "پنجم"),
@@ -160,7 +161,8 @@ class TestPronounceOrdinalAnchors(unittest.TestCase):
                                  f"{lang} {n}")
 
     def test_invalid_ordinals_raise(self):
-        for lang in ("cs", "pl", "uk", "eu", "fa"):
+        # basque forms a zeroth ordinal (zerogarren) rather than rejecting it
+        for lang in ("cs", "pl", "uk", "fa"):
             with self.assertRaises(ValueError, msg=lang):
                 pronounce_ordinal(0, lang)
 

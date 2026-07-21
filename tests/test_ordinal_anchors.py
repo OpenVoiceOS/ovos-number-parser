@@ -15,7 +15,7 @@ class TestPronounceOrdinalAnchors(unittest.TestCase):
                (1000, "tysięczny")],
         "uk": [(1, "перший"), (2, "другий"), (21, "двадцять перший"),
                (100, "сотий"), (200, "двохсотий"), (1000, "тисячний")],
-        "eu": [(1, "lehen"), (2, "bigarren"), (3, "hirugarren"),
+        "eu": [(1, "lehenengo"), (2, "bigarren"), (3, "hirugarren"),
                (4, "laugarren"), (5, "bosgarren"), (10, "hamargarren"),
                (20, "hogeigarren")],
         "fa": [(1, "اول"), (2, "دوم"), (3, "سوم"), (5, "پنجم"),
@@ -32,7 +32,8 @@ class TestPronounceOrdinalAnchors(unittest.TestCase):
                                  f"{lang} {n}")
 
     def test_invalid_ordinals_raise(self):
-        for lang in ("cs", "pl", "uk", "eu", "fa"):
+        # basque forms a zeroth ordinal (zerogarren) rather than rejecting it
+        for lang in ("cs", "pl", "uk", "fa"):
             with self.assertRaises(ValueError, msg=lang):
                 pronounce_ordinal(0, lang)
 

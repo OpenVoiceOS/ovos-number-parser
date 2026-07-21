@@ -1,4 +1,6 @@
+import math
 from dataclasses import dataclass, field
+from decimal import Decimal
 from enum import Enum
 from typing import List, Dict, Union, Any, Tuple, Optional, Callable
 import re
@@ -201,13 +203,20 @@ def is_numeric(input_str: str) -> bool:
         input_str (str): The string to test for numeric value.
 
     Returns:
-        bool: True if the string can be converted to a float, False otherwise.
+        bool: True if the string is a finite number (or a plain integer string,
+            which stays exact even when it exceeds float range), False for a
+            non-finite token such as "inf", "nan" or "1e309".
     """
     try:
-        float(input_str)
-        return True
+        val = float(input_str)
     except ValueError:
         return False
+    if math.isfinite(val):
+        return True
+    # a plain integer string that overflows float to inf is still a usable
+    # number (Python ints are unbounded); a non-finite token such as "inf",
+    # "nan" or "1e309" carries no usable number and must not be treated as one
+    return input_str.strip().lstrip("+-").isdigit()
 
 
 def look_for_fractions(split_list: List[str]) -> bool:
@@ -223,7 +232,9 @@ def look_for_fractions(split_list: List[str]) -> bool:
 
     if len(split_list) == 2:
         if is_numeric(split_list[0]) and is_numeric(split_list[1]):
-            return True
+            # a zero denominator is not a fraction; callers divide by it, so
+            # reject it here rather than raise ZeroDivisionError downstream
+            return float(split_list[1]) != 0
 
     return False
 
@@ -330,8 +341,23 @@ class NumberVocabulary:
     # ("două sute" = 200) instead of being added to them
     MULTIPLY_HUNDREDS: bool = False
 
+    # extraction: a fraction noun always multiplies the preceding cardinal
+    # ("un quarto" = 1/4, "tre quarti" = 3/4) instead of adding to it, even in
+    # its singular form. Languages that also say "e mezzo" ("two and a half")
+    # keep this off so the singular still adds.
+    FRACTIONS_ALWAYS_MULTIPLY: bool = False
+
     # full spelling of "one <scale>" groups when they use an article or a
     # special form of "one" ("o mie", "un milion")
+    #: entries of JOIN_WORD that are *not* additive joiners but partitive or
+    #: multiplicative prepositions, where the value after the word is larger
+    #: than the one before it by design. Romanian inserts "de" before a scale
+    #: above twenty ("douăzeci de mii" = 20 x 1000) and before a fraction's
+    #: base ("jumătate de milion" = half *of* a million), unlike the additive
+    #: "și" ("douăzeci și unu" = 21). Listed here so the descending-joiner rule
+    #: skips them.
+    MULTIPLICATIVE_JOIN_WORD: List[str] = field(default_factory=list)
+
     SCALE_ONE: Dict[int, str] = field(default_factory=dict)
 
     # grammatical gender the count before each scale word agrees with
@@ -478,6 +504,11 @@ class RomanceNumberExtractor:
         Returns:
             int or float: The extracted number if found; otherwise, False.
         """
+        # no text, no number: honour the "no number" sentinel instead of
+        # raising on None or other non-string input
+        if not isinstance(text, str):
+            return False
+
         scale = scale or self.vocab.DEFAULT_SCALE
         numbers_map = self.vocab.get_number_strings(scale)
         ordinals_map = self.vocab.get_ordinal_strings(scale)
@@ -485,13 +516,20 @@ class RomanceNumberExtractor:
 
         # normalize and tokenize
         clean_text = text.lower().replace('-', ' ')
-        tokens = [t for t in clean_text.split() if t not in self.vocab.JOIN_WORD]
+        # the joiner is kept: it is what tells "vinte e um" (21, one number)
+        # apart from "tres e vinte" (3 and 20, two numbers)
+        tokens = clean_text.split()
 
         # a digit token wins if it appears before any spoken number word
         for tok in tokens:
             t = tok.strip(".,!?;:").replace(",", ".")
             if t and t.lstrip("-").replace(".", "", 1).isdigit():
                 val = float(t)
+                # an out-of-range digit token (e.g. "1e309" or a 400-digit
+                # string) overflows to inf/nan; it carries no usable number,
+                # so skip it rather than return a non-finite value
+                if not math.isfinite(val):
+                    continue
                 return int(val) if val.is_integer() else val
             if tok in numbers_map or tok in ordinals_map or tok in scales_map:
                 break
@@ -511,6 +549,22 @@ class RomanceNumberExtractor:
             token = tokens[i]
             if token in self.vocab.NEGATIVE_SIGN:
                 is_negative = True
+                i += 1
+                continue
+
+            if token in self.vocab.JOIN_WORD:
+                if token in self.vocab.MULTIPLICATIVE_JOIN_WORD:
+                    i += 1
+                    continue
+                # Romance additive joiners are strictly descending: the value
+                # after the joiner is smaller than the one before it
+                # ("vinte e um" = 21, "mil e quinhentos" = 1500). An ascending
+                # pair is not one number but two ("tres y veinte" = "3:20"),
+                # so the number ends here.
+                nxt = numbers_map.get(tokens[i + 1]) if i + 1 < len(tokens) else None
+                pending = current or result
+                if saw_number and nxt is not None and pending and nxt >= pending:
+                    break
                 i += 1
                 continue
 
@@ -547,11 +601,25 @@ class RomanceNumberExtractor:
             fraction = self.is_fractional(token)
             if fraction is not False:
                 saw_number = True
-                if token in plural_fractions:
-                    result += (current or 1) * fraction
+                # look past a joiner: the scale a fraction multiplies may sit
+                # behind one ("jumătate de milion" = half a million)
+                nxt_i = i + 1
+                while nxt_i < len(tokens) and tokens[nxt_i] in self.vocab.JOIN_WORD:
+                    nxt_i += 1
+                next_token = tokens[nxt_i] if nxt_i < len(tokens) else None
+                next_val = numbers_map.get(next_token) if next_token else None
+                if token not in plural_fractions and next_val is not None \
+                        and next_val >= 1000:
+                    # a singular fraction before a scale word multiplies that
+                    # scale ("meio milhão" = 500000, "medio millón" = 500000),
+                    # so leave it pending for the scale branch to multiply
+                    current += fraction
                 else:
-                    result += current + fraction
-                current = 0
+                    if token in plural_fractions or self.vocab.FRACTIONS_ALWAYS_MULTIPLY:
+                        result += (current or 1) * fraction
+                    else:
+                        result += current + fraction
+                    current = 0
                 i += 1
                 continue
 
@@ -647,6 +715,16 @@ class RomanceNumberExtractor:
                 number_span_words = []
                 j = i
                 while j < len(words) and continues_span(j):
+                    if words[j] in self.vocab.JOIN_WORD and number_span_words \
+                            and words[j] not in self.vocab.MULTIPLICATIVE_JOIN_WORD:
+                        # the span only crosses a joiner when the value after
+                        # it is smaller than the value before it ("vinte e um").
+                        # An ascending pair is two numbers, not one, and the
+                        # span has to end so the tail survives ("tres y veinte").
+                        nxt = numbers_map.get(next_word(j))
+                        sofar = self.extract_number(" ".join(number_span_words))
+                        if nxt is None or sofar is False or nxt >= sofar:
+                            break
                     number_span_words.append(words[j])
                     j += 1
 
@@ -705,16 +783,28 @@ class RomanceNumberExtractor:
         if not isinstance(number, (int, float)):
             raise TypeError("Number must be an int or float.")
 
+        # Non-finite floats (nan, inf) have no spoken numeric form; return a
+        # clean textual sentinel rather than crashing downstream int() calls.
+        if isinstance(number, float) and not math.isfinite(number):
+            return str(number)
+
         if ordinals:
             return self.pronounce_ordinal(number, gender, scale)
 
         if number < 0:
             return f"{self.vocab.NEGATIVE_SIGN[0]} {self.pronounce_number(abs(number), places, scale=scale, digits=digits, gender=gender)}"
 
+        # Normalize the textual form so very large or scientific-notation floats
+        # (e.g. 6.022e23 -> "602200000000000000000000") do not leak an "e" into
+        # the decimal-splitting / int() logic below and crash.
+        num_str = str(number)
+        if isinstance(number, float) and ("e" in num_str or "E" in num_str):
+            num_str = format(Decimal(num_str), 'f')
+
         # Handle decimals
-        if "." in str(number):
+        if "." in num_str:
             integer_part = int(number)
-            decimal_part_str = str(number).split('.')[1].rstrip("0")
+            decimal_part_str = num_str.split('.')[1].rstrip("0")
 
             # Handle cases where the decimal part rounds to zero
             if decimal_part_str and int(decimal_part_str) == 0:
@@ -1002,7 +1092,12 @@ class RomanceNumberExtractor:
 
         # Tens and Units
         if n > 0:
-            if n < 20:
+            if n in tens_map:
+                # a fused single-word spelling covers the whole 1-99 remainder:
+                # teens and round tens for every language, plus the fused
+                # twenties some languages write solid ("veintitrés", "vintiún")
+                parts.append(gendered(n, tens_map[n]))
+            elif n < 20:
                 base = tens_map.get(n) or self.vocab.UNITS.get(n, "")
                 parts.append(gendered(n, base))
             else:

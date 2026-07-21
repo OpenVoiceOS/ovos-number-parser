@@ -209,7 +209,7 @@ def _get_ordinal_ak(word):
             return "ncı"
         return "ıncı"
 
-    if last_vowel == ["e", "ə", "i"]:
+    if last_vowel in ["e", "ə", "i"]:
         if is_last:
             return "nci"
         return "inci"
@@ -219,7 +219,7 @@ def _get_ordinal_ak(word):
             return "ncu"
         return "uncu"
 
-    if last_vowel == ["ö", "ü"]:
+    if last_vowel in ["ö", "ü"]:
         if is_last:
             return "ncü"
         return "üncü"
@@ -347,6 +347,10 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
 
     For example, '5.2' would return 'beş nöqtə iki'
 
+    Word forms follow standard Azerbaijani cardinal structure (yüz, min,
+    milyon spoken as separate words; see "Say (dilçilik)", az.wikipedia), so
+    the output round-trips through extract_number_az.
+
     Args:
         num(float or int): the number to pronounce (under 100)
         places(int): maximum decimal places to speak
@@ -453,11 +457,11 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                     number += " "
                     if ordi:
 
-                        if i * 1000 in _SHORT_ORDINAL_AZ:
+                        if 1000 ** i in _SHORT_ORDINAL_AZ:
                             if z == 1:
-                                number = _SHORT_ORDINAL_AZ[i * 1000]
+                                number = _SHORT_ORDINAL_AZ[1000 ** i]
                             else:
-                                number += _SHORT_ORDINAL_AZ[i * 1000]
+                                number += _SHORT_ORDINAL_AZ[1000 ** i]
                         else:
                             if n not in _SHORT_SCALE_AZ:
                                 num = int("1" + "0" * (len(str(n)) - 2))
@@ -505,13 +509,11 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                     number = number.replace(',', '')
 
                     if ordi:
-                        if i * 1000000 in _LONG_ORDINAL_AZ:
+                        if 1000000 ** i in _LONG_ORDINAL_AZ:
                             if z == 1:
-                                number = _LONG_ORDINAL_AZ[
-                                    (i + 1) * 1000000]
+                                number = _LONG_ORDINAL_AZ[1000000 ** i]
                             else:
-                                number += _LONG_ORDINAL_AZ[
-                                    (i + 1) * 1000000]
+                                number += " " + _LONG_ORDINAL_AZ[1000000 ** i]
                         else:
                             if n not in _LONG_SCALE_AZ:
                                 num = int("1" + "0" * (len(str(n)) - 2))
@@ -814,6 +816,7 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
     val = False
     prev_val = None
     next_val = None
+    negative = False
     to_sum = []
     # print(tokens, ordinals)
     for idx, token in enumerate(tokens):
@@ -824,6 +827,7 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
 
         word = token.word.lower()
         if word in _NEGATIVES_AZ:
+            negative = True
             number_words.append(token)
             continue
 
@@ -906,7 +910,11 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
         if word in multiplies:
             if not prev_val:
                 prev_val = 1
-            val = prev_val * val
+            if current_val is None or prev_val < current_val:
+                val = prev_val * val
+            # else: the scale word is smaller than what came before it, so it
+            # opens a new addend ("min yüz" = 1000 + 100) already accumulated
+            # by the summing branch above rather than a multiplier
             # print("e")
 
         # is this a spoken fraction?
@@ -937,8 +945,8 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
             # print("g", prev_val)
 
         # is this a negative number?
-        if val and prev_word and prev_word in _NEGATIVES_AZ:
-            val = 0 - val
+        # the sign is applied once to the whole number after parsing,
+        # so no per-token negation happens here
             # print("h")
 
         # let's make sure it isn't a fraction
@@ -963,7 +971,7 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
                 break
             prev_val = val
 
-            if word in multiplies and next_word not in multiplies:
+            if word in multiplies:
                 # handle long numbers
                 # six hundred sixty six
                 # two million five hundred thousand
@@ -1038,6 +1046,8 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
     if val is not None and to_sum:
         # print("m", to_sum)
         val += sum(to_sum)
+    if negative and val not in (None, False):
+        val = -val
     # print(val, number_words, "end")
     return val, number_words
 
@@ -1098,6 +1108,13 @@ def extract_number_az(text, short_scale=True, ordinals=False):
     handles pronunciations in long scale and short scale
 
     https://en.wikipedia.org/wiki/Names_of_large_numbers
+
+    Azerbaijani cardinals are written as separate words (yüz = 100, min =
+    1000, milyon = 1e6): the million group multiplies the group before it,
+    while the thousand and hundred groups form their own additive portions
+    (yüz on = 110, yüz iyirmi beş = 125). Each such group is set aside and
+    summed independently, so a millions group followed by a thousands group
+    accumulates correctly. See "Say (dilçilik)", az.wikipedia.
 
     Args:
         text (str): the string to normalize

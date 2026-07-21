@@ -1,6 +1,13 @@
 import unittest
 
 from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser.numbers_az import (
+    pronounce_number_az,
+    extract_number_az,
+    nice_number_az,
+    is_fractional_az,
+    _get_ordinal_ak,
+)
 
 
 class TestAzerbaijaniPronounce(unittest.TestCase):
@@ -56,6 +63,233 @@ class TestAzerbaijaniRoundTrip(unittest.TestCase):
             with self.subTest(number=number):
                 spoken = pronounce_number(number, lang="az")
                 self.assertEqual(extract_number(spoken, lang="az"), number)
+
+
+class TestAzerbaijaniOrdinals(unittest.TestCase):
+    """Ordinal (sıra sayı) pronunciation and extraction."""
+
+    def test_pronounce_ordinal_base(self):
+        # ordinal suffix follows vowel harmony of the numeral stem
+        expected = {
+            1: 'birinci', 2: 'ikinci', 3: 'üçüncü', 4: 'dördüncü',
+            5: 'beşinci', 6: 'altıncı', 7: 'yeddinci', 8: 'səkkizinci',
+            9: 'doqquzuncu', 10: 'onuncu', 11: 'on birinci', 20: 'iyirminci',
+            21: 'iyirmi birinci', 100: 'yüzüncü', 1000: 'mininci',
+        }
+        for number, spoken in expected.items():
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_number_az(number, ordinals=True),
+                                 spoken)
+
+    def test_pronounce_ordinal_large_no_crash(self):
+        # regression: large ordinals used to raise KeyError
+        expected_short = {
+            1000000: 'milyonuncu',
+            2000000: 'iki milyonuncu',
+            3000000: 'üç milyonuncu',
+            1000000000: 'milyardıncı',
+            2000000000: 'iki milyardıncı',
+        }
+        for number, spoken in expected_short.items():
+            with self.subTest(number=number, scale="short"):
+                self.assertEqual(
+                    pronounce_number_az(number, ordinals=True), spoken)
+
+    def test_pronounce_ordinal_large_long_scale_no_crash(self):
+        # long scale must also not raise for millions and beyond
+        for number in [1000000, 2000000, 1000000000, 1000000000000]:
+            with self.subTest(number=number, scale="long"):
+                result = pronounce_number_az(
+                    number, ordinals=True, short_scale=False)
+                self.assertIsInstance(result, str)
+                self.assertTrue(result)
+
+    def test_extract_ordinal(self):
+        expected = {
+            'birinci': 1, 'ikinci': 2, 'üçüncü': 3, 'onuncu': 10,
+            'iyirminci': 20,
+        }
+        for spoken, number in expected.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(
+                    extract_number_az(spoken, ordinals=True), number)
+
+    def test_ordinal_ignored_without_flag(self):
+        # without ordinals flag, a lone ordinal is not read as a number
+        self.assertIn(extract_number_az('birinci'), (False, None, 1))
+
+
+class TestAzerbaijaniHelpers(unittest.TestCase):
+    """Direct checks of the vowel-harmony helper used for ordinal suffixes."""
+
+    def test_get_ordinal_ak_vowel_harmony(self):
+        # suffix chosen by the last vowel class of the stem
+        self.assertEqual(_get_ordinal_ak('min'), 'inci')    # i -> inci
+        self.assertEqual(_get_ordinal_ak('yüz'), 'üncü')    # ü -> üncü
+        self.assertEqual(_get_ordinal_ak('altmış'), 'ıncı')  # ı -> ıncı
+        self.assertEqual(_get_ordinal_ak('doqquz'), 'uncu')  # u -> uncu
+
+    def test_get_ordinal_ak_no_vowel(self):
+        self.assertEqual(_get_ordinal_ak(''), '')
+
+
+class TestAzerbaijaniNiceNumber(unittest.TestCase):
+    """Human-friendly fraction rendering."""
+
+    def test_nice_number_speech(self):
+        expected = {
+            4.5: '4 yarım',
+            0.5: 'yarım',
+            1.5: '1 yarım',
+            3.25: '3 və dörddə 1',
+            6.0: '6',
+        }
+        for number, text in expected.items():
+            with self.subTest(number=number):
+                self.assertEqual(nice_number_az(number), text)
+
+    def test_nice_number_display(self):
+        self.assertEqual(nice_number_az(4.5, speech=False), '4 1/2')
+        self.assertEqual(nice_number_az(3.25, speech=False), '3 1/4')
+        self.assertEqual(nice_number_az(6.0, speech=False), '6')
+
+
+class TestAzerbaijaniSentences(unittest.TestCase):
+    """Numbers embedded in natural Azerbaijani sentences."""
+
+    def test_sentences(self):
+        expected = {
+            'mənim iyirmi bir pişiyim var': 21,
+            'saat üç oldu': 3,
+            'yüz iyirmi üç manat lazımdır': 123,
+            'iki min iyirmi üç il': 2023,
+            'səbətdə altmış altı alma var': 66,
+            'doqquz yüz doxsan doqquz nəfər': 999,
+            'beş yüz metr qaç': 500,
+        }
+        for text, number in expected.items():
+            with self.subTest(text=text):
+                self.assertEqual(extract_number_az(text), number)
+
+    def test_fraction_words(self):
+        # "dörddə üç" = in four, three = three quarters
+        self.assertEqual(extract_number_az('dörddə üç'), 0.75)
+        self.assertEqual(extract_number_az('dörddə bir'), 0.25)
+
+    def test_half_word(self):
+        self.assertEqual(extract_number_az('yarım'), 0.5)
+        self.assertEqual(extract_number_az('iki yarım'), 2.5)
+
+    def test_slash_fraction(self):
+        self.assertEqual(extract_number_az('1/2'), 0.5)
+        self.assertEqual(extract_number_az('3/4'), 0.75)
+
+
+class TestAzerbaijaniAdversarial(unittest.TestCase):
+    """Malformed, empty, boundary and junk input must not crash or over-read."""
+
+    def test_empty_and_whitespace(self):
+        for text in ['', '   ', '\t\n']:
+            with self.subTest(text=repr(text)):
+                self.assertIn(extract_number_az(text), (False, None))
+
+    def test_junk(self):
+        for text in ['salam necəsən', 'xyz', 'foo bar baz', '!!!', '.,;']:
+            with self.subTest(text=text):
+                self.assertIn(extract_number_az(text), (False, None))
+
+    def test_none_raises_type_error(self):
+        # None is not a valid input; it must fail loudly rather than silently
+        with self.assertRaises((TypeError, AttributeError)):
+            extract_number_az(None)
+
+    def test_mixed_case(self):
+        self.assertEqual(extract_number_az('Iyirmi Bir'), 21)
+        self.assertEqual(extract_number_az('Doqquz Yüz'), 900)
+
+    def test_lang_code_variants(self):
+        for lang in ['az', 'az-az', 'az-AZ']:
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    extract_number('iyirmi bir', lang=lang), 21)
+
+    def test_zero(self):
+        self.assertEqual(extract_number_az('sıfır'), 0)
+        self.assertEqual(pronounce_number_az(0), 'sıfır')
+
+    def test_boundary_pronounce_no_crash(self):
+        # sweep a wide range including boundaries in both scales
+        for number in [0, 99, 100, 999, 1000, 9999, 10 ** 6, 10 ** 12,
+                       10 ** 33, -1, -1000000]:
+            for short in (True, False):
+                with self.subTest(number=number, short=short):
+                    result = pronounce_number_az(number, short_scale=short)
+                    self.assertIsInstance(result, str)
+                    self.assertTrue(result)
+
+    def test_decimal_places(self):
+        # extra decimal digits truncated to requested places
+        self.assertEqual(pronounce_number_az(3.14159, places=2),
+                         'üç nöqtə bir dörd')
+        self.assertEqual(pronounce_number_az(1.5, places=0), 'bir')
+
+
+class TestAzerbaijaniRoundTripSweep(unittest.TestCase):
+    """Exhaustive round trip over a wide range and both scales."""
+
+    def test_round_trip_dense(self):
+        numbers = list(range(0, 1000)) + [
+            1000, 1001, 1234, 2023, 9999, 12345, 54321, 100000, 999999,
+            1000000, 2000000, 2500000, 1000000000]
+        for number in numbers:
+            with self.subTest(number=number):
+                spoken = pronounce_number_az(number)
+                self.assertEqual(extract_number_az(spoken), number)
+
+    def test_round_trip_long_scale(self):
+        for number in [0, 1, 42, 100, 999, 1000, 2023, 1000000, 2000000]:
+            with self.subTest(number=number):
+                spoken = pronounce_number_az(number, short_scale=False)
+                self.assertEqual(
+                    extract_number_az(spoken, short_scale=False), number)
+
+    def test_round_trip_negatives(self):
+        for number in range(-99, 0):
+            with self.subTest(number=number):
+                spoken = pronounce_number_az(number)
+                self.assertEqual(extract_number_az(spoken), number)
+
+
+class TestAzerbaijaniScaleAccumulation(unittest.TestCase):
+    """Millions combined with thousands must accumulate correctly.
+
+    Anchored on standard Azerbaijani cardinal structure (yüz, min, milyon as
+    separate words; "Say (dilçilik)", az.wikipedia).
+    """
+
+    def test_million_plus_thousands_anchor(self):
+        spoken = pronounce_number_az(8186976)
+        self.assertEqual(extract_number_az(spoken), 8186976)
+
+    def test_million_thousand_hundred_round_trip(self):
+        for number in [1000976, 1100000, 1200000, 1500000, 8186976,
+                       2500000, 8100000, 9999999, 10000000, 1186976]:
+            with self.subTest(number=number):
+                spoken = pronounce_number_az(number)
+                self.assertEqual(extract_number_az(spoken), number)
+
+    def test_negative_scale_round_trip(self):
+        for number in [-9997, -104979, -1500000, -8186976, -1000976]:
+            with self.subTest(number=number):
+                spoken = pronounce_number_az(number)
+                self.assertEqual(extract_number_az(spoken), number)
+
+    def test_property_round_trip_both_signs(self):
+        for base in range(0, 10000001, 5417):
+            for number in (base, -base):
+                spoken = pronounce_number_az(number)
+                self.assertEqual(extract_number_az(spoken), number,
+                                 msg=f"round-trip failed for {number}: {spoken!r}")
 
 
 if __name__ == "__main__":

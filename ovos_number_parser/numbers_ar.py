@@ -4,17 +4,22 @@ Pronunciation defaults to the masculine citation forms (the forms used for
 counting in the abstract). Extraction accepts both genders, since Arabic
 numerals 3-10 take the opposite gender of the counted noun (gender
 polarity), both nominative and oblique dual/plural case endings
-(``اثنان``/``اثنين``, ``عشرون``/``عشرين``), and both Western (0-9) and
-Eastern Arabic-Indic (٠-٩) digits.
+(``اثنان``/``اثنين``, ``عشرون``/``عشرين``), Western (0-9), Eastern
+Arabic-Indic (٠-٩) and Persian/Urdu (۰-۹) digits, and numbers written
+immediately adjacent to punctuation (``٢٠٢٤،``, ``25.``).
 """
 
+from math import isfinite
 from ovos_number_parser.util import convert_to_mixed_fraction
 
 _AR_SEPARATOR = " و"  # the conjunction attaches to the following word
 
-# Arabic-Indic digits and decimal/thousands separators, hamza/taa
-# normalization and diacritics stripping used to match typed variants
+# Arabic-Indic and Persian (extended Arabic-Indic) digits, decimal/thousands
+# separators, hamza/taa normalization and diacritics stripping used to match
+# typed variants
 _NORM_TABLE = {ord(e): w for e, w in zip("٠١٢٣٤٥٦٧٨٩", "0123456789")}
+# Persian / Urdu digits (U+06F0..U+06F9) carry the same values as 0-9
+_NORM_TABLE.update({ord(e): w for e, w in zip("۰۱۲۳۴۵۶۷۸۹", "0123456789")})
 _NORM_TABLE[ord("٫")] = "."  # Arabic decimal separator
 _NORM_TABLE[ord("٬")] = None  # Arabic thousands separator
 _NORM_TABLE[ord("أ")] = "ا"
@@ -263,6 +268,18 @@ def _norm_map(mapping):
     return {_normalize_ar(k): v for k, v in mapping.items()}
 
 
+# dual forms of common counting nouns carry the value 2 lexically
+# ("ساعتين" = two hours); both nominative (ـان) and oblique (ـين) endings
+_DUAL_NOUNS_AR = {
+    "يومان", "يومين", "ساعتان", "ساعتين", "دقيقتان", "دقيقتين",
+    "ثانيتان", "ثانيتين", "أسبوعان", "أسبوعين", "شهران", "شهرين",
+    "سنتان", "سنتين", "عامان", "عامين", "ليلتان", "ليلتين",
+    "مرتان", "مرتين", "اثنتان", "اثنتين",
+    "ريالان", "ريالين", "دولاران", "دولارين", "درهمان", "درهمين",
+    "جنيهان", "جنيهين",
+}
+
+
 def _build_lookup():
     units = {}
     for i, w in enumerate(_ONES_AR):
@@ -273,6 +290,8 @@ def _build_lookup():
     units["اثنين"] = 2  # oblique masculine dual
     units["اثنتين"] = 2  # oblique feminine dual
     units["ثماني"] = 8  # alternative feminine 8
+    for w in _DUAL_NOUNS_AR:
+        units[w] = 2
     tens = {}
     for value, word in _TENS_AR.items():
         tens[word] = value
@@ -317,11 +336,50 @@ _ORDINAL_UNITS_LOOKUP.update(_norm_map(
     {stem: value for value, stem in _ORDINAL_STEMS_FEM_AR.items()}))
 _ORDINAL_UNITS_LOOKUP.update(_norm_map({"حادي": 1, "حادية": 1}))
 
+# every cardinal building-block word, used to strip a tolerated ال- article
+_NUMBER_WORDS = (set(_UNITS_LOOKUP) | set(_TENS_LOOKUP) | set(_HUNDREDS_LOOKUP) |
+                 set(_SCALES_LOOKUP) | set(_SCALE_DUALS_LOOKUP) |
+                 set(_FRACTIONS_LOOKUP) | set(_TEEN_FIRST_LOOKUP) |
+                 _TEEN_SECOND_LOOKUP)
+
+
+def _bare(token):
+    """Strip a leading definite article when it fronts a number word."""
+    if token.startswith("ال") and token[2:] in _NUMBER_WORDS:
+        return token[2:]
+    return token
+
+
+def _group_slot(tokens, j):
+    """Magnitude slot a number word at ``tokens[j]`` fills in its <1000 group.
+
+    Returns one of ``"unit"``/``"ten"``/``"hundred"`` (which may occur only
+    once per group), ``"scale"``/``"frac"`` (which never conflict), or None
+    when the token is not a number word."""
+    tok = _bare(tokens[j])
+    nxt = _bare(tokens[j + 1]) if j + 1 < len(tokens) else None
+    if tok in _TEEN_FIRST_LOOKUP and nxt in _TEEN_SECOND_LOOKUP:
+        return "unit"
+    if tok in _UNITS_LOOKUP:
+        if nxt in _HUNDRED_MULT_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9:
+            return "hundred"
+        return "unit"
+    if tok in _TENS_LOOKUP:
+        return "ten"
+    if tok in _HUNDREDS_LOOKUP:
+        return "hundred"
+    if tok in _SCALES_LOOKUP or tok in _SCALE_DUALS_LOOKUP:
+        return "scale"
+    if tok in _FRACTIONS_LOOKUP:
+        return "frac"
+    return None
+
 
 def _is_number(s):
     try:
-        float(s)
-        return True
+        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
+        # string) carries no usable number and must not be treated as one
+        return isfinite(float(s))
     except ValueError:
         return False
 
@@ -428,69 +486,86 @@ def _parse_number_span(tokens, i):
     total = 0
     current = 0
     started = False
+    filled = set()  # magnitude slots already used in the current <1000 group
     n = len(tokens)
     j = i
     while j < n:
-        tok = tokens[j]
-        if tok == "و" and started and j + 1 < n:
-            # the conjunction only continues the number if a number word
-            # follows and forms part of the same number
-            nxt = tokens[j + 1]
-            if (nxt in _UNITS_LOOKUP or nxt in _TENS_LOOKUP or
-                    nxt in _HUNDREDS_LOOKUP or nxt in _SCALES_LOOKUP or
-                    nxt in _SCALE_DUALS_LOOKUP or
-                    nxt in _TEEN_FIRST_LOOKUP or
-                    nxt in _FRACTIONS_LOOKUP):
+        raw = tokens[j]
+        if raw == "و" and started and j + 1 < n:
+            # the conjunction continues the number only when the next word is
+            # a number component that fills a slot not already taken (two
+            # units in a row, "ثلاثة وخمسة", are separate numbers, not eight)
+            slot = _group_slot(tokens, j + 1)
+            if slot in ("scale", "frac") or (
+                    slot in ("unit", "ten", "hundred") and slot not in filled):
                 j += 1
                 continue
             break
-        if _is_number(tok):
+        if _is_number(raw):
             if started:
                 break
-            value = float(tok)
+            value = float(raw)
             if value.is_integer():
                 value = int(value)
             return value, j + 1
+        tok = _bare(raw)
+        nxt = _bare(tokens[j + 1]) if j + 1 < n else None
         # teens: unit word followed by عشر/عشرة
         if (tok in _TEEN_FIRST_LOOKUP or
                 (tok in _UNITS_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9)) and \
-                j + 1 < n and tokens[j + 1] in _TEEN_SECOND_LOOKUP:
+                nxt in _TEEN_SECOND_LOOKUP:
+            if {"unit", "ten"} & filled:
+                break
             unit = _TEEN_FIRST_LOOKUP.get(tok) or _UNITS_LOOKUP[tok]
             current += 10 + unit
+            filled |= {"unit", "ten"}
             started = True
             j += 2
             continue
         if tok in _UNITS_LOOKUP:
             # unit followed by مئة multiplies: "ثلاث مئة" = 300
-            if j + 1 < n and tokens[j + 1] in _HUNDRED_MULT_LOOKUP and \
-                    1 <= _UNITS_LOOKUP[tok] <= 9:
+            if nxt in _HUNDRED_MULT_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9:
+                if "hundred" in filled:
+                    break
                 current += _UNITS_LOOKUP[tok] * 100
+                filled.add("hundred")
                 started = True
                 j += 2
                 continue
+            if "unit" in filled:
+                break
             current += _UNITS_LOOKUP[tok]
+            filled.add("unit")
             started = True
             j += 1
             continue
         if tok in _TENS_LOOKUP:
+            if "ten" in filled:
+                break
             current += _TENS_LOOKUP[tok]
+            filled.add("ten")
             started = True
             j += 1
             continue
         if tok in _HUNDREDS_LOOKUP:
+            if "hundred" in filled:
+                break
             current += _HUNDREDS_LOOKUP[tok]
+            filled.add("hundred")
             started = True
             j += 1
             continue
         if tok in _SCALES_LOOKUP:
             total += (current if current else 1) * _SCALES_LOOKUP[tok]
             current = 0
+            filled = set()
             started = True
             j += 1
             continue
         if tok in _SCALE_DUALS_LOOKUP:
             total += _SCALE_DUALS_LOOKUP[tok]
             current = 0
+            filled = set()
             started = True
             j += 1
             continue

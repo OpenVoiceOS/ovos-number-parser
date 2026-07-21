@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import math
 from collections import OrderedDict
+from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
     invert_dict, ReplaceableNumber, partition_list, tokenize, Token
@@ -433,8 +435,24 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
         return "бесконечность"
     elif num == float("-inf"):
         return "минус бесконечность"
+    # Round (not truncate) the value to `places` decimals: half-away-from-zero
+    # per ISO 80000-1 and NIST SP 811 (2008) B.7. Rounding here also carries
+    # into the integer part and collapses a value that rounds to zero to a
+    # plain "ноль" (never "минус ноль").
+    if not scientific and isinstance(num, float) and math.isfinite(num) \
+            and num != int(num):
+        num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
+                                               rounding=ROUND_HALF_UP)) or 0.0
     if scientific:
-        number = '%E' % num
+        try:
+            number = '%E' % num
+        except OverflowError:
+            # int larger than the float range: derive the mantissa and
+            # exponent from its digits so it still reads scientifically.
+            digits = str(abs(int(num)))
+            frac = digits[1:7].rstrip("0")
+            number = "%s%s%sE+%d" % ("-" if num < 0 else "", digits[0],
+                                     "." + frac if frac else "", len(digits) - 1)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -498,8 +516,11 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
                 return _NUM_STRING_RU[q * 100] + (" " + _sub_thousand(r, ordinals) if r else "")
 
         def _short_scale(n):
+            # A finite value above the largest named scale has no spoken name
+            # here; return "" so the caller falls back to a scientific reading.
+            # "бесконечность" is reserved for actual math.inf (handled above).
             if n > max(_SHORT_SCALE_RU.keys()):
-                return "бесконечность"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -565,8 +586,10 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
             return res
 
         def _long_scale(n):
+            # See _short_scale: a finite value beyond the largest named scale
+            # returns "" for a scientific fallback, never the infinity word.
             if n >= max(_LONG_SCALE_RU.keys()):
-                return "бесконечность"
+                return ""
             ordi = ordinals
             if int(n) != n:
                 ordi = False
@@ -623,8 +646,10 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
+    # deal with a magnitude that has no spoken name: read it scientifically
+    # (covers floats in "e" notation and very large ints alike) so a finite
+    # value never returns an empty string.
+    if not result and abs(num) >= 1e6:
         return pronounce_number_ru(num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
@@ -881,14 +906,14 @@ def _extract_decimal_with_text_ru(tokens, short_scale, ordinals):
                 _prev_end = _num.end_index
             if len(_digits) > 1:
                 _frac = float("0." + _digits)
-                return (number.value - _frac if number.value < 0
+                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES for _t in number.tokens))
                         else number.value + _frac), \
                     number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
                 _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if number.value < 0
+                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES for _t in number.tokens))
                         else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
@@ -918,6 +943,7 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
     val = False
     prev_val = None
     next_val = None
+    negative = False
     to_sum = []
     for idx, token in enumerate(tokens):
         current_val = None
@@ -926,7 +952,8 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
             continue
 
         word = token.word
-        if word in word in _NEGATIVES:
+        if word in _NEGATIVES:
+            negative = True
             number_words.append(token)
             continue
 
@@ -1002,7 +1029,8 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
         # twenty two, fifty six
         if (prev_word in _SUMS and val and val < 10) \
                 or (prev_word in _SUMS and val and val < 100 and prev_val >= 100) \
-                or all([prev_word in multiplies, val < prev_val if prev_val else False]):
+                or all([prev_word in multiplies, word not in multiplies,
+                        val < prev_val if prev_val else False]):
             if prev_val < 0:
                 # continue a negated number: "minus forty two" = -(40+2)
                 val = prev_val - val
@@ -1013,6 +1041,12 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
         # twenty hundred, six hundred
         if word in multiplies:
             if not prev_val:
+                prev_val = 1
+            if prev_val >= current_val:
+                # a bare larger scale already sits in prev_val ("миллион
+                # тысяча"): this smaller scale word opens a new additive group
+                # of one, rather than multiplying the larger scale by itself
+                to_sum.append(prev_val)
                 prev_val = 1
             val = prev_val * val
 
@@ -1031,9 +1065,8 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
                 val = val * next_val
                 number_words.append(tokens[idx + 1])
 
-        # is this a negative number?
-        if val and prev_word and prev_word in _NEGATIVES:
-            val = 0 - val
+        # the sign is applied once to the whole number after parsing, so no
+        # per-token negation happens here
 
         # let's make sure it isn't a fraction
         if not val:
@@ -1130,6 +1163,9 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
     if val is not None and to_sum:
         val += sum(to_sum)
 
+    if negative and val not in (None, False):
+        val = -val
+
     return val, number_words
 
 
@@ -1190,8 +1226,12 @@ def is_fractional_ru(input_str, short_scale=True):
         (bool) or (float): False if not a fraction, otherwise the fraction
 
     """
-    if input_str[-3:] in ["тые", "тых"]:  # leading number is bigger than one (две четвёртые, три пятых)
-        input_str = input_str[-3:] + "тая"
+    # Ordinal-derived fraction nouns are feminine ("пятая", 1/5). After a
+    # numerator they take the plural nominative "-ые" or genitive "-ых"
+    # ("две пятые", "три пятых"); normalize that ending back to the singular
+    # "-тая" citation form so it matches the table.
+    if input_str[-3:] in ["тые", "тых"]:
+        input_str = input_str[:-3] + "тая"
     fractions = {"целая": 1}  # first four numbers have little different format
 
     for num in _FRACTION_STRING_RU:  # Numbers from 2 to 1 hundred, more is not usually used in common speech
@@ -1222,9 +1262,9 @@ def _text_ru_inflection_normalize(word, arg):
         return "тысяча"
 
     if arg == 1:  # _extract_whole_number_with_text_ru
-        if word in ["одна", "одним", "одно", "одной"]:
+        if word in ["одна", "одним", "одно", "одной", "одну", "одною"]:
             return "один"
-        if word == "две":
+        if word in ["две", "двух", "двум", "двумя"]:
             return "два"
         if word == "пару":
             return "пара"

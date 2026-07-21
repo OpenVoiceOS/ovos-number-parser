@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from math import floor
+from math import floor, isfinite
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, is_numeric, look_for_fractions, Token)
 
@@ -80,6 +80,41 @@ _FRACTION_STRING_SV = {
     18: 'artondel',
     19: 'nittondel',
     20: 'tjugondel'
+}
+
+_ORDINAL_STRING_SV = {
+    0: 'nollte',
+    1: 'första',
+    2: 'andra',
+    3: 'tredje',
+    4: 'fjärde',
+    5: 'femte',
+    6: 'sjätte',
+    7: 'sjunde',
+    8: 'åttonde',
+    9: 'nionde',
+    10: 'tionde',
+    11: 'elfte',
+    12: 'tolfte',
+    13: 'trettonde',
+    14: 'fjortonde',
+    15: 'femtonde',
+    16: 'sextonde',
+    17: 'sjuttonde',
+    18: 'artonde',
+    19: 'nittonde',
+    20: 'tjugonde',
+    30: 'trettionde',
+    40: 'fyrtionde',
+    50: 'femtionde',
+    60: 'sextionde',
+    70: 'sjuttionde',
+    80: 'åttionde',
+    90: 'nittionde',
+    100: 'hundrade',
+    1000: 'tusende',
+    1000000: 'miljonte',
+    1000000000: 'miljardte'
 }
 
 _EXTRA_SPACE_SV = " "
@@ -177,7 +212,10 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
             if ones > 0:
                 result += _NUM_STRING_SV[ones]
             if tens > 0:
-                result += _NUM_STRING_SV[tens]
+                # a bare cardinal ends in the neuter counting form: 21 is
+                # "tjugoett", not "tjugoen" ("en" is the common-gender
+                # attributive form, used only before a noun)
+                result += 'ett' if tens == 1 else _NUM_STRING_SV[tens]
 
         return result
 
@@ -204,10 +242,9 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
 
         if last_triplet == 1:
             if scale_level == 0:
-                if result != '':
-                    result += '' + 'ett'
-                else:
-                    result += 'en'
+                # the counting form of 1 is "ett" (räkna: ett, två, tre),
+                # not the common-gender "en"
+                result += 'ett'
             elif scale_level == 1:
                 result += 'ettusen' + _EXTRA_SPACE_SV
             else:
@@ -218,8 +255,9 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
             if scale_level == 1:
                 result += 'tusen' + _EXTRA_SPACE_SV
             if scale_level >= 2:
-                result += _NUM_POWERS_OF_TEN_SV[scale_level]
-            if scale_level >= 2:
+                # miljon/miljard are separate words ("två miljoner"), unlike
+                # the glued "tusen" ("tvåtusen")
+                result += ' ' + _NUM_POWERS_OF_TEN_SV[scale_level]
                 result += 'er' + _EXTRA_SPACE_SV  # MiljonER
 
         num = floor(num / 1000)
@@ -260,31 +298,55 @@ def pronounce_ordinal_sv(number):
         (str): The pronounced number string.
     """
 
-    # ordinals for 1, 3, 7 and 8 are irregular
-    # this produces the base form, it will have to be adapted for genus,
-    # casus, numerus
-
-    ordinals = ["noll", "första", "andra", "tredje", "fjärde", "femte",
-                "sjätte", "sjunde", "åttonde", "nionde", "tionde"]
-
-    tens = int(floor(number / 10.0)) * 10
-    ones = number % 10
+    # In Swedish only the final element of a compound is inflected as an
+    # ordinal; the preceding magnitude words stay in their cardinal form
+    # (121 -> "hundratjugoförsta"). This produces the base (uter) form, which
+    # may need adaption for genus, kasus and numerus.
 
     if number < 0 or number != int(number):
         return number
-    if number == 0:
-        return ordinals[number]
+    number = int(number)
 
-    result = ""
-    if number > 10:
-        result += pronounce_number_sv(tens).rstrip()
+    if number in _ORDINAL_STRING_SV:
+        return _ORDINAL_STRING_SV[number]
 
-    if ones > 0:
-        result += ordinals[ones]
-    else:
-        result += 'de'
+    if number < 100:
+        tens = number // 10 * 10
+        ones = number % 10
+        return _NUM_STRING_SV[tens] + _ORDINAL_STRING_SV[ones]
 
-    return result
+    if number < 1000:
+        hundreds = number // 100
+        rem = number % 100
+        prefix = 'hundra' if hundreds == 1 \
+            else _NUM_STRING_SV[hundreds] + 'hundra'
+        if rem == 0:
+            return prefix + 'de'
+        return prefix + pronounce_ordinal_sv(rem)
+
+    if number < 1000000:
+        thousands = number // 1000
+        rem = number % 1000
+        prefix = 'tusen' if thousands == 1 \
+            else pronounce_number_sv(thousands).replace(' ', '') + 'tusen'
+        if rem == 0:
+            return prefix + 'de'
+        return prefix + pronounce_ordinal_sv(rem)
+
+    if number < 1000000000000:
+        scale = 1000000000 if number >= 1000000000 else 1000000
+        word = 'miljard' if scale == 1000000000 else 'miljon'
+        count = number // scale
+        rem = number % scale
+        if rem == 0:
+            prefix = word if count == 1 \
+                else pronounce_number_sv(count).replace(' ', '') + word
+            return prefix + 'te'
+        # magnitude word stays cardinal; only the remainder is the ordinal
+        return pronounce_number_sv(number - rem).strip() + ' ' \
+            + pronounce_ordinal_sv(rem)
+
+    return str(number)
 
 
 def _find_numbers_in_text(tokens):
@@ -453,6 +515,8 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     # TODO: short_scale and ordinals don't do anything here.
     # The parameters are present in the function signature for API
     # compatibility reasons.
+    if not isinstance(text, str):
+        return False
     text = text.lower().replace("ettusen", "ett tusen")
     words = text.split()
     negative = False
@@ -470,18 +534,33 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     # merge lower-magnitude continuations ("2000 23" -> 2023)
     scales = {100, 1000, 1000000, 1000000000, 1000000000000}
     merged = []
-    for w in expanded:
+    for idx, w in enumerate(expanded):
         if merged and w.isdigit() and merged[-1].isdigit():
             prev, nxt = int(merged[-1]), int(w)
             if nxt in scales and prev < nxt:
                 # "två miljoner" -> 2 * 1000000
                 merged[-1] = str(prev * nxt)
                 continue
-            if _merge_values_sv(prev, nxt):
+            follow = int(expanded[idx + 1]) if idx + 1 < len(expanded) \
+                and expanded[idx + 1].isdigit() else None
+            # a small value that a following scale word will multiply belongs
+            # to that scale, not the preceding group ("en miljon ett tusen")
+            if not (follow in scales and nxt < follow) \
+                    and _merge_values_sv(prev, nxt):
                 # "tvåtusen tjugotre" -> 2000 + 23
                 merged[-1] = str(prev + nxt)
                 continue
         merged.append(w)
+    # fold descending scale groups the forward pass left apart
+    # ("1000000", "1710" -> 1001710)
+    collapsed = []
+    for w in merged:
+        if collapsed and w.isdigit() and collapsed[-1].isdigit() \
+                and _merge_values_sv(int(collapsed[-1]), int(w)):
+            collapsed[-1] = str(int(collapsed[-1]) + int(w))
+        else:
+            collapsed.append(w)
+    merged = collapsed
     # spoken decimals: "två komma fem" -> "2.5"
     out = []
     i = 0
@@ -508,7 +587,9 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     count = 0
     while count < len(aWords):
         word = aWords[count]
-        if is_numeric(word):
+        if is_numeric(word) and isfinite(float(word)):
+            # an overflowing digit string ("9" * 400) or a non-finite token
+            # floats to inf; it carries no usable number, so it is skipped
             val = float(word)
             if count + 1 < len(aWords):
                 valNext = is_fractional_sv(aWords[count + 1])
@@ -617,6 +698,7 @@ def is_fractional_sv(input_str, short_scale=True):
         (bool) or (float): False if not a fraction, otherwise the fraction
 
     """
+    input_str = input_str.lower()
     if input_str.endswith('ars', -3):
         input_str = input_str[:len(input_str) - 3]  # e.g. "femtedelar"
     if input_str.endswith('ar', -2):
@@ -629,7 +711,7 @@ def is_fractional_sv(input_str, short_scale=True):
     aFrac = ["hel", "halv", "tredjedel", "fjärdedel", "femtedel", "sjättedel",
              "sjundedel", "åttondel", "niondel", "tiondel", "elftedel",
              "tolftedel"]
-    if input_str.lower() in aFrac:
+    if input_str in aFrac:
         return 1.0 / (aFrac.index(input_str) + 1)
     if input_str == "kvart":
         return 1.0 / 4

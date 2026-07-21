@@ -7,7 +7,7 @@ class TestPolishPronounce(unittest.TestCase):
     """Anchors for spoken Polish numbers."""
 
     def test_pronounce_number(self):
-        expected = {0: 'zero', 1: 'jeden', 2: 'dwa', 3: 'trzy', 4: 'cztery', 5: 'pięć', 6: 'sześć', 7: 'siedem', 8: 'osiem', 9: 'dziewięć', 10: 'dziesięć', 11: 'jedenaście', 12: 'dwanaście', 13: 'trzynaście', 14: 'czternaście', 15: 'piętnaście', 16: 'szesnaście', 17: 'siedemnaście', 18: 'osiemnaście', 19: 'dziewiętnaście', 20: 'dwadzieścia', 21: 'dwadzieścia jeden', 30: 'trzydzieści', 42: 'czterdzieści dwa', 50: 'pięćdziesiąt', 66: 'sześćdziesiąt sześć', 70: 'siedemdziesiąt', 80: 'osiemdziesiąt', 90: 'dziewięćdziesiąt', 99: 'dziewięćdziesiąt dziewięć', 100: 'sto', 101: 'sto jeden', 123: 'sto dwadzieścia trzy', 200: 'dwieście', 500: 'pięćset', 999: 'dziewięćset dziewięćdziesiąt dziewięć', 1000: 'tysiąc', 2000: 'dwa tysiące', 2023: 'dwa tysiące, dwadzieścia trzy', 1000000: 'milion', 2000000: 'dwa miliony'}
+        expected = {0: 'zero', 1: 'jeden', 2: 'dwa', 3: 'trzy', 4: 'cztery', 5: 'pięć', 6: 'sześć', 7: 'siedem', 8: 'osiem', 9: 'dziewięć', 10: 'dziesięć', 11: 'jedenaście', 12: 'dwanaście', 13: 'trzynaście', 14: 'czternaście', 15: 'piętnaście', 16: 'szesnaście', 17: 'siedemnaście', 18: 'osiemnaście', 19: 'dziewiętnaście', 20: 'dwadzieścia', 21: 'dwadzieścia jeden', 30: 'trzydzieści', 42: 'czterdzieści dwa', 50: 'pięćdziesiąt', 66: 'sześćdziesiąt sześć', 70: 'siedemdziesiąt', 80: 'osiemdziesiąt', 90: 'dziewięćdziesiąt', 99: 'dziewięćdziesiąt dziewięć', 100: 'sto', 101: 'sto jeden', 123: 'sto dwadzieścia trzy', 200: 'dwieście', 500: 'pięćset', 999: 'dziewięćset dziewięćdziesiąt dziewięć', 1000: 'tysiąc', 2000: 'dwa tysiące', 2023: 'dwa tysiące dwadzieścia trzy', 1000000: 'milion', 2000000: 'dwa miliony'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="pl"), spoken)
@@ -23,7 +23,7 @@ class TestPolishExtract(unittest.TestCase):
     """Anchors for extracting numbers from Polish text."""
 
     def test_extract_number(self):
-        expected = {0: 'zero', 1: 'jeden', 2: 'dwa', 3: 'trzy', 4: 'cztery', 5: 'pięć', 6: 'sześć', 7: 'siedem', 8: 'osiem', 9: 'dziewięć', 10: 'dziesięć', 11: 'jedenaście', 12: 'dwanaście', 13: 'trzynaście', 14: 'czternaście', 15: 'piętnaście', 16: 'szesnaście', 17: 'siedemnaście', 18: 'osiemnaście', 19: 'dziewiętnaście', 20: 'dwadzieścia', 21: 'dwadzieścia jeden', 30: 'trzydzieści', 42: 'czterdzieści dwa', 50: 'pięćdziesiąt', 66: 'sześćdziesiąt sześć', 70: 'siedemdziesiąt', 80: 'osiemdziesiąt', 90: 'dziewięćdziesiąt', 99: 'dziewięćdziesiąt dziewięć', 100: 'sto', 101: 'sto jeden', 123: 'sto dwadzieścia trzy', 200: 'dwieście', 500: 'pięćset', 999: 'dziewięćset dziewięćdziesiąt dziewięć', 1000: 'tysiąc', 2000: 'dwa tysiące', 2023: 'dwa tysiące, dwadzieścia trzy', 1000000: 'milion', 2000000: 'dwa miliony'}
+        expected = {0: 'zero', 1: 'jeden', 2: 'dwa', 3: 'trzy', 4: 'cztery', 5: 'pięć', 6: 'sześć', 7: 'siedem', 8: 'osiem', 9: 'dziewięć', 10: 'dziesięć', 11: 'jedenaście', 12: 'dwanaście', 13: 'trzynaście', 14: 'czternaście', 15: 'piętnaście', 16: 'szesnaście', 17: 'siedemnaście', 18: 'osiemnaście', 19: 'dziewiętnaście', 20: 'dwadzieścia', 21: 'dwadzieścia jeden', 30: 'trzydzieści', 42: 'czterdzieści dwa', 50: 'pięćdziesiąt', 66: 'sześćdziesiąt sześć', 70: 'siedemdziesiąt', 80: 'osiemdziesiąt', 90: 'dziewięćdziesiąt', 99: 'dziewięćdziesiąt dziewięć', 100: 'sto', 101: 'sto jeden', 123: 'sto dwadzieścia trzy', 200: 'dwieście', 500: 'pięćset', 999: 'dziewięćset dziewięćdziesiąt dziewięć', 1000: 'tysiąc', 2000: 'dwa tysiące', 2023: 'dwa tysiące dwadzieścia trzy', 1000000: 'milion', 2000000: 'dwa miliony'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="pl"), number)
@@ -56,6 +56,92 @@ class TestPolishRoundTrip(unittest.TestCase):
             with self.subTest(number=number):
                 spoken = pronounce_number(number, lang="pl")
                 self.assertEqual(extract_number(spoken, lang="pl"), number)
+
+
+class TestPolishThousands(unittest.TestCase):
+    """Singular scale words (tysiąc, milion) must sum with the remainder.
+
+    'tysiąc sto' is one thousand one hundred, not one hundred.
+    """
+
+    def test_singular_thousand_with_hundreds(self):
+        cases = {
+            'tysiąc sto': 1100,
+            'tysiąc dwieście trzydzieści cztery': 1234,
+            'tysiąc dziewięćset dziewięćdziesiąt dziewięć': 1999,
+            'jeden tysiąc sto': 1100,
+            'jeden tysiąc dwadzieścia jeden': 1021,
+        }
+        for spoken, number in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="pl"), number)
+
+    def test_singular_million_with_remainder(self):
+        cases = {
+            'milion jeden': 1000001,
+            'jeden milion jeden': 1000001,
+            'milion dwadzieścia jeden': 1000021,
+        }
+        for spoken, number in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="pl"), number)
+
+    def test_plural_thousands_still_work(self):
+        cases = {
+            'dwa tysiące pięćset': 2500,
+            'pięć tysięcy sześćset siedemdziesiąt osiem': 5678,
+            'dwieście pięćdziesiąt tysięcy': 250000,
+            'sto tysięcy pięćset': 100500,
+            'dwa miliony pięćset tysięcy': 2500000,
+        }
+        for spoken, number in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="pl"), number)
+
+    def test_round_trip_thousands_sweep(self):
+        numbers = list(range(1000, 2000, 7)) + \
+            [1100, 1234, 1999, 3721, 12345, 100500, 123456, 1000001, 2500000]
+        for number in numbers:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="pl")
+                self.assertEqual(extract_number(spoken, lang="pl"), number)
+
+
+class TestPolishDeclensions(unittest.TestCase):
+    """Declined forms in natural spoken sentences."""
+
+    def test_declined_units_in_context(self):
+        self.assertEqual(extract_number('dwie godziny', lang="pl"), 2)
+        self.assertEqual(extract_number('jedna minuta', lang="pl"), 1)
+        self.assertEqual(
+            extract_number('mam sto dwadzieścia trzy koty', lang="pl"), 123)
+
+    def test_fractions_and_halves(self):
+        self.assertEqual(extract_number('dwa i pół', lang="pl"), 2.5)
+        self.assertEqual(extract_number('trzy i pół', lang="pl"), 3.5)
+        self.assertEqual(extract_number('połowa', lang="pl"), 0.5)
+
+    def test_negative_in_sentence(self):
+        self.assertEqual(extract_number('minus pięć', lang="pl"), -5)
+
+
+class TestPolishAdversarial(unittest.TestCase):
+    """Malformed, empty and boundary inputs must not raise."""
+
+    def test_empty_and_junk(self):
+        for text in ["", "   ", "cześć jak się masz", "!!!", " + - /"]:
+            with self.subTest(text=text):
+                self.assertIn(extract_number(text, lang="pl"), (False, None))
+
+    def test_repeated_tokens_do_not_crash(self):
+        for text in ["jeden jeden", "sto sto", "tysiąc tysiąc", "dwa dwa"]:
+            with self.subTest(text=text):
+                # must return a number and not raise
+                self.assertIsNotNone(extract_number(text, lang="pl"))
+
+    def test_lang_code_variants(self):
+        self.assertEqual(extract_number('tysiąc sto', lang="pl-pl"), 1100)
+        self.assertEqual(extract_number('tysiąc sto', lang="pl-PL"), 1100)
 
 
 if __name__ == "__main__":

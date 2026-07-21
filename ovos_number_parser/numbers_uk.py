@@ -904,14 +904,14 @@ def _extract_decimal_with_text_uk(tokens, short_scale, ordinals):
                 _prev_end = _num.end_index
             if len(_digits) > 1:
                 _frac = float("0." + _digits)
-                return (number.value - _frac if number.value < 0
+                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES for _t in number.tokens))
                         else number.value + _frac), \
                     number.tokens + partitions[1] + _digit_tokens
 
             # TODO handle number dot number number number
             if "." not in str(decimal.text):
                 _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if number.value < 0
+                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES for _t in number.tokens))
                         else number.value + _frac2), \
                        number.tokens + partitions[1] + decimal.tokens
     return None, None
@@ -943,6 +943,7 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
     val = False
     prev_val = None
     next_val = None
+    negative = False
     to_sum = []
     for idx, token in enumerate(tokens):
         current_val = None
@@ -951,7 +952,8 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
             continue
 
         word = token.word
-        if word in word in _NEGATIVES:
+        if word in _NEGATIVES:
+            negative = True
             number_words.append(token)
             continue
 
@@ -1022,7 +1024,8 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
         # twenty two, fifty six
         if (prev_word in _SUMS and val and val < 10) \
                 or (prev_word in _SUMS and val and val < 100 and prev_val >= 100) \
-                or all([prev_word in multiplies, val < prev_val if prev_val else False]):
+                or all([prev_word in multiplies, word not in multiplies,
+                        val < prev_val if prev_val else False]):
             if prev_val < 0:
                 # continue a negated number: "minus forty two" = -(40+2)
                 val = prev_val - val
@@ -1034,12 +1037,18 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
         if word in multiplies:
             if not prev_val:
                 prev_val = 1
+            if prev_val >= current_val:
+                # a bare larger scale already sits in prev_val ("мільйон
+                # тисяча"): this smaller scale word opens a new additive group
+                # of one, rather than multiplying the larger scale by itself
+                to_sum.append(prev_val)
+                prev_val = 1
             val = prev_val * val
 
         # пара сотень, три пари пива
         if prev_word in ['пара', 'пари', 'парою', 'парами'] and current_val != 1000.0:
             val = val * 2
-        if prev_val in _STRING_NUM_UK.values() and current_val == 100:
+        if prev_val and prev_val in _STRING_NUM_UK.values() and current_val == 100:
             val = prev_val * current_val
 
         # half cup
@@ -1060,9 +1069,8 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
                 val = val * prev_val
             else:
                 val = 2
-        # is this a negative number?
-        if val and prev_word and prev_word in _NEGATIVES:
-            val = 0 - val
+        # the sign is applied once to the whole number after parsing,
+        # so no per-token negation happens here
 
         # let's make sure it isn't a fraction
         if not val:
@@ -1160,6 +1168,8 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
 
     if val is not None and to_sum:
         val += sum(to_sum)
+    if negative and val not in (None, False):
+        val = -val
     return val, number_words
 
 

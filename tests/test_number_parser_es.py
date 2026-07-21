@@ -1,6 +1,7 @@
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser import extract_number, pronounce_number, is_fractional
+from ovos_number_parser.util import Scale
 
 
 class TestSpanishPronounce(unittest.TestCase):
@@ -56,6 +57,214 @@ class TestSpanishRoundTrip(unittest.TestCase):
             with self.subTest(number=number):
                 spoken = pronounce_number(number, lang="es")
                 self.assertEqual(extract_number(spoken, lang="es"), number)
+
+
+class TestSpanishMagnitudes(unittest.TestCase):
+    """Compound scale numbers must combine, not multiply, across magnitudes."""
+
+    def test_million_plus_thousand(self):
+        cases = {
+            "un millón dos mil": 1002000,
+            "un millón dos mil quinientos": 1002500,
+            "un millón cien mil": 1100000,
+            "dos millones quinientos mil": 2500000,
+            "tres millones dos mil": 3002000,
+            "un millón uno": 1000001,
+            "un millón dos mil trescientos cuarenta y cinco": 1002345,
+        }
+        for spoken, value in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="es"), value)
+
+    def test_thousands(self):
+        cases = {
+            "mil": 1000, "mil uno": 1001, "mil y uno": 1001,
+            "dos mil veintitrés": 2023, "cien mil": 100000,
+            "doscientos mil": 200000, "ciento cincuenta mil": 150000,
+            "novecientos noventa y nueve mil novecientos noventa y nueve": 999999,
+        }
+        for spoken, value in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="es"), value)
+
+    def test_hundreds_gendered(self):
+        for spoken in ("doscientos", "doscientas"):
+            self.assertEqual(extract_number(spoken, lang="es"), 200)
+        self.assertEqual(extract_number("doscientas cincuenta y dos", lang="es"), 252)
+
+
+class TestSpanishFusedAndGendered(unittest.TestCase):
+    def test_veintiuno_forms(self):
+        for spoken in ("veintiuno", "veintiún", "veintiuna"):
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="es"), 21)
+
+    def test_una(self):
+        self.assertEqual(extract_number("una", lang="es"), 1)
+
+    def test_cien_vs_ciento(self):
+        self.assertEqual(extract_number("cien", lang="es"), 100)
+        self.assertEqual(extract_number("ciento", lang="es"), 100)
+        self.assertEqual(extract_number("ciento uno", lang="es"), 101)
+
+
+class TestSpanishFractions(unittest.TestCase):
+    def test_simple_fractions(self):
+        self.assertEqual(extract_number("un cuarto", lang="es"), 0.25)
+        self.assertEqual(extract_number("tres cuartos", lang="es"), 0.75)
+        self.assertEqual(extract_number("medio", lang="es"), 0.5)
+
+    def test_number_and_half(self):
+        # nice_number renders 5.5 as "cinco y medio"
+        self.assertEqual(extract_number("cinco y medio", lang="es"), 5.5)
+        self.assertEqual(extract_number("dos y medio", lang="es"), 2.5)
+
+
+class TestSpanishAdversarial(unittest.TestCase):
+    def test_empty(self):
+        self.assertFalse(extract_number("", lang="es"))
+
+    def test_none(self):
+        self.assertFalse(extract_number(None, lang="es"))
+
+    def test_junk(self):
+        self.assertIn(extract_number("hola qué tal amigo", lang="es"), (False, None))
+
+    def test_mixed_case(self):
+        self.assertEqual(extract_number("Cuarenta Y Dos", lang="es"), 42)
+
+    def test_number_in_sentence(self):
+        self.assertEqual(extract_number("quiero cuarenta y dos manzanas", lang="es"), 42)
+
+    def test_negative_and_decimal(self):
+        self.assertEqual(extract_number("menos cinco", lang="es"), -5)
+        self.assertEqual(extract_number("tres coma uno cuatro", lang="es"), 3.14)
+
+
+class TestSpanishRoundTripLarge(unittest.TestCase):
+    """Sweep a wide integer range plus compound magnitudes."""
+
+    def test_sweep(self):
+        numbers = list(range(0, 3000, 7)) + [
+            5000, 9999, 12345, 100000, 250000, 999999,
+            1000000, 1000001, 1002000, 1002345, 2000000,
+            2500000, 3002000, 1100000, 1234567,
+        ]
+        for number in numbers:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="es")
+                got = extract_number(spoken, lang="es")
+                if number == 0:
+                    self.assertIn(got, (0, False))
+                else:
+                    self.assertEqual(got, number, spoken)
+
+    def test_full_sweep_both_signs(self):
+        # every pronounced value across the whole 0..10,000,000 range must be
+        # read back to itself, in both signs (stepped to keep the run brisk
+        # while still crossing every apocopation, hundreds and scale boundary)
+        for magnitude in range(0, 10_000_001, 4999):
+            for number in (magnitude, -magnitude):
+                spoken = pronounce_number(number, lang="es")
+                got = extract_number(spoken, lang="es")
+                if number == 0:
+                    self.assertIn(got, (0, False), spoken)
+                else:
+                    self.assertEqual(got, number, spoken)
+
+
+class TestSpanishFractions(unittest.TestCase):
+    """Spanish fraction nouns, including gendered and capitalized forms."""
+
+    def test_basic_and_gendered(self):
+        self.assertEqual(is_fractional("medio", lang="es"), 0.5)
+        self.assertEqual(is_fractional("media", lang="es"), 0.5)
+        self.assertEqual(is_fractional("tercio", lang="es"), 1.0 / 3)
+        self.assertEqual(is_fractional("cuarta", lang="es"), 0.25)
+        self.assertEqual(is_fractional("centésima", lang="es"), 0.01)
+
+    def test_capitalized_input_does_not_crash(self):
+        # a sentence-initial or shouted fraction must not raise
+        self.assertEqual(is_fractional("Medio", lang="es"), 0.5)
+        self.assertEqual(is_fractional("MEDIO", lang="es"), 0.5)
+        self.assertEqual(is_fractional("Centésimo", lang="es"), 0.01)
+
+    def test_non_fraction_returns_false(self):
+        for word in ["", "hola", "cinco"]:
+            with self.subTest(word=word):
+                self.assertFalse(is_fractional(word, lang="es"))
+
+
+class TestSpanishLongScale(unittest.TestCase):
+    """Spanish is a long-scale language: billón = 10^12, millardo = 10^9.
+
+    See https://en.wikipedia.org/wiki/Long_and_short_scales.
+    """
+
+    def test_long_scale_words_extract(self):
+        cases = {
+            "un millón": 10 ** 6,
+            "un millardo": 10 ** 9,
+            "un billón": 10 ** 12,
+            "dos billones": 2 * 10 ** 12,
+            "tres billones": 3 * 10 ** 12,
+        }
+        for spoken, value in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(
+                    extract_number(spoken, lang="es", scale=Scale.LONG), value)
+
+    def test_short_scale_billon_is_1e9(self):
+        # under the short scale, "billón" means 10^9, not 10^12
+        self.assertEqual(
+            extract_number("un billón", lang="es", scale=Scale.SHORT), 10 ** 9)
+
+    def test_pronounce_to_extract_roundtrip_long(self):
+        for magnitude in (10 ** 6, 10 ** 9, 10 ** 12):
+            with self.subTest(magnitude=magnitude):
+                spoken = pronounce_number(magnitude, lang="es", scale=Scale.LONG)
+                self.assertEqual(
+                    extract_number(spoken, lang="es", scale=Scale.LONG),
+                    magnitude, spoken)
+
+    def test_extract_to_pronounce_roundtrip_long(self):
+        for spoken in ("un millón", "un millardo", "un billón"):
+            with self.subTest(spoken=spoken):
+                value = extract_number(spoken, lang="es", scale=Scale.LONG)
+                self.assertEqual(
+                    pronounce_number(value, lang="es", scale=Scale.LONG), spoken)
+
+    def test_scale_default_short_still_reads_million(self):
+        # unrelated smaller magnitudes must not regress on either scale
+        for scale in (Scale.SHORT, Scale.LONG):
+            with self.subTest(scale=scale):
+                self.assertEqual(
+                    extract_number("un millón", lang="es", scale=scale), 10 ** 6)
+
+    def test_boundary_billon_not_confused_with_millardo(self):
+        # long scale: millardo (10^9) and billón (10^12) are distinct
+        self.assertNotEqual(
+            extract_number("un millardo", lang="es", scale=Scale.LONG),
+            extract_number("un billón", lang="es", scale=Scale.LONG))
+
+    def test_bare_scale_word_without_multiplier(self):
+        # "billón" with no leading unit implies one
+        self.assertEqual(
+            extract_number("billón", lang="es", scale=Scale.LONG), 10 ** 12)
+
+
+class TestSpanishTinyFloatNoCrash(unittest.TestCase):
+    """Scientific-notation floats must not raise when pronounced."""
+
+    def test_tiny_float_does_not_crash(self):
+        for number in (1e-9, -1e-9, 1e-12, 1e20):
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="es")
+                self.assertIsInstance(spoken, str)
+                self.assertTrue(spoken)
+
+    def test_ordinary_decimal_unregressed(self):
+        self.assertEqual(pronounce_number(5.2, lang="es"), "cinco coma dos")
 
 
 if __name__ == "__main__":

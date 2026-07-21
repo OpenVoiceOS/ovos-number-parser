@@ -58,5 +58,73 @@ class TestUkrainianRoundTrip(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="uk"), number)
 
 
+class TestUkrainianThousands(unittest.TestCase):
+    """Hundreds following a thousands group must be added, not dropped."""
+
+    def test_thousand_plus_hundred(self):
+        cases = {
+            "тисяча сто": 1100,
+            "тисяча двісті": 1200,
+            "тисяча сто двадцять три": 1123,
+            "тисяча одинадцять": 1011,
+            "дві тисячі сто": 2100,
+            "дві тисячі сто одинадцять": 2111,
+            "дві тисячі триста сорок п'ять": 2345,
+            "п'ять тисяч дев'ятсот дев'яносто дев'ять": 5999,
+        }
+        for spoken, number in cases.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number(spoken, lang="uk"), number)
+
+    def test_hundreds_multiplier_still_works(self):
+        # "сотня"/"сотні" as an explicit multiplied hundred is unaffected
+        self.assertEqual(extract_number("три сотні", lang="uk"), 300)
+        self.assertEqual(extract_number("дві сотні", lang="uk"), 200)
+        self.assertEqual(extract_number("сотня", lang="uk"), 100)
+
+
+class TestUkrainianRoundTripWide(unittest.TestCase):
+    """A dense round-trip sweep across four orders of magnitude."""
+
+    def test_round_trip_dense(self):
+        numbers = (list(range(0, 2100)) +
+                   list(range(2100, 10000, 7)) +
+                   list(range(10000, 100000, 137)))
+        for number in numbers:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="uk")
+                self.assertEqual(extract_number(spoken, lang="uk"), number)
+
+
+class TestUkrainianSentences(unittest.TestCase):
+    """Numbers embedded in natural, case-inflected sentences."""
+
+    def test_sentences(self):
+        cases = {
+            "через дві години": 2,
+            "купи дві тисячі яблук": 2000,
+            "у мене двадцять один котів": 21,
+            "мені тисяча сто років": 1100,
+            "нагадай о восьмій": 8,
+        }
+        for text, number in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="uk"), number)
+
+
+class TestUkrainianAdversarial(unittest.TestCase):
+    """Malformed and number-free input must not raise."""
+
+    def test_empty_and_blank(self):
+        for text in ["", "   ", "\n"]:
+            with self.subTest(text=text):
+                self.assertIn(extract_number(text, lang="uk"), (False, None))
+
+    def test_no_number_words(self):
+        for text in ["привіт як справи", "котів багато", "просто текст"]:
+            with self.subTest(text=text):
+                self.assertIn(extract_number(text, lang="uk"), (False, None))
+
+
 if __name__ == "__main__":
     unittest.main()

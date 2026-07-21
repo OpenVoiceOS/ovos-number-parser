@@ -78,7 +78,15 @@ _PT_PT = NumberVocabulary(
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
-    JOINER_ON_THOUSANDS = False,  # add JOIN_WORD from 1000-10000 - "mil e duzentos"
+    # Cunha & Cintra, "Nova Gramática do Português Contemporâneo" (1984),
+    # p. 372: "Não se emprega a conjunção entre os milhares e as centenas,
+    # salvo quando o número terminar numa centena com dois zeros" -- so
+    # 1892 = "mil oitocentos e noventa e dois" but 1800 = "mil e oitocentos".
+    # Ciberdúvidas (ISCTE-IUL, resposta 34389) adds the other half: the
+    # conjunction also joins the two rightmost classes when the second begins
+    # with a zero ("mil e vinte", "mil e um"). Together: join when the
+    # remainder is below 100 or is a whole number of hundreds.
+    JOINER_ON_THOUSANDS = True,  # "mil e duzentos", "mil e cem"
 
     DECIMAL_MARKER=["vírgula", "virgula", "ponto", ".", ","],
     NEGATIVE_SIGN=["menos"],
@@ -284,7 +292,15 @@ _PT_BR = NumberVocabulary(
     JOIN_WORD=_PT_PT.JOIN_WORD,
     JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS=True,  # add JOIN_WORD from 100-1000 - "duzentos e um"
-    JOINER_ON_THOUSANDS=False,  # add JOIN_WORD from 1000-10000 - "mil e duzentos"
+    # Cunha & Cintra, "Nova Gramática do Português Contemporâneo" (1984),
+    # p. 372: "Não se emprega a conjunção entre os milhares e as centenas,
+    # salvo quando o número terminar numa centena com dois zeros" -- so
+    # 1892 = "mil oitocentos e noventa e dois" but 1800 = "mil e oitocentos".
+    # Ciberdúvidas (ISCTE-IUL, resposta 34389) adds the other half: the
+    # conjunction also joins the two rightmost classes when the second begins
+    # with a zero ("mil e vinte", "mil e um"). Together: join when the
+    # remainder is below 100 or is a whole number of hundreds.
+    JOINER_ON_THOUSANDS=True,  # "mil e duzentos", "mil e cem"
     DECIMAL_MARKER=_PT_PT.DECIMAL_MARKER,
     NEGATIVE_SIGN=_PT_PT.NEGATIVE_SIGN,
     UNITS=_PT_PT.UNITS,

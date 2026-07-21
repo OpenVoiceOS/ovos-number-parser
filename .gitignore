@@ -1,3 +1,9 @@
 __pycache__/
-*.pyc
+*.py[cod]
 *.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
