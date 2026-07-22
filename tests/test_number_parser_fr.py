@@ -222,6 +222,18 @@ class TestNumberParserFr(unittest.TestCase):
             except Exception as error:  # noqa: BLE001
                 self.fail(f"pronounce_number_fr({value!r}) raised {error!r}")
 
+    def test_non_decimal_unicode_ordinal_does_not_crash(self):
+        # Superscripts (¹) and vulgar fractions (½) are digit-like
+        # (str.isdigit()/isnumeric() is True) but int() rejects them; a
+        # pseudo-ordinal built from them must not raise ValueError.
+        for text in ("¹er", "²e", "½e"):
+            with self.subTest(text=text):
+                self.assertIsNone(_get_ordinal_fr(text))
+                self.assertFalse(extract_number_fr(text))
+
+    def test_arabic_indic_digit_ordinal_still_works(self):
+        self.assertEqual(_get_ordinal_fr("١er"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

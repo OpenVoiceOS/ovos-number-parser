@@ -236,11 +236,11 @@ def _pronounce_fraction_generic(fraction_word: str, lang: str) -> str:
             spoken = nice_fn(n1 / n2, speech=True, denominators=[n2])
             tokens = spoken.split()
             if "/" not in spoken and \
-                    not all(t.replace(",", "").replace(".", "").isdigit() for t in tokens):
+                    not all(t.replace(",", "").replace(".", "").isdecimal() for t in tokens):
                 overrides = _FRACTION_NUMERATOR_OVERRIDES.get(lang2, {})
                 result = " ".join(
                     overrides.get(int(t), pronounce_number(int(t), lang))
-                    if t.isdigit() else t
+                    if t.isdecimal() else t
                     for t in tokens)
 
     if result is None:

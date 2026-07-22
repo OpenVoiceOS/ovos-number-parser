@@ -459,7 +459,7 @@ def _expand_compound_numbers(text, t):
             expanded.append(w)
 
     def _int_value(w):
-        if w.isdigit():
+        if w.isdecimal():
             return int(w)
         if w in t.string_num:
             return t.string_num[w]

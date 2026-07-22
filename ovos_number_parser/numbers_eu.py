@@ -476,7 +476,7 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
             j = idx + 1
             while j < n:
                 w = aWords[j]
-                if w.isdigit():
+                if w.isdecimal():
                     digits += w
                 else:
                     dv = _word_value_eu(w)
@@ -515,7 +515,7 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
             idx += 1
             continue
 
-        if word.isdigit():
+        if word.isdecimal():
             current += int(word)
             got_number = True
             idx += 1

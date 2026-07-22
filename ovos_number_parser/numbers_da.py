@@ -960,7 +960,7 @@ def _fold_scale_groups_da(text):
             # multiplier, a fraction or a non-number ends it. Guard the digit
             # test against overflow: a several-hundred-digit token is a number
             # but nowhere near a foldable addend, so reject it before float().
-            if w.lstrip('-').isdigit():
+            if w.lstrip('-').isdecimal():
                 val = int(w) if len(w.lstrip('-')) < 4 else None
             else:
                 val = is_number_da(w)
@@ -972,7 +972,7 @@ def _fold_scale_groups_da(text):
                 continue
             if w == 'og' and saw and j + 1 < len(toks):
                 nxt = toks[j + 1]
-                if nxt in _FOLDABLE_SCALES_DA or nxt.lstrip('-').isdigit()                         or is_number_da(nxt) is not None:
+                if nxt in _FOLDABLE_SCALES_DA or nxt.lstrip('-').isdecimal()                         or is_number_da(nxt) is not None:
                     j += 1
                     continue
             break
