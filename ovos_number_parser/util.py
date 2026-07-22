@@ -523,7 +523,7 @@ class RomanceNumberExtractor:
         # a digit token wins if it appears before any spoken number word
         for tok in tokens:
             t = tok.strip(".,!?;:").replace(",", ".")
-            if t and t.lstrip("-").replace(".", "", 1).isdigit():
+            if t and t.lstrip("-").replace(".", "", 1).isdecimal():
                 val = float(t)
                 # an out-of-range digit token (e.g. "1e309" or a 400-digit
                 # string) overflows to inf/nan; it carries no usable number,

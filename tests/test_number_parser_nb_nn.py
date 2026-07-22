@@ -91,6 +91,23 @@ class TestHelpers(unittest.TestCase):
         for lang in ("nb", "nn"):
             self.assertFalse(extract_number('god morgen', lang=lang))
 
+    def test_non_decimal_unicode_digits_do_not_crash(self):
+        # Superscripts (¹²³) and vulgar fractions (½) are digit-like
+        # (str.isdigit()/isnumeric() is True) but int() rejects them; they
+        # must be treated as "no number", never raise ValueError.
+        for lang in ("nb", "nn"):
+            for text in ("¹", "²", "³", "½"):
+                with self.subTest(lang=lang, text=text):
+                    self.assertFalse(extract_number(text, lang=lang))
+
+    def test_arabic_indic_digits_still_work(self):
+        # Arabic-Indic digits (٠١٢...) are true decimal digits and must
+        # keep working.
+        for lang in ("nb", "nn"):
+            self.assertEqual(extract_number('١', lang=lang), 1)
+            self.assertEqual(extract_number('٢', lang=lang), 2)
+            self.assertEqual(extract_number('٣', lang=lang), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

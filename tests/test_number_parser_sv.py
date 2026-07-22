@@ -215,5 +215,19 @@ class TestSwedishLargeSweep(unittest.TestCase):
                     self.assertEqual(got, n)
 
 
+class TestSwedishNonDecimalUnicodeDigits(unittest.TestCase):
+    """Regression: digit-like non-decimal Unicode chars must not crash."""
+
+    def test_superscripts_and_vulgar_fractions_do_not_crash(self):
+        for text in ("¹", "²", "³", "½"):
+            with self.subTest(text=text):
+                self.assertFalse(extract_number(text, lang="sv"))
+
+    def test_arabic_indic_digits_still_work(self):
+        self.assertEqual(extract_number('١', lang="sv"), 1)
+        self.assertEqual(extract_number('٢', lang="sv"), 2)
+        self.assertEqual(extract_number('٣', lang="sv"), 3)
+
+
 if __name__ == "__main__":
     unittest.main()
