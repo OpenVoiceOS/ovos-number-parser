@@ -189,8 +189,11 @@ def pronounce_ordinal_kab(number: Union[int, float],
     return f"{marker} {pronounce_number_kab(number, gender=gender)}"
 
 
+_FRACTIONS_NORM = {_normalize(k): v for k, v in _FRACTIONS.items()}
+
+
 def is_fractional_kab(input_str: str, short_scale: bool = False) -> Union[bool, float]:
-    return _FRACTIONS.get(_normalize(input_str.strip())) or False
+    return _FRACTIONS_NORM.get(_normalize(input_str.strip())) or False
 
 
 def is_ordinal_kab(input_str: str) -> Union[bool, int]:
