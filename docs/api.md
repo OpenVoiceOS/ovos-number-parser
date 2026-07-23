@@ -111,9 +111,26 @@ conversion this function has always done, so existing callers see no change.
 '66 million years ago'
 ```
 
-The flags are honoured for **English only**. Other languages accept them and
-return their default conversion, so a caller that depends on a flag must check
-the language first.
+### Language support
+
+All three flags are honoured for **every supported language**, and `ordinals`
+works everywhere without exception. For `fractions` and `scale_words` a handful
+of languages have nothing to suppress: their parser never converted that kind of
+word in the first place, so the word already survives and the flag has nothing
+left to do.
+
+| Flag | Fully applied | Nothing to suppress (word already survives) |
+| --- | --- | --- |
+| `ordinals` | all languages | — |
+| `fractions` | ar, az, bg, ca, cs, da, de, el, en, es, et, eu, fi, fr, fy, he, hr, hu, it, nb, nl, nn, pl, ru, sk, sl, sv, tr, uk | an, ast, fa, gl, id, ms, mwl, oc, pt, ro |
+| `scale_words` | an, ar, ast, az, bg, ca, cs, da, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, it, mwl, nb, nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr, uk | de, id, ms |
+
+`kab` counts only to 9999 and has neither scale nor fraction vocabulary, so
+those two flags cannot apply to it; `ordinals` does.
+
+No language ever returns something *other* than what a flag asks for. The table
+lives in `tests/test_numbers_to_digits_flags_all_langs.py`, which iterates
+`SUPPORTED_LANGUAGES` and fails if a newly added language is not declared.
 
 ## Enums
 

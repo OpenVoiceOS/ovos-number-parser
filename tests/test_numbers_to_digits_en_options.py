@@ -32,8 +32,10 @@ class TestEnglishDispatchRoute(unittest.TestCase):
         self.assertEqual(numbers_to_digits("it was five days ago", "en"),
                          "it was 5 days ago")
 
-    def test_unknown_language_flags_do_not_crash(self):
-        # the flags are English-only, but no language may raise on them
+    def test_flags_accepted_for_other_languages(self):
+        # the flags are part of the public contract for every language;
+        # the cross-language behaviour itself lives in
+        # test_numbers_to_digits_flags_all_langs.py
         for lang in ("es", "de", "pt", "ru", "nl", "fr", "it"):
             with self.subTest(lang=lang):
                 out = numbers_to_digits("veinte", lang, ordinals=True,
