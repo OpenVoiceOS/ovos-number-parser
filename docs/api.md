@@ -85,7 +85,7 @@ Use `extract_number` to pull fractions out of longer phrases.
 Exact-match test for an ordinal word (`"third"` → `3`, otherwise `False`).
 Implemented for `en`, `pt`, `mwl`, `de` and `da`.
 
-## `numbers_to_digits(utterance, lang, scale=Scale.LONG)`
+## `numbers_to_digits(utterance, lang, scale=Scale.LONG, *, ordinals=False, fractions=True, scale_words=True)`
 
 Rewrite the written numbers inside a phrase as digits, keeping the rest of
 the text intact.
@@ -94,6 +94,26 @@ the text intact.
 >>> numbers_to_digits("set a timer for five minutes", "en")
 'set a timer for 5 minutes'
 ```
+
+Three keyword flags tune what counts as a number. Each defaults to the
+conversion this function has always done, so existing callers see no change.
+
+| Flag | Default | Off/on effect |
+| --- | --- | --- |
+| `ordinals` | `False` | `True` reads ordinal words as values: `"the twenty fifth"` → `"the 25"`. Left off, an ordinal word is kept as a word. |
+| `fractions` | `True` | `False` keeps a *bare* fraction word: `"half past nine"` → `"half past 9"`. A fraction inside a quantity always converts: `"two and a half hours"` → `"2.5 hours"`. |
+| `scale_words` | `True` | `False` converts only the count and keeps the scale word: `"sixty six million years ago"` → `"66 million years ago"`. |
+
+```python
+>>> numbers_to_digits("a quarter to five", "en", fractions=False)
+'a quarter to 5'
+>>> numbers_to_digits("sixty six million years ago", "en", scale_words=False)
+'66 million years ago'
+```
+
+The flags are honoured for **English only**. Other languages accept them and
+return their default conversion, so a caller that depends on a flag must check
+the language first.
 
 ## Enums
 

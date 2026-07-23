@@ -373,22 +373,60 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
     return " ".join(out)
 
 
-def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) -> str:
+def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
+                      *,
+                      ordinals: bool = False,
+                      fractions: bool = True,
+                      scale_words: bool = True) -> str:
     """
     Convert written numbers in a text string to their digit representations for the specified language and numerical scale.
-    
+
     Parameters:
         utterance (str): Text potentially containing written numbers.
         lang (str): Language code used to determine parsing rules.
         scale (Scale, optional): Numerical scale (long or short) for languages that distinguish between them.
-    
+        ordinals (bool): parse ordinal words to their number value.
+            ``"the twenty fifth"`` -> ``"the 25"``. Off by default, which leaves
+            an ordinal word untouched.
+        fractions (bool): convert a *bare* fraction word - one that is not part
+            of a numeric span. On by default. Turning it off keeps such words as
+            words, which a clock-time grammar downstream depends on::
+
+                fractions=True   "half past nine"       -> "0.5 past 9"
+                fractions=False  "half past nine"       -> "half past 9"
+                fractions=False  "two and a half hours" -> "2.5 hours"
+
+            A fraction that belongs to a quantity is always converted, because
+            there the fraction is part of the number, not a separate word.
+        scale_words (bool): expand multiplier scale words ("hundred", "million").
+            On by default. Turning it off converts only the count and keeps the
+            scale word, which preserves the distinction between deep time and a
+            plain offset::
+
+                scale_words=True   "sixty six million years ago" -> "66000000 years ago"
+                scale_words=False  "sixty six million years ago" -> "66 million years ago"
+                scale_words=False  "two thousand and one"        -> "2 thousand and 1"
+
+    Language support for the keyword flags:
+        ``ordinals``, ``fractions`` and ``scale_words`` are honoured for
+        **English (``en``) only**. Every other language accepts them without
+        error and ignores them, returning its default conversion - passing a
+        non-default value there is not a supported configuration. Callers that
+        need the flags must check the language themselves.
+
     Returns:
         str: The input text with written numbers replaced by their digit equivalents.
-    
+
     Raises:
         NotImplementedError: If the specified language is not supported.
     """
     scale = _resolve_scale(lang, scale)
+    if lang.startswith("en"):
+        return numbers_to_digits_en(utterance,
+                                    short_scale=scale == Scale.SHORT,
+                                    ordinals=ordinals,
+                                    fractions=fractions,
+                                    scale_words=scale_words)
     if lang.startswith("ast"):
         return AST.numbers_to_digits(utterance)
     if lang.startswith("oc"):
