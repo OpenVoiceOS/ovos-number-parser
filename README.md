@@ -9,15 +9,15 @@ small dependency-light library.
 
 `ovos-number-parser` goes both ways:
 
-- **words → digits** — turn spoken-form text into numbers
-  (`extract_number`, `numbers_to_digits`). Ideal for **ASR post-processing /
+- **words to digits**: turn spoken-form text into numbers
+  (`extract_number`, `numbers_to_digits`). Use it for **ASR post-processing /
   inverse text normalization** and **numeric entity extraction**.
-- **digits → words** — turn numbers into natural spoken text
-  (`pronounce_number`, `pronounce_ordinal`, `pronounce_fraction`). Ideal for
+- **digits to words**: turn numbers into natural spoken text
+  (`pronounce_number`, `pronounce_ordinal`, `pronounce_fraction`). Use it for
   **TTS normalization** before synthesis.
 
-It ships as part of the [OpenVoiceOS](https://openvoiceos.org) voice stack, but
-it is **plain Python with no assistant dependencies** — every example below runs
+It ships as part of the [OpenVoiceOS](https://openvoiceos.org) voice stack. It
+is **plain Python with no assistant dependencies**. Every example below runs
 after a single `pip install`, with no voice assistant involved.
 
 ## Install
@@ -53,7 +53,7 @@ is_ordinal("third", "en")                 # 3
 extract_number("hello world", "en")       # False
 ```
 
-Pass a different language code and the same calls work — see the
+Pass a different language code and the same calls work. See the
 [matrix](#supported-languages) for the 40 supported languages.
 
 ## What it's good for (beyond voice assistants)
@@ -63,7 +63,7 @@ runnable script in [`examples/`](examples/):
 
 ### 1. ASR post-processing / inverse text normalization
 
-Speech-to-text emits numbers as words; most downstream systems want digits.
+Speech-to-text emits numbers as words. Most downstream systems want digits.
 
 ```python
 from ovos_number_parser import numbers_to_digits, extract_number
@@ -113,14 +113,14 @@ The same two functions cover 40 languages, with dialect prefixes
 
 ### In an OVOS skill vs. standalone
 
-The API is identical; only where you get the language code differs.
+The API is the same in both cases. Only where you get the language code differs.
 
 ```python
-# Standalone Python — you pass the language yourself
+# Standalone Python: you pass the language yourself
 from ovos_number_parser import extract_number
 n = extract_number(text, "en")
 
-# Inside an OVOS skill — the framework already knows the session language
+# Inside an OVOS skill: the framework already knows the session language
 class MySkill(OVOSSkill):
     def handle_intent(self, message):
         n = extract_number(message.data["utterance"], self.lang)
@@ -131,11 +131,11 @@ class MySkill(OVOSSkill):
 40 languages. Every language supports **every** public function: where a
 language has no hand-written implementation for a given function, a documented
 generic fallback fills in (`unicode-rbnf` for pronunciation, reverse-lookup for
-the rest — see [Full function parity](docs/languages.md#full-function-parity)),
+the rest: see [Full function parity](docs/languages.md#full-function-parity)),
 so the call always returns a sensible result rather than raising.
 
-- **Y** — dedicated hand-written implementation
-- **·** — supported via the documented generic fallback
+- **Y**: dedicated hand-written implementation
+- **·**: supported via the documented generic fallback
 
 | Code | Language | pronounce_number | pronounce_ordinal | extract_number | numbers_to_digits | is_fractional | is_ordinal |
 |------|----------|:--:|:--:|:--:|:--:|:--:|:--:|
@@ -197,16 +197,16 @@ pronounce_number(2, "pt", gender=GrammaticalGender.FEMININE)  # 'duas'
 
 ## Documentation
 
-- [API reference](docs/api.md) — every public function and its parameters
-- [Language notes](docs/languages.md) — per-language behaviour and known gaps
-- [Adding a language](docs/adding-a-language.md) — implementation guide
-- [examples/](examples/) — runnable scripts (each ends with its verified output)
+- [API reference](docs/api.md): every public function and its parameters
+- [Language notes](docs/languages.md): per-language behaviour and known gaps
+- [Adding a language](docs/adding-a-language.md): implementation guide
+- [examples/](examples/): runnable scripts (each ends with its verified output)
 
 ## Related projects
 
-- [ovos-date-parser](https://github.com/OpenVoiceOS/ovos-date-parser) — dates and times
-- [ovos-lang-parser](https://github.com/OVOSHatchery/ovos-lang-parser) — languages
-- [ovos-color-parser](https://github.com/OVOSHatchery/ovos-color-parser) — colors
+- [ovos-date-parser](https://github.com/OpenVoiceOS/ovos-date-parser): dates and times
+- [ovos-lang-parser](https://github.com/OVOSHatchery/ovos-lang-parser): languages
+- [ovos-color-parser](https://github.com/OVOSHatchery/ovos-color-parser): colors
 
 ## License
 
