@@ -6,7 +6,7 @@ and is wired into the dispatcher functions in `ovos_number_parser/__init__.py`.
 ## 1. Pick the implementation style
 
 **Romance languages** (or any language with unit/ten/hundred/scale structure
-and joiner words) should use the declarative vocabulary engine — describe the
+and joiner words) should use the declarative vocabulary engine: describe the
 language, don't reimplement the algorithm:
 
 ```python
@@ -39,8 +39,8 @@ articled scale groups ("o mie"), a count-to-scale linker word
 ("douăzeci **de** mii"), multiplicative hundreds words ("două sute" = 200)
 or particle-based ordinals ("al doilea"/"a doua") can describe those with
 `SCALE_ONE`, `SCALE_LINKER`, `SCALE_GENDERS`, `MULTIPLY_HUNDREDS`,
-`FRACTION_ONE`, `JOINER_ON_SCALE_REMAINDER` and the `ORDINAL_PREFIX` family —
-see `numbers_ro.py` for a worked example.
+`FRACTION_ONE`, `JOINER_ON_SCALE_REMAINDER` and the `ORDINAL_PREFIX` family.
+See `numbers_ro.py` for a worked example.
 
 **Other language families** implement the functions directly. Use an existing
 module of the same family as a template:
@@ -73,17 +73,20 @@ Add the language-prefix branch to each matching top-level function in
 Add `tests/test_number_parser_<code>.py` with three parts (see any existing
 language test for the pattern):
 
-1. **Pronounce anchors** — hand-verified spoken forms for a fixed set of
+1. **Pronounce anchors**: hand-verified spoken forms for a fixed set of
    values (0-20, tens, 100, 101, 123, 999, 1000, 2023, 1e6, ...).
-2. **Extract anchors** — the same table driven in reverse.
-3. **Round-trip sweep** — `extract_number(pronounce_number(n))` must return
+2. **Extract anchors**: the same table driven in reverse.
+3. **Round-trip sweep**: `extract_number(pronounce_number(n))` must return
    `n` over a wide range. This catches vocabulary typos and asymmetries
    cheaply.
 
-Anchor expectations must come from reference material or native usage —
-never trust engine output you haven't verified; a wrong anchor locks the
+Anchor expectations must come from reference material or native usage.
+Never trust engine output you have not verified. A wrong anchor locks the
 bug in.
 
 ## 5. README
 
 Add the language row to the support matrix in `README.md`.
+
+---
+[← Language notes](languages.md) · [Home](../README.md)
