@@ -85,7 +85,7 @@ Use `extract_number` to pull fractions out of longer phrases.
 Exact-match test for an ordinal word (`"third"` → `3`, otherwise `False`).
 Implemented for `en`, `pt`, `mwl`, `de` and `da`.
 
-## `numbers_to_digits(utterance, lang, scale=Scale.LONG, *, ordinals=False, fractions=True)`
+## `numbers_to_digits(utterance, lang, scale=Scale.LONG, *, ordinals=False, fractions=True, scale_words=True)`
 
 Rewrite the written numbers inside a phrase as digits, keeping the rest of
 the text intact.
@@ -95,29 +95,43 @@ the text intact.
 'set a timer for 5 minutes'
 ```
 
-The keyword flags each default to the conversion this function has always done,
-so existing callers see no change.
+Three keyword flags tune what counts as a number. Each defaults to the
+conversion this function has always done, so existing callers see no change.
 
 | Flag | Default | Off/on effect |
 | --- | --- | --- |
 | `ordinals` | `False` | `True` reads ordinal words as values: `"the twenty fifth"` → `"the 25"`. Left off, an ordinal word is kept as a word. |
 | `fractions` | `True` | `False` keeps a *bare* fraction word: `"half past nine"` → `"half past 9"`. A fraction inside a quantity always converts: `"two and a half hours"` → `"2.5 hours"`. |
+| `scale_words` | `True` | `False` converts only the count and keeps the scale word: `"sixty six million years ago"` → `"66 million years ago"`. |
 
 ```python
 >>> numbers_to_digits("a quarter to five", "en", fractions=False)
 'a quarter to 5'
+>>> numbers_to_digits("sixty six million years ago", "en", scale_words=False)
+'66 million years ago'
 ```
 
-`ordinals` is honoured for **every supported language**: a language whose own
-parser only knows cardinals still gets ordinal conversion from a shared pass over
-the words it left standing. Regardless of the flag, an ordinal word is never read
-as a fraction reciprocal (`"the third week"` never becomes `"the 0.333 week"`).
+### Language support
 
-`fractions` is honoured for every language too. A handful of languages (`an`,
-`ast`, `fa`, `gl`, `id`, `ms`, `mwl`, `oc`, `pt`, `ro`) never converted a bare
-fraction word to begin with, so the word already survives and the flag has
-nothing left to do; no language returns something *other* than what the flag
-asks for. `SUPPORTED_LANGUAGES` is the canonical language list the tests iterate.
+All three flags are honoured for **every supported language**, and `ordinals`
+works everywhere without exception. Regardless of any flag, an ordinal word is
+never read as a fraction reciprocal (`"the third week"` never becomes
+`"the 0.333 week"`). For `fractions` and `scale_words` a handful of languages
+have nothing to suppress: their parser never converted that kind of word in the
+first place, so the word already survives and the flag has nothing left to do.
+
+| Flag | Fully applied | Nothing to suppress (word already survives) |
+| --- | --- | --- |
+| `ordinals` | all languages | — |
+| `fractions` | ar, az, bg, ca, cs, da, de, el, en, es, et, eu, fi, fr, fy, he, hr, hu, it, nb, nl, nn, pl, ru, sk, sl, sv, tr, uk | an, ast, fa, gl, id, ms, mwl, oc, pt, ro |
+| `scale_words` | an, ar, ast, az, bg, ca, cs, da, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, it, mwl, nb, nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr, uk | de, id, ms |
+
+`kab` counts only to 9999 and has neither scale nor fraction vocabulary, so
+those two flags cannot apply to it; `ordinals` does.
+
+No language ever returns something *other* than what a flag asks for. The table
+lives in `tests/test_numbers_to_digits_flags_all_langs.py`, which iterates
+`SUPPORTED_LANGUAGES` and fails if a newly added language is not declared.
 
 ## Enums
 

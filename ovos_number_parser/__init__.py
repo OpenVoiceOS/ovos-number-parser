@@ -288,6 +288,12 @@ SUPPORTED_LANGUAGES = (
     "sl", "sv", "tr", "uk",
 )
 
+#: Powers of ten that are spelled with a dedicated multiplier word in most
+#: languages ("hundred", "thousand", "million", ...). A word whose *whole* value
+#: is one of these is a scale word: "two hundred" is a count times a scale,
+#: while "duzentos" (200) is a lexicalised numeral and not a multiplier.
+_SCALE_WORD_VALUES = frozenset(10 ** n for n in range(2, 40))
+
 #: a number in converted output, used to compare two conversions
 _CONVERTED_NUMBER_RE = re.compile(r"-?\d+(?:\.\d+)?")
 
@@ -306,6 +312,18 @@ def _safe_extract(token: str, lang: str):
         return extract_number(token, lang)
     except Exception:  # language modules raise a variety of errors
         return False
+
+
+def _is_scale_word(token: str, lang: str) -> bool:
+    """True if the word is a multiplier scale word ("thousand", "milhão")."""
+    val = _safe_extract(_bare_word(token), lang)
+    if val is False or val is None or isinstance(val, bool):
+        return False
+    try:
+        fval = float(val)
+    except (TypeError, ValueError):
+        return False
+    return fval.is_integer() and int(fval) in _SCALE_WORD_VALUES
 
 
 def _is_fraction_word(token: str, lang: str) -> bool:
@@ -426,7 +444,8 @@ def _ordinal_words_to_digits(text: str, lang: str) -> str:
 
 
 def _numbers_to_digits_flags(convert, utterance: str, lang: str, *,
-                             ordinals: bool, fractions: bool) -> str:
+                             ordinals: bool, fractions: bool,
+                             scale_words: bool) -> str:
     """Apply the conversion flags on top of any language's own converter.
 
     With every flag at its default nothing is ever held back and ``convert`` sees
@@ -437,6 +456,11 @@ def _numbers_to_digits_flags(convert, utterance: str, lang: str, *,
         return convert(utterance)
 
     protected = set()
+    if not scale_words:
+        # the neighbouring count is *meant* to change here ("66 million"),
+        # so these need no locality check
+        protected |= {i for i, t in enumerate(tokens)
+                      if _is_scale_word(t, lang)}
 
     candidates = []
     if not fractions:
@@ -557,7 +581,8 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
 def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
                       *,
                       ordinals: bool = False,
-                      fractions: bool = True) -> str:
+                      fractions: bool = True,
+                      scale_words: bool = True) -> str:
     """
     Convert written numbers in a text string to their digit representations for the specified language and numerical scale.
 
@@ -574,6 +599,10 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
             words ("half past nine" -> "half past 9"), while a fraction that
             belongs to a quantity is always converted ("two and a half hours" ->
             "2.5 hours").
+        scale_words (bool): expand multiplier scale words ("hundred", "million").
+            On by default. Turning it off converts only the count and keeps the
+            scale word ("sixty six million years ago" -> "66 million years ago").
+            Honoured for every supported language.
 
     Returns:
         str: The input text with written numbers replaced by their digit equivalents.
@@ -589,7 +618,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
         return numbers_to_digits_en(utterance,
                                     short_scale=scale == Scale.SHORT,
                                     ordinals=ordinals,
-                                    fractions=fractions)
+                                    fractions=fractions,
+                                    scale_words=scale_words)
 
     def _convert(text: str) -> str:
         """The language's own conversion, with ordinals threaded natively."""
@@ -630,7 +660,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
         return _numbers_to_digits_generic(text, lang, ordinals=ordinals)
 
     return _numbers_to_digits_flags(_convert, utterance, lang,
-                                    ordinals=ordinals, fractions=fractions)
+                                    ordinals=ordinals, fractions=fractions,
+                                    scale_words=scale_words)
 
 
 # Connectives for the a+bi complex form, per language, English as the default.
