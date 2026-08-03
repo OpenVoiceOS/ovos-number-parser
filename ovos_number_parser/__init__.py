@@ -278,7 +278,173 @@ def _is_ordinal_generic(input_str: str, lang: str):
     return _ORDINAL_REVERSE_CACHE[lang2].get(input_str.lower().strip(), False)
 
 
-def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
+#: Every language this package supports, as the two/three letter code the public
+#: functions expect. It is the canonical list: tests iterate it so a newly added
+#: language cannot quietly skip the behaviour every other language guarantees.
+SUPPORTED_LANGUAGES = (
+    "an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en", "es",
+    "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
+    "kab", "ms", "mwl", "nb", "nl", "nn", "oc", "pl", "pt", "ro", "ru", "sk",
+    "sl", "sv", "tr", "uk",
+)
+
+#: a number in converted output, used to compare two conversions
+_CONVERTED_NUMBER_RE = re.compile(r"-?\d+(?:\.\d+)?")
+
+_WORD_PUNCT = ".,!?;:؟،؛\"'()[]«»"
+
+
+def _bare_word(token: str) -> str:
+    return token.strip(_WORD_PUNCT)
+
+
+def _safe_extract(token: str, lang: str):
+    """extract_number that never raises, for probing a single word."""
+    if not token:
+        return False
+    try:
+        return extract_number(token, lang)
+    except Exception:  # language modules raise a variety of errors
+        return False
+
+
+def _reads_ordinal_as_fraction(token: str, lang: str) -> bool:
+    """True if an ordinal word would be misread as its reciprocal.
+
+    English and several other languages reuse ordinal names as fraction
+    denominators ("two thirds" = 2/3). Standing alone, such a word is an
+    ordinal, and reading it as a reciprocal invents a value nobody spoke
+    ("the third week" -> "the 0.333 week"). Languages whose ordinal words are
+    not fraction names are unaffected.
+    """
+    word = _bare_word(token)
+    if not word:
+        return False
+    try:
+        if not is_ordinal(word, lang):
+            return False
+    except Exception:  # language modules raise a variety of errors
+        return False
+    frac = _safe_extract(word, lang)
+    if frac is False or frac is None:
+        return False
+    try:
+        return not float(frac).is_integer()
+    except (TypeError, ValueError):
+        return False
+
+
+def _convert_segments(convert, tokens, protected) -> str:
+    """Convert the text around ``protected`` token positions, keeping those verbatim.
+
+    Splitting at the protected words is what gives them their meaning: a number
+    span can never grow across one, so "sixty six | million | years ago" converts
+    the count and leaves the scale word standing.
+    """
+    if not protected:
+        return convert(" ".join(tokens))
+    out = []
+    segment = []
+    for idx, token in enumerate(tokens):
+        if idx in protected:
+            if segment:
+                out.append(convert(" ".join(segment)))
+                segment = []
+            out.append(token)
+        else:
+            segment.append(token)
+    if segment:
+        out.append(convert(" ".join(segment)))
+    return " ".join(part for part in out if part)
+
+
+def _digits_in(text: str):
+    return [float(m) for m in _CONVERTED_NUMBER_RE.findall(text)]
+
+
+def _protection_is_local(convert, tokens, protected, idx, lang) -> bool:
+    """True if keeping token ``idx`` as a word leaves every other number intact.
+
+    A fraction word that belongs to a quantity ("two and a half hours") cannot be
+    held back without changing the quantity itself, and there the fraction is part
+    of the number rather than a word of its own. Comparing the two conversions is
+    a language-agnostic way to tell the two cases apart: protection is accepted
+    only when the sole difference is the fraction's own value disappearing.
+    """
+    baseline = _digits_in(_convert_segments(convert, tokens, protected))
+    trial = _digits_in(_convert_segments(convert, tokens, protected | {idx}))
+    own = _safe_extract(_bare_word(tokens[idx]), lang)
+    try:
+        own = float(own)
+    except (TypeError, ValueError):
+        return False
+    expected = list(baseline)
+    if own not in expected:
+        # the word was not being converted anyway: leave the output untouched
+        return False
+    expected.remove(own)
+    return expected == trial
+
+
+def _ordinal_words_to_digits(text: str, lang: str) -> str:
+    """Convert any ordinal word the language's own parser left standing.
+
+    Most language modules only know cardinals, so ``ordinals=True`` would be
+    silently dropped for them. ``is_ordinal`` is implemented for every supported
+    language, so a single pass over the words that are still words gives every
+    language the same behaviour. Words already converted contain digits and are
+    skipped, so a language with native ordinal support is unaffected.
+    """
+    out = []
+    for token in text.split():
+        word = _bare_word(token)
+        if not word or any(ch.isdigit() for ch in token):
+            out.append(token)
+            continue
+        try:
+            val = is_ordinal(word, lang)
+        except Exception:  # language modules raise a variety of errors
+            val = False
+        if val is False or val is None or isinstance(val, bool):
+            out.append(token)
+            continue
+        trail = token[len(token.rstrip(_WORD_PUNCT)):]
+        lead = token[:len(token) - len(token.lstrip(_WORD_PUNCT))]
+        out.append(f"{lead}{int(val)}{trail}")
+    return " ".join(out)
+
+
+def _numbers_to_digits_flags(convert, utterance: str, lang: str, *,
+                             ordinals: bool) -> str:
+    """Apply the conversion flags on top of any language's own converter.
+
+    With every flag at its default nothing is ever held back and ``convert`` sees
+    the whole utterance, so a language's existing output is preserved exactly.
+    """
+    tokens = utterance.split()
+    if not tokens:
+        return convert(utterance)
+
+    protected = set()
+
+    candidates = []
+    if not ordinals:
+        candidates += [i for i, t in enumerate(tokens)
+                       if i not in protected and i not in candidates
+                       and _reads_ordinal_as_fraction(t, lang)]
+
+    for idx in candidates:
+        if _protection_is_local(convert, tokens, protected, idx, lang):
+            protected.add(idx)
+
+    converted = _convert_segments(convert, tokens, protected)
+    if ordinals:
+        converted = _ordinal_words_to_digits(converted, lang)
+    return converted
+
+
+def _numbers_to_digits_generic(utterance: str, lang: str,
+                               ordinals: bool = False) -> str:
     """Fallback that replaces spoken number spans with digits using
     extract_number over maximal runs of number words."""
     lang2 = lang.lower().split("-")[0]
@@ -297,7 +463,7 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
         if not c:
             return False
         try:
-            if extract_number(c, lang) is False:
+            if extract_number(c, lang, ordinals=ordinals) is False:
                 return False
         except NotImplementedError:
             return False
@@ -310,7 +476,7 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
                 if not part or part in connectors:
                     continue
                 try:
-                    if extract_number(part, lang) is False:
+                    if extract_number(part, lang, ordinals=ordinals) is False:
                         return False
                 except NotImplementedError:
                     return False
@@ -331,11 +497,12 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
             ("due e tre")."""
             extended = " ".join(_clean(t) for t in tokens[i:next_j + 1])
             current = " ".join(_clean(t) for t in tokens[i:j + 1])
-            extended_val = extract_number(extended, lang)
+            extended_val = extract_number(extended, lang, ordinals=ordinals)
             if extended_val is False or extended_val is None:
                 return False
-            current_val = extract_number(current, lang)
-            next_val = extract_number(_clean(tokens[next_j]), lang)
+            current_val = extract_number(current, lang, ordinals=ordinals)
+            next_val = extract_number(_clean(tokens[next_j]), lang,
+                                      ordinals=ordinals)
             if current_val is False or current_val is None:
                 return False
             if extended_val == current_val \
@@ -363,7 +530,7 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
             else:
                 break
         span = " ".join(_clean(t) for t in tokens[i:j + 1])
-        val = extract_number(span, lang)
+        val = extract_number(span, lang, ordinals=ordinals)
         stripped = tokens[j].rstrip(punct)
         trail = tokens[j][len(stripped):]
         if isinstance(val, float) and val.is_integer():
@@ -373,18 +540,24 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
     return " ".join(out)
 
 
-def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) -> str:
+def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
+                      *,
+                      ordinals: bool = False) -> str:
     """
     Convert written numbers in a text string to their digit representations for the specified language and numerical scale.
-    
+
     Parameters:
         utterance (str): Text potentially containing written numbers.
         lang (str): Language code used to determine parsing rules.
         scale (Scale, optional): Numerical scale (long or short) for languages that distinguish between them.
-    
+        ordinals (bool): parse ordinal words to their number value.
+            ``"the twenty fifth"`` -> ``"the 25"``. Off by default, which leaves
+            an ordinal word untouched. Honoured for every supported language, and
+            an ordinal word is never read as a fraction regardless of this flag.
+
     Returns:
         str: The input text with written numbers replaced by their digit equivalents.
-    
+
     Raises:
         NotImplementedError: If the specified language is not supported.
     """
@@ -393,42 +566,50 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         # English has its own converter, which reads compound ordinals
         # ("the twenty fifth" -> 25) and never mistakes a singular ordinal for a
         # fraction. The generic fallback did neither.
-        return numbers_to_digits_en(utterance, short_scale=scale == Scale.SHORT)
-    if lang.startswith("ast"):
-        return AST.numbers_to_digits(utterance)
-    if lang.startswith("oc"):
-        return OC.numbers_to_digits(utterance, scale=scale)
-    if lang.startswith("an"):
-        return AN.numbers_to_digits(utterance)
-    if lang.startswith("fy"):
-        return numbers_to_digits_fy(utterance)
-    if lang.startswith("gl"):
-        return numbers_to_digits_gl(utterance)
-    if lang.startswith("de"):
-        return numbers_to_digits_de(utterance)
-    if lang.startswith("pt"):
-        return PT_PT.numbers_to_digits(utterance, scale=scale)
-    if lang.startswith("mwl"):
-        return MWL.numbers_to_digits(utterance, scale=scale)
-    if lang.startswith("ro"):
-        return RO.numbers_to_digits(utterance, scale=scale)
-    if lang.startswith("bg"):
-        return numbers_to_digits_bg(utterance)
-    if lang.startswith("hr"):
-        return numbers_to_digits_hr(utterance)
-    if lang.startswith("ru"):
-        return numbers_to_digits_ru(utterance)
-    if lang.startswith("sk"):
-        return numbers_to_digits_sk(utterance)
-    if lang.startswith("id"):
-        return numbers_to_digits_id(utterance)
-    if lang.startswith("ms"):
-        return numbers_to_digits_ms(utterance)
-    if lang.startswith("tr"):
-        return numbers_to_digits_tr(utterance)
-    if lang.startswith("uk"):
-        return numbers_to_digits_uk(utterance)
-    return _numbers_to_digits_generic(utterance, lang)
+        return numbers_to_digits_en(utterance,
+                                    short_scale=scale == Scale.SHORT,
+                                    ordinals=ordinals)
+
+    def _convert(text: str) -> str:
+        """The language's own conversion, with ordinals threaded natively."""
+        if lang.startswith("ast"):
+            return AST.numbers_to_digits(text, ordinals=ordinals)
+        if lang.startswith("oc"):
+            return OC.numbers_to_digits(text, scale=scale, ordinals=ordinals)
+        if lang.startswith("an"):
+            return AN.numbers_to_digits(text, ordinals=ordinals)
+        if lang.startswith("fy"):
+            return numbers_to_digits_fy(text, ordinals=ordinals)
+        if lang.startswith("gl"):
+            return GL.numbers_to_digits(text, scale=scale, ordinals=ordinals)
+        if lang.startswith("de"):
+            return numbers_to_digits_de(text, ordinals=ordinals)
+        if lang.startswith("pt"):
+            return PT_PT.numbers_to_digits(text, scale=scale, ordinals=ordinals)
+        if lang.startswith("mwl"):
+            return MWL.numbers_to_digits(text, scale=scale, ordinals=ordinals)
+        if lang.startswith("ro"):
+            return RO.numbers_to_digits(text, scale=scale, ordinals=ordinals)
+        if lang.startswith("bg"):
+            return numbers_to_digits_bg(text, ordinals=ordinals)
+        if lang.startswith("hr"):
+            return numbers_to_digits_hr(text, ordinals=ordinals)
+        if lang.startswith("ru"):
+            return numbers_to_digits_ru(text, ordinals=ordinals)
+        if lang.startswith("sk"):
+            return numbers_to_digits_sk(text, ordinals=ordinals)
+        if lang.startswith("id"):
+            return numbers_to_digits_id(text, ordinals=ordinals)
+        if lang.startswith("ms"):
+            return numbers_to_digits_ms(text, ordinals=ordinals)
+        if lang.startswith("tr"):
+            return numbers_to_digits_tr(text, ordinals=ordinals)
+        if lang.startswith("uk"):
+            return numbers_to_digits_uk(text, ordinals=ordinals)
+        return _numbers_to_digits_generic(text, lang, ordinals=ordinals)
+
+    return _numbers_to_digits_flags(_convert, utterance, lang,
+                                    ordinals=ordinals)
 
 
 # Connectives for the a+bi complex form, per language, English as the default.
