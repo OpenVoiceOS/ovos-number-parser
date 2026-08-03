@@ -14,8 +14,10 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(numbers_to_digits_en('three billions'), '3000000000.0')
         self.assertEqual(numbers_to_digits_en('two point five'), '2.5')
         self.assertEqual(numbers_to_digits_en('two point forty two'), '2.42')
+        # with ordinals off, "fifth" is left as a word: it must never be
+        # reinterpreted as the reciprocal 1/5 (this used to read "march 0.2")
         self.assertEqual(numbers_to_digits_en('march fifth two thousand twenty five', ordinals=False),
-                         'march 0.2 2025')
+                         'march fifth 2025')
         self.assertEqual(numbers_to_digits_en('march fifth', ordinals=True),
                          'march 5')
 
