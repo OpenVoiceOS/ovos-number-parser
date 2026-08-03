@@ -40,7 +40,7 @@ Portuguese, Galician, Mirandese, Asturian and Aragonese share a declarative
 `NumberVocabulary` + `RomanceNumberExtractor` implementation in
 `ovos_number_parser.util`. Each language is described by its vocabulary
 (units, tens, hundreds, scales, ordinals, fractions, gender rules and joiner
-placement); the shared engine handles pronunciation and extraction for all
+placement). The shared engine handles pronunciation and extraction for all
 of them. This is the preferred path for adding new Romance languages.
 
 Portuguese distinguishes European and Brazilian variants (`pt-PT` reads
@@ -51,7 +51,7 @@ Aragonese pronounces the general forms of the current academic norm
 (`cuatre`, `ueito`, `deciséis`, `vintiún`, `trenta y cinco`, `cient`) and
 accepts the dialectal variants (`quatre`, `güeito`, `setse`, `vente`,
 `noranta`) on extraction. Ordinals use the characteristic `-eno` series
-(`cuatreno`, `cinqueno`, `onceno`); tens ordinals above the attested range
+(`cuatreno`, `cinqueno`, `onceno`). Tens ordinals above the attested range
 follow the same productive `-eno` pattern.
 
 ## Spanish and Catalan
@@ -95,13 +95,13 @@ readings.
 ## Known gaps
 
 These are cases where the generic parity fallback (see below) is in use and
-its result is rougher than a dedicated implementation would be — the call still
+its result is rougher than a dedicated implementation would be: the call still
 returns, it is just less polished:
 
 - `fr`, `it`, `eu`, `fa` and other languages marked `·` for `numbers_to_digits`
   in the README matrix rely on the generic span-replacement fallback.
 - Polish extraction does not merge `tysiąc` groups written with the singular
-  form (`jeden tysiąc jeden`); plural forms (`dwa tysiące trzy`) work.
+  form (`jeden tysiąc jeden`). Plural forms (`dwa tysiące trzy`) work.
 - Czech pronounces four-digit numbers date-style (`1234` →
   `dvanáct třicet čtyři`), which extraction does not reverse.
 
@@ -111,7 +111,7 @@ Every supported language provides every public function. Where a language
 has no hand-written implementation, a documented generic fallback fills in:
 
 - `pronounce_fraction` reuses the language's `nice_number` fraction wording
-  (which carries its plural/declension rules) and spells out any digits; the
+  (which carries its plural/declension rules) and spells out any digits. The
   Slavic languages use feminine numerators (`dvě třetiny`, `две трети`) and
   Hungarian its `két` allomorph. Denominators outside the language's fraction
   vocabulary fall back to "cardinal numerator + ordinal denominator".
@@ -127,3 +127,6 @@ has no hand-written implementation, a documented generic fallback fills in:
 
 The parity guarantee is enforced by `tests/test_lang_parity.py`, which runs
 every public function against every supported language.
+
+---
+[← API reference](api.md) · [Home](../README.md) · [Adding a language →](adding-a-language.md)

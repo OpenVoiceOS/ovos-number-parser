@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.8a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.8a2) (2026-07-31)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.8a1...0.19.8a2)
+
+**Merged pull requests:**
+
+- docs: rewrite README in Simplified Technical English [\#284](https://github.com/OpenVoiceOS/ovos-number-parser/pull/284) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.19.8a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.8a1) (2026-07-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.7...0.19.8a1)
