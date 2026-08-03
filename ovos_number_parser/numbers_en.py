@@ -629,6 +629,45 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
     return result
 
 
+#: A hyphen or underscore between two letters spells the space that joins a
+#: compound numeral, so "ninety-nine", "ninety_nine" and "ninety nine" read
+#: alike. Only letter-letter joins are rewritten: a leading "-" is a minus sign
+#: and a digit on either side is a range ("10-15"), both of which survive.
+_COMPOUND_JOIN_RE_EN = re.compile(r"(?<=[^\W\d_])[-_](?=[^\W\d_])", re.UNICODE)
+
+#: A comma between two number words is spoken punctuation inside one numeral
+#: ("two thousand, five hundred"), not a separator.
+_SPOKEN_COMMA_RE_EN = re.compile(r"\b(\w+),(\s+)(?=\w)", re.UNICODE)
+
+
+def _numeral_separators_en(text):
+    """Normalise the separators that spell a single English numeral.
+
+    Rewrites "-"/"_" written between letters to a space so the tokenizer does not
+    cut a compound in half ("nineteen ninety-nine" was read as "19 90 - 9"), and
+    drops a comma standing between two number words. Commas in ordinary prose are
+    left alone: only a comma with a number word on each side is removed.
+    """
+    text = _COMPOUND_JOIN_RE_EN.sub(" ", text)
+
+    def _is_number_word(word):
+        word = word.lower()
+        return (word in _STRING_NUM_EN or word in _SUMS_EN
+                or word in _MULTIPLIES_SHORT_SCALE_EN
+                or word in _MULTIPLIES_LONG_SCALE_EN
+                or is_numeric(word))
+
+    def _drop(match):
+        before = match.group(1)
+        after = text[match.end():].split(maxsplit=1)[0] if text[match.end():].split() else ""
+        after = re.split(r"\W", after, maxsplit=1)[0]
+        if _is_number_word(before) and _is_number_word(after):
+            return f"{before}{match.group(2)}"
+        return match.group(0)
+
+    return _SPOKEN_COMMA_RE_EN.sub(_drop, text)
+
+
 def numbers_to_digits_en(text, short_scale=True, ordinals=False):
     """
     Convert words in a string into their equivalent numbers.
@@ -643,7 +682,7 @@ def numbers_to_digits_en(text, short_scale=True, ordinals=False):
         The original text, with numbers subbed in where appropriate.
 
     """
-    tokens = tokenize(text)
+    tokens = tokenize(_numeral_separators_en(text))
     numbers_to_replace = \
         _extract_numbers_with_text_en(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
@@ -1017,14 +1056,15 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
         # half cup
         if val is False and \
                 not (ordinals is None and word in string_num_ordinal):
-            val = is_fractional_en(word, short_scale=short_scale,
-                                   spoken=ordinals is not None)
-
+            val = _fraction_value_en(word, short_scale=short_scale,
+                                     spoken=ordinals is not None,
+                                     ordinals=ordinals)
             current_val = val
 
         # 2 fifths
         if ordinals is False:
-            next_val = is_fractional_en(next_word, short_scale=short_scale)
+            next_val = _fraction_value_en(next_word, short_scale=short_scale,
+                                          ordinals=ordinals)
             if next_val:
                 if not val:
                     val = 1
@@ -1196,6 +1236,32 @@ def extract_number_en(text, short_scale=True, ordinals=False):
     text = re.sub(r"(?<=[a-z]),", "", text)
     return _extract_number_with_text_en(tokenize(text),
                                         short_scale, ordinals).value
+
+
+def _is_ordinal_word_en(input_str, short_scale=True):
+    """True if the word is an ordinal name ("third", "fifth") in singular form.
+
+    The plural ("thirds", "fifths") is excluded: that is unambiguously a
+    fraction denominator, while the singular is the ordinal.
+    """
+    table = _SHORT_ORDINAL_EN if short_scale else _LONG_ORDINAL_EN
+    return input_str.lower() in {name for num, name in table.items() if num > 2}
+
+
+def _fraction_value_en(input_str, short_scale=True, spoken=True, ordinals=True):
+    """Fraction value of a word, refusing to reinterpret ordinals as reciprocals.
+
+    English reuses ordinal names as fraction denominators ("two fifths" = 2/5),
+    but a singular ordinal in running text is an ordinal, not a reciprocal.
+    Reading it as one fabricates numbers that were never spoken: "the twenty
+    fifth" became 20 * 1/5 = 4.0 and "the third week" became 0.333. When ordinal
+    parsing is explicitly off, such a word is left alone rather than converted to
+    something the speaker did not say. "half", "quarter" and plural denominators
+    are unaffected.
+    """
+    if ordinals is False and _is_ordinal_word_en(input_str, short_scale):
+        return False
+    return is_fractional_en(input_str, short_scale=short_scale, spoken=spoken)
 
 
 def is_fractional_en(input_str, short_scale=True, spoken=True):
