@@ -308,6 +308,17 @@ def _safe_extract(token: str, lang: str):
         return False
 
 
+def _is_fraction_word(token: str, lang: str) -> bool:
+    """True if the word names a fraction ("half", "meio", "половина")."""
+    word = _bare_word(token)
+    if not word:
+        return False
+    try:
+        return bool(is_fractional(word, lang))
+    except Exception:  # language modules raise a variety of errors
+        return False
+
+
 def _reads_ordinal_as_fraction(token: str, lang: str) -> bool:
     """True if an ordinal word would be misread as its reciprocal.
 
@@ -415,7 +426,7 @@ def _ordinal_words_to_digits(text: str, lang: str) -> str:
 
 
 def _numbers_to_digits_flags(convert, utterance: str, lang: str, *,
-                             ordinals: bool) -> str:
+                             ordinals: bool, fractions: bool) -> str:
     """Apply the conversion flags on top of any language's own converter.
 
     With every flag at its default nothing is ever held back and ``convert`` sees
@@ -428,6 +439,9 @@ def _numbers_to_digits_flags(convert, utterance: str, lang: str, *,
     protected = set()
 
     candidates = []
+    if not fractions:
+        candidates += [i for i, t in enumerate(tokens)
+                       if i not in protected and _is_fraction_word(t, lang)]
     if not ordinals:
         candidates += [i for i, t in enumerate(tokens)
                        if i not in protected and i not in candidates
@@ -542,7 +556,8 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
 
 def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
                       *,
-                      ordinals: bool = False) -> str:
+                      ordinals: bool = False,
+                      fractions: bool = True) -> str:
     """
     Convert written numbers in a text string to their digit representations for the specified language and numerical scale.
 
@@ -554,6 +569,11 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
             ``"the twenty fifth"`` -> ``"the 25"``. Off by default, which leaves
             an ordinal word untouched. Honoured for every supported language, and
             an ordinal word is never read as a fraction regardless of this flag.
+        fractions (bool): convert a *bare* fraction word - one that is not part
+            of a numeric span. On by default. Turning it off keeps such words as
+            words ("half past nine" -> "half past 9"), while a fraction that
+            belongs to a quantity is always converted ("two and a half hours" ->
+            "2.5 hours").
 
     Returns:
         str: The input text with written numbers replaced by their digit equivalents.
@@ -568,7 +588,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
         # fraction. The generic fallback did neither.
         return numbers_to_digits_en(utterance,
                                     short_scale=scale == Scale.SHORT,
-                                    ordinals=ordinals)
+                                    ordinals=ordinals,
+                                    fractions=fractions)
 
     def _convert(text: str) -> str:
         """The language's own conversion, with ordinals threaded natively."""
@@ -609,7 +630,7 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
         return _numbers_to_digits_generic(text, lang, ordinals=ordinals)
 
     return _numbers_to_digits_flags(_convert, utterance, lang,
-                                    ordinals=ordinals)
+                                    ordinals=ordinals, fractions=fractions)
 
 
 # Connectives for the a+bi complex form, per language, English as the default.

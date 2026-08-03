@@ -85,7 +85,7 @@ Use `extract_number` to pull fractions out of longer phrases.
 Exact-match test for an ordinal word (`"third"` → `3`, otherwise `False`).
 Implemented for `en`, `pt`, `mwl`, `de` and `da`.
 
-## `numbers_to_digits(utterance, lang, scale=Scale.LONG, *, ordinals=False)`
+## `numbers_to_digits(utterance, lang, scale=Scale.LONG, *, ordinals=False, fractions=True)`
 
 Rewrite the written numbers inside a phrase as digits, keeping the rest of
 the text intact.
@@ -95,18 +95,29 @@ the text intact.
 'set a timer for 5 minutes'
 ```
 
-The `ordinals` keyword flag defaults to `False`, the behaviour this function has
-always had, so existing callers see no change.
+The keyword flags each default to the conversion this function has always done,
+so existing callers see no change.
 
 | Flag | Default | Off/on effect |
 | --- | --- | --- |
 | `ordinals` | `False` | `True` reads ordinal words as values: `"the twenty fifth"` → `"the 25"`. Left off, an ordinal word is kept as a word. |
+| `fractions` | `True` | `False` keeps a *bare* fraction word: `"half past nine"` → `"half past 9"`. A fraction inside a quantity always converts: `"two and a half hours"` → `"2.5 hours"`. |
+
+```python
+>>> numbers_to_digits("a quarter to five", "en", fractions=False)
+'a quarter to 5'
+```
 
 `ordinals` is honoured for **every supported language**: a language whose own
 parser only knows cardinals still gets ordinal conversion from a shared pass over
 the words it left standing. Regardless of the flag, an ordinal word is never read
 as a fraction reciprocal (`"the third week"` never becomes `"the 0.333 week"`).
-`SUPPORTED_LANGUAGES` is the canonical language list the tests iterate.
+
+`fractions` is honoured for every language too. A handful of languages (`an`,
+`ast`, `fa`, `gl`, `id`, `ms`, `mwl`, `oc`, `pt`, `ro`) never converted a bare
+fraction word to begin with, so the word already survives and the flag has
+nothing left to do; no language returns something *other* than what the flag
+asks for. `SUPPORTED_LANGUAGES` is the canonical language list the tests iterate.
 
 ## Enums
 

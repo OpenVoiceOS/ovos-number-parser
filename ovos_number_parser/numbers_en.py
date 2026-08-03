@@ -668,7 +668,8 @@ def _numeral_separators_en(text):
     return _SPOKEN_COMMA_RE_EN.sub(_drop, text)
 
 
-def numbers_to_digits_en(text, short_scale=True, ordinals=False):
+def numbers_to_digits_en(text, short_scale=True, ordinals=False,
+                         fractions=True):
     """
     Convert words in a string into their equivalent numbers.
     Args:
@@ -676,6 +677,11 @@ def numbers_to_digits_en(text, short_scale=True, ordinals=False):
         short_scale boolean: True if short scale numbers should be used.
         ordinals boolean: True if ordinals (e.g. first, second, third) should
                           be parsed to their number values (1, 2, 3...)
+        fractions boolean: True (default) converts a bare fraction word such as
+                          "half" or "quarter". False leaves a bare fraction word
+                          alone ("half past nine" -> "half past 9") while still
+                          converting a fraction that belongs to a numeric span
+                          ("two and a half hours" -> "2.5 hours").
 
     Returns:
         str
@@ -684,7 +690,8 @@ def numbers_to_digits_en(text, short_scale=True, ordinals=False):
     """
     tokens = tokenize(_numeral_separators_en(text))
     numbers_to_replace = \
-        _extract_numbers_with_text_en(tokens, short_scale, ordinals)
+        _extract_numbers_with_text_en(tokens, short_scale, ordinals,
+                                      bare_fractions=fractions)
     numbers_to_replace.sort(key=lambda number: number.start_index)
 
     results = []
@@ -704,7 +711,8 @@ def numbers_to_digits_en(text, short_scale=True, ordinals=False):
 
 
 def _extract_numbers_with_text_en(tokens, short_scale=True,
-                                  ordinals=False, fractional_numbers=True):
+                                  ordinals=False, fractional_numbers=True,
+                                  bare_fractions=True):
     """
     Extract all numbers from a list of Tokens, with the words that
     represent them.
@@ -728,7 +736,8 @@ def _extract_numbers_with_text_en(tokens, short_scale=True,
     while True:
         to_replace = \
             _extract_number_with_text_en(tokens, short_scale,
-                                         ordinals, fractional_numbers)
+                                         ordinals, fractional_numbers,
+                                         bare_fractions=bare_fractions)
 
         if not to_replace:
             break
@@ -746,7 +755,8 @@ def _extract_numbers_with_text_en(tokens, short_scale=True,
 
 
 def _extract_number_with_text_en(tokens, short_scale=True,
-                                 ordinals=False, fractional_numbers=True):
+                                 ordinals=False, fractional_numbers=True,
+                                 bare_fractions=True):
     """
     This function extracts a number from a list of Tokens.
 
@@ -762,7 +772,8 @@ def _extract_number_with_text_en(tokens, short_scale=True,
     """
     number, tokens = \
         _extract_number_with_text_en_helper(tokens, short_scale,
-                                            ordinals, fractional_numbers)
+                                            ordinals, fractional_numbers,
+                                            bare_fractions=bare_fractions)
     while tokens and tokens[0].word in _ARTICLES_EN:
         tokens.pop(0)
     return ReplaceableNumber(number, tokens)
@@ -770,7 +781,8 @@ def _extract_number_with_text_en(tokens, short_scale=True,
 
 def _extract_number_with_text_en_helper(tokens,
                                         short_scale=True, ordinals=False,
-                                        fractional_numbers=True):
+                                        fractional_numbers=True,
+                                        bare_fractions=True):
     """
     Helper for _extract_number_with_text_en.
 
@@ -799,7 +811,8 @@ def _extract_number_with_text_en_helper(tokens,
         if decimal:
             return decimal, decimal_text
 
-    return _extract_whole_number_with_text_en(tokens, short_scale, ordinals)
+    return _extract_whole_number_with_text_en(tokens, short_scale, ordinals,
+                                              bare_fractions=bare_fractions)
 
 
 def _extract_fraction_with_text_en(tokens, short_scale, ordinals):
@@ -914,7 +927,8 @@ def _extract_decimal_with_text_en(tokens, short_scale, ordinals):
     return None, None
 
 
-def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
+def _extract_whole_number_with_text_en(tokens, short_scale, ordinals,
+                                       bare_fractions=True):
     """
     Handle numbers not handled by the decimal or fraction functions. This is
     generally whole numbers. Note that phrases such as "one half" will be
@@ -965,6 +979,22 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
             continue
         if prev_word == "and" and idx > 1:
             prev_word = tokens[idx - 2].word.lower()
+
+        # A *bare* fraction word - one with no number attached to it - is only
+        # converted when the caller asked for it. "half past nine" keeps "half"
+        # so a clock-time grammar downstream still recognises it, while "three
+        # quarters" and "two and a half" keep converting: there the fraction
+        # belongs to a numeric span and prev_val is set.
+        if not bare_fractions and prev_val is None and \
+                not (ordinals and word in string_num_ordinal) and \
+                _fraction_value_en(word, short_scale=short_scale,
+                                   ordinals=ordinals):
+            if number_words and not all(t.word.lower() in
+                                        _ARTICLES_EN | _NEGATIVES_EN
+                                        for t in number_words):
+                break
+            number_words = []
+            continue
 
         if is_numeric(word[:-2]) and \
                 (word.endswith("st") or word.endswith("nd") or
