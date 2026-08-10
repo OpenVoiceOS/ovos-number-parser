@@ -9,7 +9,7 @@ from unicode_rbnf import RbnfEngine, FormatPurpose
 from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_an import AN
 from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, \
-    is_fractional_ar, is_ordinal_ar, nice_number_ar
+    is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_bg import numbers_to_digits_bg, pronounce_number_bg, extract_number_bg, \
     is_fractional_bg, nice_number_bg
@@ -231,7 +231,8 @@ def _pronounce_fraction_generic(fraction_word: str, lang: str) -> str:
                 denom += "s"
         result = f"{pronounce_number(n1, lang)} {denom}"
     else:
-        nice_fn = _NICE_NUMBER_FNS.get(lang2)
+        nice_fn = _NICE_NUMBER_FNS.get(lang2) or \
+            (nice_number_ar if _is_ar(lang) else None)
         if nice_fn and 2 <= n2 <= 20:
             spoken = nice_fn(n1 / n2, speech=True, denominators=[n2])
             tokens = spoken.split()
@@ -282,7 +283,7 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
     """Fallback that replaces spoken number spans with digits using
     extract_number over maximal runs of number words."""
     lang2 = lang.lower().split("-")[0]
-    connectors = _NUMBER_CONNECTORS.get(lang2, set())
+    connectors = _NUMBER_CONNECTORS.get("ar" if _is_ar(lang) else lang2, set())
     tokens = utterance.split()
     # ASCII plus Arabic comma, semicolon and question mark, so a number glued
     # to punctuation ("٢٠٢٤،", "25.") is still recognised and the mark is
@@ -552,6 +553,25 @@ def _base_lang(lang: str) -> str:
     return lang.lower().split("-")[0]
 
 
+def _is_ar(lang: str) -> bool:
+    """Whether ``lang`` names an Arabic variety this library serves.
+
+    Covers the BCP-47 macrolanguage code (``ar``, ``ar-SA``, ``ar-EG``, ...)
+    and the ISO 639-3 codes for Modern Standard Arabic and its spoken lects
+    (``arb``, ``ars``, ``acw``, ``afb``, ``arz``, ``apc``, ``ajp``, ``acm``,
+    ``ary``, ``aeb``, ``ayl``) -- see ``resolve_ar_lang`` for the table and
+    citations. A plain ``lang.startswith("ar")`` check would miss lects
+    whose code does not happen to start with "ar" (``acw``, ``afb``,
+    ``apc``, ``ajp``, ``acm``).
+    """
+    return resolve_ar_lang(lang) is not None
+
+
+def _ar_default_case(lang: str) -> str:
+    """Default pronunciation register for an Arabic ``lang`` code."""
+    return resolve_ar_lang(lang) or "nominative"
+
+
 def _pronounce_infinity(number: float, lang: str) -> str:
     """Spoken form of +/-infinity for any language (English default)."""
     pos, neg = _INFINITY_WORDS.get(_base_lang(lang), _INFINITY_WORDS["en"])
@@ -637,7 +657,8 @@ def pronounce_number(number: Union[int, float], lang: str,
                      ordinals: bool = False,
                      digits: Optional[DigitPronunciation] = None,
                      gender: GrammaticalGender = GrammaticalGender.MASCULINE,
-                     scale: Optional[Scale] = None) -> str:
+                     scale: Optional[Scale] = None,
+                     case: Optional[str] = None) -> str:
     """
     Return the spoken representation of a number in the specified language.
      
@@ -662,7 +683,13 @@ def pronounce_number(number: Union[int, float], lang: str,
             ``_canonical_scale``), per Wikipedia "Long and short scales"
             (https://en.wikipedia.org/wiki/Long_and_short_scales); an explicit
             value always overrides it.
-     
+        case (str, optional): Grammatical case/register, currently only
+            meaningful for Arabic ("nominative" or "oblique", see
+            ``pronounce_number_ar``). When omitted, the Arabic lect named by
+            ``lang`` uses its own default register (see
+            ``numbers_ar.resolve_ar_lang``); ignored for every other
+            language.
+
     Returns:
         str: The pronounced form of the number.
      
@@ -703,7 +730,7 @@ def pronounce_number(number: Union[int, float], lang: str,
     try:
         spoken = _pronounce_number_dispatch(
             number, lang, places, short_scale, scientific, ordinals,
-            digits, gender, scale)
+            digits, gender, scale, case)
     except (IndexError, KeyError, OverflowError):
         # A finite number overflowed a language's named-scale table. Kabyle
         # has a documented finite ceiling (raises above 9999), so keep that
@@ -731,13 +758,15 @@ def pronounce_number(number: Union[int, float], lang: str,
 
 
 def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
-                               ordinals, digits, gender, scale):
+                               ordinals, digits, gender, scale, case=None):
     if lang.startswith("en"):
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
     if lang.startswith("az"):
         return pronounce_number_az(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("ar"):
-        return pronounce_number_ar(number, places, scientific, ordinals)
+    if _is_ar(lang):
+        return pronounce_number_ar(number, places, scientific, ordinals,
+                                   case=case if case is not None
+                                   else _ar_default_case(lang))
     if lang.startswith("bg"):
         return pronounce_number_bg(number, places, short_scale, scientific, ordinals)
     if lang.startswith("ca"):
@@ -897,7 +926,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return OC.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang.startswith("an"):
         return AN.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang.startswith("ar"):
+    if _is_ar(lang):
         return pronounce_ordinal_ar(number)
     if lang.startswith("da"):
         return pronounce_ordinal_da(number)
@@ -1015,7 +1044,7 @@ def extract_number(text: str, lang: str,
         return extract_number_en(text, short_scale, ordinals)
     if lang.startswith("az"):
         return extract_number_az(text, short_scale, ordinals)
-    if lang.startswith("ar"):
+    if _is_ar(lang):
         return extract_number_ar(text, ordinals)
     if lang.startswith("bg"):
         return extract_number_bg(text, short_scale, ordinals)
@@ -1122,7 +1151,7 @@ def is_fractional(input_str: str, lang: str,
         return is_fractional_en(input_str, short_scale)
     if lang.startswith("az"):
         return is_fractional_az(input_str, short_scale)
-    if lang.startswith("ar"):
+    if _is_ar(lang):
         return is_fractional_ar(input_str, short_scale)
     if lang.startswith("bg"):
         return is_fractional_bg(input_str, short_scale)
@@ -1229,7 +1258,7 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         return AN.is_ordinal(input_str)
     if lang.startswith("en"):
         return is_ordinal_en(input_str)
-    if lang.startswith("ar"):
+    if _is_ar(lang):
         return is_ordinal_ar(input_str)
     if lang.startswith("de"):
         val = is_ordinal_de(input_str)

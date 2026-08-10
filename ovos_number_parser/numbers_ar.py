@@ -1,12 +1,21 @@
-"""Number tools for Modern Standard Arabic.
+"""Number tools for Modern Standard Arabic and its major spoken lects.
 
-Pronunciation defaults to the masculine citation forms (the forms used for
-counting in the abstract). Extraction accepts both genders, since Arabic
-numerals 3-10 take the opposite gender of the counted noun (gender
-polarity), both nominative and oblique dual/plural case endings
-(``اثنان``/``اثنين``, ``عشرون``/``عشرين``), Western (0-9), Eastern
-Arabic-Indic (٠-٩) and Persian/Urdu (۰-۹) digits, and numbers written
-immediately adjacent to punctuation (``٢٠٢٤،``, ``25.``).
+Pronunciation defaults to the masculine nominative citation forms (the forms
+used for counting in the abstract, e.g. ``خمسون``, ``اثنان``). Connected
+speech governs numerals into the oblique (genitive/accusative) case instead
+(``خمسين``, ``اثنين``); pass ``case="oblique"`` to ``pronounce_number_ar`` to
+get those forms, see that function's docstring for the closed set of words
+this affects and the grammar reference. Extraction accepts both genders and
+both cases as input, since Arabic numerals 3-10 take the opposite gender of
+the counted noun (gender polarity), both nominative and oblique dual/plural
+case endings (``اثنان``/``اثنين``, ``عشرون``/``عشرين``), Western (0-9),
+Eastern Arabic-Indic (٠-٩) and Persian/Urdu (۰-۹) digits, and numbers
+written immediately adjacent to punctuation (``٢٠٢٤،``, ``25.``).
+
+``resolve_ar_lang`` maps BCP-47 and ISO 639-3 Arabic language codes (the
+literary standard and its major spoken lects) to this engine and to each
+lect's default register -- see its docstring for the code table and
+citations.
 """
 
 from math import isfinite
@@ -35,6 +44,55 @@ _NORM_TABLE[0x0670] = None  # superscript alef
 
 def _normalize_ar(text: str) -> str:
     return text.translate(_NORM_TABLE)
+
+
+# ---------------------------------------------------------------------------
+# dialect / language-code resolution
+# ---------------------------------------------------------------------------
+
+# ISO 639-3 codes for Arabic varieties routed to this engine, mapped to their
+# default pronunciation register. The literary standard (macrolanguage code
+# ``ar`` and its individual-language code ``arb``) keeps this module's
+# original nominative citation forms as the default; every spoken lect
+# defaults to the oblique case instead, since that is the case actually
+# produced when these numerals are used in connected speech in those lects.
+# Code meanings: ISO 639-3 code table, https://iso639-3.sil.org/code_tables/639/data
+# Individual lect entries: https://glottolog.org (search each code below).
+AR_DIALECT_DEFAULT_CASE = {
+    "ar": "nominative",   # BCP-47/ISO 639-1 macrolanguage code
+    "arb": "nominative",  # Standard Arabic (Modern Standard Arabic)
+    "ars": "oblique",     # Najdi Arabic
+    "acw": "oblique",     # Hijazi Arabic
+    "afb": "oblique",     # Gulf Arabic
+    "arz": "oblique",     # Egyptian Arabic
+    "apc": "oblique",     # North Levantine Arabic
+    "ajp": "oblique",     # South Levantine Arabic
+    "acm": "oblique",     # Mesopotamian Arabic (Iraqi)
+    "ary": "oblique",     # Moroccan Arabic
+    "aeb": "oblique",     # Tunisian Arabic
+    "ayl": "oblique",     # Libyan Arabic
+}
+
+
+def resolve_ar_lang(lang: str):
+    """
+    Resolve a BCP-47 or ISO 639-3 language code to this Arabic engine's
+    default pronunciation register.
+
+    Accepts the macrolanguage code (``ar``), BCP-47 forms built on it
+    (``ar-SA``, ``ar-EG``, ``ar-x-...``), and the ISO 639-3 codes for the
+    individual language and lects this engine serves (``arb``, ``ars``,
+    ``acw``, ``afb``, ``arz``, ``apc``, ``ajp``, ``acm``, ``ary``, ``aeb``,
+    ``ayl``), matched case-insensitively on the primary subtag.
+
+    Args:
+        lang (str): a BCP-47 or ISO 639-3 language code.
+    Returns:
+        (str) or (None): ``"nominative"`` or ``"oblique"``, the lect's
+                         default register, or None if ``lang`` does not name
+                         an Arabic variety this engine serves.
+    """
+    return AR_DIALECT_DEFAULT_CASE.get(lang.lower().split("-")[0])
 
 
 # masculine citation forms used for pronunciation
@@ -91,9 +149,34 @@ _ORDINAL_STEMS_FEM_AR = {1: "أولى", 2: "ثانية", 3: "ثالثة", 4: "ر
 # pronunciation
 # ---------------------------------------------------------------------------
 
-def _cardinal_two_digit_ar(number: int) -> str:
-    """0-99 in masculine citation forms; units come before tens."""
+def _oblique(word: str) -> str:
+    """
+    Oblique (genitive/accusative) form of a nominative dual or sound
+    masculine plural word, formed by replacing the nominative ending
+    (spelled ``ـان``/``ـون``) with the oblique ending (spelled ``ـين``).
+
+    This single substitution covers every closed set this module's oblique
+    register touches: the duals (``اثنان`` -> ``اثنين``, ``مئتان`` ->
+    ``مئتين``, ``ألفان`` -> ``ألفين``, ``مليونان`` -> ``مليونين``, the
+    fraction duals ``نصفان`` -> ``نصفين`` ...) and the tens (``خمسون`` ->
+    ``خمسين``), since both endings are two letters long. Citation: Karin C.
+    Ryding, "A Reference Grammar of Modern Standard Arabic" (Cambridge
+    University Press, 2005), section 9.2 (the dual, -ān/-ayn) and section
+    9.5.2 (the sound masculine plural / tens, -ūn/-īn).
+    """
+    return word[:-2] + "ين"
+
+
+def _cardinal_two_digit_ar(number: int, case: str = "nominative") -> str:
+    """0-99 in masculine citation forms; units come before tens.
+
+    ``case="oblique"`` inflects the dual of two (اثنان -> اثنين, in a units
+    slot) and the tens (عشرون -> عشرين). 11 (أحد عشر) and 12 (اثنا عشر) are
+    fixed compounds outside those closed sets and are not inflected.
+    """
     if number <= 10:
+        if number == 2 and case == "oblique":
+            return _oblique(_ONES_AR[2])
         return _ONES_AR[number]
     if number == 11:
         return "أحد عشر"
@@ -102,25 +185,32 @@ def _cardinal_two_digit_ar(number: int) -> str:
     if number < 20:
         return _ONES_AR[number - 10] + " عشر"
     tens, unit = divmod(number, 10)
+    tens_word = _TENS_AR[tens * 10]
+    if case == "oblique":
+        tens_word = _oblique(tens_word)
     if unit == 0:
-        return _TENS_AR[tens * 10]
-    return _ONES_AR[unit] + _AR_SEPARATOR + _TENS_AR[tens * 10]
+        return tens_word
+    unit_word = _oblique(_ONES_AR[2]) if unit == 2 and case == "oblique" \
+        else _ONES_AR[unit]
+    return unit_word + _AR_SEPARATOR + tens_word
 
 
-def _cardinal_three_digit_ar(number: int) -> str:
+def _cardinal_three_digit_ar(number: int, case: str = "nominative") -> str:
     """0-999 in masculine citation forms."""
     if number < 100:
-        return _cardinal_two_digit_ar(number)
+        return _cardinal_two_digit_ar(number, case)
     hundreds, rest = divmod(number, 100)
     result = _HUNDREDS_AR[hundreds * 100]
+    if hundreds == 2 and case == "oblique":
+        result = _oblique(result)
     if rest:
-        result += _AR_SEPARATOR + _cardinal_two_digit_ar(rest)
+        result += _AR_SEPARATOR + _cardinal_two_digit_ar(rest, case)
     return result
 
 
-def _cardinal_ar(number: int) -> str:
+def _cardinal_ar(number: int, case: str = "nominative") -> str:
     if number < 1000:
-        return _cardinal_three_digit_ar(number)
+        return _cardinal_three_digit_ar(number, case)
     parts = []
     remainder = number
     for value, singular, dual, plural in reversed(_SCALES_AR):
@@ -130,29 +220,36 @@ def _cardinal_ar(number: int) -> str:
         if count == 1:
             parts.append(singular)
         elif count == 2:
-            parts.append(dual)
+            parts.append(_oblique(dual) if case == "oblique" else dual)
         elif 3 <= count <= 10:
             # scale nouns are masculine, so 3-10 take the ة-marked numeral
             parts.append(_ONES_AR[count] + " " + plural)
         else:
-            parts.append(_cardinal_ar(count) + " " + singular)
+            parts.append(_cardinal_ar(count, case) + " " + singular)
     if remainder:
-        parts.append(_cardinal_three_digit_ar(remainder))
+        parts.append(_cardinal_three_digit_ar(remainder, case))
     return _AR_SEPARATOR.join(parts)
 
 
-def pronounce_number_ar(number, places=2, scientific=False, ordinals=False):
+def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
+                        case="nominative"):
     """
-    Convert a number to its spoken Modern Standard Arabic equivalent.
+    Convert a number to its spoken Arabic equivalent.
 
-    Uses masculine citation forms; the decimal part is read digit by digit
-    after "فاصلة" (e.g. 5.2 -> "خمسة فاصلة اثنان").
+    Uses masculine forms; the decimal part is read digit by digit after
+    "فاصلة" (e.g. 5.2 -> "خمسة فاصلة اثنان").
 
     Args:
         number (float or int): the number to pronounce
         places (int): maximum decimal places to speak
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "الأول" instead of "واحد"
+        case (str): "nominative" (default, unchanged citation forms:
+            خمسون, اثنان, مئتان, ...) or "oblique", the case Arabic
+            numerals actually take in connected speech (خمسين, اثنين,
+            مئتين, ...). Only affects the closed sets documented on
+            ``_oblique``; every other word is identical in both registers.
+            Ordinals (``ordinals=True``) are unaffected by ``case``.
     Returns:
         (str): The pronounced number
     """
@@ -166,18 +263,19 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False):
         n, power = ('%E' % number).replace("+", "").split("E")
         power = int(power)
         if power != 0:
-            mantissa = pronounce_number_ar(abs(float(n)), places)
-            exponent = pronounce_number_ar(abs(power), places)
+            mantissa = pronounce_number_ar(abs(float(n)), places, case=case)
+            exponent = pronounce_number_ar(abs(power), places, case=case)
             return "{}{} في عشرة أس {}{}".format(
                 _MINUS_AR + " " if float(n) < 0 else "", mantissa,
                 _MINUS_AR + " " if power < 0 else "", exponent)
     if ordinals:
         return pronounce_ordinal_ar(number)
     if number < 0:
-        return _MINUS_AR + " " + pronounce_number_ar(abs(number), places)
+        return _MINUS_AR + " " + pronounce_number_ar(abs(number), places,
+                                                      case=case)
 
     whole = int(number)
-    result = _cardinal_ar(whole)
+    result = _cardinal_ar(whole, case)
     if isinstance(number, float) and number != whole and places > 0:
         digits = ("%." + str(places) + "f") % (number - whole)
         digits = digits.split(".")[1].rstrip("0")
@@ -214,18 +312,22 @@ def pronounce_ordinal_ar(number):
     return "ال" + _cardinal_ar(number)
 
 
-def nice_number_ar(number, speech=True, denominators=range(1, 11)):
+def nice_number_ar(number, speech=True, denominators=range(1, 11),
+                   case="nominative"):
     """Arabic helper for nice_number
 
     Formats a float as a whole number plus an Arabic fraction noun, e.g.
     4.5 becomes "4 ونصف" for speech and "4 1/2" for text. Fraction nouns
     exist for denominators 2-10 (نصف, ثلث, ربع, ...); the dual is used for
-    a numerator of 2 (ثلثان) and the plural for 3-10 (ثلاثة أرباع).
+    a numerator of 2 (ثلثان, or ثلثين in the oblique case) and the plural
+    for 3-10 (ثلاثة أرباع).
 
     Args:
         number (int or float): the float to format
         speech (bool): format for speech (True) or display (False)
         denominators (iter of ints): denominators to use, default [1 .. 10]
+        case (str): "nominative" (default, e.g. نصفان) or "oblique"
+            (نصفين), see ``pronounce_number_ar``.
     Returns:
         (str): The formatted string.
     """
@@ -244,13 +346,13 @@ def nice_number_ar(number, speech=True, denominators=range(1, 11)):
         if num == 1:
             frac = singular
         elif num == 2:
-            frac = dual
+            frac = _oblique(dual) if case == "oblique" else dual
         else:
             frac = '{} {}'.format(num, plural)
     elif num == 1:
-        frac = 'جزء من {}'.format(_cardinal_ar(den))
+        frac = 'جزء من {}'.format(_cardinal_ar(den, case))
     else:
-        frac = '{} أجزاء من {}'.format(num, _cardinal_ar(den))
+        frac = '{} أجزاء من {}'.format(num, _cardinal_ar(den, case))
     if whole == 0:
         return frac
     return '{} و{}'.format(whole, frac)
