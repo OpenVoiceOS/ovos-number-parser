@@ -390,6 +390,11 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         NotImplementedError: If the specified language is not supported.
     """
     scale = _resolve_scale(lang, scale)
+    if lang.startswith("en"):
+        # English has its own converter, which reads compound ordinals
+        # ("the twenty fifth" -> 25) and never mistakes a singular ordinal for a
+        # fraction. The generic fallback did neither.
+        return numbers_to_digits_en(utterance, short_scale=scale == Scale.SHORT)
     if lang.startswith("ast"):
         return AST.numbers_to_digits(utterance)
     if lang.startswith("oc"):
