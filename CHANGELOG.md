@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.10a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.10a1) (2026-08-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.9a1...0.19.10a1)
+
+**Merged pull requests:**
+
+- fix\(en\): route numbers\_to\_digits to the English backend [\#286](https://github.com/OpenVoiceOS/ovos-number-parser/pull/286) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.19.9a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.9a1) (2026-08-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.8a2...0.19.9a1)
