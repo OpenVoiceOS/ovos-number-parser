@@ -303,6 +303,15 @@ def _build_lookup():
             hundreds[word.replace("مئة", "مائة")] = value
     hundreds.update({"مئتين": 200, "مائتين": 200, "ثمانيمئة": 800,
                      "ثمانيمائة": 800})
+    # colloquial مية/ميه for مئة/مائة (100), including fused ثلاثمية..تسعمية
+    hundreds["مية"] = 100
+    for value, word in _HUNDREDS_AR.items():
+        if value >= 300:
+            hundreds[word.replace("مئة", "مية")] = value
+    hundreds["ميتين"] = 200
+    # deeper colloquial root (ثلث- instead of ثلاث-) for 300
+    hundreds["ثلثمئة"] = 300
+    hundreds["ثلثمية"] = 300
     scales = {}
     scale_duals = {}
     for value, singular, dual, plural in _SCALES_AR:
@@ -326,6 +335,17 @@ def _build_lookup():
 _TEEN_FIRST_LOOKUP = _norm_map({"أحد": 1, "إحدى": 1, "اثنا": 2, "اثني": 2,
                                 "اثنتا": 2, "اثنتي": 2})
 _TEEN_SECOND_LOOKUP = _norm_keys({"عشر", "عشرة"})
+# dialectal fused teens (Gulf/Levantine): unit+عشر contracted into one word
+# ("اثناشر" = 12); accepted spelling variants for the sibilant/interdental
+# consonants (ط/ت for ث). See e.g.
+# https://en.wikipedia.org/wiki/Arabic_numerals#Numerals_11-19 and Gulf/
+# Levantine colloquial numeral references (Peace Corps Jordanian Arabic
+# numeral guide; Wiktionary entries for احداشر / اثناشر).
+_FUSED_TEENS_LOOKUP = _norm_map({
+    "احداشر": 11, "اثناشر": 12, "ثلطاشر": 13, "ثلتاشر": 13,
+    "اربعتاشر": 14, "خمستاشر": 15, "ستاشر": 16, "سبعتاشر": 17,
+    "ثمنتاشر": 18, "تسعتاشر": 19,
+})
 _MINUS_LOOKUP = _norm_keys({"سالب", "ناقص"})
 _DECIMAL_LOOKUP = _norm_keys({"فاصلة", "فاصله"})
 _HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة"})
@@ -340,7 +360,7 @@ _ORDINAL_UNITS_LOOKUP.update(_norm_map({"حادي": 1, "حادية": 1}))
 _NUMBER_WORDS = (set(_UNITS_LOOKUP) | set(_TENS_LOOKUP) | set(_HUNDREDS_LOOKUP) |
                  set(_SCALES_LOOKUP) | set(_SCALE_DUALS_LOOKUP) |
                  set(_FRACTIONS_LOOKUP) | set(_TEEN_FIRST_LOOKUP) |
-                 _TEEN_SECOND_LOOKUP)
+                 _TEEN_SECOND_LOOKUP | set(_FUSED_TEENS_LOOKUP))
 
 
 def _bare(token):
@@ -359,6 +379,8 @@ def _group_slot(tokens, j):
     tok = _bare(tokens[j])
     nxt = _bare(tokens[j + 1]) if j + 1 < len(tokens) else None
     if tok in _TEEN_FIRST_LOOKUP and nxt in _TEEN_SECOND_LOOKUP:
+        return "unit"
+    if tok in _FUSED_TEENS_LOOKUP:
         return "unit"
     if tok in _UNITS_LOOKUP:
         if nxt in _HUNDRED_MULT_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9:
@@ -393,11 +415,13 @@ def _tokenize_ar(text):
             continue
         vocab = (_UNITS_LOOKUP, _TENS_LOOKUP, _HUNDREDS_LOOKUP,
                  _SCALES_LOOKUP, _SCALE_DUALS_LOOKUP, _FRACTIONS_LOOKUP,
-                 _TEEN_FIRST_LOOKUP, _ORDINAL_UNITS_LOOKUP)
+                 _TEEN_FIRST_LOOKUP, _ORDINAL_UNITS_LOOKUP,
+                 _FUSED_TEENS_LOOKUP)
         whole_word = any(token in v for v in (
             _UNITS_LOOKUP, _TENS_LOOKUP, _HUNDREDS_LOOKUP, _SCALES_LOOKUP,
             _SCALE_DUALS_LOOKUP, _FRACTIONS_LOOKUP, _TEEN_FIRST_LOOKUP,
-            _ORDINAL_UNITS_LOOKUP)) or token in _TEEN_SECOND_LOOKUP
+            _ORDINAL_UNITS_LOOKUP, _FUSED_TEENS_LOOKUP)) or \
+            token in _TEEN_SECOND_LOOKUP
         if not whole_word and len(token) > 1 and token[0] == "و" and (
                 any(token[1:] in v for v in vocab) or
                 token[1:] in _TEEN_SECOND_LOOKUP or
@@ -507,9 +531,25 @@ def _parse_number_span(tokens, i):
             value = float(raw)
             if value.is_integer():
                 value = int(value)
-            return value, j + 1
+            # a digit run directly followed by a scale word multiplies it
+            # ("355 ألف" = 355000)
+            j2 = j + 1
+            tok2 = _bare(tokens[j2]) if j2 < n else None
+            if tok2 in _SCALES_LOOKUP:
+                value = value * _SCALES_LOOKUP[tok2]
+                j2 += 1
+            return value, j2
         tok = _bare(raw)
         nxt = _bare(tokens[j + 1]) if j + 1 < n else None
+        # dialectal fused teens: one word carries both the unit and ten slot
+        if tok in _FUSED_TEENS_LOOKUP:
+            if {"unit", "ten"} & filled:
+                break
+            current += _FUSED_TEENS_LOOKUP[tok]
+            filled |= {"unit", "ten"}
+            started = True
+            j += 1
+            continue
         # teens: unit word followed by عشر/عشرة
         if (tok in _TEEN_FIRST_LOOKUP or
                 (tok in _UNITS_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9)) and \
