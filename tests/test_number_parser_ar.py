@@ -202,7 +202,7 @@ class TestArabicNumbersToDigitsRobust(unittest.TestCase):
             numbers_to_digits("خمسة وعشرون كتاباً", lang="ar"), "25 كتاباً")
 
     def test_standalone_digit_run_preserves_leading_zeros(self):
-        # live bug found in the Salesteq voice pipeline: numbers_to_digits
+        # live bug found in a production Arabic voice pipeline: numbers_to_digits
         # re-parses a digit run that is ALREADY digits, round-trips it
         # through an int, and destroys leading zeros. A phone number, OTP
         # code, or any zero-padded identifier must survive byte-for-byte.
@@ -358,7 +358,7 @@ class TestArabicColloquialExtract(unittest.TestCase):
         # "خمس مية وثلاثين" = 5 * 100 + 30 = 530 (spaced unit + مية/ميه must
         # multiply exactly like the already-supported spaced unit + مئة/مائة,
         # e.g. "ثلاث مئة" = 300 handled by _parse_number_span). Reproduced
-        # live from sherpa STT output in the Salesteq voice pipeline, where
+        # live from production Arabic STT output, where
         # the spaced (non-fused) colloquial form is what the ASR emits.
         self.assertEqual(extract_number_ar("خمس مية وثلاثين"), 530)
         # with the definite article fronting the unit word
