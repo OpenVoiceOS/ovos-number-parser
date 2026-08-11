@@ -82,6 +82,9 @@ _FRACTIONS = {
 _ORDINAL_FIRST = {"amezwaru": 1, "tamezwarut": 1}
 _ORDINAL_MARKERS = {"wis", "tis", "wiss", "tiss"}
 
+_TRAILING_PUNCT = ".,!?;:)\"'"
+_LEADING_PUNCT = "(\"'"
+
 
 def _normalize(token: str) -> str:
     """Diacritic-tolerant lookup key (ṛ→r, ṭ→t, ḍ→d, ẓ→z, ḥ→h, ǧ→g)."""
@@ -219,13 +222,17 @@ def is_ordinal_kab(input_str: str) -> Union[bool, int]:
 
 def _token_values(tokens):
     """Map cleaned tokens to (index, value) pairs, joining the multiword
-    and hyphenated hundred/thousand forms."""
+    and hyphenated hundred/thousand forms. Handles raw tokens with punctuation."""
     vals = []
     i = 0
+    strip_chars = _TRAILING_PUNCT + _LEADING_PUNCT
     while i < len(tokens):
         tok = tokens[i]
-        two = f"{tok} {tokens[i + 1]}" if i + 1 < len(tokens) else None
-        two_hyphen = f"{tok}-{tokens[i + 1]}" if i + 1 < len(tokens) else None
+        stripped_tok = tok.strip(strip_chars)
+        
+        two = f"{stripped_tok} {tokens[i + 1].strip(strip_chars)}" if i + 1 < len(tokens) else None
+        two_hyphen = f"{stripped_tok}-{tokens[i + 1].strip(strip_chars)}" if i + 1 < len(tokens) else None
+        
         if two and _normalize(two) in _WORDS:
             vals.append((i, 2, _WORDS[_normalize(two)]))
             i += 2
@@ -234,8 +241,8 @@ def _token_values(tokens):
             vals.append((i, 2, _WORDS[_normalize(two_hyphen)]))
             i += 2
             continue
-        if _normalize(tok) in _WORDS:
-            vals.append((i, 1, _WORDS[_normalize(tok)]))
+        if _normalize(stripped_tok) in _WORDS:
+            vals.append((i, 1, _WORDS[_normalize(stripped_tok)]))
             i += 1
             continue
         vals.append((i, 1, None))
@@ -250,8 +257,10 @@ def _consume_compound(parsed: list, i: int, connector_tokens: list):
     words, and resetting smaller slots whenever a larger magnitude is hit,
     to support descending sequences like "sin igiman tam imda" = 2800).
 
-    ``connector_tokens`` is the token list (already lower/normalized as
-    appropriate by the caller) used to check ``_CONNECTORS`` by raw index.
+    Stops consumption if a punctuation boundary is detected between tokens.
+
+    ``connector_tokens`` is the token list (which may contain raw punctuation)
+    used to check ``_CONNECTORS`` and punctuation boundaries by raw index.
 
     Returns ``(total_parts, end_j, last_idx)`` where ``end_j`` is the
     ``parsed`` index just past the consumed run, and ``last_idx`` is the raw
@@ -263,11 +272,26 @@ def _consume_compound(parsed: list, i: int, connector_tokens: list):
     last_idx = idx + width - 1
     j = i + 1
 
+    strip_chars = _TRAILING_PUNCT + _LEADING_PUNCT
+
     while j < len(parsed):
         nidx, nwidth, nval = parsed[j]
+        
+        # Stop consumption when the next token is separated by boundary punctuation
+        has_boundary = False
+        for k in range(last_idx, nidx):
+            # If the raw token differs from its stripped version, it contains boundary punctuation
+            if connector_tokens[k].strip(strip_chars) != connector_tokens[k]:
+                has_boundary = True
+                break
+        
+        if has_boundary:
+            break
+
         if nval is None:
             # connectors may join two number words in the loan system
-            if _normalize(connector_tokens[nidx]) in _CONNECTORS \
+            # We must strip punctuation from the connector token before checking _CONNECTORS
+            if _normalize(connector_tokens[nidx].strip(strip_chars)) in _CONNECTORS \
                     and j + 1 < len(parsed) and parsed[j + 1][2] is not None:
                 j += 1
                 continue
@@ -332,25 +356,25 @@ def extract_number_kab(text: str, short_scale: bool = False,
     With ``ordinals=True``, wis/tis + cardinal and amezwaru return the
     ordinal value.
     """
-    tokens = [t.strip(".,!?;:()\"'") for t in text.lower().split()]
-    tokens = [t for t in tokens if t]
+    raw_tokens = text.split()
+    strip_chars = _TRAILING_PUNCT + _LEADING_PUNCT
 
     # ordinals
-    for i, tok in enumerate(tokens):
-        norm = _normalize(tok)
+    for i, tok in enumerate(raw_tokens):
+        norm = _normalize(tok.strip(strip_chars))
         if ordinals:
             if norm in {_normalize(k) for k in _ORDINAL_FIRST}:
                 return 1
-            if norm in _ORDINAL_MARKERS and i + 1 < len(tokens):
-                val = extract_number_kab(" ".join(tokens[i + 1:]))
+            if norm in _ORDINAL_MARKERS and i + 1 < len(raw_tokens):
+                val = extract_number_kab(" ".join(raw_tokens[i + 1:]))
                 if val is not False:
                     return val
 
-    parsed = _token_values(tokens)
+    parsed = _token_values(raw_tokens)
     i = 0
     while i < len(parsed):
         idx, width, val = parsed[i]
-        tok = tokens[idx]
+        tok = raw_tokens[idx].strip(strip_chars)
         
         # digits
         m = re.fullmatch(r"-?\d+(?:[.,]\d+)?", tok)
@@ -362,13 +386,9 @@ def extract_number_kab(text: str, short_scale: bool = False,
             i += 1
             continue
 
-        total_parts, _j, _last_idx = _consume_compound(parsed, i, tokens)
+        total_parts, _j, _last_idx = _consume_compound(parsed, i, raw_tokens)
         return _evaluate_compound_number(total_parts)
     return False
-
-
-_TRAILING_PUNCT = ".,!?;:)\"'"
-_LEADING_PUNCT = "(\"'"
 
 
 def numbers_to_digits_kab(text: str) -> str:
@@ -381,15 +401,14 @@ def numbers_to_digits_kab(text: str) -> str:
     """
     raw_tokens = text.split()
     strip_chars = _TRAILING_PUNCT + _LEADING_PUNCT
-    clean_tokens = [t.strip(strip_chars) for t in raw_tokens]
-    lowered = [t.lower() for t in clean_tokens]
 
-    parsed = _token_values(lowered)
+    # Pass raw_tokens directly to _token_values, which handles stripping internally
+    parsed = _token_values(raw_tokens)
     out = []
     i = 0
     while i < len(parsed):
         idx, width, val = parsed[i]
-        tok = clean_tokens[idx]
+        tok = raw_tokens[idx].strip(strip_chars)
 
         if re.fullmatch(r"-?\d+(?:[.,]\d+)?", tok):
             out.append(raw_tokens[idx])
@@ -401,7 +420,7 @@ def numbers_to_digits_kab(text: str) -> str:
             i += 1
             continue
 
-        total_parts, j, last_end_idx = _consume_compound(parsed, i, lowered)
+        total_parts, j, last_end_idx = _consume_compound(parsed, i, raw_tokens)
         total = _evaluate_compound_number(total_parts)
 
         # re-attach any leading/trailing punctuation stripped from the
