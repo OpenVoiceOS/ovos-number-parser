@@ -201,6 +201,31 @@ class TestArabicNumbersToDigitsRobust(unittest.TestCase):
         self.assertEqual(
             numbers_to_digits("خمسة وعشرون كتاباً", lang="ar"), "25 كتاباً")
 
+    def test_standalone_digit_run_preserves_leading_zeros(self):
+        # live bug found in the Salesteq voice pipeline: numbers_to_digits
+        # re-parses a digit run that is ALREADY digits, round-trips it
+        # through an int, and destroys leading zeros. A phone number, OTP
+        # code, or any zero-padded identifier must survive byte-for-byte.
+        self.assertEqual(
+            numbers_to_digits("رقمي 0553175817", lang="ar"),
+            "رقمي 0553175817")
+        self.assertEqual(
+            numbers_to_digits("الرمز 007", lang="ar"), "الرمز 007")
+        self.assertEqual(
+            numbers_to_digits("الرمز 4729 والاحتياطي 007", lang="ar"),
+            "الرمز 4729 والاحتياطي 007")
+        # Eastern Arabic-Indic digits: script is converted to Western per
+        # existing pinned behaviour, but leading zeros must still survive
+        self.assertEqual(
+            numbers_to_digits("رقمي ٠٥٥٣١٧٥٨١٧", lang="ar"),
+            "رقمي 0553175817")
+
+    def test_mixed_digit_and_word_still_multiplies(self):
+        # this is why digits are re-read through extract_number at all:
+        # a digit run adjacent to a scale word must still multiply
+        self.assertEqual(
+            numbers_to_digits("355 ألف ريال", lang="ar"), "355000 ريال")
+
     def test_extract_dual_nouns(self):
         # the dual of common counting nouns carries the value 2 lexically
         for spoken in ["يومين", "يومان", "ساعتين", "ساعتان", "دقيقتين",

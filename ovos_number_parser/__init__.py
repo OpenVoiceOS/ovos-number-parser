@@ -279,6 +279,24 @@ def _is_ordinal_generic(input_str: str, lang: str):
     return _ORDINAL_REVERSE_CACHE[lang2].get(input_str.lower().strip(), False)
 
 
+# digit characters that already denote a plain numeral, keyed by script.
+# Eastern-Arabic-Indic and Persian/Urdu are normalized to Western digits to
+# match existing pinned numbers_to_digits behaviour; the characters
+# themselves (including leading zeros) are never dropped.
+_WESTERN_DIGITS = "0123456789"
+_DIGIT_TRANSLATE = str.maketrans("٠١٢٣٤٥٦٧٨٩" + "۰۱۲۳۴۵۶۷۸۹", _WESTERN_DIGITS * 2)
+_RAW_DIGIT_CHARS = set(_WESTERN_DIGITS + "٠١٢٣٤٥٦٧٨٩" + "۰۱۲۳۴۵۶۷۸۹")
+
+
+def _raw_digit_span(token: str) -> Optional[str]:
+    """If `token` is entirely digit characters (any supported script),
+    return it translated to Western digits with every character preserved
+    (leading zeros included). Otherwise return None."""
+    if not token or any(c not in _RAW_DIGIT_CHARS for c in token):
+        return None
+    return token.translate(_DIGIT_TRANSLATE)
+
+
 def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
     """Fallback that replaces spoken number spans with digits using
     extract_number over maximal runs of number words."""
@@ -364,9 +382,21 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
             else:
                 break
         span = " ".join(_clean(t) for t in tokens[i:j + 1])
-        val = extract_number(span, lang)
         stripped = tokens[j].rstrip(punct)
         trail = tokens[j][len(stripped):]
+        if j == i:
+            # a lone token that is already a digit run ("007", "٠٥٥٣١٧٥٨١٧")
+            # must not be round-tripped through extract_number/int: that
+            # destroys leading zeros in phone numbers, OTP codes and any
+            # zero-padded identifier. Script normalization (Eastern-Arabic
+            # -> Western) is preserved to match existing pinned behaviour,
+            # but every digit character survives.
+            raw = _raw_digit_span(_clean(tokens[i]))
+            if raw is not None:
+                out.append(f"{raw}{trail}")
+                i = j + 1
+                continue
+        val = extract_number(span, lang)
         if isinstance(val, float) and val.is_integer():
             val = int(val)
         out.append(f"{val}{trail}")

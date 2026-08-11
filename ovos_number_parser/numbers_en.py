@@ -695,7 +695,15 @@ def numbers_to_digits_en(text, short_scale=True, ordinals=False):
         else:
             if numbers_to_replace and \
                     token.index == numbers_to_replace[0].start_index:
-                results.append(str(numbers_to_replace[0].value))
+                nr = numbers_to_replace[0]
+                if nr.start_index == nr.end_index and token.word.isdigit():
+                    # a lone token that is already a digit run ("007") must
+                    # not be round-tripped through int(): that destroys
+                    # leading zeros in phone numbers, OTP codes, and any
+                    # zero-padded identifier.
+                    results.append(token.word)
+                else:
+                    results.append(str(nr.value))
             if numbers_to_replace and \
                     token.index == numbers_to_replace[0].end_index:
                 numbers_to_replace.pop(0)
