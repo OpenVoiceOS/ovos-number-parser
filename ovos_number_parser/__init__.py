@@ -9,7 +9,7 @@ from unicode_rbnf import RbnfEngine, FormatPurpose
 from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_an import AN
 from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, \
-    split_clitic_from_digits_ar, reattach_clitic_to_digits_ar, \
+    numbers_to_digits_ar, \
     is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_bg import numbers_to_digits_bg, pronounce_number_bg, extract_number_bg, \
@@ -431,12 +431,7 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
     if lang.startswith("uk"):
         return numbers_to_digits_uk(utterance)
     if _is_ar(lang):
-        # Arabic clitics can be glued onto digit runs ("و355 ألف"); split
-        # them off so the digits parse, convert, then re-attach. The Arabic
-        # knowledge lives in numbers_ar; this is just the composition.
-        spaced = split_clitic_from_digits_ar(utterance)
-        return reattach_clitic_to_digits_ar(
-            _numbers_to_digits_generic(spaced, lang))
+        return numbers_to_digits_ar(utterance, lang)
     return _numbers_to_digits_generic(utterance, lang)
 
 
