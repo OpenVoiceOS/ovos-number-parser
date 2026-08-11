@@ -429,7 +429,36 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         return numbers_to_digits_tr(utterance)
     if lang.startswith("uk"):
         return numbers_to_digits_uk(utterance)
+    if _is_ar(lang):
+        return _numbers_to_digits_ar(utterance, lang)
     return _numbers_to_digits_generic(utterance, lang)
+
+
+# a clitic (و "and", ف "so/then", ب "with/by", ل "to/for") glued directly onto
+# a digit run at the start of a word ("و355") stops the generic tokenizer's
+# per-whitespace-token number check from recognising the digits, so the run
+# never joins a following scale word into a mixed number span ("و355 ألف"
+# reads as the literal text "و355" plus the bare number 1000, instead of
+# 355000). Matches only at a token boundary so it never touches a clitic
+# occurring mid-word.
+_AR_LEADING_CLITIC_DIGIT_RE = re.compile(r'(?<!\S)([وفبل])([0-9٠-٩۰-۹])')
+
+
+def _numbers_to_digits_ar(utterance: str, lang: str) -> str:
+    """Arabic wrapper around the generic converter that lets a clitic
+    glued directly onto a digit run ("و355") join a mixed digit+word number
+    span ("و355 ألف" -> "و355000") instead of being left untouched while the
+    following scale word is misread as its own separate number.
+
+    A space is inserted between the clitic and the digits so the generic
+    tokenizer sees the digit run as an ordinary number token, the normal
+    conversion runs, and the space is removed again afterwards so the
+    clitic re-attaches to the produced digits exactly as it was written.
+    A bare digit run (no leading clitic) is unaffected.
+    """
+    spaced = _AR_LEADING_CLITIC_DIGIT_RE.sub(r'\1 \2', utterance)
+    converted = _numbers_to_digits_generic(spaced, lang)
+    return re.sub(r'(?<!\S)([وفبل]) (?=[0-9])', r'\1', converted)
 
 
 # Connectives for the a+bi complex form, per language, English as the default.

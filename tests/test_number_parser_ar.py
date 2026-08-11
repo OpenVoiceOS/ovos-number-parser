@@ -382,6 +382,30 @@ class TestArabicColloquialExtract(unittest.TestCase):
         self.assertEqual(extract_number_ar("2 مليون"), 2000000)
         self.assertEqual(extract_number_ar("3 مليار"), 3000000000)
 
+    def test_clitic_attached_digit_joins_mixed_number_span(self):
+        # a clitic (و/ف/ب/ل) glued directly onto a digit run must not stop
+        # that digit run from starting a mixed digit+word number span: the
+        # digits still multiply with the following scale word, and the
+        # clitic re-attaches to the produced digits exactly as written.
+        # Found while verifying PR #296 ("355 ألف" = 355000, bare form
+        # below) -- pre-existing, not a #296 regression.
+        self.assertEqual(
+            numbers_to_digits("و355 ألف ريال", lang="ar"),
+            "و355000 ريال")
+        self.assertEqual(
+            numbers_to_digits("ف355 ألف ريال", lang="ar"),
+            "ف355000 ريال")
+        self.assertEqual(
+            numbers_to_digits("ب355 ألف ريال", lang="ar"),
+            "ب355000 ريال")
+        self.assertEqual(
+            numbers_to_digits("ل355 ألف ريال", lang="ar"),
+            "ل355000 ريال")
+        # bare form regression: unaffected, no clitic present
+        self.assertEqual(
+            numbers_to_digits("355 ألف ريال", lang="ar"),
+            "355000 ريال")
+
     def test_colloquial_forms_do_not_over_match(self):
         # words that merely resemble number words must not be extracted
         self.assertIn(extract_number_ar("اخي"), (False, None))
