@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.11a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.11a1) (2026-08-11)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.10a1...0.19.11a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): spaced unit+hundred parses additively \(خمس مية وثلاثين → 135 instead of 530\) [\#294](https://github.com/OpenVoiceOS/ovos-number-parser/pull/294) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.19.10a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.10a1) (2026-08-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.9a1...0.19.10a1)
