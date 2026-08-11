@@ -18,6 +18,7 @@ lect's default register -- see its docstring for the code table and
 citations.
 """
 
+import re
 from math import isfinite
 from ovos_number_parser.util import convert_to_mixed_fraction
 
@@ -808,3 +809,28 @@ def is_ordinal_ar(input_str):
     if value is not None and j == len(tokens):
         return value
     return False
+
+
+# A clitic (و "and", ف "so/then", ب "with/by", ل "to/for") can be written
+# glued directly onto a digit run ("و355"). Tokenizers that check whole
+# whitespace tokens then fail to recognise the digits as a number, so the run
+# never joins a following scale word into a mixed span ("و355 ألف" should be
+# 355000 with the clitic re-attached: "و355000"). These two helpers let a
+# language-agnostic converter handle that: split before converting, re-attach
+# after. Both match only at a token boundary, so a clitic letter occurring
+# mid-word is never touched.
+_CLITIC_BEFORE_DIGITS_RE = re.compile(r'(?<!\S)([وفبل])([0-9٠-٩۰-۹])')
+_CLITIC_SPACE_DIGITS_RE = re.compile(r'(?<!\S)([وفبل]) (?=[0-9٠-٩۰-۹])')
+
+
+def split_clitic_from_digits_ar(utterance: str) -> str:
+    """Insert a space between a leading clitic and a glued digit run
+    ("و355 ألف" -> "و 355 ألف") so the digits read as an ordinary number
+    token. Reverse with ``reattach_clitic_to_digits_ar``."""
+    return _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', utterance)
+
+
+def reattach_clitic_to_digits_ar(utterance: str) -> str:
+    """Undo ``split_clitic_from_digits_ar`` after number conversion: glue the
+    clitic back onto the digits exactly as the caller wrote it."""
+    return _CLITIC_SPACE_DIGITS_RE.sub(r'\1', utterance)
