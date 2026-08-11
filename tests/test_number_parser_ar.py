@@ -329,6 +329,32 @@ class TestArabicColloquialExtract(unittest.TestCase):
         # 100 + 50 = 150
         self.assertEqual(extract_number_ar("ميه وخمسين"), 150)
 
+    def test_spaced_unit_plus_colloquial_hundred_multiplies(self):
+        # "خمس مية وثلاثين" = 5 * 100 + 30 = 530 (spaced unit + مية/ميه must
+        # multiply exactly like the already-supported spaced unit + مئة/مائة,
+        # e.g. "ثلاث مئة" = 300 handled by _parse_number_span). Reproduced
+        # live from sherpa STT output in the Salesteq voice pipeline, where
+        # the spaced (non-fused) colloquial form is what the ASR emits.
+        self.assertEqual(extract_number_ar("خمس مية وثلاثين"), 530)
+        # with the definite article fronting the unit word
+        self.assertEqual(extract_number_ar("الخمس مية وثلاثين"), 530)
+        # bare spaced unit + مية: 3 * 100 = 300
+        self.assertEqual(extract_number_ar("ثلاث مية"), 300)
+        # spaced unit + ميه + tail unit: 7 * 100 + 5 = 705
+        self.assertEqual(extract_number_ar("سبع ميه وخمسة"), 705)
+
+    def test_spaced_unit_plus_hundred_in_sentence(self):
+        self.assertEqual(
+            numbers_to_digits(
+                "وش الفرق بينها وبين الخمس مية وثلاثين", lang="ar"),
+            "وش الفرق بينها وبين 530")
+
+    def test_non_regression_bare_hundred_and_fused_hundred(self):
+        # a bare مية (no preceding unit) still means 100 + tens, unaffected
+        self.assertEqual(extract_number_ar("مية وثلاثين"), 130)
+        # the already-fused form (PR #290) keeps working
+        self.assertEqual(extract_number_ar("الخمسمية وثلاثين"), 530)
+
     def test_fused_dialectal_teens(self):
         # dialectal fused teens (Gulf/Levantine): unit+عشر fused into one
         # word, cf. https://en.wikipedia.org/wiki/Arabic_numerals#Numbers_11-19
