@@ -101,8 +101,9 @@ def _build_word_map():
         for word in wlist:
             words[_normalize(word)] = val
 
-    # Common orthographic variants allowed in the Amazigh proposal
-    words[_normalize("kṛaḍan")] = 30
+    # Common orthographic variant allowed in the Amazigh proposal
+    # ("kṛaḍan" is not listed here: it normalizes identically to "kraḍan",
+    # which is already registered above via _TENS_AMAZIGH)
     words[_normalize("semmusan")] = 50
 
     for word, val in _FRACTIONS.items():
@@ -114,13 +115,20 @@ _WORDS = _build_word_map()
 
 
 def _slot(val) -> str:
-    if val < 1: return "frac"
-    if val >= 1000000000: return "billion"
-    if val >= 1000000: return "million"
-    if val >= 1000: return "thousand"
-    if val >= 100: return "hundred"
-    if 11 <= val <= 19: return "teen"
-    if val == 10 or (val % 10 == 0 and val >= 20): return "ten"
+    if val < 1:
+        return "frac"
+    if val >= 1000000000:
+        return "billion"
+    if val >= 1000000:
+        return "million"
+    if val >= 1000:
+        return "thousand"
+    if val >= 100:
+        return "hundred"
+    if 11 <= val <= 19:
+        return "teen"
+    if val == 10 or (val % 10 == 0 and val >= 20):
+        return "ten"
     return "unit"
 
 
@@ -235,6 +243,65 @@ def _token_values(tokens):
     return vals
 
 
+def _consume_compound(parsed: list, i: int, connector_tokens: list):
+    """Consume a maximal run of parsed number-word parts starting at
+    ``parsed[i]``, applying the magnitude-slot bookkeeping shared by
+    ``extract_number_kab`` and ``numbers_to_digits_kab`` (connectors between
+    words, and resetting smaller slots whenever a larger magnitude is hit,
+    to support descending sequences like "sin igiman tam imda" = 2800).
+
+    ``connector_tokens`` is the token list (already lower/normalized as
+    appropriate by the caller) used to check ``_CONNECTORS`` by raw index.
+
+    Returns ``(total_parts, end_j, last_idx)`` where ``end_j`` is the
+    ``parsed`` index just past the consumed run, and ``last_idx`` is the raw
+    token index (``idx + width - 1``) of the last consumed part.
+    """
+    idx, width, val = parsed[i]
+    total_parts = [val]
+    slots = {_slot(val)}
+    last_idx = idx + width - 1
+    j = i + 1
+
+    while j < len(parsed):
+        nidx, nwidth, nval = parsed[j]
+        if nval is None:
+            # connectors may join two number words in the loan system
+            if _normalize(connector_tokens[nidx]) in _CONNECTORS \
+                    and j + 1 < len(parsed) and parsed[j + 1][2] is not None:
+                j += 1
+                continue
+            break
+
+        nslot = _slot(nval)
+
+        # Reset structural slots whenever we hit a larger magnitude
+        # to support sequences like "sin igiman tam imda" (2 1000 8 100)
+        if nslot in ("hundred", "thousand", "million", "billion"):
+            if nslot in slots:
+                break
+            slots.discard("unit")
+            slots.discard("ten")
+            slots.discard("teen")
+            if nslot in ("thousand", "million", "billion"):
+                slots.discard("hundred")
+            if nslot in ("million", "billion"):
+                slots.discard("thousand")
+            if nslot == "billion":
+                slots.discard("million")
+            slots.add(nslot)
+        else:
+            if nslot in slots:
+                break
+            slots.add(nslot)
+
+        total_parts.append(nval)
+        last_idx = nidx + nwidth - 1
+        j += 1
+
+    return total_parts, j, last_idx
+
+
 def _evaluate_compound_number(parts: list) -> Union[int, float]:
     """Sum the collected parts of a number, applying magnitude multipliers."""
     current_sum = 0
@@ -295,45 +362,7 @@ def extract_number_kab(text: str, short_scale: bool = False,
             i += 1
             continue
 
-        total_parts = [val]
-        slots = {_slot(val)}
-        j = i + 1
-        
-        while j < len(parsed):
-            nidx, nwidth, nval = parsed[j]
-            if nval is None:
-                # connectors may join two number words in the loan system
-                if _normalize(tokens[nidx]) in _CONNECTORS \
-                        and j + 1 < len(parsed) and parsed[j + 1][2] is not None:
-                    j += 1
-                    continue
-                break
-                
-            nslot = _slot(nval)
-            
-            # Reset structural slots whenever we hit a larger magnitude 
-            # to support sequences like "sin igiman tam imda" (2 1000 8 100)
-            if nslot in ("hundred", "thousand", "million", "billion"):
-                if nslot in slots:
-                    break
-                slots.discard("unit")
-                slots.discard("ten")
-                slots.discard("teen")
-                if nslot in ("thousand", "million", "billion"):
-                    slots.discard("hundred")
-                if nslot in ("million", "billion"):
-                    slots.discard("thousand")
-                if nslot == "billion":
-                    slots.discard("million")
-                slots.add(nslot)
-            else:
-                if nslot in slots:
-                    break
-                slots.add(nslot)
-                
-            total_parts.append(nval)
-            j += 1
-            
+        total_parts, _j, _last_idx = _consume_compound(parsed, i, tokens)
         return _evaluate_compound_number(total_parts)
     return False
 
@@ -372,43 +401,7 @@ def numbers_to_digits_kab(text: str) -> str:
             i += 1
             continue
 
-        total_parts = [val]
-        slots = {_slot(val)}
-        last_end_idx = idx + width - 1
-        j = i + 1
-        
-        while j < len(parsed):
-            nidx, nwidth, nval = parsed[j]
-            if nval is None:
-                if _normalize(lowered[nidx]) in _CONNECTORS \
-                        and j + 1 < len(parsed) and parsed[j + 1][2] is not None:
-                    j += 1
-                    continue
-                break
-                
-            nslot = _slot(nval)
-            if nslot in ("hundred", "thousand", "million", "billion"):
-                if nslot in slots:
-                    break
-                slots.discard("unit")
-                slots.discard("ten")
-                slots.discard("teen")
-                if nslot in ("thousand", "million", "billion"):
-                    slots.discard("hundred")
-                if nslot in ("million", "billion"):
-                    slots.discard("thousand")
-                if nslot == "billion":
-                    slots.discard("million")
-                slots.add(nslot)
-            else:
-                if nslot in slots:
-                    break
-                slots.add(nslot)
-                
-            total_parts.append(nval)
-            last_end_idx = parsed[j][0] + parsed[j][1] - 1
-            j += 1
-
+        total_parts, j, last_end_idx = _consume_compound(parsed, i, lowered)
         total = _evaluate_compound_number(total_parts)
 
         # re-attach any leading/trailing punctuation stripped from the
@@ -418,7 +411,6 @@ def numbers_to_digits_kab(text: str) -> str:
         suffix = last_raw[len(last_raw.rstrip(_TRAILING_PUNCT)):]
         out.append(f"{prefix}{total}{suffix}")
 
-        while i < len(parsed) and parsed[i][0] <= last_end_idx:
-            i += 1
+        i = j
 
     return " ".join(out)
