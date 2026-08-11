@@ -450,7 +450,7 @@ _FUSED_TEENS_LOOKUP = _norm_map({
 })
 _MINUS_LOOKUP = _norm_keys({"سالب", "ناقص"})
 _DECIMAL_LOOKUP = _norm_keys({"فاصلة", "فاصله"})
-_HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة"})
+_HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة", "مية", "ميه"})
 
 _ORDINAL_UNITS_LOOKUP = _norm_map(
     {stem: value for value, stem in _ORDINAL_STEMS_AR.items()})
