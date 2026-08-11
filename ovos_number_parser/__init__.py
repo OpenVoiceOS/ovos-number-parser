@@ -279,6 +279,22 @@ def _is_ordinal_generic(input_str: str, lang: str):
     return _ORDINAL_REVERSE_CACHE[lang2].get(input_str.lower().strip(), False)
 
 
+_WESTERN_DIGITS = "0123456789"
+_EASTERN_ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩"
+_PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹"
+# numbers_to_digits emits Western digits, so the two non-Western scripts are
+# translated character-for-character — never through int(), which would
+# destroy leading zeros.
+_TO_WESTERN_DIGITS = str.maketrans(_EASTERN_ARABIC_DIGITS + _PERSIAN_DIGITS,
+                                   _WESTERN_DIGITS * 2)
+_DIGIT_CHARS = frozenset(_WESTERN_DIGITS + _EASTERN_ARABIC_DIGITS + _PERSIAN_DIGITS)
+
+
+def _is_digit_run(token: str) -> bool:
+    """True if the token is one or more digit characters and nothing else."""
+    return bool(token) and all(c in _DIGIT_CHARS for c in token)
+
+
 def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
     """Fallback that replaces spoken number spans with digits using
     extract_number over maximal runs of number words."""
@@ -363,13 +379,23 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
                 j += 2
             else:
                 break
-        span = " ".join(_clean(t) for t in tokens[i:j + 1])
-        val = extract_number(span, lang)
         stripped = tokens[j].rstrip(punct)
         trail = tokens[j][len(stripped):]
-        if isinstance(val, float) and val.is_integer():
-            val = int(val)
-        out.append(f"{val}{trail}")
+        single_token = i == j
+        if single_token and _is_digit_run(_clean(tokens[i])):
+            # Already digits ("007", "٠٥٥٣١٧٥٨١٧"): keep every character.
+            # Re-reading through extract_number would go via int() and strip
+            # leading zeros — corrupting phone numbers, OTP codes and other
+            # zero-padded identifiers. Digit runs are only re-read when they
+            # combine with neighbouring number words ("355 ألف" → 355000),
+            # which is the multi-token branch below.
+            out.append(_clean(tokens[i]).translate(_TO_WESTERN_DIGITS) + trail)
+        else:
+            span = " ".join(_clean(t) for t in tokens[i:j + 1])
+            val = extract_number(span, lang)
+            if isinstance(val, float) and val.is_integer():
+                val = int(val)
+            out.append(f"{val}{trail}")
         i = j + 1
     return " ".join(out)
 
