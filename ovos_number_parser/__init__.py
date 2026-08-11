@@ -9,6 +9,7 @@ from unicode_rbnf import RbnfEngine, FormatPurpose
 from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_an import AN
 from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, \
+    numbers_to_digits_ar, \
     is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_bg import numbers_to_digits_bg, pronounce_number_bg, extract_number_bg, \
@@ -455,6 +456,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         return numbers_to_digits_tr(utterance)
     if lang.startswith("uk"):
         return numbers_to_digits_uk(utterance)
+    if _is_ar(lang):
+        return numbers_to_digits_ar(utterance, lang)
     return _numbers_to_digits_generic(utterance, lang)
 
 
