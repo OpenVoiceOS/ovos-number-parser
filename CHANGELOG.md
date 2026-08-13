@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.13a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.13a2) (2026-08-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.13a1...0.19.13a2)
+
+**Merged pull requests:**
+
+- Improving kabyle parser [\#300](https://github.com/OpenVoiceOS/ovos-number-parser/pull/300) ([athmanemokraoui](https://github.com/athmanemokraoui))
+
 ## [0.19.13a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.13a1) (2026-08-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.12a1...0.19.13a1)
