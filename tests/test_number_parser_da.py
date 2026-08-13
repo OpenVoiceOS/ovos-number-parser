@@ -181,5 +181,21 @@ class TestDanishSweep(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="da"), number)
 
 
+class TestDanishNonDecimalUnicodeDigits(unittest.TestCase):
+    """Regression: digit-like non-decimal Unicode chars must not crash."""
+
+    def test_superscripts_and_vulgar_fractions_do_not_crash(self):
+        # str.isdigit() is True for superscripts, str.isnumeric() is True
+        # for vulgar fractions, but int() rejects both; must not raise.
+        for text in ("¹", "²", "³", "½"):
+            with self.subTest(text=text):
+                self.assertFalse(extract_number(text, lang="da"))
+
+    def test_arabic_indic_digits_still_work(self):
+        self.assertEqual(extract_number('١', lang="da"), 1)
+        self.assertEqual(extract_number('٢', lang="da"), 2)
+        self.assertEqual(extract_number('٣', lang="da"), 3)
+
+
 if __name__ == "__main__":
     unittest.main()

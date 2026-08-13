@@ -370,8 +370,8 @@ def _tokenize_el(text):
         # Greek decimal comma between digits: "3,14" -> "3.14"
         if "," in token:
             parts = token.split(",")
-            if len(parts) == 2 and parts[0].lstrip("-").isdigit() \
-                    and parts[1].isdigit():
+            if len(parts) == 2 and parts[0].lstrip("-").isdecimal() \
+                    and parts[1].isdecimal():
                 token = parts[0] + "." + parts[1]
         tokens.append(token)
     return tokens

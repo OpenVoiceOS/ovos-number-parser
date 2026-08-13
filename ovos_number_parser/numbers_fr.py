@@ -773,9 +773,9 @@ def _get_ordinal_fr(word):
     """
     if word:
         for ordinal in _ORDINAL_ENDINGS_FR:
-            if word[0].isdigit() and ordinal in word:
+            if word[0].isdecimal() and ordinal in word:
                 result = word.replace(ordinal, "")
-                if result.isdigit():
+                if result.isdecimal():
                     return int(result)
 
     return None

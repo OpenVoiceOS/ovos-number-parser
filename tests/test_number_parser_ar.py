@@ -201,6 +201,31 @@ class TestArabicNumbersToDigitsRobust(unittest.TestCase):
         self.assertEqual(
             numbers_to_digits("خمسة وعشرون كتاباً", lang="ar"), "25 كتاباً")
 
+    def test_standalone_digit_run_preserves_leading_zeros(self):
+        # live bug found in a production Arabic voice pipeline: numbers_to_digits
+        # re-parses a digit run that is ALREADY digits, round-trips it
+        # through an int, and destroys leading zeros. A phone number, OTP
+        # code, or any zero-padded identifier must survive byte-for-byte.
+        self.assertEqual(
+            numbers_to_digits("رقمي 0553175817", lang="ar"),
+            "رقمي 0553175817")
+        self.assertEqual(
+            numbers_to_digits("الرمز 007", lang="ar"), "الرمز 007")
+        self.assertEqual(
+            numbers_to_digits("الرمز 4729 والاحتياطي 007", lang="ar"),
+            "الرمز 4729 والاحتياطي 007")
+        # Eastern Arabic-Indic digits: script is converted to Western per
+        # existing pinned behaviour, but leading zeros must still survive
+        self.assertEqual(
+            numbers_to_digits("رقمي ٠٥٥٣١٧٥٨١٧", lang="ar"),
+            "رقمي 0553175817")
+
+    def test_mixed_digit_and_word_still_multiplies(self):
+        # this is why digits are re-read through extract_number at all:
+        # a digit run adjacent to a scale word must still multiply
+        self.assertEqual(
+            numbers_to_digits("355 ألف ريال", lang="ar"), "355000 ريال")
+
     def test_extract_dual_nouns(self):
         # the dual of common counting nouns carries the value 2 lexically
         for spoken in ["يومين", "يومان", "ساعتين", "ساعتان", "دقيقتين",
@@ -294,6 +319,130 @@ class TestArabicRoundTrip(unittest.TestCase):
             with self.subTest(number=number):
                 spoken = pronounce_ordinal(number, lang="ar")
                 self.assertEqual(is_ordinal(spoken, lang="ar"), number)
+
+
+class TestArabicColloquialExtract(unittest.TestCase):
+    """Dialectal/colloquial number forms that real speakers actually use.
+
+    Gold values below are computed independently (plain arithmetic on the
+    literal digits), never by calling the parser.
+    """
+
+    def test_colloquial_hundred_word(self):
+        # مية / ميه / مئة / مائة are one lexeme (100); مائة is the classical
+        # spelling and must keep working too
+        for spoken in ["مية", "ميه", "مئة", "مائة"]:
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number_ar(spoken), 100)
+
+    def test_colloquial_hundred_in_price_sentence(self):
+        # "three hundred and fifty five thousand riyals", colloquial مية
+        # 300 + 55 = 355; 355 * 1000 = 355000
+        self.assertEqual(
+            extract_number_ar("ثلاثمية وخمسة وخمسين الف ريال"), 355000)
+
+    def test_colloquial_hundred_bare_alif_scale(self):
+        # bare-alif الف (no hamza) must be recognised as the 1000 scale word
+        self.assertEqual(extract_number_ar("مية الف ريال"), 100000)
+
+    def test_deep_colloquial_hundred_family(self):
+        # ثلث-مية (300) uses the deeper colloquial root ثلث instead of ثلاث
+        # 300 + 50 = 350
+        self.assertEqual(extract_number_ar("ثلثمية وخمسين"), 350)
+
+    def test_colloquial_hundred_plus_tens(self):
+        # 100 + 50 = 150
+        self.assertEqual(extract_number_ar("ميه وخمسين"), 150)
+
+    def test_spaced_unit_plus_colloquial_hundred_multiplies(self):
+        # "خمس مية وثلاثين" = 5 * 100 + 30 = 530 (spaced unit + مية/ميه must
+        # multiply exactly like the already-supported spaced unit + مئة/مائة,
+        # e.g. "ثلاث مئة" = 300 handled by _parse_number_span). Reproduced
+        # live from production Arabic STT output, where
+        # the spaced (non-fused) colloquial form is what the ASR emits.
+        self.assertEqual(extract_number_ar("خمس مية وثلاثين"), 530)
+        # with the definite article fronting the unit word
+        self.assertEqual(extract_number_ar("الخمس مية وثلاثين"), 530)
+        # bare spaced unit + مية: 3 * 100 = 300
+        self.assertEqual(extract_number_ar("ثلاث مية"), 300)
+        # spaced unit + ميه + tail unit: 7 * 100 + 5 = 705
+        self.assertEqual(extract_number_ar("سبع ميه وخمسة"), 705)
+
+    def test_spaced_unit_plus_hundred_in_sentence(self):
+        self.assertEqual(
+            numbers_to_digits(
+                "وش الفرق بينها وبين الخمس مية وثلاثين", lang="ar"),
+            "وش الفرق بينها وبين 530")
+
+    def test_non_regression_bare_hundred_and_fused_hundred(self):
+        # a bare مية (no preceding unit) still means 100 + tens, unaffected
+        self.assertEqual(extract_number_ar("مية وثلاثين"), 130)
+        # the already-fused form (PR #290) keeps working
+        self.assertEqual(extract_number_ar("الخمسمية وثلاثين"), 530)
+
+    def test_fused_dialectal_teens(self):
+        # dialectal fused teens (Gulf/Levantine): unit+عشر fused into one
+        # word, cf. https://en.wikipedia.org/wiki/Arabic_numerals#Numbers_11-19
+        # and colloquial spelling guides for Gulf/Levantine Arabic numerals
+        expected = {
+            11: ["احداشر"], 12: ["اثناشر"], 13: ["ثلطاشر", "ثلتاشر"],
+            14: ["اربعتاشر"], 15: ["خمستاشر"], 16: ["ستاشر"],
+            17: ["سبعتاشر"], 18: ["ثمنتاشر"], 19: ["تسعتاشر"],
+        }
+        for number, spellings in expected.items():
+            for spoken in spellings:
+                with self.subTest(spoken=spoken):
+                    self.assertEqual(extract_number_ar(spoken), number)
+
+    def test_fused_teens_in_sentence(self):
+        self.assertEqual(extract_number_ar("عمري اثناشر سنة"), 12)
+        self.assertEqual(extract_number_ar("عندي احداشر كتاب"), 11)
+
+    def test_mixed_digit_and_scale_word(self):
+        # a digit run directly followed by a scale word multiplies it:
+        # 355 * 1000 = 355000
+        self.assertEqual(extract_number_ar("355 ألف"), 355000)
+        self.assertEqual(extract_number_ar("355 الف"), 355000)
+        self.assertEqual(extract_number_ar("٣٥٥ ألف"), 355000)
+        self.assertEqual(extract_number_ar("2 مليون"), 2000000)
+        self.assertEqual(extract_number_ar("3 مليار"), 3000000000)
+
+    def test_clitic_attached_digit_joins_mixed_number_span(self):
+        # a clitic (و/ف/ب/ل) glued directly onto a digit run must not stop
+        # that digit run from starting a mixed digit+word number span: the
+        # digits still multiply with the following scale word, and the
+        # clitic re-attaches to the produced digits exactly as written.
+        # Found while verifying PR #296 ("355 ألف" = 355000, bare form
+        # below) -- pre-existing, not a #296 regression.
+        self.assertEqual(
+            numbers_to_digits("و355 ألف ريال", lang="ar"),
+            "و355000 ريال")
+        self.assertEqual(
+            numbers_to_digits("ف355 ألف ريال", lang="ar"),
+            "ف355000 ريال")
+        self.assertEqual(
+            numbers_to_digits("ب355 ألف ريال", lang="ar"),
+            "ب355000 ريال")
+        self.assertEqual(
+            numbers_to_digits("ل355 ألف ريال", lang="ar"),
+            "ل355000 ريال")
+        # bare form regression: unaffected, no clitic present
+        self.assertEqual(
+            numbers_to_digits("355 ألف ريال", lang="ar"),
+            "355000 ريال")
+
+    def test_colloquial_forms_do_not_over_match(self):
+        # words that merely resemble number words must not be extracted
+        self.assertIn(extract_number_ar("اخي"), (False, None))
+        self.assertIn(extract_number_ar("حي"), (False, None))
+
+    def test_regression_docstring_claims_still_hold(self):
+        # gender polarity, dual, oblique tens from the module docstring
+        self.assertEqual(extract_number_ar("اثنين وعشرين"), 22)
+        self.assertEqual(extract_number_ar("ثلاث تفاحات"), 3)
+        self.assertEqual(extract_number_ar("عشرين"), 20)
+        self.assertAlmostEqual(extract_number_ar("٢٠٢٤،") or 0, 2024)
+        self.assertEqual(extract_number_ar("25."), 25)
 
 
 if __name__ == "__main__":

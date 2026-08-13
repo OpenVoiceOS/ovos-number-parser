@@ -14,10 +14,20 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(numbers_to_digits_en('three billions'), '3000000000.0')
         self.assertEqual(numbers_to_digits_en('two point five'), '2.5')
         self.assertEqual(numbers_to_digits_en('two point forty two'), '2.42')
+        # with ordinals off, "fifth" is left as a word: it must never be
+        # reinterpreted as the reciprocal 1/5 (this used to read "march 0.2")
         self.assertEqual(numbers_to_digits_en('march fifth two thousand twenty five', ordinals=False),
-                         'march 0.2 2025')
+                         'march fifth 2025')
         self.assertEqual(numbers_to_digits_en('march fifth', ordinals=True),
                          'march 5')
+
+    def test_numbers_to_digits_en_preserves_leading_zeros(self):
+        # live bug: a standalone digit run that is already digits must pass
+        # through byte-for-byte, not get re-parsed and lose leading zeros
+        self.assertEqual(numbers_to_digits_en('code 007'), 'code 007')
+        self.assertEqual(
+            numbers_to_digits_en('otp 4729 backup 007'),
+            'otp 4729 backup 007')
 
     @unittest.expectedFailure
     def test_failures_numbers_to_digits_en(self):

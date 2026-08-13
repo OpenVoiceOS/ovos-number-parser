@@ -332,5 +332,19 @@ class TestBasqueFractions(unittest.TestCase):
                 self.assertFalse(is_fractional(word, lang="eu"))
 
 
+class TestBasqueNonDecimalUnicodeDigits(unittest.TestCase):
+    """Regression: digit-like non-decimal Unicode chars must not crash."""
+
+    def test_superscripts_and_vulgar_fractions_do_not_crash(self):
+        for text in ("¹", "²", "³", "½"):
+            with self.subTest(text=text):
+                self.assertFalse(extract_number(text, lang="eu"))
+
+    def test_arabic_indic_digits_still_work(self):
+        self.assertEqual(extract_number('١', lang="eu"), 1)
+        self.assertEqual(extract_number('٢', lang="eu"), 2)
+        self.assertEqual(extract_number('٣', lang="eu"), 3)
+
+
 if __name__ == "__main__":
     unittest.main()

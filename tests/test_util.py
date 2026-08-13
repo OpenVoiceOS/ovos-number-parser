@@ -887,6 +887,30 @@ class TestWordTokenize(unittest.TestCase):
         self.assertEqual(result, expected_elements)
 
 
+class TestRomanceNumberExtractorNonDecimalUnicodeDigits(unittest.TestCase):
+    """Regression: RomanceNumberExtractor backs pt/es/ca/it/gl/an/ast/mwl/oc/ro.
+
+    Superscripts (¹²³) and vulgar fractions (½) are digit-like
+    (str.isdigit()/isnumeric() is True) but float()/int() reject them; the
+    "digit token" fast path must not raise ValueError. Arabic-Indic digits
+    (real decimal digits, str.isdecimal() is True) must keep working.
+    """
+
+    def test_superscripts_and_vulgar_fractions_do_not_crash(self):
+        from ovos_number_parser import extract_number
+        for lang in ("pt", "es", "ca", "it", "gl", "an", "ast", "mwl", "oc", "ro"):
+            for text in ("¹", "²", "³", "½"):
+                with self.subTest(lang=lang, text=text):
+                    self.assertFalse(extract_number(text, lang=lang))
+
+    def test_arabic_indic_digits_still_work(self):
+        from ovos_number_parser import extract_number
+        for lang in ("pt", "es", "ca", "it", "gl", "an", "ast", "mwl", "oc", "ro"):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number('١', lang=lang), 1)
+                self.assertEqual(extract_number('٢', lang=lang), 2)
+
+
 if __name__ == '__main__':
     # Run the tests with verbose output
     unittest.main(verbosity=2)
