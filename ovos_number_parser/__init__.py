@@ -55,7 +55,7 @@ from ovos_number_parser.numbers_id import (pronounce_number_id, pronounce_number
                                            numbers_to_digits_id, numbers_to_digits_ms)
 from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, is_fractional_it, IT)
 from ovos_number_parser.numbers_kab import (pronounce_number_kab, pronounce_ordinal_kab, extract_number_kab,
-                                             is_fractional_kab, is_ordinal_kab)
+                                             is_fractional_kab, is_ordinal_kab, numbers_to_digits_kab)
 from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.numbers_oc import OC
 from ovos_number_parser.numbers_nb import (nice_number_nb, pronounce_number_nb,
@@ -458,6 +458,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         return numbers_to_digits_uk(utterance)
     if _is_ar(lang):
         return numbers_to_digits_ar(utterance, lang)
+    if lang.startswith("kab"):
+        return numbers_to_digits_kab(utterance)
     return _numbers_to_digits_generic(utterance, lang)
 
 
