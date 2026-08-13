@@ -211,13 +211,12 @@ class TestNumbersToDigitsKab(unittest.TestCase):
     def test_punctuation_preserved(self):
         self.assertEqual(numbers_to_digits("(mraw) n yiwet.", "kab"),
                          "(10) n 1.")
+        # Bot requested this case to prove boundary check is correct
+        self.assertEqual(numbers_to_digits("(agim kuẓ imda) n idularen", "kab"),
+                         "(1400) n idularen")
 
     def test_punctuation_boundary_comma(self):
-        """Ensure numbers separated by commas are not incorrectly joined into a single compound."""
-        # extract_number should stop at "mraw" (10) and not parse "mraw, sin" as 12.
         self.assertEqual(extract_number("mraw, sin", "kab"), 10)
-        
-        # numbers_to_digits should preserve the comma and not merge them.
         self.assertEqual(numbers_to_digits("mraw, sin", "kab"), "10, 2")
 
     def test_roundtrip_sweep(self):
