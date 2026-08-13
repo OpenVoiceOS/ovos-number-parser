@@ -212,6 +212,14 @@ class TestNumbersToDigitsKab(unittest.TestCase):
         self.assertEqual(numbers_to_digits("(mraw) n yiwet.", "kab"),
                          "(10) n 1.")
 
+    def test_punctuation_boundary_comma(self):
+        """Ensure numbers separated by commas are not incorrectly joined into a single compound."""
+        # extract_number should stop at "mraw" (10) and not parse "mraw, sin" as 12.
+        self.assertEqual(extract_number("mraw, sin", "kab"), 10)
+        
+        # numbers_to_digits should preserve the comma and not merge them.
+        self.assertEqual(numbers_to_digits("mraw, sin", "kab"), "10, 2")
+
     def test_roundtrip_sweep(self):
         nums = list(range(0, 200)) + [222, 300, 345, 999, 1000, 1001,
                                       2000, 2500, 3333, 9999]
