@@ -235,8 +235,9 @@ def _token_values(tokens):
 
         if i + 1 < len(tokens):
             next_tok = tokens[i + 1]
-            # Prevent joining multiword numerals across boundary punctuation.
-            # e.g. "mraw, sin" must not match "mraw sin"
+            # PREVENT JOINING ACROSS PUNCTUATION:
+            # Only allow joining if the current token has no trailing boundary punctuation
+            # and the next token has no leading boundary punctuation.
             if (tok == tok.rstrip(_TRAILING_PUNCT) and
                 next_tok == next_tok.lstrip(_LEADING_PUNCT)):
                 two = f"{stripped_tok} {next_tok.strip(strip_chars)}"
@@ -292,8 +293,7 @@ def _consume_compound(parsed: list, i: int, connector_tokens: list):
             # If the raw token differs from its stripped version, it contains boundary punctuation
             if connector_tokens[k].strip(strip_chars) != connector_tokens[k]:
                 has_boundary = True
-                break
-        
+                break        
         if has_boundary:
             break
 
