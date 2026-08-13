@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.19.13a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.13a1) (2026-08-11)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.12a1...0.19.13a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): digit runs with an attached clitic \(و355\) join mixed number spans [\#297](https://github.com/OpenVoiceOS/ovos-number-parser/pull/297) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.19.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.12a1) (2026-08-11)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.11a1...0.19.12a1)
+
+**Merged pull requests:**
+
+- fix: numbers\_to\_digits must not corrupt standalone digit runs \(leading zeros lost\) [\#296](https://github.com/OpenVoiceOS/ovos-number-parser/pull/296) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.19.11a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.11a1) (2026-08-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.10a1...0.19.11a1)

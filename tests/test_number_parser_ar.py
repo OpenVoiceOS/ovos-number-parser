@@ -201,6 +201,31 @@ class TestArabicNumbersToDigitsRobust(unittest.TestCase):
         self.assertEqual(
             numbers_to_digits("خمسة وعشرون كتاباً", lang="ar"), "25 كتاباً")
 
+    def test_standalone_digit_run_preserves_leading_zeros(self):
+        # live bug found in a production Arabic voice pipeline: numbers_to_digits
+        # re-parses a digit run that is ALREADY digits, round-trips it
+        # through an int, and destroys leading zeros. A phone number, OTP
+        # code, or any zero-padded identifier must survive byte-for-byte.
+        self.assertEqual(
+            numbers_to_digits("رقمي 0553175817", lang="ar"),
+            "رقمي 0553175817")
+        self.assertEqual(
+            numbers_to_digits("الرمز 007", lang="ar"), "الرمز 007")
+        self.assertEqual(
+            numbers_to_digits("الرمز 4729 والاحتياطي 007", lang="ar"),
+            "الرمز 4729 والاحتياطي 007")
+        # Eastern Arabic-Indic digits: script is converted to Western per
+        # existing pinned behaviour, but leading zeros must still survive
+        self.assertEqual(
+            numbers_to_digits("رقمي ٠٥٥٣١٧٥٨١٧", lang="ar"),
+            "رقمي 0553175817")
+
+    def test_mixed_digit_and_word_still_multiplies(self):
+        # this is why digits are re-read through extract_number at all:
+        # a digit run adjacent to a scale word must still multiply
+        self.assertEqual(
+            numbers_to_digits("355 ألف ريال", lang="ar"), "355000 ريال")
+
     def test_extract_dual_nouns(self):
         # the dual of common counting nouns carries the value 2 lexically
         for spoken in ["يومين", "يومان", "ساعتين", "ساعتان", "دقيقتين",
@@ -333,7 +358,7 @@ class TestArabicColloquialExtract(unittest.TestCase):
         # "خمس مية وثلاثين" = 5 * 100 + 30 = 530 (spaced unit + مية/ميه must
         # multiply exactly like the already-supported spaced unit + مئة/مائة,
         # e.g. "ثلاث مئة" = 300 handled by _parse_number_span). Reproduced
-        # live from sherpa STT output in the Salesteq voice pipeline, where
+        # live from production Arabic STT output, where
         # the spaced (non-fused) colloquial form is what the ASR emits.
         self.assertEqual(extract_number_ar("خمس مية وثلاثين"), 530)
         # with the definite article fronting the unit word
@@ -381,6 +406,30 @@ class TestArabicColloquialExtract(unittest.TestCase):
         self.assertEqual(extract_number_ar("٣٥٥ ألف"), 355000)
         self.assertEqual(extract_number_ar("2 مليون"), 2000000)
         self.assertEqual(extract_number_ar("3 مليار"), 3000000000)
+
+    def test_clitic_attached_digit_joins_mixed_number_span(self):
+        # a clitic (و/ف/ب/ل) glued directly onto a digit run must not stop
+        # that digit run from starting a mixed digit+word number span: the
+        # digits still multiply with the following scale word, and the
+        # clitic re-attaches to the produced digits exactly as written.
+        # Found while verifying PR #296 ("355 ألف" = 355000, bare form
+        # below) -- pre-existing, not a #296 regression.
+        self.assertEqual(
+            numbers_to_digits("و355 ألف ريال", lang="ar"),
+            "و355000 ريال")
+        self.assertEqual(
+            numbers_to_digits("ف355 ألف ريال", lang="ar"),
+            "ف355000 ريال")
+        self.assertEqual(
+            numbers_to_digits("ب355 ألف ريال", lang="ar"),
+            "ب355000 ريال")
+        self.assertEqual(
+            numbers_to_digits("ل355 ألف ريال", lang="ar"),
+            "ل355000 ريال")
+        # bare form regression: unaffected, no clitic present
+        self.assertEqual(
+            numbers_to_digits("355 ألف ريال", lang="ar"),
+            "355000 ريال")
 
     def test_colloquial_forms_do_not_over_match(self):
         # words that merely resemble number words must not be extracted

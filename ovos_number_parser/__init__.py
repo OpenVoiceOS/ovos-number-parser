@@ -9,6 +9,7 @@ from unicode_rbnf import RbnfEngine, FormatPurpose
 from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_an import AN
 from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, \
+    numbers_to_digits_ar, \
     is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_bg import numbers_to_digits_bg, pronounce_number_bg, extract_number_bg, \
@@ -279,6 +280,22 @@ def _is_ordinal_generic(input_str: str, lang: str):
     return _ORDINAL_REVERSE_CACHE[lang2].get(input_str.lower().strip(), False)
 
 
+_WESTERN_DIGITS = "0123456789"
+_EASTERN_ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩"
+_PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹"
+# numbers_to_digits emits Western digits, so the two non-Western scripts are
+# translated character-for-character — never through int(), which would
+# destroy leading zeros.
+_TO_WESTERN_DIGITS = str.maketrans(_EASTERN_ARABIC_DIGITS + _PERSIAN_DIGITS,
+                                   _WESTERN_DIGITS * 2)
+_DIGIT_CHARS = frozenset(_WESTERN_DIGITS + _EASTERN_ARABIC_DIGITS + _PERSIAN_DIGITS)
+
+
+def _is_digit_run(token: str) -> bool:
+    """True if the token is one or more digit characters and nothing else."""
+    return bool(token) and all(c in _DIGIT_CHARS for c in token)
+
+
 def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
     """Fallback that replaces spoken number spans with digits using
     extract_number over maximal runs of number words."""
@@ -363,13 +380,23 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
                 j += 2
             else:
                 break
-        span = " ".join(_clean(t) for t in tokens[i:j + 1])
-        val = extract_number(span, lang)
         stripped = tokens[j].rstrip(punct)
         trail = tokens[j][len(stripped):]
-        if isinstance(val, float) and val.is_integer():
-            val = int(val)
-        out.append(f"{val}{trail}")
+        single_token = i == j
+        if single_token and _is_digit_run(_clean(tokens[i])):
+            # Already digits ("007", "٠٥٥٣١٧٥٨١٧"): keep every character.
+            # Re-reading through extract_number would go via int() and strip
+            # leading zeros — corrupting phone numbers, OTP codes and other
+            # zero-padded identifiers. Digit runs are only re-read when they
+            # combine with neighbouring number words ("355 ألف" → 355000),
+            # which is the multi-token branch below.
+            out.append(_clean(tokens[i]).translate(_TO_WESTERN_DIGITS) + trail)
+        else:
+            span = " ".join(_clean(t) for t in tokens[i:j + 1])
+            val = extract_number(span, lang)
+            if isinstance(val, float) and val.is_integer():
+                val = int(val)
+            out.append(f"{val}{trail}")
         i = j + 1
     return " ".join(out)
 
@@ -429,6 +456,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         return numbers_to_digits_tr(utterance)
     if lang.startswith("uk"):
         return numbers_to_digits_uk(utterance)
+    if _is_ar(lang):
+        return numbers_to_digits_ar(utterance, lang)
     return _numbers_to_digits_generic(utterance, lang)
 
 

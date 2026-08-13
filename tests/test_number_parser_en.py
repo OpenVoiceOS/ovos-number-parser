@@ -21,6 +21,14 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(numbers_to_digits_en('march fifth', ordinals=True),
                          'march 5')
 
+    def test_numbers_to_digits_en_preserves_leading_zeros(self):
+        # live bug: a standalone digit run that is already digits must pass
+        # through byte-for-byte, not get re-parsed and lose leading zeros
+        self.assertEqual(numbers_to_digits_en('code 007'), 'code 007')
+        self.assertEqual(
+            numbers_to_digits_en('otp 4729 backup 007'),
+            'otp 4729 backup 007')
+
     @unittest.expectedFailure
     def test_failures_numbers_to_digits_en(self):
         # TODO: fix me
