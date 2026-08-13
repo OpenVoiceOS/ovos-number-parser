@@ -229,10 +229,19 @@ def _token_values(tokens):
     while i < len(tokens):
         tok = tokens[i]
         stripped_tok = tok.strip(strip_chars)
-        
-        two = f"{stripped_tok} {tokens[i + 1].strip(strip_chars)}" if i + 1 < len(tokens) else None
-        two_hyphen = f"{stripped_tok}-{tokens[i + 1].strip(strip_chars)}" if i + 1 < len(tokens) else None
-        
+
+        two = None
+        two_hyphen = None
+
+        if i + 1 < len(tokens):
+            next_tok = tokens[i + 1]
+            # Prevent joining multiword numerals across boundary punctuation.
+            # e.g. "mraw, sin" must not match "mraw sin"
+            if (tok == tok.rstrip(_TRAILING_PUNCT) and
+                next_tok == next_tok.lstrip(_LEADING_PUNCT)):
+                two = f"{stripped_tok} {next_tok.strip(strip_chars)}"
+                two_hyphen = f"{stripped_tok}-{next_tok.strip(strip_chars)}"
+
         if two and _normalize(two) in _WORDS:
             vals.append((i, 2, _WORDS[_normalize(two)]))
             i += 2
@@ -373,7 +382,7 @@ def extract_number_kab(text: str, short_scale: bool = False,
     parsed = _token_values(raw_tokens)
     i = 0
     while i < len(parsed):
-        idx, width, val = parsed[i]
+        idx, _width, val = parsed[i]
         tok = raw_tokens[idx].strip(strip_chars)
         
         # digits
@@ -407,7 +416,7 @@ def numbers_to_digits_kab(text: str) -> str:
     out = []
     i = 0
     while i < len(parsed):
-        idx, width, val = parsed[i]
+        idx, _width, val = parsed[i]
         tok = raw_tokens[idx].strip(strip_chars)
 
         if re.fullmatch(r"-?\d+(?:[.,]\d+)?", tok):
