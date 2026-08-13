@@ -371,11 +371,11 @@ def extract_number_kab(text: str, short_scale: bool = False,
     strip_chars = _TRAILING_PUNCT + _LEADING_PUNCT
 
     # ordinals
-    for i, tok in enumerate(raw_tokens):
-        norm = _normalize(tok.strip(strip_chars))
-        if ordinals:
-            if norm in {_normalize(k) for k in _ORDINAL_FIRST}:
-                return 1
+    if ordinals:
+        for i, tok in enumerate(raw_tokens):
+            norm = _normalize(tok.strip(strip_chars))
+            if norm in _ORDINAL_FIRST_NORM:
+                return _ORDINAL_FIRST_NORM[norm]
             if norm in _ORDINAL_MARKERS and i + 1 < len(raw_tokens):
                 val = extract_number_kab(" ".join(raw_tokens[i + 1:]))
                 if val is not False:
