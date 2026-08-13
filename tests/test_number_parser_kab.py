@@ -1,6 +1,5 @@
 import unittest
 
-import ovos_number_parser._kab_dispatch_patch  # noqa: F401  (patches numbers_to_digits for "kab")
 from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
                                 pronounce_number, pronounce_ordinal,
                                 numbers_to_digits)
