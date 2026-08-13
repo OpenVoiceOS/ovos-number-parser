@@ -289,21 +289,23 @@ def _consume_compound(parsed: list, i: int, connector_tokens: list):
         
         # Stop consumption when the next token is separated by boundary punctuation
         has_boundary = False
-        for k in range(last_idx, nidx):
-            # If the raw token differs from its stripped version, it contains boundary punctuation
-            if connector_tokens[k].strip(strip_chars) != connector_tokens[k]:
-                has_boundary = True
-                break        
+        
+        # Check trailing punctuation on the preceding token (last_idx)
+        if connector_tokens[last_idx] != connector_tokens[last_idx].rstrip(_TRAILING_PUNCT):
+            has_boundary = True
+            
+        # Check leading punctuation on the following token (nidx)
+        elif connector_tokens[nidx] != connector_tokens[nidx].lstrip(_LEADING_PUNCT):
+            has_boundary = True
+            
+        # Check any tokens strictly BETWEEN the two parts
+        else:
+            for k in range(last_idx + 1, nidx):
+                if connector_tokens[k].strip(strip_chars) != connector_tokens[k]:
+                    has_boundary = True
+                    break
+        
         if has_boundary:
-            break
-
-        if nval is None:
-            # connectors may join two number words in the loan system
-            # We must strip punctuation from the connector token before checking _CONNECTORS
-            if _normalize(connector_tokens[nidx].strip(strip_chars)) in _CONNECTORS \
-                    and j + 1 < len(parsed) and parsed[j + 1][2] is not None:
-                j += 1
-                continue
             break
 
         nslot = _slot(nval)
