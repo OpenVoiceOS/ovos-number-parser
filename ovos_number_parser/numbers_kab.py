@@ -93,6 +93,7 @@ def _normalize(token: str) -> str:
 
 
 def _build_word_map():
+    """Build and return a normalized dictionary of all recognized Kabyle numeral words."""
     words = {}
     for table in (_UNITS_AMAZIGH_M, _UNITS_AMAZIGH_F, _UNITS_LOAN,
                   _TEENS_LOAN, _TENS_LOAN, _HUNDREDS_LOAN, _THOUSANDS_LOAN,
@@ -104,9 +105,6 @@ def _build_word_map():
         for word in wlist:
             words[_normalize(word)] = val
 
-    # Common orthographic variant allowed in the Amazigh proposal
-    # ("kṛaḍan" is not listed here: it normalizes identically to "kraḍan",
-    # which is already registered above via _TENS_AMAZIGH)
     words[_normalize("semmusan")] = 50
 
     for word, val in _FRACTIONS.items():
@@ -118,6 +116,7 @@ _WORDS = _build_word_map()
 
 
 def _slot(val) -> str:
+    """Categorize a numeric value into a magnitude slot for compound evaluation."""
     if val < 1:
         return "frac"
     if val >= 1000000000:
@@ -172,8 +171,6 @@ def pronounce_number_kab(number: Union[int, float], places: int = 3,
         parts.append(_HUNDREDS_LOAN[hundreds])
     if rest:
         if rest <= 10:
-            # units keep the Amazigh form even inside compounds when they
-            # stand alone; the Arabic-loan unit is used before a ten
             parts.append(_UNITS_AMAZIGH_M[rest] if not parts
                          else _UNITS_LOAN[rest])
         elif rest in _TEENS_LOAN:
@@ -201,17 +198,19 @@ def pronounce_ordinal_kab(number: Union[int, float],
 
 
 _FRACTIONS_NORM = {_normalize(k): v for k, v in _FRACTIONS.items()}
+_ORDINAL_FIRST_NORM = {_normalize(k): v for k, v in _ORDINAL_FIRST.items()}
 
 
 def is_fractional_kab(input_str: str, short_scale: bool = False) -> Union[bool, float]:
+    """Return the fractional value of a Kabyle fraction word, or False if not recognized."""
     return _FRACTIONS_NORM.get(_normalize(input_str.strip())) or False
 
 
 def is_ordinal_kab(input_str: str) -> Union[bool, int]:
     """Detect wis/tis + cardinal ordinals and amezwaru/tamezwarut."""
     text = _normalize(input_str.strip())
-    if text in {_normalize(k) for k in _ORDINAL_FIRST}:
-        return 1
+    if text in _ORDINAL_FIRST_NORM:
+        return _ORDINAL_FIRST_NORM[text]
     tokens = text.split()
     if len(tokens) >= 2 and tokens[0] in _ORDINAL_MARKERS:
         val = extract_number_kab(" ".join(tokens[1:]))
@@ -236,8 +235,6 @@ def _token_values(tokens):
         if i + 1 < len(tokens):
             next_tok = tokens[i + 1]
             # PREVENT JOINING ACROSS PUNCTUATION:
-            # Only allow joining if the current token has no trailing boundary punctuation
-            # and the next token has no leading boundary punctuation.
             if (tok == tok.rstrip(_TRAILING_PUNCT) and
                 next_tok == next_tok.lstrip(_LEADING_PUNCT)):
                 two = f"{stripped_tok} {next_tok.strip(strip_chars)}"
@@ -263,18 +260,11 @@ def _token_values(tokens):
 def _consume_compound(parsed: list, i: int, connector_tokens: list):
     """Consume a maximal run of parsed number-word parts starting at
     ``parsed[i]``, applying the magnitude-slot bookkeeping shared by
-    ``extract_number_kab`` and ``numbers_to_digits_kab`` (connectors between
-    words, and resetting smaller slots whenever a larger magnitude is hit,
-    to support descending sequences like "sin igiman tam imda" = 2800).
-
-    Stops consumption if a punctuation boundary is detected between tokens.
-
-    ``connector_tokens`` is the token list (which may contain raw punctuation)
-    used to check ``_CONNECTORS`` and punctuation boundaries by raw index.
+    ``extract_number_kab`` and ``numbers_to_digits_kab``.
 
     Returns ``(total_parts, end_j, last_idx)`` where ``end_j`` is the
     ``parsed`` index just past the consumed run, and ``last_idx`` is the raw
-    token index (``idx + width - 1``) of the last consumed part.
+    token index of the last consumed part.
     """
     idx, width, val = parsed[i]
     total_parts = [val]
@@ -308,10 +298,15 @@ def _consume_compound(parsed: list, i: int, connector_tokens: list):
         if has_boundary:
             break
 
+        if nval is None:
+            if _normalize(connector_tokens[nidx].strip(strip_chars)) in _CONNECTORS \
+                    and j + 1 < len(parsed) and parsed[j + 1][2] is not None:
+                j += 1
+                continue
+            break
+
         nslot = _slot(nval)
 
-        # Reset structural slots whenever we hit a larger magnitude
-        # to support sequences like "sin igiman tam imda" (2 1000 8 100)
         if nslot in ("hundred", "thousand", "million", "billion"):
             if nslot in slots:
                 break
@@ -344,7 +339,7 @@ def _evaluate_compound_number(parts: list) -> Union[int, float]:
     for val in parts:
         if val >= 100:
             if temp_val == 0:
-                temp_val = 1  # Standalone magnitudes (e.g., "imdi" = 100)
+                temp_val = 1
             temp_val *= val
             if val >= 1000:
                 current_sum += temp_val
@@ -364,8 +359,6 @@ def extract_number_kab(text: str, short_scale: bool = False,
     u/d joined compounds in either order like "waḥed u ɛecrin" = 21), 
     and the pan-Amazigh proposed system (descending magnitudes 
     without connectors like "sin igiman tam imda" = 2800).
-    With ``ordinals=True``, wis/tis + cardinal and amezwaru return the
-    ordinal value.
     """
     raw_tokens = text.split()
     strip_chars = _TRAILING_PUNCT + _LEADING_PUNCT
@@ -377,7 +370,7 @@ def extract_number_kab(text: str, short_scale: bool = False,
             if norm in _ORDINAL_FIRST_NORM:
                 return _ORDINAL_FIRST_NORM[norm]
             if norm in _ORDINAL_MARKERS and i + 1 < len(raw_tokens):
-                val = extract_number_kab(" ".join(raw_tokens[i + 1:]))
+                val = extract_number_kab(" ".join(raw_tokens[i + 1:]), ordinals=True)
                 if val is not False:
                     return val
 
@@ -413,7 +406,6 @@ def numbers_to_digits_kab(text: str) -> str:
     raw_tokens = text.split()
     strip_chars = _TRAILING_PUNCT + _LEADING_PUNCT
 
-    # Pass raw_tokens directly to _token_values, which handles stripping internally
     parsed = _token_values(raw_tokens)
     out = []
     i = 0
