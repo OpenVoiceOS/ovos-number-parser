@@ -1,6 +1,8 @@
 import math
 import re
+from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -1158,6 +1160,152 @@ def extract_number(text: str, lang: str,
     if lang.startswith("sl"):
         return extract_number_sl(text, short_scale, ordinals)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
+
+
+@dataclass(frozen=True)
+class NumberSpan:
+    """A number found in an utterance, together with where it was written.
+
+    ``start`` and ``end`` are half-open code-point offsets into the utterance
+    the span was extracted from, so ``utterance[start:end] == surface`` holds.
+    """
+    start: int
+    end: int
+    surface: str
+    value: Union[int, float]
+
+
+#: characters that punctuate a word without belonging to it; a leading or
+#: trailing run of these is not part of a number's surface ("at 7," -> "7")
+_SPAN_PUNCTUATION = "\"'`´.,;:!?¡¿…()[]{}<>«»“”‘’"
+
+
+def _word_spans(text: str) -> List[tuple]:
+    """Offsets of the whitespace separated words, stripped of edge punctuation."""
+    spans = []
+    for match in re.finditer(r"\S+", text):
+        start, end = match.span()
+        while start < end and text[end - 1] in _SPAN_PUNCTUATION:
+            end -= 1
+        while start < end and text[start] in _SPAN_PUNCTUATION:
+            start += 1
+        if start < end:
+            spans.append((start, end))
+    return spans
+
+
+def _numeric_value(fragment: str, lang: str, short_scale: Optional[bool],
+                   ordinals: bool, scale: Optional[Scale]) -> Optional[Union[int, float]]:
+    """The number a fragment spells, or None when it spells none.
+
+    Extractors report "no number" as either ``False`` or ``None`` depending on
+    the language, and ``0`` is a legitimate value, so the falsiness of the
+    return value cannot be used to tell the two apart.
+    """
+    value = extract_number(fragment, lang, short_scale=short_scale,
+                           ordinals=ordinals, scale=scale)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return value
+
+
+def _reads_as_one_number(fragment: str, lang: str,
+                         scale: Optional[Scale]) -> bool:
+    """Whether a fragment spells a single number rather than several.
+
+    A fragment whose value is fully explained by its tail is ambiguous: the
+    tail may be the whole number, with the leading word absorbed into it
+    ("one hundred"), or a second number that the extractor happened to answer
+    with ("two three"). Rewriting the fragment to digits tells the two apart,
+    because the rewrite keeps every number it recognises: "one hundred"
+    becomes "100" and "two three" becomes "2 3".
+    """
+    digits = numbers_to_digits(fragment, lang, scale=scale)
+    numbers = 0
+    for token in digits.split():
+        try:
+            float(token.strip(_SPAN_PUNCTUATION))
+        except ValueError:
+            continue
+        numbers += 1
+    return numbers == 1
+
+
+def extract_number_spans(text: str, lang: str,
+                         short_scale: Optional[bool] = None,  # DEPRECATED
+                         ordinals: bool = False,
+                         scale: Optional[Scale] = None) -> List[NumberSpan]:
+    """Extract every number in a text together with the text it occupies.
+
+    Each span covers a whole number phrase, so "two hundred and five", "3.5"
+    and "twenty-two" are one span each, and two numbers in one sentence are
+    two spans. Spans never overlap and come back sorted by ``start``.
+
+    Words are grown into a number phrase greedily: starting from a word that
+    spells a number on its own, the next word joins the phrase while the
+    language's extractor keeps reading a *different* value out of the longer
+    phrase. A word that leaves the value unchanged joins only as a single
+    connector ("two hundred *and* five"), and only when it does not spell a
+    number itself, which is what keeps "seven and nine" two spans. The first
+    word must also keep contributing: an extractor asked to read an incoherent
+    fragment such as "two three" answers with one of the numbers in it, so a
+    longer phrase whose value is fully explained by its own tail is rejected
+    and the first word becomes a span of its own ("two three hundred" is 2 and
+    300). A phrase stops at any punctuation between two words. Each word takes
+    part in a bounded number of extractor calls, making the whole scan linear
+    in the length of the text in practice.
+
+    Args:
+        text: the utterance to scan.
+        lang: BCP-47 language code.
+        short_scale: DEPRECATED, use the ``scale`` enum instead.
+        ordinals: also read ordinals as numbers, e.g. third=3.
+        scale: short/long scale convention; defaults to the language's own.
+
+    Returns:
+        The numbers found, in the order they are written.
+    """
+    if not isinstance(text, str):
+        return []
+
+    words = _word_spans(text)
+    spans = []
+    index = 0
+    while index < len(words):
+        start = words[index][0]
+        value = _numeric_value(text[start:words[index][1]], lang, short_scale,
+                               ordinals, scale)
+        if value is None:
+            index += 1
+            continue
+
+        last = index
+        cursor = index
+        connector_used = False
+        while cursor + 1 < len(words) and \
+                not text[words[cursor][1]:words[cursor + 1][0]].strip():
+            nxt = words[cursor + 1]
+            grown = _numeric_value(text[start:nxt[1]], lang, short_scale,
+                                   ordinals, scale)
+            word = _numeric_value(text[nxt[0]:nxt[1]], lang, short_scale,
+                                  ordinals, scale)
+            suffix = _numeric_value(text[words[index + 1][0]:nxt[1]], lang,
+                                    short_scale, ordinals, scale)
+            if grown is not None and grown != value and \
+                    not (connector_used and grown == word) and \
+                    (grown != suffix or _reads_as_one_number(text[start:nxt[1]],
+                                                             lang, scale)):
+                value, last, connector_used = grown, cursor + 1, False
+            elif connector_used or word is not None:
+                break
+            else:
+                connector_used = True
+            cursor += 1
+
+        end = words[last][1]
+        spans.append(NumberSpan(start, end, text[start:end], value))
+        index = last + 1
+    return spans
 
 
 def is_fractional(input_str: str, lang: str,
