@@ -1,69 +1,12 @@
 # Changelog
 
-## [0.19.13a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.13a2) (2026-08-13)
+## [0.20.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.20.0a1) (2026-09-06)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.13a1...0.19.13a2)
-
-**Merged pull requests:**
-
-- Improving kabyle parser [\#300](https://github.com/OpenVoiceOS/ovos-number-parser/pull/300) ([athmanemokraoui](https://github.com/athmanemokraoui))
-
-## [0.19.13a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.13a1) (2026-08-11)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.12a1...0.19.13a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.13...0.20.0a1)
 
 **Merged pull requests:**
 
-- fix\(ar\): digit runs with an attached clitic \(و355\) join mixed number spans [\#297](https://github.com/OpenVoiceOS/ovos-number-parser/pull/297) ([JarbasAl](https://github.com/JarbasAl))
-
-## [0.19.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.12a1) (2026-08-11)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.11a1...0.19.12a1)
-
-**Merged pull requests:**
-
-- fix: numbers\_to\_digits must not corrupt standalone digit runs \(leading zeros lost\) [\#296](https://github.com/OpenVoiceOS/ovos-number-parser/pull/296) ([JarbasAl](https://github.com/JarbasAl))
-
-## [0.19.11a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.11a1) (2026-08-11)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.10a1...0.19.11a1)
-
-**Merged pull requests:**
-
-- fix\(ar\): spaced unit+hundred parses additively \(خمس مية وثلاثين → 135 instead of 530\) [\#294](https://github.com/OpenVoiceOS/ovos-number-parser/pull/294) ([JarbasAl](https://github.com/JarbasAl))
-
-## [0.19.10a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.10a1) (2026-08-10)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.9a1...0.19.10a1)
-
-**Merged pull requests:**
-
-- fix\(en\): route numbers\_to\_digits to the English backend [\#286](https://github.com/OpenVoiceOS/ovos-number-parser/pull/286) ([JarbasAl](https://github.com/JarbasAl))
-
-## [0.19.9a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.9a1) (2026-08-10)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.8a2...0.19.9a1)
-
-**Merged pull requests:**
-
-- feat\(ar\): register-aware pronunciation and Arabic dialect code resolution [\#291](https://github.com/OpenVoiceOS/ovos-number-parser/pull/291) ([JarbasAl](https://github.com/JarbasAl))
-- fix\(ar\): extract accepts colloquial and dialectal number forms [\#290](https://github.com/OpenVoiceOS/ovos-number-parser/pull/290) ([JarbasAl](https://github.com/JarbasAl))
-
-## [0.19.8a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.8a2) (2026-07-31)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.8a1...0.19.8a2)
-
-**Merged pull requests:**
-
-- docs: rewrite README in Simplified Technical English [\#284](https://github.com/OpenVoiceOS/ovos-number-parser/pull/284) ([JarbasAl](https://github.com/JarbasAl))
-
-## [0.19.8a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.8a1) (2026-07-22)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.7...0.19.8a1)
-
-**Merged pull requests:**
-
-- fix: guard non-decimal Unicode digits in number word tokenization [\#280](https://github.com/OpenVoiceOS/ovos-number-parser/pull/280) ([JarbasAl](https://github.com/JarbasAl))
+- feat: extract\_number\_spans returns code-point spans for every parsed number [\#303](https://github.com/OpenVoiceOS/ovos-number-parser/pull/303) ([JarbasAl](https://github.com/JarbasAl))
 
 
 
