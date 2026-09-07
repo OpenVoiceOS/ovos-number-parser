@@ -666,7 +666,8 @@ class RomanceNumberExtractor:
 
     def numbers_to_digits(self,
                           utterance: str,
-                          scale: Optional[Scale] = None
+                          scale: Optional[Scale] = None,
+                          ordinals: bool = False
                           ) -> str:
         """
         Converts written numbers in a text string to their digit equivalents, preserving all other text.
@@ -676,6 +677,10 @@ class RomanceNumberExtractor:
         Parameters:
             utterance (str): Input text possibly containing written numbers.
             scale (Scale, optional): Numerical scale (short or long) to interpret large numbers. Defaults to Scale.LONG.
+            ordinals (bool): also convert a standalone ordinal word to its
+                ordinal value ("o terceiro dia" -> "o 3 dia"). Off by default,
+                which leaves ordinal words untouched. An ordinal is never read
+                as a fraction: only its ordinal value is ever produced.
 
         Returns:
             str: The input text with written numbers replaced by their digit representations.
@@ -686,6 +691,9 @@ class RomanceNumberExtractor:
         i = 0
 
         numbers_map = self.vocab.get_number_strings(scale)
+        # Ordinal words are not part of the cardinal vocabulary, so they only
+        # become numbers when the caller asks for them.
+        ordinals_map = self.vocab.get_ordinal_strings(scale) if ordinals else {}
 
         def next_word(idx):
             return words[idx + 1] if idx + 1 < len(words) else None
@@ -709,6 +717,14 @@ class RomanceNumberExtractor:
             return False
 
         while i < len(words):
+            # A standalone ordinal word converts to its ordinal value. It is
+            # handled before span logic so it can never be absorbed into a
+            # cardinal span or re-read as a fraction.
+            if ordinals_map and words[i] in ordinals_map \
+                    and not starts_span(i):
+                output.append(str(ordinals_map[words[i]]))
+                i += 1
+                continue
             # Look for the start of a number span
             if starts_span(i):
                 # Start a new span
