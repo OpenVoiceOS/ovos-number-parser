@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.20.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.20.1a1) (2026-09-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.20.0a1...0.20.1a1)
+
+**Merged pull requests:**
+
+- fix\(mwl\): read the hundreds periphrastically [\#306](https://github.com/OpenVoiceOS/ovos-number-parser/pull/306) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.20.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.20.0a1) (2026-09-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.13...0.20.0a1)
