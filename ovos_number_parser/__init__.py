@@ -12,7 +12,7 @@ from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_an import AN
 from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, \
     numbers_to_digits_ar, \
-    is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang
+    is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang, resolve_ar_lect
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_bg import numbers_to_digits_bg, pronounce_number_bg, extract_number_bg, \
     is_fractional_bg, nice_number_bg
@@ -804,7 +804,8 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if _is_ar(lang):
         return pronounce_number_ar(number, places, scientific, ordinals,
                                    case=case if case is not None
-                                   else _ar_default_case(lang))
+                                   else _ar_default_case(lang),
+                                   lect=resolve_ar_lect(lang))
     if lang.startswith("bg"):
         return pronounce_number_bg(number, places, short_scale, scientific, ordinals)
     if lang.startswith("ca"):

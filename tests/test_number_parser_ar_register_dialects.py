@@ -169,8 +169,16 @@ class TestArabicDialectResolution(unittest.TestCase):
         # a code missed by "startswith('ar')" (does not begin with "ar")
         for code in ["acw", "afb", "apc", "ajp", "acm"]:
             with self.subTest(code=code):
+                # 55 has no entry in any lect's cardinal table, so it shows the
+                # register and nothing else, which is what this test is about
                 self.assertEqual(pronounce_number(55, lang=code),
                                  'خمسة وخمسين')
+
+        # a lect this engine ships no cardinal table for speaks the literary words
+        # in its register; one it does ships its own, which the tests beside
+        # AR_LECT_FORMS cover
+        for code in ["apc", "ajp", "acm"]:
+            with self.subTest(code=code):
                 self.assertEqual(pronounce_number(2, lang=code), 'اثنين')
                 self.assertEqual(pronounce_number(200, lang=code), 'مئتين')
 
