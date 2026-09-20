@@ -232,8 +232,147 @@ def _cardinal_ar(number: int, case: str = "nominative") -> str:
     return _AR_SEPARATOR.join(parts)
 
 
+# ---------------------------------------------------------------------------
+# lect cardinal forms
+# ---------------------------------------------------------------------------
+
+# A lect does not say the literary cardinal. Where this module composes
+# "خمسة عشر" for 15, Jidda and Abu Dhabi both say "خمسطعش" and Cairo says
+# "خمستاشر"; where it composes "ثلاثمئة", Jidda says "تلتمية" and Abu Dhabi
+# "ثلاثمية". A table below gives, for one lect, the word it uses for a value,
+# and only the values whose word differs from the literary form -- this module
+# still composes the number, so a table names words and never arithmetic.
+#
+# Keyed by the ISO 639-3 code of the individual Arabic language, which is what
+# a caller passes as lang (acw, afb, arz); the macrolanguage
+# code ar and the literary arb have no table and keep the literary
+# words, and so does any lect no source has been read for -- Najdi ars
+# among them, which is deliberate and not an oversight.
+#
+# Every form is quoted from a published grammar with its page. The Arabic
+# spelling of each is the form written in modern transcripts, counted
+# whole-word with an optional attached article or conjunction, with that count
+# beside it; the tokenisation is named because the defensible ones differ by
+# more than a factor of two on the same spelling, and an unstated method makes
+# a correct count indistinguishable from a wrong one.
+AR_LECT_FORMS = {
+    # Hijazi Arabic (urban Jidda). Source: Margaret K. Omar, Saudi Arabic Basic Course: Urban Hijazi Dialect,
+    # Foreign Service Institute, 1975.
+    "acw": {
+        2: "اتنين",           # Omar 1975 p. 59 itneen; SADA n=79
+        3: "تلاتة",           # Omar 1975 p. 59 talaata; SADA n=69
+        8: "تمنية",           # Omar 1975 p. 59 tamanya; SADA n=12
+        11: "إحدعش",          # Omar 1975 p. 59 iHda9š; SADA n=22
+        12: "اتنعش",          # Omar 1975 p. 59 itna9š; SADA n=1
+        13: "تلاطعش",         # Omar 1975 p. 68 talaṭṭa9š; SADA n=1
+        14: "اربعطعش",        # Omar 1975 p. 68 arba9ṭa9š; SADA n=12
+        15: "خمسطعش",         # Omar 1975 p. 68 xamasṭa9š; SADA n=36
+        16: "سطعش",           # Omar 1975 p. 68 siṭṭa9š; SADA n=5
+        17: "سبعطعش",         # Omar 1975 p. 68 saba9ṭa9š; SADA n=28
+        18: "تمنطعش",         # Omar 1975 p. 68 tamanṭa9š; SADA n=2
+        19: "تسعطعش",         # Omar 1975 p. 68 tisa9ṭa9š; SADA n=11
+        30: "تلاتين",         # Omar 1975 p. 68 talaatiin; SADA n=26
+        80: "تمانين",         # Omar 1975 p. 68 tamaniin; SADA n=14
+        100: "مية",           # Omar 1975 p. 68 miyya; SADA n=2154
+        200: "ميتين",         # Omar 1975 p. 69 miyyateen, "a common alternate form is /miiteen/"; SADA n=800
+        300: "تلتمية",        # Omar 1975 p. 69 talatmiyya; SADA n=13
+        400: "اربعمية",       # Omar 1975 p. 69 arba9miyya; SADA n=70
+        500: "خمسمية",        # Omar 1975 p. 69 xamsmiyya; SADA n=514
+        600: "ستمية",         # Omar 1975 p. 69 sittmiyya; SADA n=37
+        700: "سبعمية",        # Omar 1975 p. 69 sab9miyya; SADA n=79
+        800: "تمنمية",        # Omar 1975 p. 69 tamanmiyya; SADA n=1
+        900: "تسعمية",        # Omar 1975 p. 69 tis9miyya; SADA n=110
+    },
+    # Gulf Arabic (Abu Dhabi data). Source: Hamdi A. Qafisheh, Basic Gulf Arabic, Based on Colloquial Abu Dhabi
+    # Arabic, University of Arizona, 1970, glossary.
+    "afb": {
+        11: "حدعش",           # Qafisheh 1970 p. 298 ḥdaʕʃ; SADA n=17
+        12: "ثنعش",           # Qafisheh 1970 p. 305 θnaʕʃ; SADA n=2
+        13: "ثلاطعش",         # Qafisheh 1970 p. 305 θalaṭṭaʕʃ; SADA n=8
+        14: "اربعطعش",        # Qafisheh 1970 p. 293 'arbaʕṭaʕʃ; SADA n=12
+        15: "خمسطعش",         # Qafisheh 1970 p. 306 xamsṭaʕʃ; SADA n=36
+        16: "سطعش",           # Qafisheh 1970 p. 303 siṭṭaʕʃ; SADA n=5
+        17: "سبعطعش",         # Qafisheh 1970 p. 302 sabaʕṭaʕʃ; SADA n=28
+        18: "ثمنطعش",         # Qafisheh 1970 p. 305 θamanṭaʕʃ; SADA n=18
+        19: "تسعطعش",         # Qafisheh 1970 p. 304 tisaʕṭaʕʃ; SADA n=11
+        100: "مية",           # Qafisheh 1970 p. 301 miya; SADA n=2154
+        200: "ميتين",         # Qafisheh 1970 p. 301 miyateen; SADA n=800
+        300: "ثلاثمية",       # Qafisheh 1970 p. 305 θalaθmiya; SADA n=177
+        400: "اربعمية",       # Qafisheh 1970 p. 293 'arbaʕmiya; SADA n=70
+        500: "خمسمية",        # Qafisheh 1970 p. 306 xamsmiya; SADA n=514
+        600: "ستمية",         # Qafisheh 1970 p. 303 sitmiya; SADA n=37
+        700: "سبعمية",        # Qafisheh 1970 p. 302 sabaʕmiya; SADA n=79
+        800: "ثمنمية",        # Qafisheh 1970 p. 305 θamanmiya; SADA n=16
+        900: "تسعمية",        # Qafisheh 1970 p. 304 tisiʕmiya; SADA n=110
+    },
+    # Egyptian Arabic (Cairene). Source: Adolf Dirr, Colloquial Egyptian Arabic Grammar, for the Use of
+    # Tourists, tr. W. H. Lyall, 1904, pp. 24 and 26.
+    "arz": {
+        2: "اتنين",           # Dirr 1904 p. 24 etnén; masc 567, sada 79
+        3: "تلاتة",           # Dirr 1904 p. 24 telátä; sada 69, omni 88, masc 385 as تلاته
+        8: "تمانية",          # Dirr 1904 p. 24 temányä; omni 69, sada 21, masc 10 as تمانيه
+        11: "حداشر",          # Dirr 1904 p. 26 ḥaddášar; masc 11, sada 7, omni 17
+        12: "اتناشر",         # Dirr 1904 p. 26 etnášar; masc 76, omni 34, sada 5
+        13: "تلتاشر",         # Dirr 1904 p. 26 telatášar; masc 11, sada 2. masc writes the syncopated تلتاشر 11 and تلاتاشر 0, so the syncopated form ships
+        14: "اربعتاشر",       # Dirr 1904 p. 26 arbaḫtášar; masc 10, omni 13, sada 5
+        15: "خمستاشر",        # Dirr 1904 p. 26 ḫamastášar; omni 68, sada 12, masc 6
+        16: "ستاشر",          # Dirr 1904 p. 26 sittášar; masc 8, sada 4, omni 2
+        17: "سبعتاشر",        # Dirr 1904 p. 26 sab'atášar; sada 14, omni 6, masc 5
+        18: "تمنتاشر",        # Dirr 1904 p. 26 temantášar; masc 4, omni 4, sada 2
+        19: "تسعتاشر",        # Dirr 1904 p. 26 tis'atášar; masc 5, omni 3, sada 0
+        30: "تلاتين",         # Dirr 1904 p. 26 telátín; omni 91, sada 26, masc 25
+        80: "تمانين",         # Dirr 1904 p. 26 tamánín; omni 37, masc 22, sada 14
+        100: "مية",           # Dirr 1904 p. 26 míya; sada 2154, omni 200, masc 950 as ميه
+        200: "ميتين",         # Dirr 1904 p. 26 mítén; sada 800, masc 47, omni 41
+        300: "تلتمية",        # Dirr 1904 p. 26 tultêmíya; sada 13, omni 3, masc 22 as تلتميه
+        400: "ربعمية",        # Dirr 1904 p. 26 rub'êmíyä; sada 9, omni 3, masc 3 as ربعميه
+        500: "خمسمية",        # Dirr 1904 p. 26 ḫumsêmíyä; sada 514, omni 8, masc 10 as خمسميه
+        600: "ستمية",         # Dirr 1904 p. 26 suttêmíyä; sada 37, omni 3 as ستميه, masc 5 as ستميه
+        700: "سبعمية",        # Dirr 1904 p. 26 sub'êmíyä; sada 79, omni 3, masc 8 as سبعميه
+        800: "تمنمية",        # Dirr 1904 p. 26 tumnêmíyä; thin: sada 1, omni 6 as تمنميه, masc 2 as تمنميه
+        900: "تسعمية",        # Dirr 1904 p. 26 tus'êmíyä; sada 110, omni 5 as تسعميه, masc 10 as تسعميه
+    },
+}
+
+
+def resolve_ar_lect(lang: str):
+    """The ISO 639-3 code of the lect whose cardinals lang names, or None.
+
+    Only a lect this module ships a table for resolves; every other Arabic code,
+    including the macrolanguage ar and the literary arb, returns None and
+    keeps the literary cardinals.
+    """
+    code = lang.lower().replace("_", "-").split("-")[0]
+    return code if code in AR_LECT_FORMS else None
+
+
+def _lect_cardinal(words: str, number, case: str, lect: str) -> str:
+    """Rewrite the literary words of words into lect's.
+
+    The substitution is keyed by VALUE and never by a spelling: the literary word
+    for each value in the table is asked of this module, in the case being spoken,
+    so a table cannot be thrown off by a change to how the literary form is
+    written. Whole words only, and an attached conjunction is kept.
+    """
+    forms = AR_LECT_FORMS.get(lect)
+    if not forms:
+        return words
+    if isinstance(number, int) and number in forms:
+        return forms[number]
+    said = {}
+    for value, form in forms.items():
+        literary = _cardinal_ar(value, case)
+        if literary and literary != form:
+            said[literary] = form
+    if not said:
+        return words
+    pattern = re.compile(r"(?<!\S)(و?)(" + "|".join(re.escape(w) for w in
+                                                   sorted(said, key=len, reverse=True)) + r")(?!\S)")
+    return pattern.sub(lambda m: m.group(1) + said[m.group(2)], words)
+
+
 def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
-                        case="nominative"):
+                        case="nominative", lect=None):
     """
     Convert a number to its spoken Arabic equivalent.
 
@@ -251,6 +390,13 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
             مئتين, ...). Only affects the closed sets documented on
             ``_oblique``; every other word is identical in both registers.
             Ordinals (``ordinals=True``) are unaffected by ``case``.
+        lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
+            cardinal words should be spoken instead of the literary ones --
+            ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian). The number is
+            composed the same way either way and only the words differ; see
+            :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
+            ``ar`` and the literary ``arb`` all keep the literary words.
+            Ordinals and scientific notation are unaffected.
     Returns:
         (str): The pronounced number
     """
@@ -273,10 +419,12 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
         return pronounce_ordinal_ar(number)
     if number < 0:
         return _MINUS_AR + " " + pronounce_number_ar(abs(number), places,
-                                                      case=case)
+                                                      case=case, lect=lect)
 
     whole = int(number)
     result = _cardinal_ar(whole, case)
+    if lect:
+        result = _lect_cardinal(result, whole if number == whole else None, case, lect)
     if isinstance(number, float) and number != whole and places > 0:
         digits = ("%." + str(places) + "f") % (number - whole)
         digits = digits.split(".")[1].rstrip("0")
@@ -396,6 +544,10 @@ def _build_lookup():
     # colloquial two, feminine ثنتين and clipped ثنين (Gulf, Najdi), and the
     # three of the dialects that merge ث into ت (Egyptian, Levantine)
     units.update({"ثنتين": 2, "ثنين": 2, "تلاتة": 3, "تلات": 3})
+    # Every form AR_LECT_FORMS can SPEAK, this module must also READ: a library that
+    # says a word and then cannot recognise it is two libraries. These are the lect
+    # spellings whose skeleton nothing above already covers.
+    units.update({"اتنين": 2, "تمنية": 8, "تمانية": 8})
     units["زيرو"] = 0  # the English loan, used when digits are read out
     for w in _DUAL_NOUNS_AR:
         units[w] = 2
@@ -403,6 +555,8 @@ def _build_lookup():
     for value, word in _TENS_AR.items():
         tens[word] = value
         tens[word[:-2] + "ين"] = value  # oblique case: عشرين, ثلاثين ...
+    # ت for ث in the lects that merge them; see AR_LECT_FORMS
+    tens.update({"تلاتين": 30, "تمانين": 80})
     hundreds = {"مئة": 100, "مائة": 100}
     for value, word in _HUNDREDS_AR.items():
         if value >= 200:
@@ -419,6 +573,9 @@ def _build_lookup():
     # deeper colloquial root (ثلث- instead of ثلاث-) for 300
     hundreds["ثلثمئة"] = 300
     hundreds["ثلثمية"] = 300
+    # the lect hundreds built on the fraction prefixes (tult-, rub'-, tumn-), and the
+    # ت-for-ث spellings; see AR_LECT_FORMS
+    hundreds.update({"تلتمية": 300, "ربعمية": 400, "تمنمية": 800, "ثمنمية": 800})
     scales = {}
     scale_duals = {}
     for value, singular, dual, plural in _SCALES_AR:
@@ -454,9 +611,9 @@ _TEEN_SECOND_LOOKUP = _norm_keys({"عشر", "عشرة"})
 # Wiktionary entries for احداشر / اثناشر.
 _FUSED_TEEN_STEMS = {
     11: ("احد", "حد", "هد"),
-    12: ("اثن", "ثن"),
+    12: ("اثن", "ثن", "اتن", "اتنا"),
     13: ("ثلاث", "ثلاط", "ثلات", "ثلط", "ثلت", "ثلاثط", "ثلاثت", "تلات",
-         "تلت"),
+         "تلت", "تلاط"),
     14: ("اربعط", "اربعت"),
     15: ("خمسط", "خمست"),
     16: ("ست", "سط", "ستط"),
