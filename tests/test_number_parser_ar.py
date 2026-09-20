@@ -394,6 +394,53 @@ class TestArabicColloquialExtract(unittest.TestCase):
                 with self.subTest(spoken=spoken):
                     self.assertEqual(extract_number_ar(spoken), number)
 
+    def test_fused_teens_in_the_spellings_transcribers_use(self):
+        # the most frequent one-word spellings of each teen in the human
+        # transcripts of the SADA corpus of Saudi broadcast speech
+        expected = {
+            11: ["إحدعش", "احداعش", "حدعش", "احدعشر", "حداشر", "هدعش"],
+            12: ["اثنعش", "اثنعشر", "اثناعش", "اثناعشر", "إثنعش", "ثنعش"],
+            13: ["ثلتعش", "ثلاطاعش", "ثلاثطعش", "ثلاثعش", "ثلاطعشر",
+                 "ثلاتعش", "تلاتاش"],
+            14: ["اربعطعشر", "اربعطاعش", "أربعطاش", "أربعتعش", "اربعتاش"],
+            15: ["خمستعشر", "خمسطعشر", "خمسطعش", "خمستعش", "خمسطاعش",
+                 "خمسطاش"],
+            16: ["ستعش", "ستعشر", "ستاعش", "ستطعش", "سطاعش", "سطعش"],
+            17: ["سبعطعش", "سبعطاعش", "سبعتعش", "سبعطعشر", "سبعطاش"],
+            18: ["ثمنطعش", "ثمنتعش", "ثمنطاعش", "ثمنتعشر", "ثمانطاعش",
+                 "تمنطاش"],
+            19: ["تسعطعش", "تسعطاعش", "تسعتاعش", "تسعطعشر", "تسعتاش"],
+        }
+        for number, spellings in expected.items():
+            for spoken in spellings:
+                with self.subTest(spoken=spoken):
+                    self.assertEqual(extract_number_ar(spoken), number)
+
+    def test_fused_teens_join_a_larger_number(self):
+        self.assertEqual(extract_number_ar("مية وخمسطعش"), 115)
+        self.assertEqual(extract_number_ar("ثلاثة آلاف وسبعطعش"), 3017)
+        self.assertEqual(extract_number_ar("اثنعش ألف"), 12000)
+        self.assertEqual(numbers_to_digits("عمره ثمنطعش سنة", lang="ar"),
+                         "عمره 18 سنة")
+
+    def test_a_fused_teen_spelling_is_no_other_number_word(self):
+        from ovos_number_parser import numbers_ar
+        others = (set(numbers_ar._UNITS_LOOKUP) | set(numbers_ar._TENS_LOOKUP)
+                  | set(numbers_ar._HUNDREDS_LOOKUP)
+                  | set(numbers_ar._SCALES_LOOKUP))
+        self.assertFalse(set(numbers_ar._FUSED_TEENS_LOOKUP) & others)
+
+    def test_the_levantine_negative_is_not_eleven(self):
+        self.assertEqual(numbers_to_digits("ما حداش جا", lang="ar"),
+                         "ما حداش جا")
+
+    def test_colloquial_two_three_and_zero(self):
+        self.assertEqual(extract_number_ar("ثنتين وخمسين"), 52)
+        self.assertEqual(extract_number_ar("ثنين"), 2)
+        self.assertEqual(extract_number_ar("تلاتة وعشرين"), 23)
+        self.assertEqual(numbers_to_digits("زيرو خمسة خمسة", lang="ar"),
+                         "0 5 5")
+
     def test_fused_teens_in_sentence(self):
         self.assertEqual(extract_number_ar("عمري اثناشر سنة"), 12)
         self.assertEqual(extract_number_ar("عندي احداشر كتاب"), 11)
