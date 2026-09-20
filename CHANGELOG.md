@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.20.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.20.4a1) (2026-09-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.20.3a1...0.20.4a1)
+
+**Merged pull requests:**
+
+- fix\(de\): a spaced "und" between numerals separates numbers [\#304](https://github.com/OpenVoiceOS/ovos-number-parser/pull/304) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.20.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.20.3a1) (2026-09-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.20.2a1...0.20.3a1)
