@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.21.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.21.0a1) (2026-09-20)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.20.4a1...0.21.0a1)
+
+**Merged pull requests:**
+
+- feat\(ar\): cardinals in the words a lect uses, keyed by its ISO 639-3 code [\#311](https://github.com/OpenVoiceOS/ovos-number-parser/pull/311) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.20.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.20.4a1) (2026-09-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.20.3a1...0.20.4a1)
