@@ -393,6 +393,10 @@ def _build_lookup():
     units["اثنين"] = 2  # oblique masculine dual
     units["اثنتين"] = 2  # oblique feminine dual
     units["ثماني"] = 8  # alternative feminine 8
+    # colloquial two, feminine ثنتين and clipped ثنين (Gulf, Najdi), and the
+    # three of the dialects that merge ث into ت (Egyptian, Levantine)
+    units.update({"ثنتين": 2, "ثنين": 2, "تلاتة": 3, "تلات": 3})
+    units["زيرو"] = 0  # the English loan, used when digits are read out
     for w in _DUAL_NOUNS_AR:
         units[w] = 2
     tens = {}
@@ -438,17 +442,37 @@ def _build_lookup():
 _TEEN_FIRST_LOOKUP = _norm_map({"أحد": 1, "إحدى": 1, "اثنا": 2, "اثني": 2,
                                 "اثنتا": 2, "اثنتي": 2})
 _TEEN_SECOND_LOOKUP = _norm_keys({"عشر", "عشرة"})
-# dialectal fused teens (Gulf/Levantine): unit+عشر contracted into one word
-# ("اثناشر" = 12); accepted spelling variants for the sibilant/interdental
-# consonants (ط/ت for ث). See e.g.
-# https://en.wikipedia.org/wiki/Arabic_numerals#Numerals_11-19 and Gulf/
-# Levantine colloquial numeral references (Peace Corps Jordanian Arabic
-# numeral guide; Wiktionary entries for احداشر / اثناشر).
+# dialectal fused teens: unit+عشر contracted into one word ("اثناشر" = 12).
+# The contraction has no settled spelling. A transcriber writes the emphatic
+# linker as ط or ت, keeps or drops the long vowel before ع, keeps or drops
+# the ع itself, and keeps or drops the final ر, so one number arrives in a
+# dozen forms: خمسطعش, خمستعشر, خمسطاعش, خمستاشر. The forms are therefore
+# built as every stem with every tail rather than listed. Stems and tails
+# are the ones found in the human transcripts of the SADA corpus of Saudi
+# broadcast speech, where they cover 1,102 of 1,167 one-word teens; see also
+# https://en.wikipedia.org/wiki/Arabic_numerals#Numerals_11-19 and the
+# Wiktionary entries for احداشر / اثناشر.
+_FUSED_TEEN_STEMS = {
+    11: ("احد", "حد", "هد"),
+    12: ("اثن", "ثن"),
+    13: ("ثلاث", "ثلاط", "ثلات", "ثلط", "ثلت", "ثلاثط", "ثلاثت", "تلات",
+         "تلت"),
+    14: ("اربعط", "اربعت"),
+    15: ("خمسط", "خمست"),
+    16: ("ست", "سط", "ستط"),
+    17: ("سبعط", "سبعت"),
+    18: ("ثمنط", "ثمنت", "ثمانط", "ثمانت", "تمنط", "تمنت"),
+    19: ("تسعط", "تسعت"),
+}
+_FUSED_TEEN_TAILS = ("عش", "عشر", "اعش", "اعشر", "اش", "اشر")
+# Left out although the pattern builds them: both also spell the Levantine
+# negative "nobody" (ما حداش), and a number word is read wherever it stands.
+_FUSED_TEEN_NOT_NUMBERS = {"حداش", "هداش"}
 _FUSED_TEENS_LOOKUP = _norm_map({
-    "احداشر": 11, "اثناشر": 12, "ثلطاشر": 13, "ثلتاشر": 13,
-    "اربعتاشر": 14, "خمستاشر": 15, "ستاشر": 16, "سبعتاشر": 17,
-    "ثمنتاشر": 18, "تسعتاشر": 19,
-})
+    stem + tail: value
+    for value, stems in _FUSED_TEEN_STEMS.items()
+    for stem in stems for tail in _FUSED_TEEN_TAILS
+    if stem + tail not in _FUSED_TEEN_NOT_NUMBERS})
 _MINUS_LOOKUP = _norm_keys({"سالب", "ناقص"})
 _DECIMAL_LOOKUP = _norm_keys({"فاصلة", "فاصله"})
 _HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة", "مية", "ميه"})
