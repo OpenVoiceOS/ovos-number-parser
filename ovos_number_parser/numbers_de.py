@@ -228,7 +228,13 @@ _FRACTION_MARKER = set()
 
 _NEGATIVES = {"minus"}
 
-_NUMBER_CONNECTORS = {"und"}
+# "und" only joins two numerals into one when they are written as a single
+# compound word ("siebenundneunzig" = 97); that case is already folded into
+# a digit string by _expand_compound_numbers_de before tokenization runs.
+# A spaced "und" between two numeral tokens ("sieben und neun") is the same
+# conjunction as English "and" ("seven and nine") and separates two numbers,
+# so it is not a connector for the tokenized extractor below.
+_NUMBER_CONNECTORS = set()
 
 _COMMA = {"komma", "comma", "punkt"}
 

@@ -1,6 +1,12 @@
 import unittest
 
 from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser.numbers_de import _extract_numbers_with_text_de, tokenize
+
+
+def _extract_numbers_de(text):
+    """List every number found in text, in the order it appears."""
+    return [n.value for n in _extract_numbers_with_text_de(tokenize(text.lower()))]
 
 
 class TestGermanPronounce(unittest.TestCase):
@@ -131,6 +137,25 @@ class TestGermanRoundTripSweep(unittest.TestCase):
             with self.subTest(number=number):
                 spoken = pronounce_number(number, lang="de")
                 self.assertEqual(extract_number(spoken, lang="de"), number)
+
+
+class TestGermanSpacedUnd(unittest.TestCase):
+    """A spaced "und" joins two numerals into one only when they are
+    written as a single compound word ("siebenundneunzig" = 97). Two
+    standalone numerals joined by a spaced "und" are two numbers, exactly
+    like English "seven and nine", not a sum."""
+
+    def test_standalone_numerals_are_not_summed(self):
+        self.assertEqual(_extract_numbers_de("sieben und neun"), [7, 9])
+        self.assertEqual(extract_number("sieben und neun", lang="de"), 7)
+
+    def test_compound_word_still_sums(self):
+        self.assertEqual(extract_number("siebenundneunzig", lang="de"), 97)
+        self.assertEqual(extract_number("einundzwanzig", lang="de"), 21)
+
+    def test_chained_standalone_numerals(self):
+        self.assertEqual(_extract_numbers_de("zwei und drei und vier"),
+                         [2, 3, 4])
 
 
 if __name__ == "__main__":
