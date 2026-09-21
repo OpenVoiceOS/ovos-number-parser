@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.7a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.7a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.6a1...0.22.7a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): every Arabic form stands on a source [\#334](https://github.com/OpenVoiceOS/ovos-number-parser/pull/334) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.6a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.6a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.5a1...0.22.6a1)
