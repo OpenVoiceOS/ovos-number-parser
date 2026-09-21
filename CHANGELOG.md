@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.6a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.6a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.5a1...0.22.6a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): ماية is not a spelling of "hundred" [\#332](https://github.com/OpenVoiceOS/ovos-number-parser/pull/332) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.5a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.5a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.4a1...0.22.5a1)
