@@ -172,8 +172,10 @@ def _cardinal_two_digit_ar(number: int, case: str = "nominative") -> str:
     """0-99 in masculine citation forms; units come before tens.
 
     ``case="oblique"`` inflects the dual of two (اثنان -> اثنين, in a units
-    slot) and the tens (عشرون -> عشرين). 11 (أحد عشر) and 12 (اثنا عشر) are
-    fixed compounds outside those closed sets and are not inflected.
+    slot), the tens (عشرون -> عشرين), and the dual embedded in twelve
+    (اثنا عشر -> اثني عشر, Ryding section 9.2: the compound declines in its
+    first element only, عشر itself never changes). 11 (أحد عشر) is a fixed
+    compound outside those closed sets and is not inflected in either case.
     """
     if number <= 10:
         if number == 2 and case == "oblique":
@@ -182,7 +184,7 @@ def _cardinal_two_digit_ar(number: int, case: str = "nominative") -> str:
     if number == 11:
         return "أحد عشر"
     if number == 12:
-        return "اثنا عشر"
+        return "اثني عشر" if case == "oblique" else "اثنا عشر"
     if number < 20:
         return _ONES_AR[number - 10] + " عشر"
     tens, unit = divmod(number, 10)
