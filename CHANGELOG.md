@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.4a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.3a1...0.22.4a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): او joins a hundreds word only to a count of thousands [\#328](https://github.com/OpenVoiceOS/ovos-number-parser/pull/328) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.3a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.2a1...0.22.3a1)
