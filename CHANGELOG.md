@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.9a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.9a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.8a1...0.22.9a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): every attested teen spelling reads as its number [\#339](https://github.com/OpenVoiceOS/ovos-number-parser/pull/339) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.8a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.8a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.7a1...0.22.8a1)
@@ -7,6 +15,10 @@
 **Closed issues:**
 
 - Arabic numbers\_to\_digits drops the conjunction و before a number that does not continue the one before [\#336](https://github.com/OpenVoiceOS/ovos-number-parser/issues/336)
+
+**Merged pull requests:**
+
+- fix\(ar\): numbers\_to\_digits keeps the conjunction و before a new number [\#338](https://github.com/OpenVoiceOS/ovos-number-parser/pull/338) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.22.7a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.7a1) (2026-09-21)
 
