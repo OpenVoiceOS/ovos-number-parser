@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.10a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.10a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.9a1...0.22.10a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): a word that also means water, dead, Tuesday or lady is a number only in a number's context [\#335](https://github.com/OpenVoiceOS/ovos-number-parser/pull/335) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.9a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.9a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.8a1...0.22.9a1)
