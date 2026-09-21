@@ -805,10 +805,69 @@ _TEEN_SECOND_LOOKUP = _norm_keys({"عشر", "عشرة"})
 # Egyptian, which the OCR of the archive.org scan prints "haddiisar",
 # "etndsar". English Wiktionary gives the Egyptian eleven and twelve: حداشر,
 # "ḥidāšaṛ ... eleven"; اتناشر, "itnāšar ... twelve".
+# Teen spellings read beside the lect tables, and never written.
+# Qafisheh 1970 prints the Gulf fourteen both ways: "arbaʕtaʕʃ 14" with a
+# plain t in the vocabulary of p. 153, and "'arbaʕṭaʕʃ fourteen" with ṭ in the
+# glossary of p. 293 (the underdot shows on the archive.org page scans, not
+# in their OCR). The rest are English Wiktionary's numeral entries,
+# quoted as lect, headword, transliteration, meaning, with the alternative
+# and attributive forms each entry lists. The parser does not ask which lect
+# wrote a spelling. Left out: إيدو, a Nabk form of the North Levantine eleven,
+# which also spells ايدو "his hand" (English Wiktionary, ايد, "hand").
+_ATTESTED_TEENS_AR = {
+    "اربعتعش": 14,
+    # Egyptian Arabic, تلاتاشر "talattāšaṛ", "thirteen"
+    "تلاتاشر": 13,
+    # Gulf Arabic, خمستعش "ḵamistaʕaš", "fifteen"
+    "خمستعش": 15,
+    # Iraqi Arabic, اثنعش "iṯnaʕaš", "twelve"
+    "اثنعش": 12,
+    # South Levantine Arabic, حدعش "ḥdaʕš", "eleven"; listed with it: هدعش
+    "هدعش": 11,
+    # South Levantine Arabic, تنعش "tnaʕš", "twelve"
+    "تنعش": 12,
+    # South Levantine Arabic, تلتعش "talattaʕš", "thirteen"
+    "تلتعش": 13,
+    # South Levantine Arabic, أربعتعش "ʔarbaʕtaʕš", "fourteen"
+    "أربعتعش": 14,
+    # South Levantine Arabic, ستعش "sittaʕš", "sixteen"
+    "ستعش": 16,
+    # South Levantine Arabic, سبعتعش "sabaʕtaʕš", "seventeen"
+    "سبعتعش": 17,
+    # South Levantine Arabic, تمنتعش "tamantaʕš", "eighteen"
+    "تمنتعش": 18,
+    # South Levantine Arabic, تسعتعش "tisaʕtaʕš", "nineteen"
+    "تسعتعش": 19,
+    # North Levantine Arabic, إدعش "ʔidaʕš", "eleven"; listed with it: إدعشر, إيدعش
+    "إدعش": 11, "إدعشر": 11, "إيدعش": 11,
+    # North Levantine Arabic, طنعش "ṭnaʕš", "twelve"; listed with it: إطنو, اطنعش, اطنو, طنعشر
+    "إطنو": 12, "اطنعش": 12, "اطنو": 12, "طنعش": 12, "طنعشر": 12,
+    # North Levantine Arabic, تلتطعش "t͡ɬɐtɑʕʃ", "thirteen"; listed with it: تلتطعشر
+    "تلتطعش": 13, "تلتطعشر": 13,
+    # Moroccan Arabic, حداش "ḥdāš", "eleven"; listed with it: حداشل
+    "حداش": 11, "حداشل": 11,
+    # Moroccan Arabic, تناش "tnāš", "twelve"; listed with it: تناشر, تناشل
+    "تناش": 12, "تناشر": 12, "تناشل": 12,
+    # Moroccan Arabic, تلتاش "tlattāš", "thirteen"; listed with it: تلتاشل, تلطاش
+    "تلتاش": 13, "تلتاشل": 13, "تلطاش": 13,
+    # Moroccan Arabic, ربعتاش "rbaʕtāš", "fourteen"; listed with it: أربعتاش, أربعطاش, ربعتاشر, ربعتاشل, ربعطاش
+    "أربعتاش": 14, "أربعطاش": 14, "ربعتاش": 14, "ربعتاشر": 14, "ربعتاشل": 14, "ربعطاش": 14,
+    # Moroccan Arabic, خمستاش "ḵmastāš", "fifteen"; listed with it: خمستاشل, خمسطاش
+    "خمستاش": 15, "خمستاشل": 15, "خمسطاش": 15,
+    # Moroccan Arabic, ستاش "sittāš", "sixteen"; listed with it: ستاشل, سطاش
+    "ستاش": 16, "ستاشل": 16, "سطاش": 16,
+    # Moroccan Arabic, سبعتاش "sbaʕtāš", "seventeen"; listed with it: سبعتاشل, سبعطاش
+    "سبعتاش": 17, "سبعتاشل": 17, "سبعطاش": 17,
+    # Moroccan Arabic, تمنتاش "tmantāš", "eighteen"; listed with it: تمنتاشل, تمنطاش
+    "تمنتاش": 18, "تمنتاشل": 18, "تمنطاش": 18,
+    # Moroccan Arabic, تسعتاش "tsaʕtāš", "nineteen"; listed with it: تسعتاشل, تسعطاش
+    "تسعتاش": 19, "تسعتاشل": 19, "تسعطاش": 19,
+}
 _FUSED_TEENS_LOOKUP = _norm_map({
-    form: value
-    for forms in AR_LECT_FORMS.values()
-    for value, form in forms.items() if 11 <= value <= 19})
+    **{form: value
+       for forms in AR_LECT_FORMS.values()
+       for value, form in forms.items() if 11 <= value <= 19},
+    **_ATTESTED_TEENS_AR})
 # ناقص is the minus sign of the number after it, as سالب is. Omar 1975,
 # pp. 62-63: "Three minus one talaata naagiṣ waaHid" (the OCR of the
 # archive.org scan prints ṣ as $). "عشرة ناقص اثنين" is
