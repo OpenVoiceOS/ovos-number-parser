@@ -892,6 +892,71 @@ _HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة", "مية"})
 # ..." needs to know that the next word is a counted noun.
 _CONSTRUCT_HUNDRED_LOOKUP = _norm_map({"ميت": 100})
 
+# Words that are also everyday words. A normaliser must not change what the
+# text says: reading water as 100 changes it, while leaving a real hundred as
+# the word مية only misses a conversion. So each of these is a number only
+# where its context makes that unambiguous, and is otherwise left as written.
+# English Wiktionary gives the everyday senses:
+# - مية: Egyptian Arabic, "water" (Etymology 1) as well as "hundred"
+#   (Etymology 2); South Levantine Arabic, "alternative form of مَيّ ...
+#   water".
+# - ميتين: Egyptian Arabic, "two hundred" (Etymology 1) and "plural of ميّت"
+#   dead (Etymology 2). ميت: Arabic, "dead"; the construct hundred, see
+#   _CONSTRUCT_HUNDRED_LOOKUP.
+# - التلات: Moroccan Arabic, "Tuesday", with "يوم التلات"; the alternative
+#   form التلاتة. الاثنين: Arabic, "Monday", with "يَوْم الاِثْنَيْن"; Hijazi
+#   Arabic, "Monday", "al-itnēn".
+# - الست: Egyptian Arabic, "woman", "Mrs, Miss, lady (title for a woman)",
+#   with "الست اللى فى الصورة" "the woman that's in this picture".
+# Such a word is a number when:
+# - a unit word comes before it ("خمس مية"), or it is inside a number
+#   already started ("الف ومية");
+# - a scale word, a unit of measure, time or currency, or a per-cent word
+#   (بالمية, في المية, بالمئة, %) comes directly after it;
+# - و and a number word come after it ("مية وخمسين"); او is "or" and joins
+#   nothing;
+# - it is the whole text, bar one proclitic: a short answer ("بكم؟" ...
+#   "مية"). With the article, المية and الميتين alone are "the water" and "the
+#   dead", so they are not.
+# A homograph next to another homograph is a number only when something else
+# makes that other one a number: "الست مية" and "ميت مية" stay as written.
+# The construct ميت needs its counted word after it: a scale word, a unit or a
+# per-cent word (Dirr 1904, p. 26: "100,000 mit elf"). After يوم a day name is
+# a day name unless a scale word follows it. A hundred word after a homograph
+# never makes it a number: after التلات, التلاتة or الست it could be 300 or
+# 600, or a day or a lady and then 100, so the two words stay as written;
+# after the other homographs it is read by its own context.
+_WATER_HUNDRED = _normalize_ar("مية")
+_DEAD_TWO_HUNDRED = "ميتين"
+_CONSTRUCT_HUNDRED = "ميت"
+_DAY_NAMES = _norm_keys({"التلات", "التلاتة", "الاتنين", "الاثنين"})
+# the homographs that are units three to nine, which build the hundreds
+_HUNDRED_UNIT_HOMOGRAPHS = _norm_keys({"التلات", "التلاتة", "الست"})
+_HOMOGRAPHS_AR = {_WATER_HUNDRED, _DEAD_TWO_HUNDRED, _CONSTRUCT_HUNDRED,
+                  "ال" + _WATER_HUNDRED, "ال" + _DEAD_TWO_HUNDRED,
+                  "الست"} | _DAY_NAMES
+# يوم, alone or behind a one-letter proclitic (ويوم, بيوم)
+_DAY_WORDS = {"يوم"} | {c + "يوم" for c in "وبلف"}
+_PER_CENT_WORDS = _norm_keys({"بالمية", "بالمئة", "بالمائة", "%"})
+_PER_CENT_AFTER_FI = _norm_keys({"المية", "المئة", "المائة"})
+# units of currency, weight, length, volume and time, singular, dual and plural
+_UNIT_WORDS_AR = _norm_keys({
+    "ريال", "ريالات", "ريالين", "دولار", "دولارات", "دولارين", "جنيه",
+    "جنيهات", "جنيهين", "درهم", "دراهم", "درهمين", "دينار", "دنانير",
+    "يورو", "كيلو", "كيلوات", "كم", "كيلومتر", "كيلومترات", "متر", "أمتار",
+    "مترات", "سم", "غرام", "غرامات", "جرام", "جرامات", "لتر", "لترات",
+    "ساعة", "ساعات", "ساعتين", "دقيقة", "دقائق", "دقايق", "دقيقتين",
+    "ثانية", "ثواني", "ثانيتين", "يوم", "أيام", "يومين", "سنة", "سنين",
+    "سنوات", "سنتين", "شهر", "شهور", "أشهر", "شهرين", "أسبوع", "أسابيع",
+    "اسبوعين"})
+# the canonical spelling of each, for numbers_to_digits
+_CONTEXT_CANONICAL_AR = {
+    _WATER_HUNDRED: "مئة", _DEAD_TWO_HUNDRED: "مئتين",
+    _CONSTRUCT_HUNDRED: "مئة", "ال" + _WATER_HUNDRED: "المئة",
+    "ال" + _DEAD_TWO_HUNDRED: "المئتين", "الست": "ست",
+    **_norm_map({"التلات": "ثلاث", "التلاتة": "ثلاثة", "الاتنين": "اثنين",
+                 "الاثنين": "اثنين"})}
+
 _ORDINAL_UNITS_LOOKUP = _norm_map(
     {stem: value for value, stem in _ORDINAL_STEMS_AR.items()})
 _ORDINAL_UNITS_LOOKUP.update(_norm_map(
@@ -957,6 +1022,80 @@ def _bare(token):
     if token.startswith("ال") and token[2:] in _NUMBER_WORDS:
         return token[2:]
     return token
+
+
+def _is_whole_text(tokens, j):
+    """True when tokens[j] is the whole text, bar a proclitic ("مية", "بمية"):
+    a short answer ("بكم؟" ... "مية") is its number."""
+    return all(t in _PROCLITICS_AR + "و" for i, t in enumerate(tokens)
+               if i != j)
+
+
+def _licenses(tokens, k):
+    """True when the number word at tokens[k] can make the word before it a
+    number: any number word, except a homograph that nothing else makes a
+    number ("الست مية", "ميت مية")."""
+    return tokens[k] not in _HOMOGRAPHS_AR or not _out_of_context(tokens, k)
+
+
+def _counted_word_follows(tokens, j):
+    """True when a scale word, a unit, or a per-cent word comes directly after
+    the homograph at tokens[j]. A hundred word after it never does: the day
+    names and الست are the only homographs that are units, and a hundred after
+    them is either ambiguous or no multiplication at all (see
+    _hundred_after_a_day_or_lady)."""
+    if j + 1 >= len(tokens):
+        return False
+    nxt = tokens[j + 1]
+    if _bare(nxt) in _SCALES_LOOKUP or _bare(nxt) in _SCALE_DUALS_LOOKUP:
+        return _licenses(tokens, j + 1)
+    if _bare(nxt) in _HUNDRED_MULT_LOOKUP:
+        return False
+    return nxt in _UNIT_WORDS_AR or nxt in _PER_CENT_WORDS or \
+        nxt == "في" and j + 2 < len(tokens) and \
+        tokens[j + 2] in _PER_CENT_AFTER_FI
+
+
+def _joined_to_a_number(tokens, j):
+    """True when و and a number word come directly after tokens[j]. او is
+    "or" and joins nothing."""
+    return j + 2 < len(tokens) and tokens[j + 1] == "و" and (
+        _is_number(tokens[j + 2]) or _group_slot(tokens, j + 2) is not None
+        and _licenses(tokens, j + 2))
+
+
+def _hundred_after_a_day_or_lady(tokens, j):
+    """True when the hundred word at tokens[j] follows التلات, التلاتة or
+    الست with nothing marking a day: "التلات مية ريال" is 300 riyals, or
+    Tuesday and 100 riyals, so neither word is read, and a possible 300 is
+    never split. الاتنين and الاثنين do not build hundreds (200 is ميتين), and
+    after يوم a day name is a day, so after those the hundred reads alone."""
+    return _bare(tokens[j]) in _HUNDRED_MULT_LOOKUP and j > 0 and \
+        tokens[j - 1] in _HUNDRED_UNIT_HOMOGRAPHS and \
+        not (j > 1 and tokens[j - 2] in _DAY_WORDS)
+
+
+def _out_of_context(tokens, j):
+    """True when tokens[j], the first word of a possible number, is a word
+    that is also an everyday word and nothing around it makes it a number."""
+    tok = tokens[j]
+    if _hundred_after_a_day_or_lady(tokens, j):
+        return True
+    if tok not in _HOMOGRAPHS_AR:
+        return False
+    if tok in _DAY_NAMES and j > 0 and tokens[j - 1] in _DAY_WORDS:
+        # a scale word after it still makes it a number, so that the scale
+        # word is never read alone as a smaller number
+        nxt = _bare(tokens[j + 1]) if j + 1 < len(tokens) else None
+        return not (nxt in _SCALES_LOOKUP or nxt in _SCALE_DUALS_LOOKUP)
+    if _counted_word_follows(tokens, j):
+        return False
+    if tok == _CONSTRUCT_HUNDRED:
+        return True
+    if _joined_to_a_number(tokens, j):
+        return False
+    return not (_is_whole_text(tokens, j) and
+                tok not in ("ال" + _WATER_HUNDRED, "ال" + _DEAD_TWO_HUNDRED))
 
 
 def _group_slot(tokens, j):
@@ -1054,6 +1193,39 @@ def _parse_ordinal_span(tokens, i):
     return None, i
 
 
+def _number_spans(tokens, ordinals=False):
+    """Yield (start, end, value) for each number in tokens; start includes a
+    minus sign before the number."""
+    i = 0
+    n = len(tokens)
+    while i < n:
+        start = i
+        tok = tokens[i]
+        negative = False
+        if tok in _MINUS_LOOKUP and i + 1 < n:
+            negative = True
+            i += 1
+            tok = tokens[i]
+        if ordinals:
+            value, j = _parse_ordinal_span(tokens, i)
+            if value is not None:
+                yield start, j, -value if negative else value
+                i = j
+                continue
+        value, j = _parse_number_span(tokens, i)
+        if value is None:
+            i += 1
+            continue
+        # decimal part: "فاصلة" + digits or a number
+        if j < n and tokens[j] in _DECIMAL_LOOKUP:
+            frac, j2 = _parse_decimal_part(tokens, j + 1)
+            if frac is not None:
+                value += frac
+                j = j2
+        yield start, j, -value if negative else value
+        i = j
+
+
 def extract_numbers_ar(text, short_scale=True, ordinals=False):
     """
     Takes in a string and extracts a list of numbers.
@@ -1068,36 +1240,8 @@ def extract_numbers_ar(text, short_scale=True, ordinals=False):
     Returns:
         list: list of extracted numbers as floats
     """
-    tokens = _tokenize_ar(text)
-    results = []
-    i = 0
-    n = len(tokens)
-    while i < n:
-        tok = tokens[i]
-        negative = False
-        if tok in _MINUS_LOOKUP and i + 1 < n:
-            negative = True
-            i += 1
-            tok = tokens[i]
-        if ordinals:
-            value, j = _parse_ordinal_span(tokens, i)
-            if value is not None:
-                results.append(-value if negative else value)
-                i = j
-                continue
-        value, j = _parse_number_span(tokens, i)
-        if value is None:
-            i += 1
-            continue
-        # decimal part: "فاصلة" + digits or a number
-        if j < n and tokens[j] in _DECIMAL_LOOKUP:
-            frac, j2 = _parse_decimal_part(tokens, j + 1)
-            if frac is not None:
-                value += frac
-                j = j2
-        results.append(-value if negative else value)
-        i = j
-    return results
+    return [value for _, _, value in
+            _number_spans(_tokenize_ar(text), ordinals)]
 
 
 def _parse_number_span(tokens, i):
@@ -1136,6 +1280,8 @@ def _parse_number_span(tokens, i):
                 value = value * _SCALES_LOOKUP[tok2]
                 j2 += 1
             return value, j2
+        if not started and _out_of_context(tokens, j):
+            break
         tok = _bare(raw)
         nxt = _bare(tokens[j + 1]) if j + 1 < n else None
         # dialectal fused teens: one word carries both the unit and ten slot
@@ -1184,9 +1330,8 @@ def _parse_number_span(tokens, i):
             started = True
             j += 1
             continue
-        if tok in _HUNDREDS_LOOKUP or (
-                tok in _CONSTRUCT_HUNDRED_LOOKUP and j > i and
-                tokens[j - 1] == "و"):
+        if tok in _HUNDREDS_LOOKUP or tok in _CONSTRUCT_HUNDRED_LOOKUP and (
+                not started or j > i and tokens[j - 1] == "و"):
             if "hundred" in filled:
                 break
             current += _HUNDREDS_LOOKUP.get(tok) or \
@@ -1342,6 +1487,50 @@ def _continues_a_number_ar(word):
     return _normalize_ar(word).removeprefix("و") in _CONSTRUCT_HUNDRED_LOOKUP
 
 
+_MASK_RE = re.compile("\uf8ff(.)\uf8ff")
+_PUNCT_AR = ".,!?;:؟،؛"
+
+
+def _resolve_context_words_ar(utterance):
+    """Decide each word that is a number only in context (see
+    ``_out_of_context``) against its sentence.
+
+    The span converter reads words one at a time, so such a word is settled
+    first: where the sentence makes it a number it is spelled the
+    unambiguous way (مية as مئة), and elsewhere it is masked, so the converter
+    reads it as no number. Returns the rewritten text and the masked words.
+    """
+    written = utterance.split()
+    words = list(written)
+    tokens, owner = [], []
+    for w, word in enumerate(words):
+        for token in _tokenize_ar(word):
+            tokens.append(token)
+            owner.append(w)
+    in_number = set()
+    for start, end, _ in _number_spans(tokens):
+        in_number.update(range(start, end))
+    masked = []
+    for k, token in enumerate(tokens):
+        if token not in _CONTEXT_CANONICAL_AR and not (
+                k not in in_number and _hundred_after_a_day_or_lady(tokens, k)):
+            continue
+        w = owner[k]
+        word = written[w]
+        if k in in_number:
+            lead = word[:len(word) - len(word.lstrip(_PUNCT_AR))]
+            trail = word[len(word.rstrip(_PUNCT_AR)):]
+            prefix = "".join(t for i, t in enumerate(tokens)
+                             if owner[i] == w and i < k)
+            words[w] = lead + prefix + _CONTEXT_CANONICAL_AR[token] + trail
+        else:
+            words[w] = "\uf8ff" + chr(0xE000 + len(masked)) + "\uf8ff"
+            masked.append(word)
+    if words == written:
+        return utterance, masked
+    return " ".join(words), masked
+
+
 def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     """Replace spoken Arabic number spans with digits.
 
@@ -1355,8 +1544,10 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     # deferred: the shared converter lives in the package root, which imports
     # this module — importing it at module level would be circular
     from ovos_number_parser import _numbers_to_digits_generic
-    spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', utterance)
+    resolved, masked = _resolve_context_words_ar(utterance)
+    spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)
     spaced = _WORD_RE.sub(_detach_proclitic, spaced)
     converted = _numbers_to_digits_generic(spaced, lang,
                                            continues=_continues_a_number_ar)
-    return _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
+    converted = _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
+    return _MASK_RE.sub(lambda m: masked[ord(m.group(1)) - 0xE000], converted)
