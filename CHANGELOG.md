@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.5a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.5a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.4a1...0.22.5a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): او is "or"; transcript repair belongs to the caller [\#330](https://github.com/OpenVoiceOS/ovos-number-parser/pull/330) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.4a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.3a1...0.22.4a1)
