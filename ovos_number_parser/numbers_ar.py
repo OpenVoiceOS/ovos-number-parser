@@ -737,12 +737,6 @@ def _build_lookup():
         if value >= 300:
             hundreds[word.replace("مئة", "مية")] = value
     hundreds["ميتين"] = 200
-    # colloquial ماية, the same root spelled with alif before the ya (Gulf/Najdi
-    # writing and machine transcripts of that speech), fused the same way
-    hundreds["ماية"] = 100
-    for value, word in _HUNDREDS_AR.items():
-        if value >= 300:
-            hundreds[word.replace("مئة", "ماية")] = value
     # deeper colloquial root (ثلث- instead of ثلاث-) for 300
     hundreds["ثلثمئة"] = 300
     hundreds["ثلثمية"] = 300
@@ -805,7 +799,7 @@ _FUSED_TEENS_LOOKUP = _norm_map({
     if stem + tail not in _FUSED_TEEN_NOT_NUMBERS})
 _MINUS_LOOKUP = _norm_keys({"سالب", "ناقص"})
 _DECIMAL_LOOKUP = _norm_keys({"فاصلة", "فاصله"})
-_HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة", "مية", "ميه", "ماية"})
+_HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة", "مية", "ميه"})
 # The construct form of the hundred. Before the item counted, the hundred takes
 # a final -t, which the Arabic script writes ميت. Hamdi A. Qafisheh, "Basic Gulf
 # Arabic, Based on Colloquial Abu Dhabi Arabic" (University of Arizona, 1970),

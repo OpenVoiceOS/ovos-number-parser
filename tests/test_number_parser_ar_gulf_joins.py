@@ -84,9 +84,9 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
                          "ما جاء لاحد")
 
     def test_controls_keep_their_result(self):
-        self.assertEqual(extract_number_ar("مية واربعين الف وسبعماية"),
+        self.assertEqual(extract_number_ar("مية واربعين الف وسبعمية"),
                          140700)
-        self.assertEqual(extract_number_ar("اربعماية الف"), 400000)
+        self.assertEqual(extract_number_ar("اربعمية الف"), 400000)
 
     def test_or_before_millions_stays_or(self):
         # "nine hundred or ten million", "a hundred or two million"
