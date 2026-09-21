@@ -84,6 +84,15 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
                          140700)
         self.assertEqual(extract_number_ar("اربعماية الف"), 400000)
 
+    def test_or_before_millions_stays_or(self):
+        # "nine hundred or ten million", "a hundred or two million"
+        self.assertEqual(extract_number_ar("تسعمية او عشرة ملايين"), 900)
+        self.assertEqual(extract_number_ar("مية او اثنين مليون"), 100)
+        self.assertEqual(extract_number_ar("خمسمية او ثلاثة مليار"), 500)
+        # the attested shape, a count of thousands, still joins
+        self.assertEqual(extract_number_ar("ست مية او عشرة الف وميتين"), 610200)
+        self.assertEqual(extract_number_ar("مليون وست مية او عشرة الف"), 1610000)
+
 
 if __name__ == "__main__":
     unittest.main()
