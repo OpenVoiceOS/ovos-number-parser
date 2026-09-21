@@ -1,5 +1,5 @@
-"""Gulf and Saudi number joins in transcripts: او as the conjunction, the
-construct hundred ميت, and a proclitic written onto a number word."""
+"""Gulf and Saudi number joins: the construct hundred ميت, a proclitic
+written onto a number word, and او, which is "or" and joins nothing."""
 import unittest
 
 from ovos_number_parser import extract_number, numbers_to_digits
@@ -13,16 +13,20 @@ def extract_number_ar(text):
 class TestArabicGulfNumberJoins(unittest.TestCase):
     def test_transcript_rows(self):
         rows = {
-            "ست مية او عشرة الف وميتين": 610200,
-            "ثلاثمية او عشرة الف وميتين": 310200,
             "الف وميت ريال": 1100,
             "بالفين وستة وعشرين": 2026,
         }
         for text, value in rows.items():
             self.assertEqual(extract_number_ar(text), value, text)
 
-    def test_or_joins_a_larger_place_before_a_smaller_one(self):
-        self.assertEqual(extract_number_ar("خمسمية او عشرين الف"), 520000)
+    def test_or_is_or(self):
+        # "six hundred or ten thousand": two numbers
+        self.assertEqual(extract_number_ar("ست مية او عشرة الف"), 600)
+        self.assertEqual(extract_numbers_ar("ست مية او عشرة الف"), [600, 10000])
+        self.assertEqual(extract_numbers_ar("ست مية او عشرة الف وميتين"),
+                         [600, 10200])
+        self.assertEqual(extract_numbers_ar("خمسمية او عشرين الف"),
+                         [500, 20000])
 
     def test_or_between_equal_magnitudes_stays_or(self):
         self.assertEqual(extract_number_ar("الف او الفين"), 1000)
@@ -31,12 +35,12 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
         self.assertEqual(extract_number_ar("عشرين او ثلاثين"), 20)
         self.assertEqual(extract_number_ar("ثلاثمية او اربعمية"), 300)
 
-    def test_or_after_a_hundred_needs_a_scale_word_after_it(self):
+    def test_or_after_a_hundred_stays_or(self):
         # "a hundred or two", "a hundred or twenty": two amounts
         self.assertEqual(extract_number_ar("مية او اثنين"), 100)
         self.assertEqual(extract_number_ar("مية او عشرين"), 100)
 
-    def test_or_does_not_join_a_scale_that_is_not_smaller(self):
+    def test_or_between_scales_stays_or(self):
         # "two or three thousand"
         self.assertEqual(extract_number_ar("الفين او ثلاث الاف"), 2000)
 
@@ -89,9 +93,6 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
         self.assertEqual(extract_number_ar("تسعمية او عشرة ملايين"), 900)
         self.assertEqual(extract_number_ar("مية او اثنين مليون"), 100)
         self.assertEqual(extract_number_ar("خمسمية او ثلاثة مليار"), 500)
-        # the attested shape, a count of thousands, still joins
-        self.assertEqual(extract_number_ar("ست مية او عشرة الف وميتين"), 610200)
-        self.assertEqual(extract_number_ar("مليون وست مية او عشرة الف"), 1610000)
 
 
 if __name__ == "__main__":

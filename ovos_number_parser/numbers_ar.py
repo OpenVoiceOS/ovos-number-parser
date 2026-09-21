@@ -1034,45 +1034,6 @@ def extract_numbers_ar(text, short_scale=True, ordinals=False):
     return results
 
 
-# In Gulf and Saudi speech the conjunction و is said u- or w-, and transcripts
-# write the u- sound as the separate word او, which is also the word "or".
-# Qafisheh 1970 (see _CONSTRUCT_HUNDRED_LOOKUP), p. 8: "The particle wa 'and'
-# is reduced to w in normal speech"; Omar 1975, p. 2: "The /wu/, 'and', may be
-# reduced to /w/ or even /u/ when followed by a word which begins with a
-# vowel", and p. 69 "alf wu miyyateen" 1200. The او spelling of the
-# conjunction is how transcripts write that sound.
-_OR_AR = "او"
-
-
-def _or_joins(tokens, j, filled, last_scale):
-    """True when the او at tokens[j] is the conjunction inside one number.
-
-    That is so in one shape only: the part before is a hundreds word alone,
-    and the part after is tens or units that the thousands word then
-    multiplies together with it. "ست مية او عشرة الف" is 610 thousand. The
-    scale word is الف only: every attested join, in Omar 1975 and in the
-    transcripts, is a count of thousands, and "تسعمية او عشرة ملايين" is
-    "nine hundred or ten million", never 910 million. Every other
-    او is "or": "مية او عشرين" is "a hundred or twenty", "الف او خمسمية"
-    names two prices, "الفين او ثلاثة" is "two or three thousand".
-    """
-    if filled != {"hundred"} or \
-            _group_slot(tokens, j + 1) not in ("unit", "ten"):
-        return False
-    for k in range(j + 1, len(tokens)):
-        tok = _bare(tokens[k])
-        if tok in _SCALE_DUALS_LOOKUP:
-            return False  # a dual counts itself and multiplies nothing
-        if tok in _SCALES_LOOKUP:
-            # the thousands only, and below the last scale word before:
-            # "مليون وست مية او عشرة الف"
-            return _SCALES_LOOKUP[tok] == 1000 and \
-                (last_scale is None or 1000 < last_scale)
-        if tokens[k] != "و" and _group_slot(tokens, k) is None:
-            break
-    return False
-
-
 def _parse_number_span(tokens, i):
     """Parse one number starting at tokens[i].
 
@@ -1081,15 +1042,10 @@ def _parse_number_span(tokens, i):
     current = 0
     started = False
     filled = set()  # magnitude slots already used in the current <1000 group
-    last_scale = None  # the value of the last scale word read
     n = len(tokens)
     j = i
     while j < n:
         raw = tokens[j]
-        if raw == _OR_AR and started and j + 1 < n and \
-                _or_joins(tokens, j, filled, last_scale):
-            j += 1
-            continue
         if raw == "و" and started and j + 1 < n:
             # the conjunction continues the number only when the next word is
             # a number component that fills a slot not already taken (two
@@ -1177,7 +1133,6 @@ def _parse_number_span(tokens, i):
             total += (current if current else 1) * _SCALES_LOOKUP[tok]
             current = 0
             filled = set()
-            last_scale = _SCALES_LOOKUP[tok]
             started = True
             j += 1
             continue
@@ -1185,7 +1140,6 @@ def _parse_number_span(tokens, i):
             total += _SCALE_DUALS_LOOKUP[tok]
             current = 0
             filled = set()
-            last_scale = _SCALE_DUALS_LOOKUP[tok] // 2
             started = True
             j += 1
             continue
