@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.2a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.1a1...0.22.2a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): read Gulf number joins [\#324](https://github.com/OpenVoiceOS/ovos-number-parser/pull/324) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.1a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.0a1...0.22.1a1)
