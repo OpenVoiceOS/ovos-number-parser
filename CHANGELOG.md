@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.8a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.8a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.7a1...0.22.8a1)
+
+**Closed issues:**
+
+- Arabic numbers\_to\_digits drops the conjunction و before a number that does not continue the one before [\#336](https://github.com/OpenVoiceOS/ovos-number-parser/issues/336)
+
 ## [0.22.7a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.7a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.6a1...0.22.7a1)
