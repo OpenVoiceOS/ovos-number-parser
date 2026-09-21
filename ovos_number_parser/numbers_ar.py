@@ -1261,10 +1261,16 @@ _WORD_RE = re.compile(r'\S+')
 
 
 def _detach_proclitic(match):
-    """Put a space after a ب, ل or ف written onto a number word, so the
-    converter replaces the number word and the proclitic is glued back on."""
+    """Put a space after a و, ب, ل or ف written onto a number word, so the
+    converter replaces the number word and the proclitic is glued back on.
+    A detached و still joins the parts of one number ("الف و خمسين" is
+    1050), because the converter reads it as a connector."""
     word = match.group(0)
-    split = _split_proclitic(_normalize_ar(word.strip(".,!?;:؟،؛")))
+    bare = _normalize_ar(word.strip(".,!?;:؟،؛"))
+    if word[0] == "و" and len(bare) > 1 and \
+            _tokenize_ar(bare)[0] == "و" and extract_numbers_ar(bare[1:]):
+        return "و " + word[1:]
+    split = _split_proclitic(bare)
     # only when the rest is a number by itself, or the space would stay
     if split and word[0] in _PROCLITICS_AR and extract_numbers_ar(split[1]):
         return word[0] + " " + word[1:]
@@ -1281,7 +1287,7 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     """Replace spoken Arabic number spans with digits.
 
     Splits a clitic glued onto a digit run ("و355 ألف" -> "و 355 ألف"), or a
-    ب, ل or ف glued onto a number word ("بالفين" -> "ب الفين"), so the
+    و, ب, ل or ف glued onto a number word ("بالفين" -> "ب الفين"), so the
     number reads as an ordinary token, converts through the shared
     span converter, then glues the clitic back onto the produced digits
     ("و355000"). Text without glued clitics passes through the converter
