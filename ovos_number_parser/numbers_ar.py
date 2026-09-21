@@ -1047,41 +1047,25 @@ _OR_AR = "او"
 def _or_joins(tokens, j, filled, last_scale):
     """True when the او at tokens[j] is the conjunction inside one number.
 
-    That is so only when the words on both sides compose one number under the
-    rules _parse_number_span applies to و, and the part before is the larger
-    place value, in one of two shapes:
-
-    - a hundreds word, then tens or units that a scale word multiplies
-      together with it: "ست مية او عشرة الف" is 610 thousand. Without the
-      scale word the two parts are two amounts, "مية او عشرين" is "a hundred
-      or twenty";
-    - a part that ends in a scale word, then a smaller group: "الف او
-      خمسمية" is 1500.
-
-    Two parts of the same magnitude ("الف او الفين", "ثلاثة او اربعة",
-    "ثلاثمية او اربعمية") are two numbers and the او is "or".
+    That is so in one shape only: the part before is a hundreds word alone,
+    and the part after is tens or units that a scale word then multiplies
+    together with it. "ست مية او عشرة الف" is 610 thousand. Every other
+    او is "or": "مية او عشرين" is "a hundred or twenty", "الف او خمسمية"
+    names two prices, "الفين او ثلاثة" is "two or three thousand".
     """
-    slot = _group_slot(tokens, j + 1)
-    if filled:
-        if filled != {"hundred"} or slot not in ("unit", "ten"):
-            return False
-        needs_scale = True
-    elif last_scale is None or slot not in ("unit", "ten", "hundred"):
+    if filled != {"hundred"} or \
+            _group_slot(tokens, j + 1) not in ("unit", "ten"):
         return False
-    else:
-        needs_scale = False
-    # a scale word in the part after must be below the last one before it:
-    # "الفين او ثلاث الاف" is "two or three thousand"
     for k in range(j + 1, len(tokens)):
         tok = _bare(tokens[k])
-        if tok in _SCALE_DUALS_LOOKUP and needs_scale:
+        if tok in _SCALE_DUALS_LOOKUP:
             return False  # a dual counts itself and multiplies nothing
-        if tok in _SCALES_LOOKUP or tok in _SCALE_DUALS_LOOKUP:
-            scale = _SCALES_LOOKUP.get(tok) or _SCALE_DUALS_LOOKUP[tok] // 2
-            return last_scale is None or scale < last_scale
+        if tok in _SCALES_LOOKUP:
+            # below the last scale word before: "مليون وست مية او عشرة الف"
+            return last_scale is None or _SCALES_LOOKUP[tok] < last_scale
         if tokens[k] != "و" and _group_slot(tokens, k) is None:
             break
-    return not needs_scale
+    return False
 
 
 def _parse_number_span(tokens, i):

@@ -23,7 +23,6 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
 
     def test_or_joins_a_larger_place_before_a_smaller_one(self):
         self.assertEqual(extract_number_ar("خمسمية او عشرين الف"), 520000)
-        self.assertEqual(extract_number_ar("الف او خمسمية"), 1500)
 
     def test_or_between_equal_magnitudes_stays_or(self):
         self.assertEqual(extract_number_ar("الف او الفين"), 1000)
@@ -40,6 +39,11 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
     def test_or_does_not_join_a_scale_that_is_not_smaller(self):
         # "two or three thousand"
         self.assertEqual(extract_number_ar("الفين او ثلاث الاف"), 2000)
+
+    def test_or_after_a_scale_word_stays_or(self):
+        # two price options, and "two or three thousand"
+        self.assertEqual(extract_number_ar("الف او خمسمية"), 1000)
+        self.assertEqual(extract_number_ar("الفين او ثلاثة"), 2000)
 
     def test_construct_hundred_after_the_conjunction(self):
         self.assertEqual(extract_number_ar("الفين وميت"), 2100)
