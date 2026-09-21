@@ -36,15 +36,19 @@ _NORM_TABLE[ord("أ")] = "ا"
 _NORM_TABLE[ord("إ")] = "ا"
 _NORM_TABLE[ord("آ")] = "ا"
 _NORM_TABLE[ord("ى")] = "ي"
-_NORM_TABLE[ord("ة")] = "ه"
 _NORM_TABLE[ord("ـ")] = None  # tatweel
 for _c in range(0x064B, 0x0653):  # tashkeel (fathatan .. sukun)
     _NORM_TABLE[_c] = None
 _NORM_TABLE[0x0670] = None  # superscript alef
+# ة is typed as ه so often that the two are one letter here, except in the
+# hundred مية. English Wiktionary gives ميه only as an Egyptian spelling of
+# مية mayya "water", and no source read gives it for the hundred, so ميه is
+# no number word.
+_TAA_MARBUTA_RE = re.compile(r"(?<!مي)ة")
 
 
 def _normalize_ar(text: str) -> str:
-    return text.translate(_NORM_TABLE)
+    return _TAA_MARBUTA_RE.sub("ه", text.translate(_NORM_TABLE))
 
 
 # ---------------------------------------------------------------------------
@@ -55,10 +59,16 @@ def _normalize_ar(text: str) -> str:
 # default pronunciation register. The literary standard (macrolanguage code
 # ``ar`` and its individual-language code ``arb``) keeps this module's
 # original nominative citation forms as the default; every spoken lect
-# defaults to the oblique case instead, since that is the case actually
-# produced when these numerals are used in connected speech in those lects.
+# defaults to the oblique case instead.
+#
+# A grammar stands behind that default for three lects only, each giving the
+# ‑een/‑iin forms and no ‑aan/‑uun forms: Hijazi (Omar 1975, "itneen",
+# "talaatiin"), Gulf (Qafisheh 1970, "'iθneen") and Egyptian (Dirr 1904,
+# "etnen, itnen"); see AR_LECT_FORMS for the full references. For Najdi,
+# Levantine, Mesopotamian, Moroccan, Tunisian and Libyan no grammar has been
+# read, and the default is extrapolated from those three.
+#
 # Code meanings: ISO 639-3 code table, https://iso639-3.sil.org/code_tables/639/data
-# Individual lect entries: https://glottolog.org (search each code below).
 AR_DIALECT_DEFAULT_CASE = {
     "ar": "nominative",   # BCP-47/ISO 639-1 macrolanguage code
     "arb": "nominative",  # Standard Arabic (Modern Standard Arabic)
@@ -66,8 +76,10 @@ AR_DIALECT_DEFAULT_CASE = {
     "acw": "oblique",     # Hijazi Arabic
     "afb": "oblique",     # Gulf Arabic
     "arz": "oblique",     # Egyptian Arabic
-    "apc": "oblique",     # North Levantine Arabic
-    "ajp": "oblique",     # South Levantine Arabic
+    "apc": "oblique",     # Levantine Arabic
+    # South Levantine Arabic: retired and merged into apc on 2023-01-20
+    # (ISO 639-3 change request 2022-006); still accepted as input
+    "ajp": "oblique",
     "acm": "oblique",     # Mesopotamian Arabic (Iraqi)
     "ary": "oblique",     # Moroccan Arabic
     "aeb": "oblique",     # Tunisian Arabic
@@ -175,7 +187,11 @@ _HUNDREDS_AR = {100: "مئة", 200: "مئتان", 300: "ثلاثمئة", 400: "�
                 500: "خمسمئة", 600: "ستمئة", 700: "سبعمئة",
                 800: "ثمانمئة", 900: "تسعمئة"}
 
-# singular / dual / plural (3-10) of the scale words
+# singular / dual / plural (3-10) of the scale words. Ryding ch. 15 section
+# 1.9 (p. 350): "The word for thousand in Arabic is 'alf plural 'aalaaf";
+# p. 155: "million/s milyuun/malaayiin". English Wiktionary, مليار, Arabic:
+# "billion (10^9)", borrowed from French milliard. No source read gives
+# تريليون; English Wiktionary has no Arabic entry for it.
 _SCALES_AR = [
     (1000, "ألف", "ألفان", "آلاف"),
     (1000000, "مليون", "مليونان", "ملايين"),
@@ -183,11 +199,17 @@ _SCALES_AR = [
     (1000000000000, "تريليون", "تريليونان", "تريليونات"),
 ]
 
+# English Wiktionary, سالب, Arabic noun: "(mathematics) negative (of a
+# number)", with "سَالِبُ وَاحِدٍ" "negative one"; فاصلة: "decimal point".
+# Ryding ch. 14 section 5 (p. 326): "maa laa nihaayat-a infinity ('that
+# which has no end')".
 _MINUS_AR = "سالب"
 _DECIMAL_AR = "فاصلة"
 _INFINITY_AR = "ما لا نهاية"
 
-# fraction nouns: denominator -> (singular, dual, plural)
+# fraction nouns: denominator -> (singular, dual, plural). Ryding ch. 15
+# section 3.1 (p. 360): "a half niSf/'anSaaf", "a third thulth/'athlaath",
+# "a fourth, a quarter rubc/'arbaac".
 _FRACTIONS_AR = {
     2: ("نصف", "نصفان", "أنصاف"),
     3: ("ثلث", "ثلثان", "أثلاث"),
@@ -708,14 +730,21 @@ def _build_lookup():
     units["اثنين"] = 2  # oblique masculine dual
     units["اثنتين"] = 2  # oblique feminine dual
     units["ثماني"] = 8  # alternative feminine 8
-    # colloquial two, feminine ثنتين and clipped ثنين (Gulf, Najdi), and the
-    # three of the dialects that merge ث into ت (Egyptian, Levantine)
-    units.update({"ثنتين": 2, "ثنين": 2, "تلاتة": 3, "تلات": 3})
+    # ثنتين: Qafisheh 1970 (Gulf): "The feminine forms of waahed 'one' and
+    # 'iθneen 'two' are wahda and θinteen" (the OCR of the archive.org scan
+    # prints θ as @); English Wiktionary, ثنتين, Arabic:
+    # the accusative/genitive feminine of اِثْنَان. ثنين: English Wiktionary,
+    # ثنين, Tunisian Arabic: "ṯnīn ... (only when is a digit) two".
+    units.update({"ثنتين": 2, "ثنين": 2})
+    # the three of the dialects that merge ث into ت (Egyptian, Levantine)
+    units.update({"تلاتة": 3, "تلات": 3})
     # Every form AR_LECT_FORMS can SPEAK, this module must also READ: a library that
     # says a word and then cannot recognise it is two libraries. These are the lect
     # spellings whose skeleton nothing above already covers.
     units.update({"اتنين": 2, "تمنية": 8, "تمانية": 8})
-    units["زيرو"] = 0  # the English loan, used when digits are read out
+    # Egyptian, borrowed from Italian zero: English Wiktionary, زيرو,
+    # Egyptian Arabic, "zīrō ... zero"
+    units["زيرو"] = 0
     for w in _DUAL_NOUNS_AR:
         units[w] = 2
     tens = {}
@@ -731,15 +760,18 @@ def _build_lookup():
             hundreds[word.replace("مئة", "مائة")] = value
     hundreds.update({"مئتين": 200, "مائتين": 200, "ثمانيمئة": 800,
                      "ثمانيمائة": 800})
-    # colloquial مية/ميه for مئة/مائة (100), including fused ثلاثمية..تسعمية
+    # colloquial مية for مئة/مائة (100), including fused ثلاثمية..تسعمية
+    # (Qafisheh 1970 gives θalaθmiya 300 and θamaanmiya 800, which the OCR of
+    # the archive.org scan prints "§Sala6miya" and "§amaanmiya"); see
+    # AR_LECT_FORMS
     hundreds["مية"] = 100
     for value, word in _HUNDREDS_AR.items():
         if value >= 300:
             hundreds[word.replace("مئة", "مية")] = value
     hundreds["ميتين"] = 200
-    # deeper colloquial root (ثلث- instead of ثلاث-) for 300
+    # ثلث is the classical spelling of ثلاث, with a dagger alif that the
+    # normalisation strips: Quran 18:25, Uthmani text, "ثَلَٰثَ مِا۟ئَةٍ"
     hundreds["ثلثمئة"] = 300
-    hundreds["ثلثمية"] = 300
     # the lect hundreds built on the fraction prefixes (tult-, rub'-, tumn-), and the
     # ت-for-ث spellings; see AR_LECT_FORMS
     hundreds.update({"تلتمية": 300, "ربعمية": 400, "تمنمية": 800, "ثمنمية": 800})
@@ -766,40 +798,28 @@ def _build_lookup():
 _TEEN_FIRST_LOOKUP = _norm_map({"أحد": 1, "إحدى": 1, "اثنا": 2, "اثني": 2,
                                 "اثنتا": 2, "اثنتي": 2})
 _TEEN_SECOND_LOOKUP = _norm_keys({"عشر", "عشرة"})
-# dialectal fused teens: unit+عشر contracted into one word ("اثناشر" = 12).
-# The contraction has no settled spelling. A transcriber writes the emphatic
-# linker as ط or ت, keeps or drops the long vowel before ع, keeps or drops
-# the ع itself, and keeps or drops the final ر, so one number arrives in a
-# dozen forms: خمسطعش, خمستعشر, خمسطاعش, خمستاشر. The forms are therefore
-# built as every stem with every tail rather than listed. Stems and tails
-# are the ones found in the human transcripts of the SADA corpus of Saudi
-# broadcast speech, where they cover 1,102 of 1,167 one-word teens; see also
-# https://en.wikipedia.org/wiki/Arabic_numerals#Numerals_11-19 and the
-# Wiktionary entries for احداشر / اثناشر.
-_FUSED_TEEN_STEMS = {
-    11: ("احد", "حد", "هد"),
-    12: ("اثن", "ثن", "اتن", "اتنا"),
-    13: ("ثلاث", "ثلاط", "ثلات", "ثلط", "ثلت", "ثلاثط", "ثلاثت", "تلات",
-         "تلت", "تلاط"),
-    14: ("اربعط", "اربعت"),
-    15: ("خمسط", "خمست"),
-    16: ("ست", "سط", "ستط"),
-    17: ("سبعط", "سبعت"),
-    18: ("ثمنط", "ثمنت", "ثمانط", "ثمانت", "تمنط", "تمنت"),
-    19: ("تسعط", "تسعت"),
-}
-_FUSED_TEEN_TAILS = ("عش", "عشر", "اعش", "اعشر", "اش", "اشر")
-# Left out although the pattern builds them: both also spell the Levantine
-# negative "nobody" (ما حداش), and a number word is read wherever it stands.
-_FUSED_TEEN_NOT_NUMBERS = {"حداش", "هداش"}
+# dialectal fused teens: unit+عشر contracted into one word ("خمسطعش" = 15).
+# Only the spellings of the lect tables are read, which are the forms the
+# grammars give (see AR_LECT_FORMS): Omar 1975 for Hijazi, Qafisheh 1970 for
+# Gulf, and Dirr 1904, p. 26, "The Numerals from 11 upwards are" for
+# Egyptian, which the OCR of the archive.org scan prints "haddiisar",
+# "etndsar". English Wiktionary gives the Egyptian eleven and twelve: حداشر,
+# "ḥidāšaṛ ... eleven"; اتناشر, "itnāšar ... twelve".
 _FUSED_TEENS_LOOKUP = _norm_map({
-    stem + tail: value
-    for value, stems in _FUSED_TEEN_STEMS.items()
-    for stem in stems for tail in _FUSED_TEEN_TAILS
-    if stem + tail not in _FUSED_TEEN_NOT_NUMBERS})
+    form: value
+    for forms in AR_LECT_FORMS.values()
+    for value, form in forms.items() if 11 <= value <= 19})
+# ناقص is the minus sign of the number after it, as سالب is. Omar 1975,
+# pp. 62-63: "Three minus one talaata naagiṣ waaHid" (the OCR of the
+# archive.org scan prints ṣ as $). "عشرة ناقص اثنين" is
+# the two numbers 10 and -2: this module normalises numbers and computes
+# nothing, so it never reads a difference.
 _MINUS_LOOKUP = _norm_keys({"سالب", "ناقص"})
 _DECIMAL_LOOKUP = _norm_keys({"فاصلة", "فاصله"})
-_HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة", "مية", "ميه"})
+# a unit before the hundred multiplies it: Dirr 1904, p. 26, gives 300 as
+# "tultemiya" and, spaced, "tult mit"; Ryding ch. 15 (p. 348): "five hundred
+# xams-u mi'at-in"
+_HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة", "مية"})
 # The construct form of the hundred. Before the item counted, the hundred takes
 # a final -t, which the Arabic script writes ميت. Hamdi A. Qafisheh, "Basic Gulf
 # Arabic, Based on Colloquial Abu Dhabi Arabic" (University of Arizona, 1970),
@@ -844,31 +864,25 @@ _PROCLITICS_AR = "بلف"
 _PROCLITIC_HOSTS = _NUMBER_WORDS - set(_FRACTIONS_LOOKUP)
 # Whole words that the split would misread: لست "I am not" is ل + ست (six).
 _PROCLITIC_NOT_NUMBERS = _norm_keys({"لست"})
-# Rests that stay whole although they spell a hundred. Normalisation turns ة
-# into ه, so these are checked on the token as written:
-# - ميه, which in Gulf and Saudi speech is also "water": بميه is "with water",
-#   where بمية is "with a hundred";
-# - the hundred with the article after the preposition, which is "per cent":
-#   عشرة بالمية, عشرة بالمئة.
-_NORM_KEEP_TAA = {k: v for k, v in _NORM_TABLE.items() if k != ord("ة")}
-_PROCLITIC_NOT_HOSTS = {"ميه"} | {"ال" + w for w in (
-    "مئة", "مائة", "مية", "ميه", "ماية", "مئه", "مائه", "مايه")}
+# The hundred with the article after ب is "per cent" and stays whole:
+# عشرة بالمية, عشرة بالمئة. English Wiktionary, بالمية, South Levantine
+# Arabic: "percent", with "ميّة بالميّة" "100%". No source was found for the
+# spelling بالمئة.
+_PROCLITIC_NOT_HOSTS = _norm_keys({"المئة", "المائة", "المية"})
 
 
-def _split_proclitic(token, written=None):
+def _split_proclitic(token):
     """Split ب, ل or ف off a number word: ("ب", "الفين") for "بالفين".
 
     Returns None unless the rest of the token is a cardinal number word, with
     or without the article, and the whole token is not itself a known word.
-    ``written`` is the token before normalisation, when it is known; it tells
-    ميه from مية.
     """
     if len(token) < 3 or token[0] not in _PROCLITICS_AR or \
             token in _PROCLITIC_NOT_NUMBERS or token in _NUMBER_WORDS:
         return None
-    if (written or token)[1:].translate(_NORM_KEEP_TAA) in _PROCLITIC_NOT_HOSTS:
-        return None
     rest = token[1:]
+    if rest in _PROCLITIC_NOT_HOSTS:
+        return None
     if rest in _PROCLITIC_HOSTS or \
             rest.startswith("ال") and rest[2:] in _PROCLITIC_HOSTS:
         return token[0], rest
@@ -927,9 +941,8 @@ def _is_number(s):
 def _tokenize_ar(text):
     """Normalize and split, detaching the attached conjunction "و"."""
     tokens = []
-    for written in text.split():
-        written = written.strip(".,!?;:؟،؛")
-        token = _normalize_ar(written).strip(".,!?;:؟،؛")
+    for token in _normalize_ar(text).split():
+        token = token.strip(".,!?;:؟،؛")
         if not token:
             continue
         vocab = (_UNITS_LOOKUP, _TENS_LOOKUP, _HUNDREDS_LOOKUP,
@@ -950,7 +963,7 @@ def _tokenize_ar(text):
             tokens.append("و")
             token = token[1:]
         elif not whole_word:
-            split = _split_proclitic(token, written)
+            split = _split_proclitic(token)
             if split:
                 tokens.append(split[0])
                 token = split[1]
@@ -1251,12 +1264,17 @@ def _detach_proclitic(match):
     """Put a space after a ب, ل or ف written onto a number word, so the
     converter replaces the number word and the proclitic is glued back on."""
     word = match.group(0)
-    written = word.strip(".,!?;:؟،؛")
-    split = _split_proclitic(_normalize_ar(written), written)
+    split = _split_proclitic(_normalize_ar(word.strip(".,!?;:؟،؛")))
     # only when the rest is a number by itself, or the space would stay
     if split and word[0] in _PROCLITICS_AR and extract_numbers_ar(split[1]):
         return word[0] + " " + word[1:]
     return word
+
+
+def _continues_a_number_ar(word):
+    """True for a word that is a number only inside a number already
+    started: the construct hundred ميت, with or without an attached و."""
+    return _normalize_ar(word).removeprefix("و") in _CONSTRUCT_HUNDRED_LOOKUP
 
 
 def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
@@ -1274,5 +1292,6 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     from ovos_number_parser import _numbers_to_digits_generic
     spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', utterance)
     spaced = _WORD_RE.sub(_detach_proclitic, spaced)
-    converted = _numbers_to_digits_generic(spaced, lang)
+    converted = _numbers_to_digits_generic(spaced, lang,
+                                           continues=_continues_a_number_ar)
     return _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)

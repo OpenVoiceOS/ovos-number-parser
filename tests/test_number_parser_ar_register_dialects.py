@@ -142,11 +142,8 @@ class TestArabicDialectResolution(unittest.TestCase):
         # arb (Standard Arabic) and the ar macrolanguage default nominative
         self.assertEqual(resolve_ar_lang("ar"), "nominative")
         self.assertEqual(resolve_ar_lang("arb"), "nominative")
-        # spoken lects default to the oblique case, per grammatical
-        # description of these varieties (colloquial Arabic has lost the
-        # nominative -ūn/-ān as productive case marking in most contexts and
-        # generalizes the oblique -īn form; see e.g. Kristen Brustad, "The
-        # Syntax of Spoken Arabic" (Georgetown UP, 2000), ch. 2)
+        # spoken lects default to the oblique case; the grammars behind that
+        # default are named on numbers_ar.AR_DIALECT_DEFAULT_CASE
         for code in ["ars", "acw", "afb", "arz", "apc", "ajp", "acm", "ary",
                      "aeb", "ayl"]:
             with self.subTest(code=code):
