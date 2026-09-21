@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.22.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.1a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.0a1...0.22.1a1)
+
+**Closed issues:**
+
+- Arabic: the hundreds spelling ماية is not recognised \(اربعماية الاف reads 1000\) [\#319](https://github.com/OpenVoiceOS/ovos-number-parser/issues/319)
+
+**Merged pull requests:**
+
+- fix\(ar\): accept the hundreds spelling ماية [\#321](https://github.com/OpenVoiceOS/ovos-number-parser/pull/321) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.0a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.21.1a1...0.22.0a1)
