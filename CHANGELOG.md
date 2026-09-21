@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.22.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.0a1) (2026-09-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.21.1a1...0.22.0a1)
+
+**Closed issues:**
+
+- Arabic: an unknown case or an unsupported gender returns the nominative masculine silently [\#318](https://github.com/OpenVoiceOS/ovos-number-parser/issues/318)
+
+**Merged pull requests:**
+
+- feat\(ar\): gender and case for Arabic cardinals and ordinals [\#320](https://github.com/OpenVoiceOS/ovos-number-parser/pull/320) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.21.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.21.1a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.21.0a1...0.21.1a1)
