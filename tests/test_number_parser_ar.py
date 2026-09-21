@@ -335,6 +335,22 @@ class TestArabicColloquialExtract(unittest.TestCase):
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number_ar(spoken), 100)
 
+    def test_colloquial_hundred_word_alif_spelling(self):
+        # ماية (alif before the ya) is the same lexeme as مية, common in
+        # Gulf/Saudi writing and in machine transcripts of that speech; #319
+        self.assertEqual(extract_number_ar("ماية"), 100)
+        # fused with a units word, ثلاثماية .. تسعماية
+        self.assertEqual(extract_number_ar("ثلاثماية"), 300)
+        self.assertEqual(extract_number_ar("خمسماية"), 500)
+        # both the اربع and أربع spellings of 4 fuse the same way
+        self.assertEqual(extract_number_ar("اربعماية"), 400)
+        self.assertEqual(extract_number_ar("أربعماية"), 400)
+        # before a thousands word, singular and plural
+        self.assertEqual(extract_number_ar("اربعماية الاف"), 400000)
+        self.assertEqual(extract_number_ar("تسعماية الف"), 900000)
+        # spaced (unfused) with a following hundred, mirroring the مية case
+        self.assertEqual(extract_number_ar("الف وخمسماية"), 1500)
+
     def test_colloquial_hundred_in_price_sentence(self):
         # "three hundred and fifty five thousand riyals", colloquial مية
         # 300 + 55 = 355; 355 * 1000 = 355000
