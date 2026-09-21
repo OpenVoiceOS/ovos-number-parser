@@ -96,12 +96,78 @@ def resolve_ar_lang(lang: str):
     return AR_DIALECT_DEFAULT_CASE.get(lang.lower().split("-")[0])
 
 
-# masculine citation forms used for pronunciation
+# Gender. A cardinal takes the form that goes with the gender of the counted
+# noun, and the rule differs by range:
+#
+# - 1 and 2 agree with the noun (واحد/واحدة, اثنان/اثنتان). Ryding, "A
+#   Reference Grammar of Modern Standard Arabic" (Cambridge UP, 2005), ch. 15
+#   section 1.2: 'The numeral "two" has both feminine and masculine forms and
+#   it also inflects for case.' English Wikipedia, "Arabic grammar",
+#   Numerals: "The numerals 1 and 2 are adjectives. Thus they follow the noun
+#   and agree with gender."
+# - 3 to 10 take reverse agreement (gender polarity): a masculine noun takes
+#   the form with ة (ثلاثة), a feminine noun the form without it (ثلاث).
+#   Ryding ch. 15 section 1.3: "if the singular noun is masculine, the
+#   numeral will have the feminine marker taa3 marbuuTa, and if the singular
+#   noun is feminine, the numeral will be in the masculine form." W. Wright,
+#   "A Grammar of the Arabic Language", 3rd ed. (1896), vol. 1 section 319:
+#   "The cardinal numbers from 3 to 10 take the fem. form, when the objects
+#   numbered are of the masc. gender; and conversely, the masc. form, when
+#   the objects numbered are fem."
+# - Feminine eight is ثمان (Ryding ch. 15 section 1.3 table, "thamaanin"; its
+#   note 5: "nominative and genitive have identical form: thamaan-in").
 _ONES_AR = ["صفر", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة",
             "ستة", "سبعة", "ثمانية", "تسعة", "عشرة"]
-# feminine forms, accepted in extraction (gender polarity)
 _ONES_FEM_AR = ["", "واحدة", "اثنتان", "ثلاث", "أربع", "خمس",
                 "ست", "سبع", "ثمان", "تسع", "عشر"]
+# 11 to 19 with a feminine noun. In 11 and 12 both parts agree with the noun;
+# in 13 to 19 the unit is reversed and عشرة agrees. Ryding ch. 15 section
+# 1.4: "both components of the compound numerals eleven and twelve agree
+# with the counted noun in gender"; section 1.5: "the first part of the
+# compound number shows gender polarity with the counted noun, while the
+# second part of the compound number shows direct gender agreement with the
+# counted noun". Ryding's section 1.5 table gives the feminine eighteen as
+# "thamaaniy-a cashrat-a" (ثماني عشرة). Twelve is the only teen with a case
+# form: Wikipedia "Arabic grammar" table, feminine nominative اثنتا عشرة,
+# feminine oblique اثنتي عشرة; Arabic Wikipedia "العدد والمعدود", table of
+# compound numbers, "اثنتا/اثنتي عشرة".
+_TEENS_FEM_AR = {11: "إحدى عشرة", 12: "اثنتا عشرة", 13: "ثلاث عشرة",
+                 14: "أربع عشرة", 15: "خمس عشرة", 16: "ست عشرة",
+                 17: "سبع عشرة", 18: "ثماني عشرة", 19: "تسع عشرة"}
+_TWELVE_FEM_OBLIQUE_AR = "اثنتي عشرة"
+
+_CASES_AR = ("nominative", "oblique", "genitive", "accusative")
+
+
+def _resolve_case_ar(case) -> str:
+    """The register a case name selects: "nominative" or "oblique".
+
+    None selects the nominative. "genitive" and "accusative" select the
+    oblique, which is the genitive and the accusative together (Ryding
+    ch. 15 section 1.4: twelve "shows two case inflections, nominative and
+    genitive-accusative"). Any other value raises ValueError.
+    """
+    if case is None or case == "nominative":
+        return "nominative"
+    if case in ("oblique", "genitive", "accusative"):
+        return "oblique"
+    raise ValueError("Arabic case must be one of None, "
+                     + ", ".join(repr(c) for c in _CASES_AR)
+                     + f"; got {case!r}")
+
+
+def _is_feminine_ar(gender) -> bool:
+    """True for the feminine, False for the masculine; ValueError otherwise.
+
+    Arabic has two genders. ``GrammaticalGender`` is a str enum, so the plain
+    strings "masculine" and "feminine" are accepted too.
+    """
+    if gender is None or gender == "masculine":
+        return False
+    if gender == "feminine":
+        return True
+    raise ValueError("Arabic gender must be masculine or feminine; "
+                     f"got {gender!r}")
 _TENS_AR = {20: "عشرون", 30: "ثلاثون", 40: "أربعون", 50: "خمسون",
             60: "ستون", 70: "سبعون", 80: "ثمانون", 90: "تسعون"}
 # 300-900 are written fused: feminine unit + مئة
@@ -140,10 +206,22 @@ _ORDINAL_STEMS_AR = {1: "أول", 2: "ثاني", 3: "ثالث", 4: "رابع", 5
 _ORDINAL_COMPOUND_UNIT_AR = {1: "حادي", 2: "ثاني", 3: "ثالث", 4: "رابع",
                              5: "خامس", 6: "سادس", 7: "سابع", 8: "ثامن",
                              9: "تاسع"}
-# feminine ordinal stems, accepted in extraction
+# Ordinals are adjectives and agree with the noun in gender, with no
+# polarity. Ryding ch. 15 section 2: "Ordinal numerals are essentially
+# adjectives. They usually follow the noun that they modify and agree with it
+# in gender"; section 2.1: 'The Arabic words for "first" are 'awwal (m.) and
+# 'uulaa (f.).' Wikipedia "Arabic grammar", Ordinal numerals, lists the
+# feminine of each, أولى to عاشرة. Arabic Wikipedia "العدد والمعدود", section
+# الصياغة على وزن (فاعل), rule 2: in compound and conjoined ordinals أحد/إحدى
+# and واحد/واحدة become الحادي and الحادية; rule 3: the ordinal keeps the
+# gender of what it counts, "عدا ألفاظ العقود والمئة والألف فهي ثابتة على
+# صورة واحدة" (except the tens, the hundred and the thousand, which keep one
+# form).
 _ORDINAL_STEMS_FEM_AR = {1: "أولى", 2: "ثانية", 3: "ثالثة", 4: "رابعة",
                          5: "خامسة", 6: "سادسة", 7: "سابعة", 8: "ثامنة",
                          9: "تاسعة", 10: "عاشرة"}
+_ORDINAL_COMPOUND_UNIT_FEM_AR = {**{u: _ORDINAL_STEMS_FEM_AR[u]
+                                    for u in range(2, 10)}, 1: "حادية"}
 
 
 # ---------------------------------------------------------------------------
@@ -168,19 +246,37 @@ def _oblique(word: str) -> str:
     return word[:-2] + "ين"
 
 
-def _cardinal_two_digit_ar(number: int, case: str = "nominative") -> str:
-    """0-99 in masculine citation forms; units come before tens.
+def _cardinal_two_digit_ar(number: int, case: str = "nominative",
+                           feminine: bool = False) -> str:
+    """0-99; units come before tens.
 
     ``case="oblique"`` inflects the dual of two (اثنان -> اثنين, in a units
     slot), the tens (عشرون -> عشرين), and the dual embedded in twelve
     (اثنا عشر -> اثني عشر, Ryding section 9.2: the compound declines in its
     first element only, عشر itself never changes). 11 (أحد عشر) is a fixed
     compound outside those closed sets and is not inflected in either case.
+
+    ``feminine`` selects the forms for a feminine counted noun (see
+    ``_ONES_FEM_AR`` and ``_TEENS_FEM_AR``). The tens have no gender; in 21
+    to 99 the unit takes the gender its own range takes. Ryding ch. 15
+    section 1.6: the tens "do not show any gender distinctions"; section
+    1.6.3.1: 'The numeral "one" shows straight gender agreement with the
+    noun'; section 1.6.3.2: the units three to nine "show reverse gender
+    with the counted noun". Wikipedia "Arabic grammar": 20 to 99 show
+    "agreement in gender with the numerals 1 and 2, and polarity for
+    numerals 3–9".
     """
+    ones = _ONES_FEM_AR if feminine else _ONES_AR
+    if number == 0:
+        return _ONES_AR[0]
     if number <= 10:
         if number == 2 and case == "oblique":
-            return _oblique(_ONES_AR[2])
-        return _ONES_AR[number]
+            return _oblique(ones[2])
+        return ones[number]
+    if feminine and number < 20:
+        if number == 12 and case == "oblique":
+            return _TWELVE_FEM_OBLIQUE_AR
+        return _TEENS_FEM_AR[number]
     if number == 11:
         return "أحد عشر"
     if number == 12:
@@ -193,27 +289,43 @@ def _cardinal_two_digit_ar(number: int, case: str = "nominative") -> str:
         tens_word = _oblique(tens_word)
     if unit == 0:
         return tens_word
-    unit_word = _oblique(_ONES_AR[2]) if unit == 2 and case == "oblique" \
-        else _ONES_AR[unit]
+    unit_word = _oblique(ones[2]) if unit == 2 and case == "oblique" \
+        else ones[unit]
     return unit_word + _AR_SEPARATOR + tens_word
 
 
-def _cardinal_three_digit_ar(number: int, case: str = "nominative") -> str:
-    """0-999 in masculine citation forms."""
+def _cardinal_three_digit_ar(number: int, case: str = "nominative",
+                             feminine: bool = False) -> str:
+    """0-999. The hundred word has one form for either gender, and the gender
+    reaches the part after it: 103 with a feminine noun is مئة وثلاث.
+
+    Arabic Wikipedia "العدد والمعدود", classification table: the powers of
+    ten "لا تتغير" (do not change) for gender, and a conjoined number
+    "يتبع العدد الأخير" (follows its last number). Wikipedia "Arabic
+    grammar" gives the feminine "wa-thalāthun wa-sittūna sanatan" after
+    "thamānī mi'atin" in 94,863 years.
+    """
     if number < 100:
-        return _cardinal_two_digit_ar(number, case)
+        return _cardinal_two_digit_ar(number, case, feminine)
     hundreds, rest = divmod(number, 100)
     result = _HUNDREDS_AR[hundreds * 100]
     if hundreds == 2 and case == "oblique":
         result = _oblique(result)
     if rest:
-        result += _AR_SEPARATOR + _cardinal_two_digit_ar(rest, case)
+        result += _AR_SEPARATOR + _cardinal_two_digit_ar(rest, case, feminine)
     return result
 
 
-def _cardinal_ar(number: int, case: str = "nominative") -> str:
+def _cardinal_ar(number: int, case: str = "nominative",
+                 feminine: bool = False) -> str:
+    """Any whole number. The count before a scale word counts that word,
+    which is masculine (ألف, مليون ...), so it stays masculine whatever the
+    counted noun; only the last group below a thousand takes ``feminine``.
+    Wikipedia "Arabic grammar": "thalāthatu ālāfin" 3,000; "iṯnā ‘ašara
+    alfan wa-mi'atāni wa-thnatāni wa-‘ishrūna sanatan" 12,222 years.
+    """
     if number < 1000:
-        return _cardinal_three_digit_ar(number, case)
+        return _cardinal_three_digit_ar(number, case, feminine)
     parts = []
     remainder = number
     for value, singular, dual, plural in reversed(_SCALES_AR):
@@ -230,7 +342,7 @@ def _cardinal_ar(number: int, case: str = "nominative") -> str:
         else:
             parts.append(_cardinal_ar(count, case) + " " + singular)
     if remainder:
-        parts.append(_cardinal_three_digit_ar(remainder, case))
+        parts.append(_cardinal_three_digit_ar(remainder, case, feminine))
     return _AR_SEPARATOR.join(parts)
 
 
@@ -348,17 +460,24 @@ def resolve_ar_lect(lang: str):
     return code if code in AR_LECT_FORMS else None
 
 
-def _lect_cardinal(words: str, number, case: str, lect: str) -> str:
+def _lect_cardinal(words: str, number, case: str, lect: str,
+                   feminine: bool = False) -> str:
     """Rewrite the literary words of words into lect's.
 
     The substitution is keyed by VALUE and never by a spelling: the literary word
     for each value in the table is asked of this module, in the case being spoken,
     so a table cannot be thrown off by a change to how the literary form is
     written. Whole words only, and an attached conjunction is kept.
+
+    The tables cite masculine forms only. With ``feminine`` the words for 1 to
+    19, which have a gender, stay literary; the tens and hundreds, which have
+    one form for both genders, are still rewritten.
     """
     forms = AR_LECT_FORMS.get(lect)
     if not forms:
         return words
+    if feminine:
+        forms = {value: form for value, form in forms.items() if value >= 20}
     if isinstance(number, int) and number in forms:
         return forms[number]
     said = {}
@@ -374,24 +493,25 @@ def _lect_cardinal(words: str, number, case: str, lect: str) -> str:
 
 
 def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
-                        case="nominative", lect=None):
+                        case="nominative", lect=None, gender="masculine"):
     """
     Convert a number to its spoken Arabic equivalent.
 
-    Uses masculine forms; the decimal part is read digit by digit after
-    "فاصلة" (e.g. 5.2 -> "خمسة فاصلة اثنان").
+    The decimal part is read digit by digit in the masculine citation form
+    after "فاصلة" (e.g. 5.2 -> "خمسة فاصلة اثنان").
 
     Args:
         number (float or int): the number to pronounce
         places (int): maximum decimal places to speak
-        scientific (bool): pronounce in scientific notation
+        scientific (bool): pronounce in scientific notation, in the
+            masculine citation forms
         ordinals (bool): pronounce in ordinal form "الأول" instead of "واحد"
-        case (str): "nominative" (default, unchanged citation forms:
-            خمسون, اثنان, مئتان, ...) or "oblique", the case Arabic
-            numerals actually take in connected speech (خمسين, اثنين,
-            مئتين, ...). Only affects the closed sets documented on
-            ``_oblique``; every other word is identical in both registers.
-            Ordinals (``ordinals=True``) are unaffected by ``case``.
+        case (str): "nominative" (default, citation forms: خمسون, اثنان,
+            مئتان, ...) or "oblique", the case Arabic numerals take in
+            connected speech (خمسين, اثنين, مئتين, ...); "genitive" and
+            "accusative" are names for the oblique. Only affects the closed
+            sets documented on ``_oblique``; every other word is identical
+            in both registers. Any other value raises ValueError.
         lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
             cardinal words should be spoken instead of the literary ones --
             ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian). The number is
@@ -399,9 +519,14 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
             :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
             ``ar`` and the literary ``arb`` all keep the literary words.
             Ordinals and scientific notation are unaffected.
+        gender (GrammaticalGender or str): the gender of the counted noun,
+            "masculine" (default) or "feminine"; any other value raises
+            ValueError. See ``_ONES_FEM_AR`` and ``pronounce_ordinal_ar``.
     Returns:
         (str): The pronounced number
     """
+    case = _resolve_case_ar(case)
+    feminine = _is_feminine_ar(gender)
     if number == float("inf"):
         return _INFINITY_AR
     if number == float("-inf"):
@@ -418,15 +543,17 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
                 _MINUS_AR + " " if float(n) < 0 else "", mantissa,
                 _MINUS_AR + " " if power < 0 else "", exponent)
     if ordinals:
-        return pronounce_ordinal_ar(number)
+        return pronounce_ordinal_ar(number, gender=gender, case=case)
     if number < 0:
         return _MINUS_AR + " " + pronounce_number_ar(abs(number), places,
-                                                      case=case, lect=lect)
+                                                      case=case, lect=lect,
+                                                      gender=gender)
 
     whole = int(number)
-    result = _cardinal_ar(whole, case)
+    result = _cardinal_ar(whole, case, feminine)
     if lect:
-        result = _lect_cardinal(result, whole if number == whole else None, case, lect)
+        result = _lect_cardinal(result, whole if number == whole else None,
+                                case, lect, feminine)
     if isinstance(number, float) and number != whole and places > 0:
         digits = ("%." + str(places) + "f") % (number - whole)
         digits = digits.split(".")[1].rstrip("0")
@@ -436,29 +563,65 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
     return result
 
 
-def pronounce_ordinal_ar(number):
+def pronounce_ordinal_ar(number, gender="masculine", case="nominative"):
     """
-    Pronounce a number as a Modern Standard Arabic ordinal (masculine,
-    with the definite article), e.g. 1 -> "الأول", 25 -> "الخامس والعشرون".
+    Pronounce a number as a Modern Standard Arabic ordinal with the definite
+    article, e.g. 1 -> "الأول", 25 -> "الخامس والعشرون"; with a feminine
+    noun "الأولى", "الخامسة والعشرون".
+
+    The ordinal agrees with its noun in gender (see
+    ``_ORDINAL_STEMS_FEM_AR``). Case is visible in writing only in the tens
+    of 20th to 99th, which decline like the cardinal tens: الحادي والعشرين.
+    Ryding ch. 15 section 2.4: "Both parts of the tens ordinal agree in case
+    and definiteness with the modified noun", with "fii l-qarn-i l-Haadii
+    wa-l-cishriina" (in the twenty-first century). Arabic Wikipedia
+    "العدد والمعدود": "قرأتُ المقالةَ الحاديةَ والعشرين". The teens are
+    invariable: Ryding ch. 15 section 2.3, "both parts of the compound teens
+    ordinal are always in the accusative case"; the feminine teens take
+    عشرة, "al-Haadiyat-a cashrat-a", "al-thaaniyat-a cashrat-a".
+
+    Above 99 the masculine nominative is the definite cardinal ("المئة",
+    "الألف"). The hundredth and the thousandth have one form for both
+    genders and cases (Ryding ch. 15 section 2.5: "hundredth ... agrees in
+    definiteness and case, but not in gender"; Arabic Wikipedia, rule 3 of
+    الصياغة على وزن فاعل, quoted at ``_ORDINAL_STEMS_FEM_AR``). No source
+    read gives the feminine or oblique of any other ordinal above 99, so
+    those raise NotImplementedError rather than return an unattested form.
 
     Args:
         number (int): the number to pronounce
+        gender (GrammaticalGender or str): "masculine" (default) or
+            "feminine"
+        case (str): None, "nominative" (default), "oblique", "genitive" or
+            "accusative"; see ``pronounce_number_ar``
     Returns:
         (str): the ordinal in Arabic
     """
+    case = _resolve_case_ar(case)
+    feminine = _is_feminine_ar(gender)
     number = int(number)
     if number <= 0:
         raise ValueError("Arabic ordinals start at 1")
+    stems = _ORDINAL_STEMS_FEM_AR if feminine else _ORDINAL_STEMS_AR
+    units = _ORDINAL_COMPOUND_UNIT_FEM_AR if feminine \
+        else _ORDINAL_COMPOUND_UNIT_AR
     if number <= 10:
-        return "ال" + _ORDINAL_STEMS_AR[number]
+        return "ال" + stems[number]
     if number < 20:
-        return "ال" + _ORDINAL_COMPOUND_UNIT_AR[number - 10] + " عشر"
+        return "ال" + units[number - 10] + (" عشرة" if feminine else " عشر")
     if number < 100:
         tens, unit = divmod(number, 10)
-        tens_word = "ال" + _TENS_AR[tens * 10]
+        tens_word = _TENS_AR[tens * 10]
+        if case == "oblique":
+            tens_word = _oblique(tens_word)
+        tens_word = "ال" + tens_word
         if unit == 0:
             return tens_word
-        return "ال" + _ORDINAL_COMPOUND_UNIT_AR[unit] + " و" + tens_word
+        return "ال" + units[unit] + " و" + tens_word
+    if (feminine or case == "oblique") and number not in (100, 1000):
+        raise NotImplementedError(
+            "the feminine and oblique Arabic ordinals above 99 are "
+            "implemented for 100 and 1000 only")
     # beyond 99 Arabic uses the definite cardinal ("المئة", "الألف")
     return "ال" + _cardinal_ar(number)
 
@@ -478,10 +641,12 @@ def nice_number_ar(number, speech=True, denominators=range(1, 11),
         speech (bool): format for speech (True) or display (False)
         denominators (iter of ints): denominators to use, default [1 .. 10]
         case (str): "nominative" (default, e.g. نصفان) or "oblique"
-            (نصفين), see ``pronounce_number_ar``.
+            (نصفين); "genitive" and "accusative" name the oblique, and any
+            other value raises ValueError, see ``pronounce_number_ar``.
     Returns:
         (str): The formatted string.
     """
+    case = _resolve_case_ar(case)
     result = convert_to_mixed_fraction(number, denominators)
     if not result:
         return str(round(number, 3))

@@ -722,11 +722,13 @@ def pronounce_number(number: Union[int, float], lang: str,
             (https://en.wikipedia.org/wiki/Long_and_short_scales); an explicit
             value always overrides it.
         case (str, optional): Grammatical case/register, currently only
-            meaningful for Arabic ("nominative" or "oblique", see
-            ``pronounce_number_ar``). When omitted, the Arabic lect named by
-            ``lang`` uses its own default register (see
-            ``numbers_ar.resolve_ar_lang``); ignored for every other
-            language.
+            meaningful for Arabic ("nominative" or "oblique", with
+            "genitive" and "accusative" as names for the oblique; any other
+            value raises ValueError, see ``pronounce_number_ar``). When
+            omitted, a cardinal in the Arabic lect named by ``lang`` uses
+            that lect's default register (see
+            ``numbers_ar.resolve_ar_lang``) and an ordinal the nominative;
+            ignored for every other language.
 
     Returns:
         str: The pronounced form of the number.
@@ -802,10 +804,13 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("az"):
         return pronounce_number_az(number, places, short_scale, scientific, ordinals)
     if _is_ar(lang):
+        # a lect's default register applies to cardinals; an ordinal takes
+        # the oblique only when the caller asks for it
+        if case is None:
+            case = "nominative" if ordinals else _ar_default_case(lang)
         return pronounce_number_ar(number, places, scientific, ordinals,
-                                   case=case if case is not None
-                                   else _ar_default_case(lang),
-                                   lect=resolve_ar_lect(lang))
+                                   case=case, lect=resolve_ar_lect(lang),
+                                   gender=gender)
     if lang.startswith("bg"):
         return pronounce_number_bg(number, places, short_scale, scientific, ordinals)
     if lang.startswith("ca"):
@@ -932,7 +937,8 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = N
 def pronounce_ordinal(number: Union[int, float], lang: str,
                       short_scale: Optional[bool] = None,  # DEPRECATED
                       gender: GrammaticalGender = GrammaticalGender.MASCULINE,
-                      scale: Optional[Scale] = None) -> str:
+                      scale: Optional[Scale] = None,
+                      case: Optional[str] = None) -> str:
     """
     Return the spoken ordinal form of a number in the specified language.
       
@@ -941,6 +947,10 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         lang (str): BCP-47 language code specifying the language for pronunciation.
         short_scale (bool, optional): Whether to use the short (True) or long (False) scale for large numbers. Defaults to True.
         gender (GrammaticalGender, optional): Grammatical gender to use for languages that require it. Defaults to masculine.
+        case (str, optional): Grammatical case, only meaningful for Arabic
+            (None or "nominative", "oblique", "genitive", "accusative"; see
+            ``numbers_ar.pronounce_ordinal_ar``); ignored for every other
+            language.
       
     Returns:
         str: The ordinal number pronounced in the specified language.
@@ -966,7 +976,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     if lang.startswith("an"):
         return AN.pronounce_ordinal(number, scale=scale, gender=gender)
     if _is_ar(lang):
-        return pronounce_ordinal_ar(number)
+        return pronounce_ordinal_ar(number, gender=gender, case=case)
     if lang.startswith("da"):
         return pronounce_ordinal_da(number)
     if lang.startswith("de"):
