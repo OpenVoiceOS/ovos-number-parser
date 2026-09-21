@@ -334,6 +334,8 @@ class TestArabicColloquialExtract(unittest.TestCase):
         for spoken in ["مية", "مِيَّة", "مئة", "مائة"]:
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number_ar(spoken), 100)
+        # before a counted noun too
+        self.assertEqual(extract_number_ar("مية ريال"), 100)
 
     def test_meeh_is_not_a_hundred(self):
         # ميه is the Egyptian spelling of "water" (English Wiktionary, ميه:

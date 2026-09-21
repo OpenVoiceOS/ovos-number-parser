@@ -79,6 +79,10 @@ class TestArabicLectCardinals(unittest.TestCase):
         for code, forms in AR_LECT_FORMS.items():
             for value, form in forms.items():
                 self.assertEqual(extract_number(form, lang="ar"), value, f"{code} {value} {form}")
+                # and before a counted noun, the context a word that also
+                # means "water" or "dead" needs inside a sentence
+                self.assertEqual(extract_number(form + " ريال", lang="ar"), value,
+                                 f"{code} {value} {form} ريال")
 
     def test_a_whole_composed_number_reads_back_too(self):
         from ovos_number_parser import extract_number
