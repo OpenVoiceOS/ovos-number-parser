@@ -806,6 +806,18 @@ _FUSED_TEENS_LOOKUP = _norm_map({
 _MINUS_LOOKUP = _norm_keys({"سالب", "ناقص"})
 _DECIMAL_LOOKUP = _norm_keys({"فاصلة", "فاصله"})
 _HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة", "مية", "ميه", "ماية"})
+# The construct form of the hundred. Before the item counted, the hundred takes
+# a final -t, which the Arabic script writes ميت. Hamdi A. Qafisheh, "Basic Gulf
+# Arabic, Based on Colloquial Abu Dhabi Arabic" (University of Arizona, 1970),
+# p. 59: "If the cardinal numerals 100, 300, 400... 900 are followed by the item
+# counted, they take the suffix -t: miya but miyat doolaar". Margaret K. Omar,
+# "Saudi Arabic Basic Course: Urban Hijazi Dialect" (Foreign Service Institute,
+# 1975), p. 69: "/miyya/ becomes /miyyat/ in a construct phrase", with "miyyat
+# alf dulaar" 100,000 dollars. The same letters spell ميت "dead", so the word
+# is read as 100 only after و inside a number already started ("الف وميت ريال"
+# is 1100). Alone, "ميت ريال" stays no number, because telling it from "a dead
+# ..." needs to know that the next word is a counted noun.
+_CONSTRUCT_HUNDRED_LOOKUP = _norm_map({"ميت": 100})
 
 _ORDINAL_UNITS_LOOKUP = _norm_map(
     {stem: value for value, stem in _ORDINAL_STEMS_AR.items()})
@@ -818,6 +830,59 @@ _NUMBER_WORDS = (set(_UNITS_LOOKUP) | set(_TENS_LOOKUP) | set(_HUNDREDS_LOOKUP) 
                  set(_SCALES_LOOKUP) | set(_SCALE_DUALS_LOOKUP) |
                  set(_FRACTIONS_LOOKUP) | set(_TEEN_FIRST_LOOKUP) |
                  _TEEN_SECOND_LOOKUP | set(_FUSED_TEENS_LOOKUP))
+
+
+# A proclitic written onto a number word: the prepositions ب "with, for" and ل
+# "to, for" and the conjunction ف "and so". Ryding, "A Reference Grammar of
+# Modern Standard Arabic" (Cambridge UP, 2005), ch. 16 section 2.1 (p. 367),
+# the one-letter prepositions bi- and li-: "they do not exist as independent
+# orthographical items and they need to be prefixed to the noun that follows";
+# section 2.1.2 (p. 371) on li- before the article: "the 'alif of the definite
+# article is deleted and the laam of li- attaches directly to the laam of the
+# definite article". W. Wright, "A Grammar of the Arabic Language", 3rd ed.,
+# vol. 1, section 355 (p. 279): inseparable particles are "those which are
+# always united in writing with the following noun"; section 366 (p. 290)
+# lists و and ف as the inseparable conjunctions. و keeps its own handling in
+# _tokenize_ar, because it joins the parts of one number.
+_PROCLITICS_AR = "بلف"
+# The fraction nouns are left out: ثمن is also "price", so بثمن is "for the
+# price of" far more often than "with an eighth".
+_PROCLITIC_HOSTS = _NUMBER_WORDS - set(_FRACTIONS_LOOKUP)
+# Whole words that the split would misread: لست "I am not" is ل + ست (six).
+_PROCLITIC_NOT_NUMBERS = _norm_keys({"لست"})
+# Rests that stay whole although they spell a hundred. Normalisation turns ة
+# into ه, so these are checked on the token as written:
+# - ميه, which in Gulf and Saudi speech is also "water": بميه is "with water",
+#   where بمية is "with a hundred";
+# - the hundred with the article after the preposition, which is "per cent":
+#   عشرة بالمية, عشرة بالمئة.
+_NORM_KEEP_TAA = {k: v for k, v in _NORM_TABLE.items() if k != ord("ة")}
+_PROCLITIC_NOT_HOSTS = {"ميه"} | {"ال" + w for w in (
+    "مئة", "مائة", "مية", "ميه", "ماية", "مئه", "مائه", "مايه")}
+
+
+def _split_proclitic(token, written=None):
+    """Split ب, ل or ف off a number word: ("ب", "الفين") for "بالفين".
+
+    Returns None unless the rest of the token is a cardinal number word, with
+    or without the article, and the whole token is not itself a known word.
+    ``written`` is the token before normalisation, when it is known; it tells
+    ميه from مية.
+    """
+    if len(token) < 3 or token[0] not in _PROCLITICS_AR or \
+            token in _PROCLITIC_NOT_NUMBERS or token in _NUMBER_WORDS:
+        return None
+    if (written or token)[1:].translate(_NORM_KEEP_TAA) in _PROCLITIC_NOT_HOSTS:
+        return None
+    rest = token[1:]
+    if rest in _PROCLITIC_HOSTS or \
+            rest.startswith("ال") and rest[2:] in _PROCLITIC_HOSTS:
+        return token[0], rest
+    # li- before the article drops the article's alif: للالف is ل + الالف
+    if token[0] == "ل" and rest.startswith("ل") and \
+            rest[1:] in _PROCLITIC_HOSTS:
+        return token[0], "ا" + rest
+    return None
 
 
 def _bare(token):
@@ -835,6 +900,8 @@ def _group_slot(tokens, j):
     when the token is not a number word."""
     tok = _bare(tokens[j])
     nxt = _bare(tokens[j + 1]) if j + 1 < len(tokens) else None
+    if tok in _CONSTRUCT_HUNDRED_LOOKUP:
+        return "hundred" if j > 0 and tokens[j - 1] == "و" else None
     if tok in _TEEN_FIRST_LOOKUP and nxt in _TEEN_SECOND_LOOKUP:
         return "unit"
     if tok in _FUSED_TEENS_LOOKUP:
@@ -866,8 +933,9 @@ def _is_number(s):
 def _tokenize_ar(text):
     """Normalize and split, detaching the attached conjunction "و"."""
     tokens = []
-    for token in _normalize_ar(text).split():
-        token = token.strip(".,!?;:؟،؛")
+    for written in text.split():
+        written = written.strip(".,!?;:؟،؛")
+        token = _normalize_ar(written).strip(".,!?;:؟،؛")
         if not token:
             continue
         vocab = (_UNITS_LOOKUP, _TENS_LOOKUP, _HUNDREDS_LOOKUP,
@@ -882,10 +950,16 @@ def _tokenize_ar(text):
         if not whole_word and len(token) > 1 and token[0] == "و" and (
                 any(token[1:] in v for v in vocab) or
                 token[1:] in _TEEN_SECOND_LOOKUP or
+                token[1:] in _CONSTRUCT_HUNDRED_LOOKUP or
                 token[1:].startswith("ال") and
                 any(token[3:] in v for v in vocab)):
             tokens.append("و")
             token = token[1:]
+        elif not whole_word:
+            split = _split_proclitic(token, written)
+            if split:
+                tokens.append(split[0])
+                token = split[1]
         tokens.append(token)
     return tokens
 
@@ -960,6 +1034,56 @@ def extract_numbers_ar(text, short_scale=True, ordinals=False):
     return results
 
 
+# In Gulf and Saudi speech the conjunction و is said u- or w-, and transcripts
+# write the u- sound as the separate word او, which is also the word "or".
+# Qafisheh 1970 (see _CONSTRUCT_HUNDRED_LOOKUP), p. 8: "The particle wa 'and'
+# is reduced to w in normal speech"; Omar 1975, p. 2: "The /wu/, 'and', may be
+# reduced to /w/ or even /u/ when followed by a word which begins with a
+# vowel", and p. 69 "alf wu miyyateen" 1200. The او spelling of the
+# conjunction is how transcripts write that sound.
+_OR_AR = "او"
+
+
+def _or_joins(tokens, j, filled, last_scale):
+    """True when the او at tokens[j] is the conjunction inside one number.
+
+    That is so only when the words on both sides compose one number under the
+    rules _parse_number_span applies to و, and the part before is the larger
+    place value, in one of two shapes:
+
+    - a hundreds word, then tens or units that a scale word multiplies
+      together with it: "ست مية او عشرة الف" is 610 thousand. Without the
+      scale word the two parts are two amounts, "مية او عشرين" is "a hundred
+      or twenty";
+    - a part that ends in a scale word, then a smaller group: "الف او
+      خمسمية" is 1500.
+
+    Two parts of the same magnitude ("الف او الفين", "ثلاثة او اربعة",
+    "ثلاثمية او اربعمية") are two numbers and the او is "or".
+    """
+    slot = _group_slot(tokens, j + 1)
+    if filled:
+        if filled != {"hundred"} or slot not in ("unit", "ten"):
+            return False
+        needs_scale = True
+    elif last_scale is None or slot not in ("unit", "ten", "hundred"):
+        return False
+    else:
+        needs_scale = False
+    # a scale word in the part after must be below the last one before it:
+    # "الفين او ثلاث الاف" is "two or three thousand"
+    for k in range(j + 1, len(tokens)):
+        tok = _bare(tokens[k])
+        if tok in _SCALE_DUALS_LOOKUP and needs_scale:
+            return False  # a dual counts itself and multiplies nothing
+        if tok in _SCALES_LOOKUP or tok in _SCALE_DUALS_LOOKUP:
+            scale = _SCALES_LOOKUP.get(tok) or _SCALE_DUALS_LOOKUP[tok] // 2
+            return last_scale is None or scale < last_scale
+        if tokens[k] != "و" and _group_slot(tokens, k) is None:
+            break
+    return not needs_scale
+
+
 def _parse_number_span(tokens, i):
     """Parse one number starting at tokens[i].
 
@@ -968,10 +1092,15 @@ def _parse_number_span(tokens, i):
     current = 0
     started = False
     filled = set()  # magnitude slots already used in the current <1000 group
+    last_scale = None  # the value of the last scale word read
     n = len(tokens)
     j = i
     while j < n:
         raw = tokens[j]
+        if raw == _OR_AR and started and j + 1 < n and \
+                _or_joins(tokens, j, filled, last_scale):
+            j += 1
+            continue
         if raw == "و" and started and j + 1 < n:
             # the conjunction continues the number only when the next word is
             # a number component that fills a slot not already taken (two
@@ -1044,10 +1173,13 @@ def _parse_number_span(tokens, i):
             started = True
             j += 1
             continue
-        if tok in _HUNDREDS_LOOKUP:
+        if tok in _HUNDREDS_LOOKUP or (
+                tok in _CONSTRUCT_HUNDRED_LOOKUP and j > i and
+                tokens[j - 1] == "و"):
             if "hundred" in filled:
                 break
-            current += _HUNDREDS_LOOKUP[tok]
+            current += _HUNDREDS_LOOKUP.get(tok) or \
+                _CONSTRUCT_HUNDRED_LOOKUP[tok]
             filled.add("hundred")
             started = True
             j += 1
@@ -1056,6 +1188,7 @@ def _parse_number_span(tokens, i):
             total += (current if current else 1) * _SCALES_LOOKUP[tok]
             current = 0
             filled = set()
+            last_scale = _SCALES_LOOKUP[tok]
             started = True
             j += 1
             continue
@@ -1063,6 +1196,7 @@ def _parse_number_span(tokens, i):
             total += _SCALE_DUALS_LOOKUP[tok]
             current = 0
             filled = set()
+            last_scale = _SCALE_DUALS_LOOKUP[tok] // 2
             started = True
             j += 1
             continue
@@ -1173,13 +1307,27 @@ def is_ordinal_ar(input_str):
 # a token boundary, so a clitic letter occurring mid-word is never touched.
 _CLITIC_BEFORE_DIGITS_RE = re.compile(r'(?<!\S)([وفبل])([0-9٠-٩۰-۹])')
 _CLITIC_SPACE_DIGITS_RE = re.compile(r'(?<!\S)([وفبل]) (?=[0-9٠-٩۰-۹])')
+_WORD_RE = re.compile(r'\S+')
+
+
+def _detach_proclitic(match):
+    """Put a space after a ب, ل or ف written onto a number word, so the
+    converter replaces the number word and the proclitic is glued back on."""
+    word = match.group(0)
+    written = word.strip(".,!?;:؟،؛")
+    split = _split_proclitic(_normalize_ar(written), written)
+    # only when the rest is a number by itself, or the space would stay
+    if split and word[0] in _PROCLITICS_AR and extract_numbers_ar(split[1]):
+        return word[0] + " " + word[1:]
+    return word
 
 
 def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     """Replace spoken Arabic number spans with digits.
 
-    Splits a clitic glued onto a digit run ("و355 ألف" -> "و 355 ألف") so
-    the digits read as an ordinary number token, converts through the shared
+    Splits a clitic glued onto a digit run ("و355 ألف" -> "و 355 ألف"), or a
+    ب, ل or ف glued onto a number word ("بالفين" -> "ب الفين"), so the
+    number reads as an ordinary token, converts through the shared
     span converter, then glues the clitic back onto the produced digits
     ("و355000"). Text without glued clitics passes through the converter
     unchanged.
@@ -1188,5 +1336,6 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     # this module — importing it at module level would be circular
     from ovos_number_parser import _numbers_to_digits_generic
     spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', utterance)
+    spaced = _WORD_RE.sub(_detach_proclitic, spaced)
     converted = _numbers_to_digits_generic(spaced, lang)
     return _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
