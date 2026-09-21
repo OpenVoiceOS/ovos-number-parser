@@ -111,14 +111,18 @@ class TestArabicRegisterPronunciation(unittest.TestCase):
         self.assertEqual(pronounce_number_ar(-7, case="oblique"),
                          'سالب سبعة')
 
-    def test_ordinals_unaffected_by_case(self):
-        # ordinals do not carry the nominative/oblique case distinction
-        # this feature adds; case is accepted but has no effect
-        for number in [1, 2, 12, 20, 21, 25, 100]:
+    def test_ordinal_case_shows_only_in_the_tens(self):
+        # 1st-19th and 100th are written the same in both cases; the tens of
+        # 20th-99th decline like the cardinal tens (Ryding ch. 15 section 2.4)
+        for number in [1, 2, 12, 100]:
             with self.subTest(number=number):
                 self.assertEqual(
                     pronounce_number_ar(number, ordinals=True, case="oblique"),
                     pronounce_number_ar(number, ordinals=True))
+        self.assertEqual(pronounce_number_ar(25, ordinals=True, case="oblique"),
+                         'الخامس والعشرين')
+        for number in [1, 2, 12, 20, 21, 25, 100]:
+            with self.subTest(number=number):
                 self.assertEqual(
                     pronounce_ordinal(number, lang="ar"),
                     pronounce_number_ar(number, ordinals=True))
