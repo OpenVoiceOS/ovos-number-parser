@@ -1048,8 +1048,11 @@ def _or_joins(tokens, j, filled, last_scale):
     """True when the او at tokens[j] is the conjunction inside one number.
 
     That is so in one shape only: the part before is a hundreds word alone,
-    and the part after is tens or units that a scale word then multiplies
-    together with it. "ست مية او عشرة الف" is 610 thousand. Every other
+    and the part after is tens or units that the thousands word then
+    multiplies together with it. "ست مية او عشرة الف" is 610 thousand. The
+    scale word is الف only: every attested join, in Omar 1975 and in the
+    transcripts, is a count of thousands, and "تسعمية او عشرة ملايين" is
+    "nine hundred or ten million", never 910 million. Every other
     او is "or": "مية او عشرين" is "a hundred or twenty", "الف او خمسمية"
     names two prices, "الفين او ثلاثة" is "two or three thousand".
     """
@@ -1061,8 +1064,10 @@ def _or_joins(tokens, j, filled, last_scale):
         if tok in _SCALE_DUALS_LOOKUP:
             return False  # a dual counts itself and multiplies nothing
         if tok in _SCALES_LOOKUP:
-            # below the last scale word before: "مليون وست مية او عشرة الف"
-            return last_scale is None or _SCALES_LOOKUP[tok] < last_scale
+            # the thousands only, and below the last scale word before:
+            # "مليون وست مية او عشرة الف"
+            return _SCALES_LOOKUP[tok] == 1000 and \
+                (last_scale is None or 1000 < last_scale)
         if tokens[k] != "و" and _group_slot(tokens, k) is None:
             break
     return False
