@@ -53,6 +53,19 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
         self.assertEqual(extract_number_ar("الفين وميت"), 2100)
         self.assertEqual(extract_number_ar("الف وميتين"), 1200)
 
+    def test_construct_hundred_in_numbers_to_digits(self):
+        # numbers_to_digits reads the span as extract_number does
+        self.assertEqual(numbers_to_digits("الف وميت ريال", lang="ar"),
+                         "1100 ريال")
+        self.assertEqual(numbers_to_digits("الف و ميت ريال", lang="ar"),
+                         "1100 ريال")
+        self.assertEqual(numbers_to_digits("دفعت الفين وميت", lang="ar"),
+                         "دفعت 2100")
+        # "alive and dead"; a hundred already said takes no second one
+        self.assertEqual(numbers_to_digits("حي وميت", lang="ar"), "حي وميت")
+        self.assertEqual(numbers_to_digits("مية وميت", lang="ar"),
+                         "100 وميت")
+
     def test_construct_hundred_alone_is_no_number(self):
         self.assertFalse(extract_number_ar("رجل ميت"))
         self.assertFalse(extract_number_ar("ميت ريال"))
@@ -71,7 +84,7 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
             self.assertFalse(extract_number_ar(word), word)
 
     def test_proclitic_leaves_water_and_per_cent_alone(self):
-        # ميه is also "water": بميه is "with water"
+        # ميه is "water" (Egyptian, English Wiktionary): بميه is "with water"
         self.assertFalse(extract_number_ar("بميه"))
         # the hundred with the article after ب is "per cent"
         self.assertEqual(extract_numbers_ar("عشرة بالمية"), [10])

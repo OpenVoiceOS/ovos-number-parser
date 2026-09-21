@@ -329,11 +329,23 @@ class TestArabicColloquialExtract(unittest.TestCase):
     """
 
     def test_colloquial_hundred_word(self):
-        # مية / ميه / مئة / مائة are one lexeme (100); مائة is the classical
+        # مية / مئة / مائة are one lexeme (100); مائة is the classical
         # spelling and must keep working too
-        for spoken in ["مية", "ميه", "مئة", "مائة"]:
+        for spoken in ["مية", "مِيَّة", "مئة", "مائة"]:
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number_ar(spoken), 100)
+
+    def test_meeh_is_not_a_hundred(self):
+        # ميه is the Egyptian spelling of "water" (English Wiktionary, ميه:
+        # "alt sp of مية, mayya, water"); no source gives it for the hundred
+        self.assertFalse(extract_number_ar("ميه"))
+        self.assertEqual(extract_numbers_ar("شربت ميه"), [])
+        self.assertEqual(extract_numbers_ar("الميه سخنة"), [])
+        self.assertFalse(extract_number_ar("خمسميه"))
+        self.assertEqual(extract_numbers_ar("ميه وخمسين"), [50])
+        self.assertEqual(extract_numbers_ar("سبع ميه وخمسة"), [7, 5])
+        self.assertEqual(numbers_to_digits("شربت ميه", lang="ar"),
+                         "شربت ميه")
 
     def test_maya_is_not_a_hundred(self):
         # ماية is attested as a spelling of "water" (Egyptian مايَّة), not
@@ -351,28 +363,34 @@ class TestArabicColloquialExtract(unittest.TestCase):
         # bare-alif الف (no hamza) must be recognised as the 1000 scale word
         self.assertEqual(extract_number_ar("مية الف ريال"), 100000)
 
-    def test_deep_colloquial_hundred_family(self):
-        # ثلث-مية (300) uses the deeper colloquial root ثلث instead of ثلاث
+    def test_classical_three_hundred(self):
+        # ثلث is the classical spelling of ثلاث: Quran 18:25, "ثَلَٰثَ مِا۟ئَةٍ"
         # 300 + 50 = 350
-        self.assertEqual(extract_number_ar("ثلثمية وخمسين"), 350)
+        self.assertEqual(extract_number_ar("ثلثمئة وخمسين"), 350)
+        self.assertEqual(extract_number_ar("ثلثمئة"), 300)
+
+    def test_thulthmiya_has_no_source(self):
+        # the hybrid of the classical ثلث and the colloquial مية
+        self.assertFalse(extract_number_ar("ثلثمية"))
+        self.assertEqual(extract_numbers_ar("ثلثمية وخمسين"), [50])
 
     def test_colloquial_hundred_plus_tens(self):
         # 100 + 50 = 150
-        self.assertEqual(extract_number_ar("ميه وخمسين"), 150)
+        self.assertEqual(extract_number_ar("مية وخمسين"), 150)
 
     def test_spaced_unit_plus_colloquial_hundred_multiplies(self):
-        # "خمس مية وثلاثين" = 5 * 100 + 30 = 530 (spaced unit + مية/ميه must
-        # multiply exactly like the already-supported spaced unit + مئة/مائة,
-        # e.g. "ثلاث مئة" = 300 handled by _parse_number_span). Reproduced
-        # live from production Arabic STT output, where
-        # the spaced (non-fused) colloquial form is what the ASR emits.
+        # "خمس مية وثلاثين" = 5 * 100 + 30 = 530. The unit may stand apart
+        # from the hundred: Dirr, Colloquial Egyptian Arabic Grammar (1904),
+        # p. 26, gives 300 as "tultemiya" and "tult mit"; Ryding, A Reference
+        # Grammar of Modern Standard Arabic (2005), p. 348: "five hundred
+        # xams-u mi'at-in".
         self.assertEqual(extract_number_ar("خمس مية وثلاثين"), 530)
         # with the definite article fronting the unit word
         self.assertEqual(extract_number_ar("الخمس مية وثلاثين"), 530)
         # bare spaced unit + مية: 3 * 100 = 300
         self.assertEqual(extract_number_ar("ثلاث مية"), 300)
-        # spaced unit + ميه + tail unit: 7 * 100 + 5 = 705
-        self.assertEqual(extract_number_ar("سبع ميه وخمسة"), 705)
+        # spaced unit + مية + tail unit: 7 * 100 + 5 = 705
+        self.assertEqual(extract_number_ar("سبع مية وخمسة"), 705)
 
     def test_spaced_unit_plus_hundred_in_sentence(self):
         self.assertEqual(
@@ -387,45 +405,43 @@ class TestArabicColloquialExtract(unittest.TestCase):
         self.assertEqual(extract_number_ar("الخمسمية وثلاثين"), 530)
 
     def test_fused_dialectal_teens(self):
-        # dialectal fused teens (Gulf/Levantine): unit+عشر fused into one
-        # word, cf. https://en.wikipedia.org/wiki/Arabic_numerals#Numbers_11-19
-        # and colloquial spelling guides for Gulf/Levantine Arabic numerals
+        # the Egyptian fused teens: Dirr, Colloquial Egyptian Arabic Grammar
+        # (1904), p. 26; English Wiktionary, حداشر "eleven", اتناشر "twelve"
         expected = {
-            11: ["احداشر"], 12: ["اثناشر"], 13: ["ثلطاشر", "ثلتاشر"],
-            14: ["اربعتاشر"], 15: ["خمستاشر"], 16: ["ستاشر"],
-            17: ["سبعتاشر"], 18: ["ثمنتاشر"], 19: ["تسعتاشر"],
+            11: "حداشر", 12: "اتناشر", 13: "تلتاشر", 14: "اربعتاشر",
+            15: "خمستاشر", 16: "ستاشر", 17: "سبعتاشر", 18: "تمنتاشر",
+            19: "تسعتاشر",
+        }
+        for number, spoken in expected.items():
+            with self.subTest(spoken=spoken):
+                self.assertEqual(extract_number_ar(spoken), number)
+
+    def test_fused_teens_of_the_hijazi_and_gulf_grammars(self):
+        # Omar, Saudi Arabic Basic Course: Urban Hijazi Dialect (1975), and
+        # Qafisheh, Basic Gulf Arabic (1970); see AR_LECT_FORMS
+        expected = {
+            11: ["إحدعش", "حدعش"], 12: ["اتنعش", "ثنعش"],
+            13: ["تلاطعش", "ثلاطعش"], 14: ["اربعطعش"], 15: ["خمسطعش"],
+            16: ["سطعش"], 17: ["سبعطعش"], 18: ["تمنطعش", "ثمنطعش"],
+            19: ["تسعطعش"],
         }
         for number, spellings in expected.items():
             for spoken in spellings:
                 with self.subTest(spoken=spoken):
                     self.assertEqual(extract_number_ar(spoken), number)
 
-    def test_fused_teens_in_the_spellings_transcribers_use(self):
-        # the most frequent one-word spellings of each teen in the human
-        # transcripts of the SADA corpus of Saudi broadcast speech
-        expected = {
-            11: ["إحدعش", "احداعش", "حدعش", "احدعشر", "حداشر", "هدعش"],
-            12: ["اثنعش", "اثنعشر", "اثناعش", "اثناعشر", "إثنعش", "ثنعش"],
-            13: ["ثلتعش", "ثلاطاعش", "ثلاثطعش", "ثلاثعش", "ثلاطعشر",
-                 "ثلاتعش", "تلاتاش"],
-            14: ["اربعطعشر", "اربعطاعش", "أربعطاش", "أربعتعش", "اربعتاش"],
-            15: ["خمستعشر", "خمسطعشر", "خمسطعش", "خمستعش", "خمسطاعش",
-                 "خمسطاش"],
-            16: ["ستعش", "ستعشر", "ستاعش", "ستطعش", "سطاعش", "سطعش"],
-            17: ["سبعطعش", "سبعطاعش", "سبعتعش", "سبعطعشر", "سبعطاش"],
-            18: ["ثمنطعش", "ثمنتعش", "ثمنطاعش", "ثمنتعشر", "ثمانطاعش",
-                 "تمنطاش"],
-            19: ["تسعطعش", "تسعطاعش", "تسعتاعش", "تسعطعشر", "تسعتاش"],
-        }
-        for number, spellings in expected.items():
-            for spoken in spellings:
-                with self.subTest(spoken=spoken):
-                    self.assertEqual(extract_number_ar(spoken), number)
+    def test_unattested_teen_spellings_are_no_numbers(self):
+        # spellings no grammar or dictionary read gives
+        for spoken in ["اتنااشر", "ثناش", "هدعش", "احداشر", "اثناشر",
+                       "اثنعش", "ثلطاشر", "ثلتاشر", "ثمنتاشر", "خمستعشر",
+                       "خمسطاعش", "خمسطاش", "ستعشر", "سبعطعشر", "تسعتاش"]:
+            with self.subTest(spoken=spoken):
+                self.assertFalse(extract_number_ar(spoken))
 
     def test_fused_teens_join_a_larger_number(self):
         self.assertEqual(extract_number_ar("مية وخمسطعش"), 115)
         self.assertEqual(extract_number_ar("ثلاثة آلاف وسبعطعش"), 3017)
-        self.assertEqual(extract_number_ar("اثنعش ألف"), 12000)
+        self.assertEqual(extract_number_ar("اتنعش ألف"), 12000)
         self.assertEqual(numbers_to_digits("عمره ثمنطعش سنة", lang="ar"),
                          "عمره 18 سنة")
 
@@ -436,9 +452,12 @@ class TestArabicColloquialExtract(unittest.TestCase):
                   | set(numbers_ar._SCALES_LOOKUP))
         self.assertFalse(set(numbers_ar._FUSED_TEENS_LOOKUP) & others)
 
-    def test_the_levantine_negative_is_not_eleven(self):
-        self.assertEqual(numbers_to_digits("ما حداش جا", lang="ar"),
-                         "ما حداش جا")
+    def test_naqis_is_the_sign_of_the_number_after_it(self):
+        # ناقص is a minus sign, never a subtraction
+        self.assertEqual(extract_number_ar("ناقص واحد"), -1)
+        self.assertEqual(extract_numbers_ar("عشرة ناقص اثنين"), [10, -2])
+        self.assertEqual(numbers_to_digits("عشرة ناقص اثنين", lang="ar"),
+                         "10 ناقص 2")
 
     def test_colloquial_two_three_and_zero(self):
         self.assertEqual(extract_number_ar("ثنتين وخمسين"), 52)
@@ -448,8 +467,8 @@ class TestArabicColloquialExtract(unittest.TestCase):
                          "0 5 5")
 
     def test_fused_teens_in_sentence(self):
-        self.assertEqual(extract_number_ar("عمري اثناشر سنة"), 12)
-        self.assertEqual(extract_number_ar("عندي احداشر كتاب"), 11)
+        self.assertEqual(extract_number_ar("عمري اتناشر سنة"), 12)
+        self.assertEqual(extract_number_ar("عندي حداشر كتاب"), 11)
 
     def test_mixed_digit_and_scale_word(self):
         # a digit run directly followed by a scale word multiplies it:

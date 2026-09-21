@@ -298,9 +298,15 @@ def _is_digit_run(token: str) -> bool:
     return bool(token) and all(c in _DIGIT_CHARS for c in token)
 
 
-def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
+def _numbers_to_digits_generic(utterance: str, lang: str,
+                               continues=None) -> str:
     """Fallback that replaces spoken number spans with digits using
-    extract_number over maximal runs of number words."""
+    extract_number over maximal runs of number words.
+
+    ``continues`` is an optional predicate for a word that is no number by
+    itself but can extend a number already started; the span takes it only
+    when the value of the span grows.
+    """
     lang2 = lang.lower().split("-")[0]
     connectors = _NUMBER_CONNECTORS.get("ar" if _is_ar(lang) else lang2, set())
     tokens = utterance.split()
@@ -373,11 +379,14 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
                 and next_val is not False and next_val is not None \
                 and abs(next_val) >= 100
 
+        def _may_extend(t):
+            return _is_num(t) or bool(continues and continues(_clean(t)))
+
         while j + 1 < len(tokens):
-            if _is_num(tokens[j + 1]) and _continues(j + 1):
+            if _may_extend(tokens[j + 1]) and _continues(j + 1):
                 j += 1
             elif _clean(tokens[j + 1]) in connectors and j + 2 < len(tokens) \
-                    and _is_num(tokens[j + 2]) \
+                    and _may_extend(tokens[j + 2]) \
                     and _continues(j + 2, via_connector=True):
                 j += 2
             else:
