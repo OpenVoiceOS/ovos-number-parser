@@ -41,14 +41,19 @@ for _c in range(0x064B, 0x0653):  # tashkeel (fathatan .. sukun)
     _NORM_TABLE[_c] = None
 _NORM_TABLE[0x0670] = None  # superscript alef
 # ة is typed as ه so often that the two are one letter here, except in the
-# hundred مية. English Wiktionary gives ميه only as an Egyptian spelling of
-# مية mayya "water", and no source read gives it for the hundred, so ميه is
-# no number word.
+# hundred مية, which ميه spells too. English Wiktionary gives ميه as an Egyptian
+# spelling of مية mayya "water"; the SADA transcripts ("SADA - SBA & SDAIA Audio
+# Dataset for Arabic", 2023, transcribed by hand) write it for the hundred
+# after a unit word 30 times ("خمس ميه"), before و and a number 56 times ("ميه
+# وخمسين") and before a scale word or unit 18 times ("ميه الف"). Both
+# spellings are one word, read by the context rules of _HOMOGRAPHS_AR.
 _TAA_MARBUTA_RE = re.compile(r"(?<!مي)ة")
+_MEEH_RE = re.compile(r"(?<=مي)ه(?!\w)")
 
 
 def _normalize_ar(text: str) -> str:
-    return _TAA_MARBUTA_RE.sub("ه", text.translate(_NORM_TABLE))
+    text = _TAA_MARBUTA_RE.sub("ه", text.translate(_NORM_TABLE))
+    return _MEEH_RE.sub("ة", text)
 
 
 # ---------------------------------------------------------------------------

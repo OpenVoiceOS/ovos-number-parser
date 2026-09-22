@@ -88,8 +88,8 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
             self.assertFalse(extract_number_ar(word), word)
 
     def test_proclitic_leaves_water_and_per_cent_alone(self):
-        # ميه is "water" (Egyptian, English Wiktionary): بميه is "with water"
-        self.assertFalse(extract_number_ar("بميه"))
+        # ميه is "water" as well as the hundred: بميه inside text is "with water"
+        self.assertEqual(extract_numbers_ar("اغسله بميه سخنة"), [])
         # the hundred with the article after ب is "per cent"
         self.assertEqual(extract_numbers_ar("عشرة بالمية"), [10])
         self.assertEqual(extract_numbers_ar("عشرة بالمئة"), [10])
