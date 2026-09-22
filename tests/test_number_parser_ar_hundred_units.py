@@ -1,7 +1,8 @@
-"""Only the units three to nine build a hundred.
+"""A unit before a hundred multiplies it; a ten before a hundred starts a second number.
 
-100 is مية on its own and 200 the dual ميتين; no unit comes before مية for
-either (Qafisheh 1970, p. 59; Omar 1975, p. 69). "اتنين مية" is two numbers.
+The SADA transcripts write two hundred as a unit two and the hundred ("اثنين مية
+واثنين", 202), so a unit before مية builds the hundred, as ثلاث to تسع do. A ten
+never builds one: "تلاتين مية وعشرين" is 30 and 120.
 """
 import unittest
 
@@ -10,16 +11,29 @@ from ovos_number_parser.numbers_ar import extract_numbers_ar
 
 
 class TestHundredUnits(unittest.TestCase):
-    def test_one_and_two_do_not_build_a_hundred(self):
-        for text, values, converted in (
-                ("اتنين مية ريال", [2, 100], "2 100 ريال"),
-                ("اثنين مية ريال", [2, 100], "2 100 ريال"),
-                ("واحد مية ريال", [1, 100], "1 100 ريال"),
-                ("اثنين مئة", [2, 100], "2 100"),
-                ("عشرين مية ريال", [20, 100], "20 100 ريال")):
+    def test_a_unit_two_builds_two_hundred(self):
+        for text, values in (("اثنين مية واثنين", [202]),
+                             ("كم إثنين مئة ألف كفو كفو", [200000]),
+                             ("واحدة إثنين إثنين مئة و سبعة و خمسين", [1, 2, 257])):
             with self.subTest(text=text):
                 self.assertEqual(extract_numbers_ar(text), values)
+
+    def test_a_ten_before_a_hundred_starts_a_second_number(self):
+        for text, values in (("تلاتين مية وعشرين", [30, 120]),
+                             ("سبعه وخمسين مية واربعه", [57, 104]),
+                             ("عشرين مية ريال", [20, 100])):
+            with self.subTest(text=text):
+                self.assertEqual(extract_numbers_ar(text), values)
+
+    def test_the_digits_cut_where_the_numbers_do(self):
+        for text, converted in (("عشرين ست مية", "20 600"),
+                                ("تسعين خمس مية", "90 500"),
+                                ("خمس مية خمس مية", "500 500"),
+                                ("أبي خمس ميه خمس ميه", "أبي 500 500")):
+            with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="ar"), converted)
+        self.assertIn("622", numbers_to_digits(
+            "وعشرين ست مية واثنين وعشرين", lang="ar"))
 
     def test_three_to_nine_build_a_hundred(self):
         for text, value in (("ثلاث مية ريال", 300), ("تلات مية", 300),
