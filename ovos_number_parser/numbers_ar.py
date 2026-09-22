@@ -1381,6 +1381,15 @@ def extract_numbers_ar(text, short_scale=True, ordinals=False):
             _number_spans(_tokenize_ar(text), ordinals)]
 
 
+def _closes_a_hundred(token):
+    """True for a unit that, after و and a filled hundred, ends the number rather
+    than multiplying the next hundred: the full form in ة (اربعة, تلاتة), and one
+    and two, which never build a hundred after و. The construct form (خمس, ثلاث)
+    is the form a hundred is built on."""
+    tok = _bare(token)
+    return tok in _UNITS_LOOKUP and (_UNITS_LOOKUP[tok] <= 2 or tok.endswith("ه"))
+
+
 def _parse_number_span(tokens, i):
     """Parse one number starting at tokens[i].
 
@@ -1399,10 +1408,11 @@ def _parse_number_span(tokens, i):
             # units in a row, "ثلاثة وخمسة", are separate numbers, not eight)
             slot = _group_slot(tokens, j + 1)
             if slot == "hundred" and "hundred" in filled and \
-                    _bare(tokens[j + 1]) in _UNITS_LOOKUP:
-                # with the hundred filled, a unit after و joins this number and
-                # does not multiply the next hundred: "مية و اربعة مية و اربعة"
-                # is 104 and 104, never 100 and 404
+                    _closes_a_hundred(tokens[j + 1]):
+                # with the hundred filled, a full-form unit after و joins this
+                # number: "مية و اربعة مية و اربعة" is 104 and 104, never 100 and
+                # 404. A construct unit multiplies the next hundred as always:
+                # "مية وخمس مية" is 100 and 500.
                 slot = "unit"
             if slot in ("scale", "frac") or (
                     slot in ("unit", "ten", "hundred") and slot not in filled):
@@ -1452,7 +1462,8 @@ def _parse_number_span(tokens, i):
             # unit followed by مئة multiplies: "ثلاث مئة" = 300. The SADA
             # transcripts write two hundred this way too ("اثنين مية واثنين" 202)
             if nxt in _HUNDRED_MULT_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9 and not (
-                    "hundred" in filled and tokens[j - 1] == "و"):
+                    "hundred" in filled and tokens[j - 1] == "و"
+                    and _closes_a_hundred(raw)):
                 # after a unit or a ten with no و it is a second number:
                 # "إثنين إثنين مئة" is 2 and 200, never 202
                 if "hundred" in filled or \
