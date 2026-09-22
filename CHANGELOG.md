@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.14a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.14a1) (2026-09-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.13a1...0.22.14a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): read the teen spellings of the SADA transcripts [\#345](https://github.com/OpenVoiceOS/ovos-number-parser/pull/345) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.13a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.13a1) (2026-09-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.12a1...0.22.13a1)
