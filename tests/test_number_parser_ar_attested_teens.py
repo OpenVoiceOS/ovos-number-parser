@@ -44,9 +44,14 @@ class TestAttestedTeens(unittest.TestCase):
         self.assertEqual(extract_number("اربعطعش", lang="ar"), 14)
         self.assertEqual(extract_number("خمسطعش", lang="ar"), 15)
 
-    def test_a_spelling_no_source_gives_stays_unread(self):
-        # the long vowel of the transcript spelling اربعطاعش is in no source
+    def test_the_long_vowel_spelling_of_the_sada_transcripts(self):
+        # اربعطاعش is written 9 times in the SADA transcripts
         for text in ("اربعطاعش", "باربعطاعش"):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="ar"), 14)
+
+    def test_a_spelling_no_source_gives_stays_unread(self):
+        for text in ("اربعطوعش", "اتنااشر"):
             with self.subTest(text=text):
                 self.assertFalse(extract_number(text, lang="ar"))
 
