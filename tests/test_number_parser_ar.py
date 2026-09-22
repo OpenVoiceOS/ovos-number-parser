@@ -429,11 +429,10 @@ class TestArabicColloquialExtract(unittest.TestCase):
                     self.assertEqual(extract_number_ar(spoken), number)
 
     def test_unattested_teen_spellings_are_no_numbers(self):
-        # spellings no grammar or dictionary read gives; the attested ones
-        # are in test_number_parser_ar_attested_teens
-        for spoken in ["اتنااشر", "ثناش", "احداشر", "اثناشر", "ثلطاشر",
-                       "ثلتاشر", "ثمنتاشر", "خمستعشر", "خمسطاعش", "ستعشر",
-                       "سبعطعشر"]:
+        # spellings no grammar, dictionary or SADA transcript gives; the
+        # attested ones are in test_number_parser_ar_attested_teens and
+        # test_number_parser_ar_sada_teens
+        for spoken in ["اتنااشر", "ثلطاشر", "ثمنتاشر", "تلاتاش", "سطش"]:
             with self.subTest(spoken=spoken):
                 self.assertFalse(extract_number_ar(spoken))
 
