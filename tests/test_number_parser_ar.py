@@ -337,15 +337,11 @@ class TestArabicColloquialExtract(unittest.TestCase):
         # before a counted noun too
         self.assertEqual(extract_number_ar("مية ريال"), 100)
 
-    def test_meeh_is_not_a_hundred(self):
-        # ميه is the Egyptian spelling of "water" (English Wiktionary, ميه:
-        # "alt sp of مية, mayya, water"); no source gives it for the hundred
-        self.assertFalse(extract_number_ar("ميه"))
+    def test_meeh_is_water_outside_a_number(self):
+        # ميه spells water (English Wiktionary) and the hundred (the SADA
+        # transcripts); test_number_parser_ar_meeh holds the number contexts
         self.assertEqual(extract_numbers_ar("شربت ميه"), [])
         self.assertEqual(extract_numbers_ar("الميه سخنة"), [])
-        self.assertFalse(extract_number_ar("خمسميه"))
-        self.assertEqual(extract_numbers_ar("ميه وخمسين"), [50])
-        self.assertEqual(extract_numbers_ar("سبع ميه وخمسة"), [7, 5])
         self.assertEqual(numbers_to_digits("شربت ميه", lang="ar"),
                          "شربت ميه")
 
