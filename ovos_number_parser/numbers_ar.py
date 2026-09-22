@@ -1113,7 +1113,7 @@ def _group_slot(tokens, j):
     if tok in _FUSED_TEENS_LOOKUP:
         return "unit"
     if tok in _UNITS_LOOKUP:
-        if nxt in _HUNDRED_MULT_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9:
+        if nxt in _HUNDRED_MULT_LOOKUP and 3 <= _UNITS_LOOKUP[tok] <= 9:
             return "hundred"
         return "unit"
     if tok in _TENS_LOOKUP:
@@ -1306,8 +1306,11 @@ def _parse_number_span(tokens, i):
             j += 2
             continue
         if tok in _UNITS_LOOKUP:
-            # unit followed by مئة multiplies: "ثلاث مئة" = 300
-            if nxt in _HUNDRED_MULT_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9:
+            # unit followed by مئة multiplies: "ثلاث مئة" = 300. Only 3 to 9
+            # build a hundred: 100 is مية alone and 200 the dual ميتين
+            # (Qafisheh 1970, p. 59; Omar 1975, p. 69), so "اتنين مية" and
+            # "واحد مية" are two numbers.
+            if nxt in _HUNDRED_MULT_LOOKUP and 3 <= _UNITS_LOOKUP[tok] <= 9:
                 if "hundred" in filled:
                     break
                 current += _UNITS_LOOKUP[tok] * 100
@@ -1332,7 +1335,10 @@ def _parse_number_span(tokens, i):
             continue
         if tok in _HUNDREDS_LOOKUP or tok in _CONSTRUCT_HUNDRED_LOOKUP and (
                 not started or j > i and tokens[j - 1] == "و"):
-            if "hundred" in filled:
+            # a hundred written straight after a unit or a ten is a second
+            # number: "اتنين مية" is 2 and 100, never 102
+            if "hundred" in filled or \
+                    {"unit", "ten"} & filled and tokens[j - 1] != "و":
                 break
             current += _HUNDREDS_LOOKUP.get(tok) or \
                 _CONSTRUCT_HUNDRED_LOOKUP[tok]
