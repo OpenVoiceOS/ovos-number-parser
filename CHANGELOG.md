@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.22.11a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.11a1) (2026-09-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.10a1...0.22.11a1)
+
+**Closed issues:**
+
+- Arabic: hundreds composed on واحد and اثنين \(اتنين مية → 200\) [\#343](https://github.com/OpenVoiceOS/ovos-number-parser/issues/343)
+
+**Merged pull requests:**
+
+- fix\(ar\): only the units three to nine build a hundred [\#347](https://github.com/OpenVoiceOS/ovos-number-parser/pull/347) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.10a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.10a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.9a1...0.22.10a1)
