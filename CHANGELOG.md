@@ -1,12 +1,20 @@
 # Changelog
 
+## [0.22.16a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.16a1) (2026-09-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.15a1...0.22.16a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): a construct unit after و still multiplies the next hundred [\#356](https://github.com/OpenVoiceOS/ovos-number-parser/pull/356) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.15a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.15a1) (2026-09-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.14a1...0.22.15a1)
 
 **Merged pull requests:**
 
-- fix\(ar\): a unit after و joins a filled hundred, not the next one [\#353](https://github.com/OpenVoiceOS/ovos-number-parser/pull/353) ([JarbasAl](https://github.com/JarbasAl))
+- fix\(ar\): a full-form unit after و closes a filled hundred [\#353](https://github.com/OpenVoiceOS/ovos-number-parser/pull/353) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.22.14a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.14a1) (2026-09-22)
 
