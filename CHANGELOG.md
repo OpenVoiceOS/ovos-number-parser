@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.12a1) (2026-09-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.11a1...0.22.12a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): read ميه as the hundred مية, by the same context rules [\#346](https://github.com/OpenVoiceOS/ovos-number-parser/pull/346) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.22.11a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.11a1) (2026-09-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.10a1...0.22.11a1)
