@@ -35,6 +35,14 @@ class TestHundredUnits(unittest.TestCase):
         self.assertIn("622", numbers_to_digits(
             "وعشرين ست مية واثنين وعشرين", lang="ar"))
 
+    def test_a_unit_after_a_filled_hundred_joins_it(self):
+        for text, values, converted in (
+                ("كم سعره؟ مية و اربعة مية و اربعة", [104, 104], "كم سعره؟ 104 104"),
+                ("مية واثنين مية واثنين", [102, 102], "102 102")):
+            with self.subTest(text=text):
+                self.assertEqual(extract_numbers_ar(text), values)
+                self.assertEqual(numbers_to_digits(text, lang="ar"), converted)
+
     def test_three_to_nine_build_a_hundred(self):
         for text, value in (("ثلاث مية ريال", 300), ("تلات مية", 300),
                             ("خمس مية ريال", 500), ("تسع مئة", 900),

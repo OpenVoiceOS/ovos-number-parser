@@ -1266,6 +1266,12 @@ def _parse_number_span(tokens, i):
             # a number component that fills a slot not already taken (two
             # units in a row, "ثلاثة وخمسة", are separate numbers, not eight)
             slot = _group_slot(tokens, j + 1)
+            if slot == "hundred" and "hundred" in filled and \
+                    _bare(tokens[j + 1]) in _UNITS_LOOKUP:
+                # with the hundred filled, a unit after و joins this number and
+                # does not multiply the next hundred: "مية و اربعة مية و اربعة"
+                # is 104 and 104, never 100 and 404
+                slot = "unit"
             if slot in ("scale", "frac") or (
                     slot in ("unit", "ten", "hundred") and slot not in filled):
                 j += 1
@@ -1313,7 +1319,8 @@ def _parse_number_span(tokens, i):
         if tok in _UNITS_LOOKUP:
             # unit followed by مئة multiplies: "ثلاث مئة" = 300. The SADA
             # transcripts write two hundred this way too ("اثنين مية واثنين" 202)
-            if nxt in _HUNDRED_MULT_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9:
+            if nxt in _HUNDRED_MULT_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9 and not (
+                    "hundred" in filled and tokens[j - 1] == "و"):
                 # after a unit or a ten with no و it is a second number:
                 # "إثنين إثنين مئة" is 2 and 200, never 202
                 if "hundred" in filled or \
