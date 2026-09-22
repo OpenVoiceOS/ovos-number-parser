@@ -1118,7 +1118,7 @@ def _group_slot(tokens, j):
     if tok in _FUSED_TEENS_LOOKUP:
         return "unit"
     if tok in _UNITS_LOOKUP:
-        if nxt in _HUNDRED_MULT_LOOKUP and 3 <= _UNITS_LOOKUP[tok] <= 9:
+        if nxt in _HUNDRED_MULT_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9:
             return "hundred"
         return "unit"
     if tok in _TENS_LOOKUP:
@@ -1311,12 +1311,13 @@ def _parse_number_span(tokens, i):
             j += 2
             continue
         if tok in _UNITS_LOOKUP:
-            # unit followed by مئة multiplies: "ثلاث مئة" = 300. Only 3 to 9
-            # build a hundred: 100 is مية alone and 200 the dual ميتين
-            # (Qafisheh 1970, p. 59; Omar 1975, p. 69), so "اتنين مية" and
-            # "واحد مية" are two numbers.
-            if nxt in _HUNDRED_MULT_LOOKUP and 3 <= _UNITS_LOOKUP[tok] <= 9:
-                if "hundred" in filled:
+            # unit followed by مئة multiplies: "ثلاث مئة" = 300. The SADA
+            # transcripts write two hundred this way too ("اثنين مية واثنين" 202)
+            if nxt in _HUNDRED_MULT_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9:
+                # after a unit or a ten with no و it is a second number:
+                # "إثنين إثنين مئة" is 2 and 200, never 202
+                if "hundred" in filled or \
+                        {"unit", "ten"} & filled and tokens[j - 1] != "و":
                     break
                 current += _UNITS_LOOKUP[tok] * 100
                 filled.add("hundred")
@@ -1340,10 +1341,10 @@ def _parse_number_span(tokens, i):
             continue
         if tok in _HUNDREDS_LOOKUP or tok in _CONSTRUCT_HUNDRED_LOOKUP and (
                 not started or j > i and tokens[j - 1] == "و"):
-            # a hundred written straight after a unit or a ten is a second
-            # number: "اتنين مية" is 2 and 100, never 102
+            # a hundred written straight after a ten is a second number:
+            # "تلاتين مية وعشرين" is 30 and 120, never 130 and 20
             if "hundred" in filled or \
-                    {"unit", "ten"} & filled and tokens[j - 1] != "و":
+                    "ten" in filled and tokens[j - 1] != "و":
                 break
             current += _HUNDREDS_LOOKUP.get(tok) or \
                 _CONSTRUCT_HUNDRED_LOOKUP[tok]
@@ -1498,6 +1499,21 @@ def _continues_a_number_ar(word):
     return _normalize_ar(word).removeprefix("و") in _CONSTRUCT_HUNDRED_LOOKUP
 
 
+def _first_number_words_ar(words):
+    """How many of `words` the first number covers, as this module reads them,
+    or None when the first number does not start at the first word."""
+    tokens, owner = [], []
+    for w, word in enumerate(words):
+        for token in _tokenize_ar(word):
+            tokens.append(token)
+            owner.append(w)
+    for start, end, _ in _number_spans(tokens):
+        if owner[start] != 0:
+            return None
+        return owner[end - 1] + 1
+    return None
+
+
 _MASK_RE = re.compile("\uf8ff(.)\uf8ff")
 _PUNCT_AR = ".,!?;:؟،؛"
 
@@ -1559,6 +1575,7 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)
     spaced = _WORD_RE.sub(_detach_proclitic, spaced)
     converted = _numbers_to_digits_generic(spaced, lang,
-                                           continues=_continues_a_number_ar)
+                                           continues=_continues_a_number_ar,
+                                           first_number_words=_first_number_words_ar)
     converted = _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
     return _MASK_RE.sub(lambda m: masked[ord(m.group(1)) - 0xE000], converted)

@@ -299,13 +299,20 @@ def _is_digit_run(token: str) -> bool:
 
 
 def _numbers_to_digits_generic(utterance: str, lang: str,
-                               continues=None) -> str:
+                               continues=None, first_number_words=None) -> str:
     """Fallback that replaces spoken number spans with digits using
     extract_number over maximal runs of number words.
 
     ``continues`` is an optional predicate for a word that is no number by
     itself but can extend a number already started; the span takes it only
     when the value of the span grows.
+
+    ``first_number_words`` is an optional reader for a language whose own parser
+    says where one number ends and the next begins: handed the words of a run of
+    number words, it returns how many of them the first number covers, or None.
+    The span never grows past it, since growth by value alone joins two numbers
+    whenever the joined value happens to be larger ("عشرين ست مية" is 20 and 600,
+    not 26 and 100).
     """
     lang2 = lang.lower().split("-")[0]
     connectors = _NUMBER_CONNECTORS.get("ar" if _is_ar(lang) else lang2, set())
@@ -382,10 +389,24 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
         def _may_extend(t):
             return _is_num(t) or bool(continues and continues(_clean(t)))
 
+        limit = len(tokens) - 1
+        if first_number_words:
+            end = i
+            while end + 1 < len(tokens) and (
+                    _may_extend(tokens[end + 1]) or
+                    _clean(tokens[end + 1]) in connectors and end + 2 < len(tokens)
+                    and _may_extend(tokens[end + 2])):
+                end += 1
+            covered = first_number_words([_clean(t) for t in tokens[i:end + 1]])
+            if covered:
+                limit = i + covered - 1
+
         while j + 1 < len(tokens):
+            if j + 1 > limit:
+                break
             if _may_extend(tokens[j + 1]) and _continues(j + 1):
                 j += 1
-            elif _clean(tokens[j + 1]) in connectors and j + 2 < len(tokens) \
+            elif _clean(tokens[j + 1]) in connectors and j + 2 <= limit \
                     and _may_extend(tokens[j + 2]) \
                     and _continues(j + 2, via_connector=True):
                 j += 2
