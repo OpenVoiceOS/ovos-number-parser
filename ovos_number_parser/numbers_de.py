@@ -898,11 +898,25 @@ def extract_number_de(text, short_scale=True, ordinals=False):
     text = _expand_compound_numbers_de(text.lower())
     numbers = _extract_numbers_with_text_de(tokenize(text),
                                             short_scale, ordinals)
-    # if query ordinals only consider ordinals
+    # `ordinals=True` adds the ordinal reading, it does not replace the
+    # cardinal one, and an ordinal in the line wins over a cardinal beside
+    # it: "drei fünfte" is 5. Danish and German answer the same here, and both
+    # take the FIRST ordinal when a line holds several. English is not
+    # the anchor for either rule: it returns the LAST number of the
+    # line, so "fifth three" is 3 and "three fifth seven" is 7. Which
+    # rule this library should hold is open (panel item
+    # number-parser-ordinals-rule-v2); this code states what the two
+    # languages do, not what English does.
+    #
+    # The German extractor does answer an ordinal as the string "5.", so
+    # the clause that used to stand here selected correctly when an ordinal
+    # was present. What it lacked is the fallback: with no ordinal in the
+    # line it emptied the list, so "zähl bis fünf" answered None.
     if ordinals:
-        numbers = list(filter(lambda x: isinstance(x.value, str)
-                                        and x.value.endswith("."),
-                              numbers))
+        preferred = [x for x in numbers
+                     if isinstance(x.value, str) and x.value.endswith(".")]
+        if preferred:
+            numbers = preferred
 
     number = numbers[0].value if numbers else None
 
