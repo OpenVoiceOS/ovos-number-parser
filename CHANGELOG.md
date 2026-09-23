@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.22.16a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.16a2) (2026-09-23)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.16a1...0.22.16a2)
+
+**Merged pull requests:**
+
+- chore\(ci\): drop the broken Dependabot config [\#309](https://github.com/OpenVoiceOS/ovos-number-parser/pull/309) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.22.16a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.16a1) (2026-09-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.15a1...0.22.16a1)
