@@ -199,3 +199,51 @@ class TestDanishNonDecimalUnicodeDigits(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDanishOrdinalsFlagKeepsCardinals(unittest.TestCase):
+    """`ordinals=True` adds the ordinal reading, it does not remove the
+    cardinal one.
+
+    Sixteen of the eighteen languages measured answer the cardinal under
+    `ordinals=True`; Danish and German answered nothing at all, for any
+    input, because a filter kept only a value that is a string ending in
+    ".", a shape the extractor never produces. ovos-skill-count always
+    passes `ordinals=True`, so "tæl til fem" spoke the failure dialog in
+    da-DK.
+    """
+
+    CARDINALS = {
+        "en": 1, "to": 2, "tre": 3, "fire": 4, "fem": 5, "seks": 6,
+        "syv": 7, "otte": 8, "ni": 9, "ti": 10, "elleve": 11, "tolv": 12,
+        "tretten": 13, "fjorten": 14, "femten": 15, "seksten": 16,
+        "sytten": 17, "atten": 18, "nitten": 19, "tyve": 20,
+    }
+
+    ORDINALS = {
+        "første": 1, "anden": 2, "tredje": 3, "fjerde": 4, "femte": 5,
+        "sjette": 6, "syvende": 7, "ottende": 8, "niende": 9, "tiende": 10,
+    }
+
+    def test_every_cardinal_survives_the_ordinals_flag(self):
+        for word, value in self.CARDINALS.items():
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="da", ordinals=True), value)
+
+    def test_the_skill_utterance_counts(self):
+        # ovos-skill-count's own call, the one that spoke the failure dialog
+        self.assertEqual(
+            extract_number("tæl til fem", lang="da", ordinals=True), 5)
+
+    def test_every_ordinal_reads_under_the_flag(self):
+        for word, value in self.ORDINALS.items():
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="da", ordinals=True), value)
+
+    def test_an_ordinal_wins_over_a_cardinal_in_the_same_line(self):
+        self.assertEqual(
+            extract_number("den femte af ti", lang="da", ordinals=True), 5)
+
+    def test_the_default_is_unchanged(self):
+        self.assertEqual(extract_number("tæl til fem", lang="da"), 5)
+        self.assertEqual(extract_number("den femte", lang="da"), False)

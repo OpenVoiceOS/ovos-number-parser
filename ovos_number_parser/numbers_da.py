@@ -1021,11 +1021,13 @@ def extract_number_da(text, short_scale=False, ordinals=False):
     text = _expand_compound_numbers_da(text.lower())
     numbers = _extract_numbers_with_text_da(tokenize(text),
                                             short_scale, ordinals)
-    # if query ordinals only consider ordinals
-    if ordinals:
-        numbers = list(filter(lambda x: isinstance(x.value, str)
-                                        and x.value.endswith("."),
-                              numbers))
+    # `ordinals=True` adds the ordinal reading, it does not replace the
+    # cardinal one: `_extract_number_with_text_*_helper` answers an ordinal
+    # first and a cardinal otherwise, which is what every other language of
+    # this package returns. The filter that used to stand here kept only a
+    # value that is a string ending in ".", a shape the helper never
+    # produces, so every call with `ordinals=True` answered nothing at all,
+    # the real ordinals included.
 
     if not numbers:
         return False

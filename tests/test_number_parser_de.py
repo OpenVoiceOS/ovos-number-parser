@@ -160,3 +160,40 @@ class TestGermanSpacedUnd(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGermanOrdinalsFlagKeepsCardinals(unittest.TestCase):
+    """The same defect as Danish, in the same shape.
+
+    `extract_number_de` filtered its results to a value that is a string
+    ending in ".", which the extractor never produces, so every call with
+    `ordinals=True` answered nothing, the real ordinals included.
+    """
+
+    CARDINALS = {
+        "eins": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6,
+        "sieben": 7, "acht": 8, "neun": 9, "zehn": 10, "elf": 11,
+        "zwölf": 12, "dreizehn": 13, "zwanzig": 20,
+    }
+
+    ORDINALS = {
+        "erste": 1, "zweite": 2, "dritte": 3, "vierte": 4, "fünfte": 5,
+        "zehnte": 10,
+    }
+
+    def test_every_cardinal_survives_the_ordinals_flag(self):
+        for word, value in self.CARDINALS.items():
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="de", ordinals=True), value)
+
+    def test_the_skill_utterance_counts(self):
+        self.assertEqual(
+            extract_number("zähl bis fünf", lang="de", ordinals=True), 5)
+
+    def test_every_ordinal_reads_under_the_flag(self):
+        for word, value in self.ORDINALS.items():
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="de", ordinals=True), value)
+
+    def test_the_default_is_unchanged(self):
+        self.assertEqual(extract_number("zähl bis fünf", lang="de"), 5)
