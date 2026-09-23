@@ -245,17 +245,25 @@ class TestDanishOrdinalsFlagKeepsCardinals(unittest.TestCase):
 
         A bare cardinal cannot tell a dead filter from a live one that drops
         cardinals: both answer the cardinal once the filter is gone. A line
-        holding an ordinal AND a cardinal does tell them apart. English is
-        the anchor: `extract_number("three fifth", lang="en", ordinals=True)`
-        answers 5, so the ordinal wins over the cardinal beside it.
+        holding an ordinal AND a cardinal does tell them apart.
+
+        English is NOT the anchor for this. It returns the last number of
+        the line, not the ordinal: "fifth three" answers 3 and
+        "three fifth seven" answers 7, so "three fifth" answering 5 is the
+        position of the word and not its kind. The two rules are the
+        library's open question (panel item
+        number-parser-ordinals-rule-v2), and the English line below is
+        asserted as the behaviour that must flip if it is ruled the other
+        way, never as a justification for this one.
         """
         self.assertEqual(
             extract_number("den femte af ti", lang="da", ordinals=True), 5)
         self.assertEqual(
             extract_number("tre femte", lang="da", ordinals=True), 5)
-        # the anchor itself, so a change to English is caught here too
+        # English's own rule, recorded so a change to it is caught: the
+        # LAST number of the line, whatever its kind.
         self.assertEqual(
-            extract_number("three fifth", lang="en", ordinals=True), 5)
+            extract_number("three fifth seven", lang="en", ordinals=True), 7)
 
     def test_two_ordinals_resolve_the_same_way_as_german(self):
         """One cardinal and one ordinal cannot separate "the first ordinal"
@@ -266,8 +274,10 @@ class TestDanishOrdinalsFlagKeepsCardinals(unittest.TestCase):
         Both take the FIRST ordinal. That is German's behaviour before this
         change as well as after it, so Danish is matched to the language that
         had a working mechanism rather than to a new rule of its own.
-        English answers differently here, and that divergence is older than
-        this change.
+        English answers differently here because it returns the last number
+        of the line rather than an ordinal, which is a rule of its own and
+        older than this change. Which rule the library should hold is the
+        open question on panel item number-parser-ordinals-rule-v2.
         """
         for lang, line in (("da", "den tredje femte"), ("de", "der dritte fünfte")):
             with self.subTest(lang=lang):

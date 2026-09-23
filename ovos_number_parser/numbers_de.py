@@ -900,7 +900,13 @@ def extract_number_de(text, short_scale=True, ordinals=False):
                                             short_scale, ordinals)
     # `ordinals=True` adds the ordinal reading, it does not replace the
     # cardinal one, and an ordinal in the line wins over a cardinal beside
-    # it: "drei fünfte" is 5, the way English answers 5 for "three fifth".
+    # it: "drei fünfte" is 5. Danish and German answer the same here, and both
+    # take the FIRST ordinal when a line holds several. English is not
+    # the anchor for either rule: it returns the LAST number of the
+    # line, so "fifth three" is 3 and "three fifth seven" is 7. Which
+    # rule this library should hold is open (panel item
+    # number-parser-ordinals-rule-v2); this code states what the two
+    # languages do, not what English does.
     #
     # The German extractor does answer an ordinal as the string "5.", so
     # the clause that used to stand here selected correctly when an ordinal

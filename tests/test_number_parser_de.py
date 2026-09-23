@@ -203,8 +203,10 @@ class TestGermanOrdinalsFlagKeepsCardinals(unittest.TestCase):
             extract_number("drei fünfte", lang="de", ordinals=True), 5)
         self.assertEqual(
             extract_number("der fünfte von zehn", lang="de", ordinals=True), 5)
+        # English is not the anchor: it returns the LAST number of the
+        # line, whatever its kind. Recorded so a change to it is caught.
         self.assertEqual(
-            extract_number("three fifth", lang="en", ordinals=True), 5)
+            extract_number("three fifth seven", lang="en", ordinals=True), 7)
 
     def test_the_default_is_unchanged(self):
         self.assertEqual(extract_number("zähl bis fünf", lang="de"), 5)
