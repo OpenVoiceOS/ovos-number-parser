@@ -1029,7 +1029,13 @@ def extract_number_da(text, short_scale=False, ordinals=False):
     # ending in ".". `is_ordinal_da` answers the integer 5 for "femte", not
     # the string "5.", so that filter matched nothing in Danish and every
     # call with `ordinals=True` answered False, the real ordinals included.
-    # The preference is expressed against the words instead.
+    # The preference is expressed against the words instead: the first
+    # ordinal token wins, which is what `_extract_number_with_text_da_helper`
+    # already does inside the extraction, and what German answers for the
+    # same shape. A word that `is_ordinal_da` reads as an ordinal and a
+    # speaker does not ("anden" is both "second" and "the duck") is matched
+    # here exactly as the helper matches it, so this adds no reading of its
+    # own; that ambiguity belongs to the table.
     if ordinals:
         for token in tokenize(text):
             ordinal = is_ordinal_da(token.word)

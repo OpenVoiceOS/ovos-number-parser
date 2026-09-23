@@ -257,6 +257,43 @@ class TestDanishOrdinalsFlagKeepsCardinals(unittest.TestCase):
         self.assertEqual(
             extract_number("three fifth", lang="en", ordinals=True), 5)
 
+    def test_two_ordinals_resolve_the_same_way_as_german(self):
+        """One cardinal and one ordinal cannot separate "the first ordinal"
+        from "the ordinal": both answers are the same number. A line with two
+        ordinals does, and it is also where the two languages could drift
+        apart, which is what brought this change back once already.
+
+        Both take the FIRST ordinal. That is German's behaviour before this
+        change as well as after it, so Danish is matched to the language that
+        had a working mechanism rather than to a new rule of its own.
+        English answers differently here, and that divergence is older than
+        this change.
+        """
+        for lang, line in (("da", "den tredje femte"), ("de", "der dritte fünfte")):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number(line, lang=lang, ordinals=True), 3)
+        for lang, line in (("da", "ti tredje femte"), ("de", "zehn dritte fünfte")):
+            with self.subTest(lang=lang, shape="with a cardinal"):
+                self.assertEqual(extract_number(line, lang=lang, ordinals=True), 3)
+
+    def test_an_ordinal_shaped_word_that_is_not_an_ordinal(self):
+        """"anden" is the ordinal "second" and the definite form of "and",
+        the duck. `is_ordinal_da` matches it on the word alone, so
+        "jeg så anden i parken" ("I saw the duck in the park") reads as 2.
+
+        This test records the answer rather than blessing it. The same 2
+        comes out of `_extract_number_with_text_da_helper` with no
+        caller-side scan at all, so the ambiguity belongs to the table and
+        the scan in `extract_number_da` adds no reading of its own. Whether
+        an ordinal-shaped token should need context is T-3900. If that lands,
+        this expectation changes with it, deliberately.
+        """
+        self.assertEqual(
+            extract_number("jeg så anden i parken", lang="da", ordinals=True), 2)
+        # the default path never had the ordinal reading and still does not
+        self.assertEqual(
+            extract_number("jeg så anden i parken", lang="da"), False)
+
     def test_the_default_is_unchanged(self):
         self.assertEqual(extract_number("tæl til fem", lang="da"), 5)
         self.assertEqual(extract_number("den femte", lang="da"), False)
