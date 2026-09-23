@@ -241,8 +241,21 @@ class TestDanishOrdinalsFlagKeepsCardinals(unittest.TestCase):
                 self.assertEqual(extract_number(word, lang="da", ordinals=True), value)
 
     def test_an_ordinal_wins_over_a_cardinal_in_the_same_line(self):
+        """The line that separates the two readings.
+
+        A bare cardinal cannot tell a dead filter from a live one that drops
+        cardinals: both answer the cardinal once the filter is gone. A line
+        holding an ordinal AND a cardinal does tell them apart. English is
+        the anchor: `extract_number("three fifth", lang="en", ordinals=True)`
+        answers 5, so the ordinal wins over the cardinal beside it.
+        """
         self.assertEqual(
             extract_number("den femte af ti", lang="da", ordinals=True), 5)
+        self.assertEqual(
+            extract_number("tre femte", lang="da", ordinals=True), 5)
+        # the anchor itself, so a change to English is caught here too
+        self.assertEqual(
+            extract_number("three fifth", lang="en", ordinals=True), 5)
 
     def test_the_default_is_unchanged(self):
         self.assertEqual(extract_number("tæl til fem", lang="da"), 5)

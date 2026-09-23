@@ -1022,12 +1022,19 @@ def extract_number_da(text, short_scale=False, ordinals=False):
     numbers = _extract_numbers_with_text_da(tokenize(text),
                                             short_scale, ordinals)
     # `ordinals=True` adds the ordinal reading, it does not replace the
-    # cardinal one: `_extract_number_with_text_*_helper` answers an ordinal
-    # first and a cardinal otherwise, which is what every other language of
-    # this package returns. The filter that used to stand here kept only a
-    # value that is a string ending in ".", a shape the helper never
-    # produces, so every call with `ordinals=True` answered nothing at all,
-    # the real ordinals included.
+    # cardinal one, and an ordinal in the line wins over a cardinal beside
+    # it: "tre femte" is 5, the way English answers 5 for "three fifth".
+    #
+    # The filter that used to stand here kept only a value that is a string
+    # ending in ".". `is_ordinal_da` answers the integer 5 for "femte", not
+    # the string "5.", so that filter matched nothing in Danish and every
+    # call with `ordinals=True` answered False, the real ordinals included.
+    # The preference is expressed against the words instead.
+    if ordinals:
+        for token in tokenize(text):
+            ordinal = is_ordinal_da(token.word)
+            if ordinal:
+                return ordinal
 
     if not numbers:
         return False

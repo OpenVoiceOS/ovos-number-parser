@@ -195,5 +195,16 @@ class TestGermanOrdinalsFlagKeepsCardinals(unittest.TestCase):
             with self.subTest(word=word):
                 self.assertEqual(extract_number(word, lang="de", ordinals=True), value)
 
+    def test_an_ordinal_wins_over_a_cardinal_in_the_same_line(self):
+        """German answers an ordinal as the string "5.", so the clause that
+        selected on that shape was doing real work here. Only the fallback
+        was missing. This line is what proves the preference survived."""
+        self.assertEqual(
+            extract_number("drei fünfte", lang="de", ordinals=True), 5)
+        self.assertEqual(
+            extract_number("der fünfte von zehn", lang="de", ordinals=True), 5)
+        self.assertEqual(
+            extract_number("three fifth", lang="en", ordinals=True), 5)
+
     def test_the_default_is_unchanged(self):
         self.assertEqual(extract_number("zähl bis fünf", lang="de"), 5)
