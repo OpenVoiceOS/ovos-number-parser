@@ -9,8 +9,11 @@ Both walks ask the same question about the same token, and the expensive
 half of that question is ``extract_number``. Counting the calls is the
 measurement, because a wall-clock threshold in CI measures the runner.
 
-Baseline on dev before the cache, for a 16-token Arabic run of distinct
-number words: 148 calls. With the per-token answers cached: 35.
+Baseline on dev before the cache, for the 16-token Arabic run of distinct
+number words this file builds: 56 calls. With the per-token answers cached:
+28. Both numbers are from the sorted input below, so they reproduce at any
+PYTHONHASHSEED. An earlier pair, 148 and 35, was measured on hash-ordered
+input and was one sample of a moving measurement.
 """
 import itertools
 import unittest
@@ -27,7 +30,12 @@ def _arabic_run(n=TOKENS):
     Distinct on purpose: a run of one repeated word would let a cache look
     good by collapsing repetitions rather than by removing the second walk.
     """
-    words = [w for w in list(_NUMBER_WORDS) if w]
+    # sorted(), not list(): _NUMBER_WORDS is a set, so list() iterates it in
+    # hash order and the run of words changes with PYTHONHASHSEED. The call
+    # count changed with it, and the bound below was exceeded at seed 78 (50
+    # calls against 48) while passing at seed 0. A benchmark whose INPUT moves
+    # measures the seed.
+    words = sorted(w for w in _NUMBER_WORDS if w)
     return " ".join(itertools.islice(itertools.cycle(words), n))
 
 
@@ -79,14 +87,19 @@ class TestTheRunIsReadOnce(unittest.TestCase):
 
         It is the control for the cache itself: a cache that helped Arabic
         by breaking the shared reader would show up here.
+
+        The bound is this branch's own measurement, 50, with a small margin.
+        It was 62, which is what DEV spends exactly, so the control could not
+        fail on dev and pinned nothing. The Spanish word list here is a
+        literal, so this number does not move with PYTHONHASHSEED.
         """
         text = _spanish_run()
         with _CountingExtractNumber() as counter:
             ovos_number_parser.numbers_to_digits(text, "es")
         self.assertLessEqual(
-            counter.calls, 62,
+            counter.calls, 52,
             f"{counter.calls} extract_number calls for {TOKENS} Spanish "
-            f"tokens; dev spent 62")
+            f"tokens; this branch spends 50")
 
 
 class TestTheAnswersAreUnchanged(unittest.TestCase):
