@@ -1018,6 +1018,13 @@ def extract_number_da(text, short_scale=False, ordinals=False):
         (int) or (float) or False: The extracted number or False if no number
                                    was found
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "da", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     text = _expand_compound_numbers_da(text.lower())
     numbers = _extract_numbers_with_text_da(tokenize(text),
                                             short_scale, ordinals)

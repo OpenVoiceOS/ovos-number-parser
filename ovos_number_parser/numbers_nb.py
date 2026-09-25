@@ -827,6 +827,13 @@ def is_fractional_nb(input_str, short_scale=False):
 
 def extract_number_nb(text, short_scale=False, ordinals=False):
     """Extract a number from Bokmål text, both counting traditions."""
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "nb", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     return _extract_number(text, _TABLES_NB, ordinals)
 
 
