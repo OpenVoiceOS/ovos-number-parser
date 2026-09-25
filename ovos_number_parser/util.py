@@ -543,6 +543,9 @@ class RomanceNumberExtractor:
         current = 0
         saw_number = False
         is_negative = False
+        #: an ordinal is a complete number on its own: nothing continues it,
+        #: so a word after one always ends the number
+        last_was_ordinal = False
 
         i = 0
         while i < len(tokens):
@@ -571,6 +574,7 @@ class RomanceNumberExtractor:
             val = numbers_map.get(token)
             if val is not None:
                 saw_number = True
+                last_was_ordinal = False
                 if val >= 1000:
                     # scale multiplier (mil, milhão, ...)
                     if val == 1000:
@@ -594,6 +598,7 @@ class RomanceNumberExtractor:
 
             if ordinals and self.is_ordinal(token):
                 saw_number = True
+                last_was_ordinal = True
                 current += ordinals_map[token]
                 i += 1
                 continue
@@ -653,6 +658,38 @@ class RomanceNumberExtractor:
                 i += 1
                 continue
 
+            # A word this vocabulary does not know ends the number. Skipping
+            # it kept the accumulator open across ordinary words, so two
+            # numbers with anything between them were added together:
+            # "dos qzx tercero" answered 5 rather than 2. Numbers that other
+            # words separate are two numbers, and the first one is the answer
+            # (panel item number-parser-ordinals-rule-v2).
+            #
+            # Only after a number has been read: an unknown word before the
+            # first one is leading context ("quiero tres cosas" is still 3),
+            # which is the same guard the ascending-joiner break above uses.
+            if saw_number:
+                # A word this vocabulary does not know ends the number,
+                # under the same descending test the joiner branch above
+                # uses. Skipping it kept the accumulator open across
+                # ordinary words, so two numbers with anything between them
+                # were added together: "dos qzx tercero" answered 5 rather
+                # than 2.
+                #
+                # It carries on only when the next word is a number word
+                # smaller than what is pending, which is a number still
+                # being read rather than a second one. Romanian needs that:
+                # "o suta" writes its feminine "one" as a word the map does
+                # not hold, and "cinci sute de mii" links a scale word with
+                # a particle.
+                nxt = numbers_map.get(tokens[i + 1]) if i + 1 < len(tokens) \
+                    else None
+                pending = current or result
+                if not last_was_ordinal and nxt is not None and pending \
+                        and nxt < pending:
+                    i += 1
+                    continue
+                break
             i += 1
 
         result += current
