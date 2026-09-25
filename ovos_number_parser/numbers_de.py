@@ -895,6 +895,13 @@ def extract_number_de(text, short_scale=True, ordinals=False):
                                    was found
 
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "de", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     text = _expand_compound_numbers_de(text.lower())
     numbers = _extract_numbers_with_text_de(tokenize(text),
                                             short_scale, ordinals)

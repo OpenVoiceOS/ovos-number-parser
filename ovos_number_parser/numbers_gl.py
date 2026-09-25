@@ -370,6 +370,13 @@ def extract_number_gl(
     """
     DEPRECATED
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "gl", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,
