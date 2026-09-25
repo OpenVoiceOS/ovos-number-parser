@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.23.0a1) (2026-09-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.17a1...0.23.0a1)
+
+**Merged pull requests:**
+
+- feat\(ordinals\): the leftmost number of a mixed line wins under ordinals=True [\#361](https://github.com/OpenVoiceOS/ovos-number-parser/pull/361) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.22.17a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.17a1) (2026-09-23)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.16a2...0.22.17a1)
