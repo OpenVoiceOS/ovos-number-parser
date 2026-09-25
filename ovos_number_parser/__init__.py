@@ -325,7 +325,23 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
     def _clean(t):
         return t.strip(punct).lower()
 
+    #: token -> answer, for the two readers below. Both are pure functions
+    #: of the token, and both are asked the same question about the same
+    #: token more than once: the Arabic pre-scan walks a run of number words
+    #: with ``_may_extend`` before the main loop walks the same run again.
+    #: Without this every token in an Arabic number run is read twice, and
+    #: ``extract_number`` is the expensive half of each read.
+    _is_num_cache = {}
+    _may_extend_cache = {}
+
     def _is_num(t):
+        cached = _is_num_cache.get(t)
+        if cached is not None:
+            return cached
+        _is_num_cache[t] = answer = _is_num_uncached(t)
+        return answer
+
+    def _is_num_uncached(t):
         c = _clean(t)
         if not c:
             return False
@@ -387,7 +403,12 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
                 and abs(next_val) >= 100
 
         def _may_extend(t):
-            return _is_num(t) or bool(continues and continues(_clean(t)))
+            cached = _may_extend_cache.get(t)
+            if cached is not None:
+                return cached
+            answer = _is_num(t) or bool(continues and continues(_clean(t)))
+            _may_extend_cache[t] = answer
+            return answer
 
         limit = len(tokens) - 1
         if first_number_words:
