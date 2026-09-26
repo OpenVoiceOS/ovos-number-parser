@@ -109,5 +109,64 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(extract_number('٣', lang=lang), 3)
 
 
+class TestOrdinalsFlagReadsBothKinds(unittest.TestCase):
+    """``ordinals=True`` means "read ordinals too", not "read ordinals only".
+
+    T-4474: the shared ``_extract_number`` returned False as soon as its
+    ordinal scan found nothing, so the cardinal reading below it never ran.
+    ``extract_number("to", lang="nb", ordinals=True)`` was False while
+    ``extract_number("to", lang="nb")`` was 2. A nb or nn line therefore never
+    held two number spans, and the leftmost rule could not answer there.
+
+    Every other locale in this library keeps the cardinal under the flag
+    (en, da, de, nl, sv were checked), so this is the contract, not a choice
+    made here.
+    """
+
+    CARDINALS = {"to": 2, "tre": 3, "fem": 5, "tjue": 20}
+    ORDINALS = {"tredje": 3, "femte": 5}
+
+    def test_a_cardinal_still_reads_under_the_flag(self):
+        for lang in ("nb", "nn"):
+            for word, value in self.CARDINALS.items():
+                with self.subTest(lang=lang, word=word):
+                    self.assertEqual(
+                        extract_number(word, lang=lang, ordinals=True), value)
+
+    def test_the_flag_does_not_change_a_cardinal(self):
+        """The two readings agree, which is what was broken."""
+        for lang in ("nb", "nn"):
+            for word in self.CARDINALS:
+                with self.subTest(lang=lang, word=word):
+                    self.assertEqual(
+                        extract_number(word, lang=lang, ordinals=True),
+                        extract_number(word, lang=lang))
+
+    def test_an_ordinal_still_reads_under_the_flag(self):
+        for lang in ("nb", "nn"):
+            for word, value in self.ORDINALS.items():
+                with self.subTest(lang=lang, word=word):
+                    self.assertEqual(
+                        extract_number(word, lang=lang, ordinals=True), value)
+
+    def test_an_ordinal_reads_nothing_without_the_flag(self):
+        """Unchanged behaviour, pinned so the fix cannot leak the other way."""
+        for lang in ("nb", "nn"):
+            for word in self.ORDINALS:
+                with self.subTest(lang=lang, word=word):
+                    self.assertFalse(extract_number(word, lang=lang))
+
+    def test_an_ordinal_present_still_wins(self):
+        """This family's rule: the ordinal wins wherever it stands. The fix
+        adds the cardinal fallback and must not reorder that."""
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    extract_number("to tredje", lang=lang, ordinals=True), 3)
+                self.assertEqual(
+                    extract_number("to tre", lang=lang, ordinals=True), 2)
+
+
+
 if __name__ == "__main__":
     unittest.main()

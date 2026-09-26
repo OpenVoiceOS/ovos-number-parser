@@ -728,11 +728,17 @@ def _extract_numbers_with_text(tokens, t, ordinals=False, fractions=True):
 def _extract_number(text, t, ordinals=False):
     text = _expand_compound_numbers(text.lower(), t)
     if ordinals:
+        # ordinals=True means "read ordinals TOO", not "read ordinals ONLY".
+        # An ordinal anywhere in the text wins, which is this family's rule
+        # (da de kab nb nn: the ordinal wins wherever it stands). With no
+        # ordinal present the cardinal reading below still answers; returning
+        # False here dropped it, so extract_number_nb("to", ordinals=True) was
+        # False while extract_number_nb("to") was 2. ``_extract_number_with_text``
+        # above already falls through this way.
         for word in text.split():
             ordinal = _is_ordinal(word.strip(".,!?;:"), t)
             if ordinal is not False:
                 return ordinal
-        return False
     numbers = _extract_numbers_with_text(tokenize(text), t)
     if not numbers:
         return False
