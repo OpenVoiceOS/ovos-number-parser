@@ -48,6 +48,10 @@ REACHED = {
     #        extract,            card,   ordinal,     off(O x C), off(C x O)
     "da": (extract_number_da, "to", "tredje", 2, 2),
     "de": (extract_number_de, "zwei", "dritte", 2, 2),
+    # T-4474 moved these two here: the ordinals branch dropped the cardinal
+    # reading, so the line never held two spans. They read exactly as da does.
+    "nb": (extract_number_nb, "to", "tredje", 2, 2),
+    "nn": (extract_number_nn, "to", "tredje", 2, 2),
     "kab": (extract_number_kab, "sin", "wis kṛaḍ", 3, 2),
     "en": (extract_number_en, "two", "third", False, 2),
 }
@@ -58,16 +62,14 @@ REACHED = {
 #: never reaches it. Any other adjacency stays two spans and the rule does
 #: reach it. Kabyle writes its ordinal as a phrase, "wis kṛaḍ", so neither of
 #: its orders is one span and the rule reaches both.
-ADJACENT_SPANS = {"da": (2, 1), "de": (2, 1), "kab": (2, 2), "en": (1, 2)}
+ADJACENT_SPANS = {"da": (2, 1), "de": (2, 1), "kab": (2, 2), "en": (1, 2),
+                  "nb": (2, 1), "nn": (2, 1)}
 
 #: locales whose parser cannot answer the rule yet, with the value each one
 #: returns today and the task that unblocks it. Each entry is a defect in the
 #: locale's own reading, not in the rule: the line never reaches two number
 #: spans, so there is no "leftmost" to choose.
 BLOCKED = {
-    # the plain cardinal stops being read once ordinals=True
-    "nb": (extract_number_nb, "to", "tredje", 3, 3, "cardinal unread"),
-    "nn": (extract_number_nn, "to", "tredje", 3, 3, "cardinal unread"),
     # the ordinal word is not recognised at all
     "eu": (extract_number_eu, "bi", "hirugarren", 2, 2, "ordinal unread"),
     "fa": (extract_number_fa, "دو", "سوم", 2, 2, "ordinal unread"),
