@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.0a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.23.0a2) (2026-09-26)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.23.0a1...0.23.0a2)
+
+**Merged pull requests:**
+
+- perf\(generic\): ask each token once, not once per walk [\#363](https://github.com/OpenVoiceOS/ovos-number-parser/pull/363) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.23.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.23.0a1) (2026-09-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.17a1...0.23.0a1)
