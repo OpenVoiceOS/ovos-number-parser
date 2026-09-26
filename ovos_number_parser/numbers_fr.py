@@ -896,6 +896,13 @@ def extract_number_fr(text, short_scale=True, ordinals=False):
     Returns:
         (int, float) or False: the extracted number, or False if none is found
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "fr", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     if not isinstance(text, str):
         return False
 

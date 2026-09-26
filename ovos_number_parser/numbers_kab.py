@@ -360,6 +360,13 @@ def extract_number_kab(text: str, short_scale: bool = False,
     and the pan-Amazigh proposed system (descending magnitudes 
     without connectors like "sin igiman tam imda" = 2800).
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "kab", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     raw_tokens = text.split()
     strip_chars = _TRAILING_PUNCT + _LEADING_PUNCT
 

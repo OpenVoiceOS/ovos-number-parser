@@ -199,3 +199,111 @@ class TestDanishNonDecimalUnicodeDigits(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDanishOrdinalsFlagKeepsCardinals(unittest.TestCase):
+    """`ordinals=True` adds the ordinal reading, it does not remove the
+    cardinal one.
+
+    Sixteen of the eighteen languages measured answer the cardinal under
+    `ordinals=True`; Danish and German answered nothing at all, for any
+    input, because a filter kept only a value that is a string ending in
+    ".", a shape the extractor never produces. ovos-skill-count always
+    passes `ordinals=True`, so "tæl til fem" spoke the failure dialog in
+    da-DK.
+    """
+
+    CARDINALS = {
+        "en": 1, "to": 2, "tre": 3, "fire": 4, "fem": 5, "seks": 6,
+        "syv": 7, "otte": 8, "ni": 9, "ti": 10, "elleve": 11, "tolv": 12,
+        "tretten": 13, "fjorten": 14, "femten": 15, "seksten": 16,
+        "sytten": 17, "atten": 18, "nitten": 19, "tyve": 20,
+    }
+
+    ORDINALS = {
+        "første": 1, "anden": 2, "tredje": 3, "fjerde": 4, "femte": 5,
+        "sjette": 6, "syvende": 7, "ottende": 8, "niende": 9, "tiende": 10,
+    }
+
+    def test_every_cardinal_survives_the_ordinals_flag(self):
+        for word, value in self.CARDINALS.items():
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="da", ordinals=True), value)
+
+    def test_the_skill_utterance_counts(self):
+        # ovos-skill-count's own call, the one that spoke the failure dialog
+        self.assertEqual(
+            extract_number("tæl til fem", lang="da", ordinals=True), 5)
+
+    def test_every_ordinal_reads_under_the_flag(self):
+        for word, value in self.ORDINALS.items():
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="da", ordinals=True), value)
+
+    def test_an_ordinal_wins_over_a_cardinal_in_the_same_line(self):
+        """The line that separates the two readings.
+
+        A bare cardinal cannot tell a dead filter from a live one that drops
+        cardinals: both answer the cardinal once the filter is gone. A line
+        holding an ordinal AND a cardinal does tell them apart.
+
+        English is NOT the anchor for this. It returns the last number of
+        the line, not the ordinal: "fifth three" answers 3 and
+        "three fifth seven" answers 7, so "three fifth" answering 5 is the
+        position of the word and not its kind. The two rules are the
+        library's open question (panel item
+        number-parser-ordinals-rule-v2), and the English line below is
+        asserted as the behaviour that must flip if it is ruled the other
+        way, never as a justification for this one.
+        """
+        self.assertEqual(
+            extract_number("den femte af ti", lang="da", ordinals=True), 5)
+        self.assertEqual(
+            extract_number("tre femte", lang="da", ordinals=True), 5)
+        # English's own rule, recorded so a change to it is caught: the
+        # LAST number of the line, whatever its kind.
+        self.assertEqual(
+            extract_number("three fifth seven", lang="en", ordinals=True), 7)
+
+    def test_two_ordinals_resolve_the_same_way_as_german(self):
+        """One cardinal and one ordinal cannot separate "the first ordinal"
+        from "the ordinal": both answers are the same number. A line with two
+        ordinals does, and it is also where the two languages could drift
+        apart, which is what brought this change back once already.
+
+        Both take the FIRST ordinal. That is German's behaviour before this
+        change as well as after it, so Danish is matched to the language that
+        had a working mechanism rather than to a new rule of its own.
+        English answers differently here because it returns the last number
+        of the line rather than an ordinal, which is a rule of its own and
+        older than this change. Which rule the library should hold is the
+        open question on panel item number-parser-ordinals-rule-v2.
+        """
+        for lang, line in (("da", "den tredje femte"), ("de", "der dritte fünfte")):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number(line, lang=lang, ordinals=True), 3)
+        for lang, line in (("da", "ti tredje femte"), ("de", "zehn dritte fünfte")):
+            with self.subTest(lang=lang, shape="with a cardinal"):
+                self.assertEqual(extract_number(line, lang=lang, ordinals=True), 3)
+
+    def test_an_ordinal_shaped_word_that_is_not_an_ordinal(self):
+        """"anden" is the ordinal "second" and the definite form of "and",
+        the duck. `is_ordinal_da` matches it on the word alone, so
+        "jeg så anden i parken" ("I saw the duck in the park") reads as 2.
+
+        This test records the answer rather than blessing it. The same 2
+        comes out of `_extract_number_with_text_da_helper` with no
+        caller-side scan at all, so the ambiguity belongs to the table and
+        the scan in `extract_number_da` adds no reading of its own. Whether
+        an ordinal-shaped token should need context is T-3900. If that lands,
+        this expectation changes with it, deliberately.
+        """
+        self.assertEqual(
+            extract_number("jeg så anden i parken", lang="da", ordinals=True), 2)
+        # the default path never had the ordinal reading and still does not
+        self.assertEqual(
+            extract_number("jeg så anden i parken", lang="da"), False)
+
+    def test_the_default_is_unchanged(self):
+        self.assertEqual(extract_number("tæl til fem", lang="da"), 5)
+        self.assertEqual(extract_number("den femte", lang="da"), False)

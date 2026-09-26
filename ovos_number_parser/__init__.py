@@ -1,6 +1,8 @@
 import math
 import re
+from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -10,7 +12,7 @@ from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_an import AN
 from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, \
     numbers_to_digits_ar, \
-    is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang
+    is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang, resolve_ar_lect
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_bg import numbers_to_digits_bg, pronounce_number_bg, extract_number_bg, \
     is_fractional_bg, nice_number_bg
@@ -296,9 +298,22 @@ def _is_digit_run(token: str) -> bool:
     return bool(token) and all(c in _DIGIT_CHARS for c in token)
 
 
-def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
+def _numbers_to_digits_generic(utterance: str, lang: str,
+                               continues=None, first_number_words=None) -> str:
     """Fallback that replaces spoken number spans with digits using
-    extract_number over maximal runs of number words."""
+    extract_number over maximal runs of number words.
+
+    ``continues`` is an optional predicate for a word that is no number by
+    itself but can extend a number already started; the span takes it only
+    when the value of the span grows.
+
+    ``first_number_words`` is an optional reader for a language whose own parser
+    says where one number ends and the next begins: handed the words of a run of
+    number words, it returns how many of them the first number covers, or None.
+    The span never grows past it, since growth by value alone joins two numbers
+    whenever the joined value happens to be larger ("عشرين ست مية" is 20 and 600,
+    not 26 and 100).
+    """
     lang2 = lang.lower().split("-")[0]
     connectors = _NUMBER_CONNECTORS.get("ar" if _is_ar(lang) else lang2, set())
     tokens = utterance.split()
@@ -310,7 +325,23 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
     def _clean(t):
         return t.strip(punct).lower()
 
+    #: token -> answer, for the two readers below. Both are pure functions
+    #: of the token, and both are asked the same question about the same
+    #: token more than once: the Arabic pre-scan walks a run of number words
+    #: with ``_may_extend`` before the main loop walks the same run again.
+    #: Without this every token in an Arabic number run is read twice, and
+    #: ``extract_number`` is the expensive half of each read.
+    _is_num_cache = {}
+    _may_extend_cache = {}
+
     def _is_num(t):
+        cached = _is_num_cache.get(t)
+        if cached is not None:
+            return cached
+        _is_num_cache[t] = answer = _is_num_uncached(t)
+        return answer
+
+    def _is_num_uncached(t):
         c = _clean(t)
         if not c:
             return False
@@ -371,11 +402,33 @@ def _numbers_to_digits_generic(utterance: str, lang: str) -> str:
                 and next_val is not False and next_val is not None \
                 and abs(next_val) >= 100
 
+        def _may_extend(t):
+            cached = _may_extend_cache.get(t)
+            if cached is not None:
+                return cached
+            answer = _is_num(t) or bool(continues and continues(_clean(t)))
+            _may_extend_cache[t] = answer
+            return answer
+
+        limit = len(tokens) - 1
+        if first_number_words:
+            end = i
+            while end + 1 < len(tokens) and (
+                    _may_extend(tokens[end + 1]) or
+                    _clean(tokens[end + 1]) in connectors and end + 2 < len(tokens)
+                    and _may_extend(tokens[end + 2])):
+                end += 1
+            covered = first_number_words([_clean(t) for t in tokens[i:end + 1]])
+            if covered:
+                limit = i + covered - 1
+
         while j + 1 < len(tokens):
-            if _is_num(tokens[j + 1]) and _continues(j + 1):
+            if j + 1 > limit:
+                break
+            if _may_extend(tokens[j + 1]) and _continues(j + 1):
                 j += 1
-            elif _clean(tokens[j + 1]) in connectors and j + 2 < len(tokens) \
-                    and _is_num(tokens[j + 2]) \
+            elif _clean(tokens[j + 1]) in connectors and j + 2 <= limit \
+                    and _may_extend(tokens[j + 2]) \
                     and _continues(j + 2, via_connector=True):
                 j += 2
             else:
@@ -720,11 +773,13 @@ def pronounce_number(number: Union[int, float], lang: str,
             (https://en.wikipedia.org/wiki/Long_and_short_scales); an explicit
             value always overrides it.
         case (str, optional): Grammatical case/register, currently only
-            meaningful for Arabic ("nominative" or "oblique", see
-            ``pronounce_number_ar``). When omitted, the Arabic lect named by
-            ``lang`` uses its own default register (see
-            ``numbers_ar.resolve_ar_lang``); ignored for every other
-            language.
+            meaningful for Arabic ("nominative" or "oblique", with
+            "genitive" and "accusative" as names for the oblique; any other
+            value raises ValueError, see ``pronounce_number_ar``). When
+            omitted, a cardinal in the Arabic lect named by ``lang`` uses
+            that lect's default register (see
+            ``numbers_ar.resolve_ar_lang``) and an ordinal the nominative;
+            ignored for every other language.
 
     Returns:
         str: The pronounced form of the number.
@@ -800,9 +855,13 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("az"):
         return pronounce_number_az(number, places, short_scale, scientific, ordinals)
     if _is_ar(lang):
+        # a lect's default register applies to cardinals; an ordinal takes
+        # the oblique only when the caller asks for it
+        if case is None:
+            case = "nominative" if ordinals else _ar_default_case(lang)
         return pronounce_number_ar(number, places, scientific, ordinals,
-                                   case=case if case is not None
-                                   else _ar_default_case(lang))
+                                   case=case, lect=resolve_ar_lect(lang),
+                                   gender=gender)
     if lang.startswith("bg"):
         return pronounce_number_bg(number, places, short_scale, scientific, ordinals)
     if lang.startswith("ca"):
@@ -929,7 +988,8 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = N
 def pronounce_ordinal(number: Union[int, float], lang: str,
                       short_scale: Optional[bool] = None,  # DEPRECATED
                       gender: GrammaticalGender = GrammaticalGender.MASCULINE,
-                      scale: Optional[Scale] = None) -> str:
+                      scale: Optional[Scale] = None,
+                      case: Optional[str] = None) -> str:
     """
     Return the spoken ordinal form of a number in the specified language.
       
@@ -938,6 +998,10 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         lang (str): BCP-47 language code specifying the language for pronunciation.
         short_scale (bool, optional): Whether to use the short (True) or long (False) scale for large numbers. Defaults to True.
         gender (GrammaticalGender, optional): Grammatical gender to use for languages that require it. Defaults to masculine.
+        case (str, optional): Grammatical case, only meaningful for Arabic
+            (None or "nominative", "oblique", "genitive", "accusative"; see
+            ``numbers_ar.pronounce_ordinal_ar``); ignored for every other
+            language.
       
     Returns:
         str: The ordinal number pronounced in the specified language.
@@ -963,7 +1027,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     if lang.startswith("an"):
         return AN.pronounce_ordinal(number, scale=scale, gender=gender)
     if _is_ar(lang):
-        return pronounce_ordinal_ar(number)
+        return pronounce_ordinal_ar(number, gender=gender, case=case)
     if lang.startswith("da"):
         return pronounce_ordinal_da(number)
     if lang.startswith("de"):
@@ -1158,6 +1222,152 @@ def extract_number(text: str, lang: str,
     if lang.startswith("sl"):
         return extract_number_sl(text, short_scale, ordinals)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
+
+
+@dataclass(frozen=True)
+class NumberSpan:
+    """A number found in an utterance, together with where it was written.
+
+    ``start`` and ``end`` are half-open code-point offsets into the utterance
+    the span was extracted from, so ``utterance[start:end] == surface`` holds.
+    """
+    start: int
+    end: int
+    surface: str
+    value: Union[int, float]
+
+
+#: characters that punctuate a word without belonging to it; a leading or
+#: trailing run of these is not part of a number's surface ("at 7," -> "7")
+_SPAN_PUNCTUATION = "\"'`´.,;:!?¡¿…()[]{}<>«»“”‘’"
+
+
+def _word_spans(text: str) -> List[tuple]:
+    """Offsets of the whitespace separated words, stripped of edge punctuation."""
+    spans = []
+    for match in re.finditer(r"\S+", text):
+        start, end = match.span()
+        while start < end and text[end - 1] in _SPAN_PUNCTUATION:
+            end -= 1
+        while start < end and text[start] in _SPAN_PUNCTUATION:
+            start += 1
+        if start < end:
+            spans.append((start, end))
+    return spans
+
+
+def _numeric_value(fragment: str, lang: str, short_scale: Optional[bool],
+                   ordinals: bool, scale: Optional[Scale]) -> Optional[Union[int, float]]:
+    """The number a fragment spells, or None when it spells none.
+
+    Extractors report "no number" as either ``False`` or ``None`` depending on
+    the language, and ``0`` is a legitimate value, so the falsiness of the
+    return value cannot be used to tell the two apart.
+    """
+    value = extract_number(fragment, lang, short_scale=short_scale,
+                           ordinals=ordinals, scale=scale)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return value
+
+
+def _reads_as_one_number(fragment: str, lang: str,
+                         scale: Optional[Scale]) -> bool:
+    """Whether a fragment spells a single number rather than several.
+
+    A fragment whose value is fully explained by its tail is ambiguous: the
+    tail may be the whole number, with the leading word absorbed into it
+    ("one hundred"), or a second number that the extractor happened to answer
+    with ("two three"). Rewriting the fragment to digits tells the two apart,
+    because the rewrite keeps every number it recognises: "one hundred"
+    becomes "100" and "two three" becomes "2 3".
+    """
+    digits = numbers_to_digits(fragment, lang, scale=scale)
+    numbers = 0
+    for token in digits.split():
+        try:
+            float(token.strip(_SPAN_PUNCTUATION))
+        except ValueError:
+            continue
+        numbers += 1
+    return numbers == 1
+
+
+def extract_number_spans(text: str, lang: str,
+                         short_scale: Optional[bool] = None,  # DEPRECATED
+                         ordinals: bool = False,
+                         scale: Optional[Scale] = None) -> List[NumberSpan]:
+    """Extract every number in a text together with the text it occupies.
+
+    Each span covers a whole number phrase, so "two hundred and five", "3.5"
+    and "twenty-two" are one span each, and two numbers in one sentence are
+    two spans. Spans never overlap and come back sorted by ``start``.
+
+    Words are grown into a number phrase greedily: starting from a word that
+    spells a number on its own, the next word joins the phrase while the
+    language's extractor keeps reading a *different* value out of the longer
+    phrase. A word that leaves the value unchanged joins only as a single
+    connector ("two hundred *and* five"), and only when it does not spell a
+    number itself, which is what keeps "seven and nine" two spans. The first
+    word must also keep contributing: an extractor asked to read an incoherent
+    fragment such as "two three" answers with one of the numbers in it, so a
+    longer phrase whose value is fully explained by its own tail is rejected
+    and the first word becomes a span of its own ("two three hundred" is 2 and
+    300). A phrase stops at any punctuation between two words. Each word takes
+    part in a bounded number of extractor calls, making the whole scan linear
+    in the length of the text in practice.
+
+    Args:
+        text: the utterance to scan.
+        lang: BCP-47 language code.
+        short_scale: DEPRECATED, use the ``scale`` enum instead.
+        ordinals: also read ordinals as numbers, e.g. third=3.
+        scale: short/long scale convention; defaults to the language's own.
+
+    Returns:
+        The numbers found, in the order they are written.
+    """
+    if not isinstance(text, str):
+        return []
+
+    words = _word_spans(text)
+    spans = []
+    index = 0
+    while index < len(words):
+        start = words[index][0]
+        value = _numeric_value(text[start:words[index][1]], lang, short_scale,
+                               ordinals, scale)
+        if value is None:
+            index += 1
+            continue
+
+        last = index
+        cursor = index
+        connector_used = False
+        while cursor + 1 < len(words) and \
+                not text[words[cursor][1]:words[cursor + 1][0]].strip():
+            nxt = words[cursor + 1]
+            grown = _numeric_value(text[start:nxt[1]], lang, short_scale,
+                                   ordinals, scale)
+            word = _numeric_value(text[nxt[0]:nxt[1]], lang, short_scale,
+                                  ordinals, scale)
+            suffix = _numeric_value(text[words[index + 1][0]:nxt[1]], lang,
+                                    short_scale, ordinals, scale)
+            if grown is not None and grown != value and \
+                    not (connector_used and grown == word) and \
+                    (grown != suffix or _reads_as_one_number(text[start:nxt[1]],
+                                                             lang, scale)):
+                value, last, connector_used = grown, cursor + 1, False
+            elif connector_used or word is not None:
+                break
+            else:
+                connector_used = True
+            cursor += 1
+
+        end = words[last][1]
+        spans.append(NumberSpan(start, end, text[start:end], value))
+        index = last + 1
+    return spans
 
 
 def is_fractional(input_str: str, lang: str,

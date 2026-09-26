@@ -1,6 +1,12 @@
 import unittest
 
 from ovos_number_parser import extract_number, pronounce_number
+from ovos_number_parser.numbers_de import _extract_numbers_with_text_de, tokenize
+
+
+def _extract_numbers_de(text):
+    """List every number found in text, in the order it appears."""
+    return [n.value for n in _extract_numbers_with_text_de(tokenize(text.lower()))]
 
 
 class TestGermanPronounce(unittest.TestCase):
@@ -133,5 +139,74 @@ class TestGermanRoundTripSweep(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="de"), number)
 
 
+class TestGermanSpacedUnd(unittest.TestCase):
+    """A spaced "und" joins two numerals into one only when they are
+    written as a single compound word ("siebenundneunzig" = 97). Two
+    standalone numerals joined by a spaced "und" are two numbers, exactly
+    like English "seven and nine", not a sum."""
+
+    def test_standalone_numerals_are_not_summed(self):
+        self.assertEqual(_extract_numbers_de("sieben und neun"), [7, 9])
+        self.assertEqual(extract_number("sieben und neun", lang="de"), 7)
+
+    def test_compound_word_still_sums(self):
+        self.assertEqual(extract_number("siebenundneunzig", lang="de"), 97)
+        self.assertEqual(extract_number("einundzwanzig", lang="de"), 21)
+
+    def test_chained_standalone_numerals(self):
+        self.assertEqual(_extract_numbers_de("zwei und drei und vier"),
+                         [2, 3, 4])
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGermanOrdinalsFlagKeepsCardinals(unittest.TestCase):
+    """The same defect as Danish, in the same shape.
+
+    `extract_number_de` filtered its results to a value that is a string
+    ending in ".", which the extractor never produces, so every call with
+    `ordinals=True` answered nothing, the real ordinals included.
+    """
+
+    CARDINALS = {
+        "eins": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6,
+        "sieben": 7, "acht": 8, "neun": 9, "zehn": 10, "elf": 11,
+        "zwölf": 12, "dreizehn": 13, "zwanzig": 20,
+    }
+
+    ORDINALS = {
+        "erste": 1, "zweite": 2, "dritte": 3, "vierte": 4, "fünfte": 5,
+        "zehnte": 10,
+    }
+
+    def test_every_cardinal_survives_the_ordinals_flag(self):
+        for word, value in self.CARDINALS.items():
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="de", ordinals=True), value)
+
+    def test_the_skill_utterance_counts(self):
+        self.assertEqual(
+            extract_number("zähl bis fünf", lang="de", ordinals=True), 5)
+
+    def test_every_ordinal_reads_under_the_flag(self):
+        for word, value in self.ORDINALS.items():
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="de", ordinals=True), value)
+
+    def test_an_ordinal_wins_over_a_cardinal_in_the_same_line(self):
+        """German answers an ordinal as the string "5.", so the clause that
+        selected on that shape was doing real work here. Only the fallback
+        was missing. This line is what proves the preference survived."""
+        self.assertEqual(
+            extract_number("drei fünfte", lang="de", ordinals=True), 5)
+        self.assertEqual(
+            extract_number("der fünfte von zehn", lang="de", ordinals=True), 5)
+        # English is not the anchor: it returns the LAST number of the
+        # line, whatever its kind. Recorded so a change to it is caught.
+        self.assertEqual(
+            extract_number("three fifth seven", lang="en", ordinals=True), 7)
+
+    def test_the_default_is_unchanged(self):
+        self.assertEqual(extract_number("zähl bis fünf", lang="de"), 5)

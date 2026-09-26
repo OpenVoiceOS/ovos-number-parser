@@ -111,14 +111,18 @@ class TestArabicRegisterPronunciation(unittest.TestCase):
         self.assertEqual(pronounce_number_ar(-7, case="oblique"),
                          'سالب سبعة')
 
-    def test_ordinals_unaffected_by_case(self):
-        # ordinals do not carry the nominative/oblique case distinction
-        # this feature adds; case is accepted but has no effect
-        for number in [1, 2, 12, 20, 21, 25, 100]:
+    def test_ordinal_case_shows_only_in_the_tens(self):
+        # 1st-19th and 100th are written the same in both cases; the tens of
+        # 20th-99th decline like the cardinal tens (Ryding ch. 15 section 2.4)
+        for number in [1, 2, 12, 100]:
             with self.subTest(number=number):
                 self.assertEqual(
                     pronounce_number_ar(number, ordinals=True, case="oblique"),
                     pronounce_number_ar(number, ordinals=True))
+        self.assertEqual(pronounce_number_ar(25, ordinals=True, case="oblique"),
+                         'الخامس والعشرين')
+        for number in [1, 2, 12, 20, 21, 25, 100]:
+            with self.subTest(number=number):
                 self.assertEqual(
                     pronounce_ordinal(number, lang="ar"),
                     pronounce_number_ar(number, ordinals=True))
@@ -138,11 +142,8 @@ class TestArabicDialectResolution(unittest.TestCase):
         # arb (Standard Arabic) and the ar macrolanguage default nominative
         self.assertEqual(resolve_ar_lang("ar"), "nominative")
         self.assertEqual(resolve_ar_lang("arb"), "nominative")
-        # spoken lects default to the oblique case, per grammatical
-        # description of these varieties (colloquial Arabic has lost the
-        # nominative -ūn/-ān as productive case marking in most contexts and
-        # generalizes the oblique -īn form; see e.g. Kristen Brustad, "The
-        # Syntax of Spoken Arabic" (Georgetown UP, 2000), ch. 2)
+        # spoken lects default to the oblique case; the grammars behind that
+        # default are named on numbers_ar.AR_DIALECT_DEFAULT_CASE
         for code in ["ars", "acw", "afb", "arz", "apc", "ajp", "acm", "ary",
                      "aeb", "ayl"]:
             with self.subTest(code=code):
@@ -169,8 +170,16 @@ class TestArabicDialectResolution(unittest.TestCase):
         # a code missed by "startswith('ar')" (does not begin with "ar")
         for code in ["acw", "afb", "apc", "ajp", "acm"]:
             with self.subTest(code=code):
+                # 55 has no entry in any lect's cardinal table, so it shows the
+                # register and nothing else, which is what this test is about
                 self.assertEqual(pronounce_number(55, lang=code),
                                  'خمسة وخمسين')
+
+        # a lect this engine ships no cardinal table for speaks the literary words
+        # in its register; one it does ships its own, which the tests beside
+        # AR_LECT_FORMS cover
+        for code in ["apc", "ajp", "acm"]:
+            with self.subTest(code=code):
                 self.assertEqual(pronounce_number(2, lang=code), 'اثنين')
                 self.assertEqual(pronounce_number(200, lang=code), 'مئتين')
 
