@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.23.1a1) (2026-09-27)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.23.0a2...0.23.1a1)
+
+**Merged pull requests:**
+
+- fix\(nb,nn\): a bare cardinal under ordinals=True falls through instead of returning False [\#366](https://github.com/OpenVoiceOS/ovos-number-parser/pull/366) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.23.0a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.23.0a2) (2026-09-26)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.23.0a1...0.23.0a2)
