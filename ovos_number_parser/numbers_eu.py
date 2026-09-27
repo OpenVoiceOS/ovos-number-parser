@@ -450,6 +450,13 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
     Returns:
         (int) or (float): The value of extracted number, or False
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "eu", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     aWords = text.lower().split()
     negative = False
     while aWords and aWords[0] in ('minus', 'ken'):

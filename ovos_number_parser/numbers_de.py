@@ -228,7 +228,13 @@ _FRACTION_MARKER = set()
 
 _NEGATIVES = {"minus"}
 
-_NUMBER_CONNECTORS = {"und"}
+# "und" only joins two numerals into one when they are written as a single
+# compound word ("siebenundneunzig" = 97); that case is already folded into
+# a digit string by _expand_compound_numbers_de before tokenization runs.
+# A spaced "und" between two numeral tokens ("sieben und neun") is the same
+# conjunction as English "and" ("seven and nine") and separates two numbers,
+# so it is not a connector for the tokenized extractor below.
+_NUMBER_CONNECTORS = set()
 
 _COMMA = {"komma", "comma", "punkt"}
 
@@ -889,14 +895,35 @@ def extract_number_de(text, short_scale=True, ordinals=False):
                                    was found
 
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "de", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     text = _expand_compound_numbers_de(text.lower())
     numbers = _extract_numbers_with_text_de(tokenize(text),
                                             short_scale, ordinals)
-    # if query ordinals only consider ordinals
+    # `ordinals=True` adds the ordinal reading, it does not replace the
+    # cardinal one, and an ordinal in the line wins over a cardinal beside
+    # it: "drei fünfte" is 5. Danish and German answer the same here, and both
+    # take the FIRST ordinal when a line holds several. English is not
+    # the anchor for either rule: it returns the LAST number of the
+    # line, so "fifth three" is 3 and "three fifth seven" is 7. Which
+    # rule this library should hold is open (panel item
+    # number-parser-ordinals-rule-v2); this code states what the two
+    # languages do, not what English does.
+    #
+    # The German extractor does answer an ordinal as the string "5.", so
+    # the clause that used to stand here selected correctly when an ordinal
+    # was present. What it lacked is the fallback: with no ordinal in the
+    # line it emptied the list, so "zähl bis fünf" answered None.
     if ordinals:
-        numbers = list(filter(lambda x: isinstance(x.value, str)
-                                        and x.value.endswith("."),
-                              numbers))
+        preferred = [x for x in numbers
+                     if isinstance(x.value, str) and x.value.endswith(".")]
+        if preferred:
+            numbers = preferred
 
     number = numbers[0].value if numbers else None
 
