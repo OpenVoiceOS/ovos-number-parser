@@ -458,6 +458,18 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
     if _leftmost is not None:
         return _leftmost
     aWords = text.lower().split()
+    if ordinals:
+        # ordinals=True asks for the ordinal to be READ. is_ordinal_eu already
+        # knows the -garren suffix and the suppletive first (Euskaltzaindia
+        # Araua 18), and pronounce_ordinal_eu writes with the same table; this
+        # reads back exactly what that side writes, and adds no form of its
+        # own. Without this the flag was a no-op for Basque: the word loop
+        # below reads cardinals only, so a line never reached a second number
+        # span and the leftmost rule could not answer (T-4475).
+        for word in aWords:
+            ordinal = is_ordinal_eu(word.strip(".,!?;:"))
+            if ordinal is not False:
+                return ordinal
     negative = False
     while aWords and aWords[0] in ('minus', 'ken'):
         negative = True
