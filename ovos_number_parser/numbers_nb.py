@@ -697,9 +697,25 @@ def _extract_real_number_with_text(tokens, t):
 
 def _extract_number_with_text(tokens, t, ordinals=False):
     if ordinals:
-        for token in tokens:
+        for idx, token in enumerate(tokens):
             ordinal = _is_ordinal(token.word, t)
             if ordinal is not False:
+                # the "og"-inverted compound ("en og tjuende" = en + og +
+                # tjuende = 1 + 20 = 21) names the smaller unit before the
+                # larger ordinal tens word; that single-word prefix is the
+                # same arithmetic _is_ordinal already applies to its glued
+                # spelling ("enogtjuende"). Without this the line reads as
+                # a cardinal and an unrelated ordinal, two spans, and the
+                # leftmost-separated rule answers the leading cardinal.
+                if idx >= 2 and tokens[idx - 1].word.lower() in t.connectors:
+                    prefix_val = _word_value(tokens[idx - 2].word.lower(), t)
+                    if prefix_val is not None and prefix_val < ordinal:
+                        glued = "".join(tok.word.lower()
+                                        for tok in tokens[idx - 2:idx + 1])
+                        compound = _is_ordinal(glued, t)
+                        if compound is not False:
+                            return ReplaceableNumber(
+                                compound, tokens[idx - 2:idx + 1])
                 return ReplaceableNumber(ordinal, [token])
     val, number_words = _extract_real_number_with_text(tokens, t)
     return ReplaceableNumber(val, number_words)
@@ -734,18 +750,27 @@ def _extract_number(text, t, ordinals=False):
         # for cardinals to be dropped. Sixteen of the eighteen languages
         # here already behave that way; nb and nn returned False.
         #
-        # The fall-through moves more than the lines with no ordinal. The
-        # leftmost-separated rule below calls this extractor for each span,
-        # so a span that used to read False now reads a value: a line whose
-        # numbers "og" separates reaches two spans and answers its leftmost
-        # one. "hundre og femte" answers 100 where it answered 5, and
-        # "en og tjuende" answers 1 where it answered 20. da and de answer
-        # their own spellings the same way, on this tree and before it.
+        # The "og"-inverted compound ("en og tjuende" = en + og + tjuende =
+        # 1 + 20 = 21) names the smaller unit before the larger ordinal
+        # tens word; that single-word prefix is the same arithmetic
+        # _is_ordinal already applies to its glued spelling ("enogtjuende").
+        # Without this, the scan below answers the ordinal word alone (20),
+        # the leftmost-separated rule's span-growth probe reads that answer
+        # as unrelated to the preceding cardinal, the line reaches two
+        # spans, and the leftmost one, the cardinal, wins (1).
         # TestOgCompoundsUnderTheFlag in tests/test_number_parser_nb_nn.py
-        # pins the class with those controls beside it.
-        for word in text.split():
-            ordinal = _is_ordinal(word.strip(".,!?;:"), t)
+        # pins the class with the da control beside it.
+        words = [w.strip(".,!?;:") for w in text.split()]
+        for i, word in enumerate(words):
+            ordinal = _is_ordinal(word, t)
             if ordinal is not False:
+                if i >= 2 and words[i - 1].lower() in t.connectors:
+                    prefix_val = _word_value(words[i - 2].lower(), t)
+                    if prefix_val is not None and prefix_val < ordinal:
+                        glued = "".join(w.lower() for w in words[i - 2:i + 1])
+                        compound = _is_ordinal(glued, t)
+                        if compound is not False:
+                            return compound
                 return ordinal
     numbers = _extract_numbers_with_text(tokenize(text), t)
     if not numbers:

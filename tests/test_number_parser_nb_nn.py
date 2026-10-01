@@ -174,16 +174,20 @@ class TestOrdinalsFlagKeepsTheCardinal(unittest.TestCase):
 
 
 class TestOgCompoundsUnderTheFlag(unittest.TestCase):
-    """The rest of the envelope: lines whose numbers "og" separates move too.
+    """An "og"-inverted compound ("en og tjuende") is one ordinal, not two.
 
-    The fall-through does not only reach lines with no ordinal. The
-    leftmost-separated rule calls the same extractor for each span, so a
-    cardinal span that used to read False now reads a value: the line reaches
-    two spans and the leftmost one answers. These values look wrong for the
-    "og"-inverted counting tradition, where "en og tjuende" is spoken
-    twenty-first, and they are recorded here rather than left to be found
-    later. The defect belongs to the leftmost rule, which da and de have read
-    this way all along (T-6195).
+    "en og tjuende" is the spoken twenty-first in the "og"-inverted counting
+    tradition: the smaller unit ("en") is named before the larger ordinal
+    tens word ("tjuende"), the same arithmetic `_is_ordinal` already gives
+    the glued spelling "enogtjuende" (1 + 20 = 21). Before the fix, the
+    ordinal scan answered the ordinal word alone (20), the
+    leftmost-separated rule's span-growth probe read that as a cardinal and
+    an unrelated ordinal in one line, the line reached two spans, and the
+    leftmost one, the cardinal, won (1). nb, nn and da share the inverted
+    spelling and the fix; the other rows below are a different, wider
+    compound shape (a cardinal of any size before "og" before an ordinal
+    remainder, inverted or not) that the fix does not touch, and they keep
+    the leftmost-separated reading unchanged (T-6195).
     """
 
     #: line, the reading under ordinals=True, the reading with the flag off
@@ -192,13 +196,14 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
           ("tjue og tredje", 20, 20),
           ("to hundre og tredje", 200, 200),
           ("tusen og andre", 1000, 1000),
-          ("en og tjuende", 1, False)]
+          ("en og tjuende", 21, False)]
 
     NN = [("hundre og femte", 100, 100),
-          ("ein og tjuande", 1, False)]
+          ("ein og tjuande", 21, False)]
 
     #: the fraction shape: with the flag on the leading cardinal answers, and
-    #: with the flag off the fraction still does.
+    #: with the flag off the fraction still does. No ordinal word appears on
+    #: these lines, so the og-inverted fix does not reach them.
     FRACTIONS_NB = [("en halv", 1, 0.5),
                     ("en kvart", 1, 0.25),
                     ("tre en halv", 3, 3.5)]
@@ -223,16 +228,31 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
                                         ordinals=True), 1)
         self.assertEqual(extract_number('ein halv', lang="nn"), 0.5)
 
-    def test_the_control_da_and_de_already_read_it_this_way(self):
-        """Not a new answer in the package: the family answers the same.
+    def test_da_og_inverted_compound_joins_the_family(self):
+        """da now reads its own og-inverted spelling the same way nb does.
 
-        These two are unchanged by this PR, on this tree and on dev, so they
-        say the movement is nb and nn joining the family rather than leaving
-        it.
+        "hundrede og femte" is not changed: it is not an inverted compound
+        (the cardinal "hundrede" is larger than the ordinal remainder
+        "femte"), so it keeps the leftmost-separated reading, 100.
         """
         self.assertEqual(extract_number('en og tyvende', lang="da",
-                                        ordinals=True), 1)
+                                        ordinals=True), 21)
         self.assertEqual(extract_number('hundrede og femte', lang="da",
+                                        ordinals=True), 100)
+
+    def test_de_glued_compound_is_unaffected(self):
+        """German never reaches this fix: a spaced "und" stays two numbers.
+
+        `numbers_de._NUMBER_CONNECTORS` is empty by design (see the comment
+        there): German folds a written compound into one word before
+        tokenization runs, so "einundzwanzigste" already reads 21, and a
+        spaced "ein und zwanzigste" is the same conjunction as English "and"
+        and is left as two numbers, same as "hundert und fünfte" staying
+        the leftmost reading, 100.
+        """
+        self.assertEqual(extract_number('einundzwanzigste', lang="de",
+                                        ordinals=True), 21)
+        self.assertEqual(extract_number('hundert und fünfte', lang="de",
                                         ordinals=True), 100)
         self.assertEqual(extract_number('hundert und fünfte', lang="de",
                                         ordinals=True), 100)
