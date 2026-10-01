@@ -627,9 +627,24 @@ def _extract_number_with_text_da_helper(tokens, short_scale, ordinals):
         int or float, [Tokens]
     """
     if ordinals:
-        for token in tokens:
+        for idx, token in enumerate(tokens):
             ordinal = is_ordinal_da(token.word)
             if ordinal:
+                # the "og"-inverted compound ("en og tyvende" = en + og +
+                # tyvende = 1 + 20 = 21) names the smaller unit before the
+                # larger ordinal tens word; that single-word prefix is the
+                # same reading is_ordinal_da already gives its glued
+                # spelling ("enogtyvende"). Without this the line reads as
+                # a cardinal and an unrelated ordinal, two spans, and the
+                # leftmost-separated rule answers the leading cardinal.
+                if idx >= 2 and tokens[idx - 1].word.lower() in _NUMBER_CONNECTORS:
+                    prefix_val = is_number_da(tokens[idx - 2].word.lower())
+                    if prefix_val is not None and prefix_val < ordinal:
+                        glued = "".join(tok.word.lower()
+                                        for tok in tokens[idx - 2:idx + 1])
+                        compound = is_ordinal_da(glued)
+                        if compound:
+                            return compound, tokens[idx - 2:idx + 1]
                 return ordinal, [token]
 
     return _extract_real_number_with_text_da(tokens, short_scale)
@@ -1050,9 +1065,23 @@ def extract_number_da(text, short_scale=False, ordinals=False):
     # here exactly as the helper matches it, so this adds no reading of its
     # own; that ambiguity belongs to the table.
     if ordinals:
-        for token in tokenize(text):
+        ord_tokens = tokenize(text)
+        for idx, token in enumerate(ord_tokens):
             ordinal = is_ordinal_da(token.word)
             if ordinal:
+                # the "og"-inverted compound ("en og tyvende" = en + og +
+                # tyvende = 1 + 20 = 21) names the smaller unit before the
+                # larger ordinal tens word; that single-word prefix is the
+                # same reading is_ordinal_da already gives its glued
+                # spelling ("enogtyvende")
+                if idx >= 2 and ord_tokens[idx - 1].word.lower() in _NUMBER_CONNECTORS:
+                    prefix_val = is_number_da(ord_tokens[idx - 2].word.lower())
+                    if prefix_val is not None and prefix_val < ordinal:
+                        glued = "".join(t.word.lower()
+                                        for t in ord_tokens[idx - 2:idx + 1])
+                        compound = is_ordinal_da(glued)
+                        if compound:
+                            return compound
                 return ordinal
 
     if not numbers:
