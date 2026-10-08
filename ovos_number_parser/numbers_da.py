@@ -1018,14 +1018,42 @@ def extract_number_da(text, short_scale=False, ordinals=False):
         (int) or (float) or False: The extracted number or False if no number
                                    was found
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "da", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     text = _expand_compound_numbers_da(text.lower())
     numbers = _extract_numbers_with_text_da(tokenize(text),
                                             short_scale, ordinals)
-    # if query ordinals only consider ordinals
+    # `ordinals=True` adds the ordinal reading, it does not replace the
+    # cardinal one, and an ordinal in the line wins over a cardinal beside
+    # it: "tre femte" is 5. Danish and German answer the same here, and both
+    # take the FIRST ordinal when a line holds several. English is not
+    # the anchor for either rule: it returns the LAST number of the
+    # line, so "fifth three" is 3 and "three fifth seven" is 7. Which
+    # rule this library should hold is open (panel item
+    # number-parser-ordinals-rule-v2); this code states what the two
+    # languages do, not what English does.
+    #
+    # The filter that used to stand here kept only a value that is a string
+    # ending in ".". `is_ordinal_da` answers the integer 5 for "femte", not
+    # the string "5.", so that filter matched nothing in Danish and every
+    # call with `ordinals=True` answered False, the real ordinals included.
+    # The preference is expressed against the words instead: the first
+    # ordinal token wins, which is what `_extract_number_with_text_da_helper`
+    # already does inside the extraction, and what German answers for the
+    # same shape. A word that `is_ordinal_da` reads as an ordinal and a
+    # speaker does not ("anden" is both "second" and "the duck") is matched
+    # here exactly as the helper matches it, so this adds no reading of its
+    # own; that ambiguity belongs to the table.
     if ordinals:
-        numbers = list(filter(lambda x: isinstance(x.value, str)
-                                        and x.value.endswith("."),
-                              numbers))
+        for token in tokenize(text):
+            ordinal = is_ordinal_da(token.word)
+            if ordinal:
+                return ordinal
 
     if not numbers:
         return False

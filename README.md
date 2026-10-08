@@ -102,6 +102,12 @@ is_ordinal("second", "en")                        # 2
 is_fractional("quarter", "en")                    # 0.25
 ```
 
+With `ordinals=True`, a line that holds several numbers with other words
+between them answers with the number written first, whether that number is
+the ordinal or the cardinal (`extract_number("zwei von dem dritten", "de",
+ordinals=True)` is 2). Two adjacent number words are how a fraction is
+written, so they keep the language's own reading.
+
 → [`examples/ner.py`](examples/ner.py)
 
 ### 4. Multilingual round-trips

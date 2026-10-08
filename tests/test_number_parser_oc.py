@@ -6,7 +6,7 @@ Occitan numeral/ordinal entries and languagesandnumbers.com.
 """
 import unittest
 
-from ovos_number_parser.numbers_oc import OC
+from ovos_number_parser.numbers_oc import OC, pluralize_oc
 from ovos_number_parser.util import GrammaticalGender, Scale
 
 
@@ -153,7 +153,28 @@ class TestExtractOC(unittest.TestCase):
         self.assertEqual(OC.extract_number("nonanta nòu"), 99)
 
     def test_alt_spellings(self):
+        # variant spellings of 8 and 80 from issue #302
+        self.assertEqual(OC.extract_number("ueit"), 8)
+        self.assertEqual(OC.extract_number("uòch"), 8)
         self.assertEqual(OC.extract_number("ueitanta"), 80)
+        self.assertEqual(OC.extract_number("uechanta"), 80)
+        self.assertEqual(OC.extract_number("uòchanta"), 80)
+
+    def test_pluralize_classes(self):
+        # noun classes per Ubaud (issue #302)
+        self.assertEqual(pluralize_oc("peis"), "peises")    # -is
+        self.assertEqual(pluralize_oc("serf"), "serfes")    # -f
+        self.assertEqual(pluralize_oc("text"), "textes")    # -xt
+        self.assertEqual(pluralize_oc("votz"), "voses")     # -tz
+        self.assertEqual(pluralize_oc("cinc"), "cincs")
+        self.assertEqual(pluralize_oc("ostal"), "ostals")
+
+    def test_half_words(self):
+        # bare half spellings from issue #302
+        self.assertEqual(OC.extract_number("mièg"), 0.5)
+        self.assertEqual(OC.extract_number("mièja"), 0.5)
+        self.assertEqual(OC.extract_number("mèg"), 0.5)
+        self.assertEqual(OC.extract_number("mèja"), 0.5)
 
     def test_analytic_hundreds(self):
         self.assertEqual(OC.extract_number("cent"), 100)

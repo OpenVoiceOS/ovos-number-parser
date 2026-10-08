@@ -1,4 +1,5 @@
 import math
+import threading
 from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
@@ -1178,3 +1179,63 @@ class RomanceNumberExtractor:
                 parts.append(f"{self.vocab.swap_gender(tens_word_masc, gender)} {self.vocab.swap_gender(units_word_masc, gender)}")
 
         return self.vocab.swap_gender(" ".join(parts), gender)
+
+
+#: re-entrancy guard for :func:`leftmost_separated_number`. The span scanner
+#: calls the language extractors back, and those extractors call this helper,
+#: so without the guard the first call would never return.
+_LEFTMOST_SCAN = threading.local()
+
+
+def leftmost_separated_number(text: str, lang: str, ordinals: bool
+                              ) -> Optional[Union[int, float]]:
+    """The leftmost number of a line that holds several separated numbers.
+
+    Under ``ordinals=True`` a line can hold an ordinal and a cardinal, and
+    the languages did not agree on which one answers. The rule is that the
+    number written first wins, whether it is the ordinal or the cardinal.
+
+    The rule covers numbers that other words separate, and only those.
+    Whether an adjacent cardinal-then-ordinal pair reads as a fraction and
+    collapses into one span is a property of the locale, not a general rule
+    of :func:`ovos_number_parser.extract_number_spans`. In German
+    ("zwei drittel") and Danish ("to tredje") that order is one span, so the
+    rule never reaches it; the ordinal-then-cardinal order in those same
+    languages stays two spans. English ("two thirds") and Kabyle
+    ("sin wis kṛaḍ") stay two spans in both orders. The rule reaches a
+    locale's adjacent pair exactly when the pair is two spans.
+
+    Args:
+        text: the line to read.
+        lang: BCP-47 language code.
+        ordinals: the caller's flag. The rule applies under True alone.
+
+    Returns:
+        The value of the first span, or ``None`` when the rule does not
+        apply: ``ordinals`` is False, the text is not a string, the line
+        holds fewer than two number spans, or the call is already inside a
+        span scan.
+    """
+    if not ordinals or not isinstance(text, str):
+        return None
+    if len(word_tokenize(text)) < 2:
+        # extract_number_spans can answer two spans only when the line
+        # itself holds two or more words; word_tokenize splits at least as
+        # often as the span scanner's own word boundaries, so this can
+        # never skip a line the scan would have found two spans in.
+        return None
+    if getattr(_LEFTMOST_SCAN, "active", False):
+        return None
+    _LEFTMOST_SCAN.active = True
+    try:
+        from ovos_number_parser import extract_number_spans
+        spans = extract_number_spans(text, lang, ordinals=True)
+    except Exception:
+        # the rule never turns a readable line into an error; the language's
+        # own extractor answers instead
+        return None
+    finally:
+        _LEFTMOST_SCAN.active = False
+    if len(spans) < 2:
+        return None
+    return spans[0].value

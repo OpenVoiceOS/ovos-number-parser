@@ -109,5 +109,140 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(extract_number('٣', lang=lang), 3)
 
 
+class TestOrdinalsFlagKeepsTheCardinal(unittest.TestCase):
+    """ordinals=True asks for ordinals to be read, not for cardinals to go.
+
+    nb and nn returned False for a bare cardinal under the flag, because
+    _extract_number returned False when no word in the line was an ordinal
+    instead of falling through to the cardinal. Sixteen of the eighteen
+    languages in this package never did that.
+    """
+
+    def test_a_bare_cardinal_survives_the_flag(self):
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number('fem', lang=lang), 5)
+                self.assertEqual(
+                    extract_number('fem', lang=lang, ordinals=True), 5,
+                    "ordinals=True dropped the cardinal")
+
+    def test_a_bare_ordinal_still_reads(self):
+        """The behaviour that must not regress."""
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    extract_number('femte', lang=lang, ordinals=True), 5)
+                # and without the flag an ordinal is still not a number
+                self.assertFalse(extract_number('femte', lang=lang))
+
+    def test_an_ordinal_wins_over_a_cardinal_in_the_same_line(self):
+        """The line that separates a fall-through from no preference at all.
+
+        A line holding both readings is the only instrument that tells a
+        dropped preference from a dropped cardinal: with the fall-through
+        alone and no ordinal loop, these would answer the cardinal.
+        """
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    extract_number('tre femte', lang=lang, ordinals=True), 5)
+                self.assertEqual(
+                    extract_number('femte tre', lang=lang, ordinals=True), 5)
+                self.assertEqual(
+                    extract_number('tre femte sju', lang=lang,
+                                   ordinals=True), 5)
+                # without the flag the same lines read their first cardinal
+                self.assertEqual(extract_number('tre femte', lang=lang), 3)
+
+    def test_other_languages_answer_the_same_way(self):
+        """The control: this is the fleet behaviour nb and nn deviated from."""
+        for lang, cardinal, ordinal in (("en", "five", "fifth"),
+                                        ("da", "fem", "femte"),
+                                        ("de", "fünf", "fünfte")):
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    extract_number(cardinal, lang=lang, ordinals=True), 5)
+                self.assertEqual(
+                    extract_number(ordinal, lang=lang, ordinals=True), 5)
+
+    def test_a_line_with_no_number_is_still_false(self):
+        """The fall-through must not invent a number."""
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertFalse(
+                    extract_number('god morgen', lang=lang, ordinals=True))
+
+
+class TestOgCompoundsUnderTheFlag(unittest.TestCase):
+    """The rest of the envelope: lines whose numbers "og" separates move too.
+
+    The fall-through does not only reach lines with no ordinal. The
+    leftmost-separated rule calls the same extractor for each span, so a
+    cardinal span that used to read False now reads a value: the line reaches
+    two spans and the leftmost one answers. These values look wrong for the
+    "og"-inverted counting tradition, where "en og tjuende" is spoken
+    twenty-first, and they are recorded here rather than left to be found
+    later. The defect belongs to the leftmost rule, which da and de have read
+    this way all along (T-6195).
+    """
+
+    #: line, the reading under ordinals=True, the reading with the flag off
+    NB = [("hundre og femte", 100, 100),
+          ("hundre og første", 100, 100),
+          ("tjue og tredje", 20, 20),
+          ("to hundre og tredje", 200, 200),
+          ("tusen og andre", 1000, 1000),
+          ("en og tjuende", 1, False)]
+
+    NN = [("hundre og femte", 100, 100),
+          ("ein og tjuande", 1, False)]
+
+    #: the fraction shape: with the flag on the leading cardinal answers, and
+    #: with the flag off the fraction still does.
+    FRACTIONS_NB = [("en halv", 1, 0.5),
+                    ("en kvart", 1, 0.25),
+                    ("tre en halv", 3, 3.5)]
+
+    def _assert_rows(self, lang, rows):
+        for line, under_flag, flag_off in rows:
+            with self.subTest(lang=lang, line=line):
+                self.assertEqual(
+                    extract_number(line, lang=lang, ordinals=True),
+                    under_flag)
+                self.assertEqual(extract_number(line, lang=lang), flag_off)
+
+    def test_nb_og_compounds(self):
+        self._assert_rows("nb", self.NB)
+
+    def test_nn_og_compounds(self):
+        self._assert_rows("nn", self.NN)
+
+    def test_a_fraction_line_answers_its_leading_cardinal_under_the_flag(self):
+        self._assert_rows("nb", self.FRACTIONS_NB)
+        self.assertEqual(extract_number('ein halv', lang="nn",
+                                        ordinals=True), 1)
+        self.assertEqual(extract_number('ein halv', lang="nn"), 0.5)
+
+    def test_the_control_da_and_de_already_read_it_this_way(self):
+        """Not a new answer in the package: the family answers the same.
+
+        These two are unchanged by this PR, on this tree and on dev, so they
+        say the movement is nb and nn joining the family rather than leaving
+        it.
+        """
+        self.assertEqual(extract_number('en og tyvende', lang="da",
+                                        ordinals=True), 1)
+        self.assertEqual(extract_number('hundrede og femte', lang="da",
+                                        ordinals=True), 100)
+        self.assertEqual(extract_number('hundert und fünfte', lang="de",
+                                        ordinals=True), 100)
+
+    def test_the_flag_off_reading_of_a_fraction_is_untouched(self):
+        """The regression guard: nothing moves with the flag off."""
+        for lang, half in (("nb", 'en halv'), ("nn", 'ein halv')):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number(half, lang=lang), 0.5)
+
+
 if __name__ == "__main__":
     unittest.main()
