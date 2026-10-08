@@ -1195,12 +1195,15 @@ def leftmost_separated_number(text: str, lang: str, ordinals: bool
     the languages did not agree on which one answers. The rule is that the
     number written first wins, whether it is the ordinal or the cardinal.
 
-    The rule covers numbers that other words separate, and only those. Two
-    adjacent number words are how a fraction is written ("two thirds",
-    "zwei drittel"), so they are left to the language's own reading.
-    :func:`ovos_number_parser.extract_number_spans` draws that line already:
-    it grows adjacent number words into one span, so a line with two spans
-    is a line whose numbers are separated.
+    The rule covers numbers that other words separate, and only those.
+    Whether an adjacent cardinal-then-ordinal pair reads as a fraction and
+    collapses into one span is a property of the locale, not a general rule
+    of :func:`ovos_number_parser.extract_number_spans`. In German
+    ("zwei drittel") and Danish ("to tredje") that order is one span, so the
+    rule never reaches it; the ordinal-then-cardinal order in those same
+    languages stays two spans. English ("two thirds") and Kabyle
+    ("sin wis kṛaḍ") stay two spans in both orders. The rule reaches a
+    locale's adjacent pair exactly when the pair is two spans.
 
     Args:
         text: the line to read.
@@ -1214,6 +1217,12 @@ def leftmost_separated_number(text: str, lang: str, ordinals: bool
         span scan.
     """
     if not ordinals or not isinstance(text, str):
+        return None
+    if len(word_tokenize(text)) < 2:
+        # extract_number_spans can answer two spans only when the line
+        # itself holds two or more words; word_tokenize splits at least as
+        # often as the span scanner's own word boundaries, so this can
+        # never skip a line the scan would have found two spans in.
         return None
     if getattr(_LEFTMOST_SCAN, "active", False):
         return None

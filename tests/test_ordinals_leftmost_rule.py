@@ -12,6 +12,7 @@ The tests below pin the adjacent readings as they stand, so a later answer to
 that question has to move them on purpose.
 """
 import unittest
+from unittest import mock
 
 from ovos_number_parser import (extract_number_ca, extract_number_da,
                                 extract_number_de, extract_number_en,
@@ -116,6 +117,21 @@ class TestLeftmostSeparatedNumber(unittest.TestCase):
     def test_a_non_string_is_not_the_rule(self):
         self.assertIsNone(leftmost_separated_number(None, "de", True))
         self.assertIsNone(leftmost_separated_number(7, "de", True))
+
+    def test_a_single_word_never_pays_the_span_scan(self):
+        """A line of one word cannot hold two spans, so the cheap word
+        count is enough to answer None without scanning it."""
+        with mock.patch("ovos_number_parser.extract_number_spans") as spans:
+            self.assertIsNone(leftmost_separated_number("zwei", "de", True))
+        spans.assert_not_called()
+
+    def test_a_separated_line_still_scans(self):
+        """Two words is the floor, not a reason to skip a real line."""
+        with mock.patch("ovos_number_parser.extract_number_spans",
+                        wraps=extract_number_spans) as spans:
+            self.assertEqual(
+                leftmost_separated_number("zwei qzx dritte", "de", True), 2)
+        spans.assert_called_once()
 
 
 class TestIdiomaticMixedLines(unittest.TestCase):
