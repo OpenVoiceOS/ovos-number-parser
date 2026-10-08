@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.23.2a1) (2026-10-08)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.23.1a1...0.23.2a1)
+
+**Merged pull requests:**
+
+- fix: state the leftmost-ordinal fraction invariant per locale, skip the span scan for one word [\#370](https://github.com/OpenVoiceOS/ovos-number-parser/pull/370) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.23.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.23.1a1) (2026-09-27)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.23.0a2...0.23.1a1)
