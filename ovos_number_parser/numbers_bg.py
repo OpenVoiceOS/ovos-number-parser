@@ -874,18 +874,29 @@ def extract_number_bg(text, short_scale=True, ordinals=False):
 
 
 def _is_ordinal_word_bg(input_str):
-    """True if the word is an ordinal ("трети", "шеста"), third and up.
+    """True if the word is an ordinal ("трети", "шеста", "стотна"), third
+    and up.
 
-    Bulgarian spells a fraction with the ordinal: the feminine ("една трета")
-    and its plural ("две трети"), which is also the masculine ordinal. Without
-    a numerator the word is the ordinal: "трети етаж" is the third floor.
-    "половин" and "четвърт" are no ordinals.
+    Bulgarian spells a fraction with the ordinal: the feminine ("една трета",
+    "една стотна") and its plural ("две трети"), which for most ordinals is
+    also the masculine. Without a numerator the word is the ordinal: "трети
+    етаж" is the third floor. "половин" and "четвърт" are no ordinals.
     """
-    word = input_str.lower()
-    for num, masculine in _ORDINAL_BG.items():
-        if num > 2 and word in (masculine, masculine[:-1] + 'а'):
-            return True
-    return False
+    return input_str.lower() in _ORDINAL_WORDS_BG
+
+
+def _ordinal_words_bg():
+    words = {word for num, word in _ORDINAL_BG.items() if num > 2}
+    for num, word in _FRACTION_STRING_BG.items():
+        # every fraction word past a half is the feminine ordinal, except
+        # the noun "четвърт" (whose plural is the masculine "четвърти")
+        if num > 2 and word != 'четвърт':
+            words.add(word)
+            words.add(word[:-1] + 'и' if word.endswith('а') else word + 'и')
+    return frozenset(words)
+
+
+_ORDINAL_WORDS_BG = _ordinal_words_bg()
 
 
 def is_fractional_bg(input_str, short_scale=True):

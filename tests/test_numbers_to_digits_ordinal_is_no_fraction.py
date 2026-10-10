@@ -25,6 +25,7 @@ class TestEnglish(unittest.TestCase):
                          str(1 / 6))
         self.assertEqual(numbers_to_digits("one third of the cake", "en"),
                          f"{1 / 3} of the cake")
+        self.assertEqual(numbers_to_digits("1 sixth", "en"), str(1 / 6))
 
     def test_quarter_and_plural_denominators_are_fractions(self):
         # "quarter" is no ordinal; English reads it as 1/4 on its own
@@ -94,7 +95,7 @@ class TestFrisianAndBulgarian(unittest.TestCase):
 
     def test_titles_keep_their_ordinal(self):
         for lang, line in [("fy", "de tredde man"), ("bg", "трети етаж"),
-                           ("bg", "шеста глава")]:
+                           ("bg", "шеста глава"), ("bg", "стотна секунда")]:
             with self.subTest(lang=lang, line=line):
                 self.assertEqual(numbers_to_digits(line, lang), line)
                 self.assertFalse(extract_number(line, lang))
@@ -103,6 +104,7 @@ class TestFrisianAndBulgarian(unittest.TestCase):
         for lang, line, value in [("fy", "ien tredde", 1 / 3),
                                   ("fy", "twa tredde", 2 / 3),
                                   ("bg", "една трета", 1 / 3),
+                                  ("bg", "една стотна", 0.01),
                                   ("bg", "две трети", 2 / 3),
                                   ("bg", "три четвърти", 0.75)]:
             with self.subTest(lang=lang, line=line):
