@@ -718,7 +718,8 @@ def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
                 word not in _MULTIPLIES_BG and \
                 not (ordinals and word in _STRING_ORDINAL_BG) and \
                 not is_numeric(word) and \
-                not is_fractional_bg(word, short_scale=short_scale) and \
+                not (is_fractional_bg(word, short_scale=short_scale) and
+                     (ordinals or not _is_ordinal_word_bg(word))) and \
                 not look_for_fractions(word.split('/')):
             words_only = [token.word for token in number_words]
             if number_words and not all([w in _NEGATIVES_BG for w in words_only]):
@@ -789,6 +790,12 @@ def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
         # две трети
         if not ordinals:
             next_val = is_fractional_bg(next_word, short_scale=short_scale)
+            # an ordinal is the denominator of a proper fraction only:
+            # "две трети" is 2/3, "трети етаж" is the third floor
+            if next_val and _is_ordinal_word_bg(next_word) \
+                    and not (val and val == int(val)
+                             and 0 < val < round(1 / next_val)):
+                next_val = None
             if next_val:
                 if not val:
                     val = 1
@@ -864,6 +871,21 @@ def extract_number_bg(text, short_scale=True, ordinals=False):
     if isinstance(value, float) and value.is_integer():
         value = int(value)
     return value
+
+
+def _is_ordinal_word_bg(input_str):
+    """True if the word is an ordinal ("трети", "шеста"), third and up.
+
+    Bulgarian spells a fraction with the ordinal: the feminine ("една трета")
+    and its plural ("две трети"), which is also the masculine ordinal. Without
+    a numerator the word is the ordinal: "трети етаж" is the third floor.
+    "половин" and "четвърт" are no ordinals.
+    """
+    word = input_str.lower()
+    for num, masculine in _ORDINAL_BG.items():
+        if num > 2 and word in (masculine, masculine[:-1] + 'а'):
+            return True
+    return False
 
 
 def is_fractional_bg(input_str, short_scale=True):

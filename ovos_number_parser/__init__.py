@@ -332,6 +332,8 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
     #: Without this every token in an Arabic number run is read twice, and
     #: ``extract_number`` is the expensive half of each read.
     _is_num_cache = {}
+    #: token -> extract_number of the whole token, kept by ``_is_num``
+    _value_cache = {}
     _may_extend_cache = {}
 
     def _is_num(t):
@@ -346,7 +348,8 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
         if not c:
             return False
         try:
-            if extract_number(c, lang) is False:
+            _value_cache[t] = extract_number(c, lang)
+            if _value_cache[t] is False:
                 return False
         except NotImplementedError:
             return False
@@ -365,10 +368,58 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
                     return False
         return True
 
+    _denominator_cache = {}
+
+    def _denominator(t):
+        """The n of a word read as the reciprocal 1/n, n >= 2, else None.
+
+        Most languages spell the denominator of a fraction with the ordinal
+        ("un sixième", "drie vierde"), so ``extract_number`` reads a lone
+        ordinal as its reciprocal: "le sixième sens" would become
+        "le 0.16666666666666666 sens". Digits ("0.25", "1/4") are no word.
+        """
+        if t in _denominator_cache:
+            return _denominator_cache[t]
+        answer = None
+        c = _clean(t)
+        if _is_num(t) and not any(ch.isdigit() for ch in c):
+            val = _value_cache.get(t)
+            if isinstance(val, (int, float)) and not isinstance(val, bool) \
+                    and 0 < val < 1:
+                n = round(1 / val)
+                if n >= 2 and abs(1 / val - n) < 1e-9:
+                    answer = n
+        _denominator_cache[t] = answer
+        return answer
+
+    def _is_denominator_of(i, j, next_j):
+        """tokens[next_j] is the denominator of a proper fraction whose
+        numerator is the cardinal tokens[i:j + 1] ("trois quarts" = 0.75).
+
+        The numerator must be a whole number smaller than the denominator:
+        "vingt cinquième" is the twenty-fifth, not 20 * 1/5.
+        """
+        n = _denominator(tokens[next_j])
+        if n is None:
+            return False
+        current = " ".join(_clean(t) for t in tokens[i:j + 1])
+        current_val = extract_number(current, lang)
+        if isinstance(current_val, bool) or \
+                not isinstance(current_val, (int, float)) or \
+                current_val != int(current_val) or not 0 < current_val < n:
+            return False
+        extended = " ".join(_clean(t) for t in tokens[i:next_j + 1])
+        extended_val = extract_number(extended, lang)
+        return isinstance(extended_val, (int, float)) \
+            and not isinstance(extended_val, bool) \
+            and abs(extended_val - current_val / n) < 1e-9
+
     out = []
     i = 0
     while i < len(tokens):
-        if not _is_num(tokens[i]):
+        # a lone ordinal or denominator ("sixième", "derde") is a word, not
+        # the fraction 1/n; one half is still 0.5
+        if not _is_num(tokens[i]) or (_denominator(tokens[i]) or 0) >= 3:
             out.append(tokens[i])
             i += 1
             continue
@@ -424,6 +475,11 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
 
         while j + 1 < len(tokens):
             if j + 1 > limit:
+                break
+            if _denominator(tokens[j + 1]) is not None:
+                # a denominator joins only as such, and ends the number
+                if _is_denominator_of(i, j, j + 1):
+                    j += 1
                 break
             if _may_extend(tokens[j + 1]) and _continues(j + 1):
                 j += 1

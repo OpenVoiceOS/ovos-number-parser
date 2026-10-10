@@ -1201,9 +1201,11 @@ def leftmost_separated_number(text: str, lang: str, ordinals: bool
     of :func:`ovos_number_parser.extract_number_spans`. In German
     ("zwei drittel") and Danish ("to tredje") that order is one span, so the
     rule never reaches it; the ordinal-then-cardinal order in those same
-    languages stays two spans. English ("two thirds") and Kabyle
-    ("sin wis kṛaḍ") stay two spans in both orders. The rule reaches a
-    locale's adjacent pair exactly when the pair is two spans.
+    languages stays two spans. English reads the singular pair ("two
+    third", "third two") as one span in both orders, while the plural
+    ("two thirds") stays two spans. Kabyle ("sin wis kṛaḍ") stays two spans
+    in both orders. The rule reaches a locale's adjacent pair exactly when
+    the pair is two spans.
 
     Args:
         text: the line to read.

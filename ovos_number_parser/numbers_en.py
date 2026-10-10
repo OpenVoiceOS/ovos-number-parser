@@ -995,7 +995,8 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
                 word not in multiplies and \
                 not (ordinals and word in string_num_ordinal) and \
                 not is_numeric(word) and \
-                not is_fractional_en(word, short_scale=short_scale) and \
+                not _fraction_value_en(word, short_scale=short_scale,
+                                       ordinals=ordinals) and \
                 not look_for_fractions(word.split('/')):
             words_only = [token.word for token in number_words]
 
@@ -1069,10 +1070,15 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
                                      ordinals=ordinals)
             current_val = val
 
-        # 2 fifths
+        # 2 fifths, one sixth
         if ordinals is False:
+            # a singular ordinal is a denominator only behind the numerator
+            # "one": "one sixth" is 1/6, but "the sixth sense" has no
+            # numerator and "twenty one third" is 21 and an ordinal
+            numerator_one = val == 1 and word == "one"
             next_val = _fraction_value_en(next_word, short_scale=short_scale,
-                                          ordinals=ordinals)
+                                          ordinals=True if numerator_one
+                                          else ordinals)
             if next_val:
                 if not val:
                     val = 1

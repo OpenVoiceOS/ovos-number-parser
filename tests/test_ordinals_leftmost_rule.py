@@ -29,7 +29,7 @@ from ovos_number_parser.util import leftmost_separated_number
 #: that always prefers one class fails one line of the pair.
 IDIOMATIC = [
     #  lang, extract, line, under ordinals=True, under ordinals=False
-    ("en", extract_number_en, "the third of two", 3, False),
+    ("en", extract_number_en, "the third of two", 3, 2),
     ("en", extract_number_en, "two of the third", 2, 2),
     ("de", extract_number_de, "das dritte von zwei", 3, 2),
     ("de", extract_number_de, "zwei von dem dritten", 2, 2),
@@ -43,8 +43,9 @@ IDIOMATIC = [
 #: the reading each order keeps once the flag is off. ``qzx`` is a filler: it
 #: spells no number in any of them, so it only keeps the two numbers apart.
 #: The flag-off values are not uniform, and that is the point of recording
-#: them: Kabyle reads its ordinal phrase as 3 without the flag, and English
-#: reads nothing at all on the ordinal-first line.
+#: them: Kabyle reads its ordinal phrase as 3 without the flag. English read
+#: nothing at all on the ordinal-first line until a lone ordinal stopped
+#: ending the scan; it now reads the cardinal, as da and de do.
 REACHED = {
     #        extract,            card,   ordinal,     off(O x C), off(C x O)
     "da": (extract_number_da, "to", "tredje", 2, 2),
@@ -54,7 +55,7 @@ REACHED = {
     "nb": (extract_number_nb, "to", "tredje", 2, 2),
     "nn": (extract_number_nn, "to", "tredje", 2, 2),
     "kab": (extract_number_kab, "sin", "wis kṛaḍ", 3, 2),
-    "en": (extract_number_en, "two", "third", False, 2),
+    "en": (extract_number_en, "two", "third", 2, 2),
 }
 
 #: the pair written with no word between them, for each reached locale, and
@@ -62,8 +63,9 @@ REACHED = {
 #: is the fraction shape, and the scanner grows it into one span, so the rule
 #: never reaches it. Any other adjacency stays two spans and the rule does
 #: reach it. Kabyle writes its ordinal as a phrase, "wis kṛaḍ", so neither of
-#: its orders is one span and the rule reaches both.
-ADJACENT_SPANS = {"da": (2, 1), "de": (2, 1), "kab": (2, 2), "en": (1, 2),
+#: its orders is one span and the rule reaches both. English reads both of
+#: its orders as one span.
+ADJACENT_SPANS = {"da": (2, 1), "de": (2, 1), "kab": (2, 2), "en": (1, 1),
                   "nb": (2, 1), "nn": (2, 1)}
 
 #: locales whose parser cannot answer the rule yet, with the value each one
