@@ -1201,7 +1201,7 @@ def extract_number(text: str, lang: str,
     if lang.startswith("az"):
         return extract_number_az(text, short_scale, ordinals)
     if _is_ar(lang):
-        return extract_number_ar(text, ordinals)
+        return extract_number_ar(text, ordinals, lect=resolve_ar_lect(lang))
     if lang.startswith("bg"):
         return extract_number_bg(text, short_scale, ordinals)
     if lang.startswith("ca"):
