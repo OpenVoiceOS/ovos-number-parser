@@ -551,6 +551,14 @@ class ItalianNumberExtractor(RomanceNumberExtractor):
                           scale: Optional[Scale] = None) -> str:
         return super().numbers_to_digits(self._presplit(utterance), scale=scale)
 
+    def numbers_to_digits_spans(self,
+                                utterance: str,
+                                scale: Optional[Scale] = None):
+        # the pre-split rewrites the utterance, so offsets into the original
+        # text cannot be reported
+        raise NotImplementedError(
+            "Italian digit conversion rewrites the text before it converts")
+
 
 IT = ItalianNumberExtractor(_IT)
 

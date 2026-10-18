@@ -2,7 +2,8 @@ from typing import List, Optional, Union
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, tokenize, Token,
                                      Scale, GrammaticalGender, DigitPronunciation,
-                                     NumberVocabulary, RomanceNumberExtractor)
+                                     NumberVocabulary, RomanceNumberExtractor,
+                                     ConvertedNumber)
 
 
 def swap_gender_es(word: str, gender: GrammaticalGender) -> str:
@@ -339,6 +340,15 @@ def pronounce_number_es(number, places=2, short_scale=False):
 def numbers_to_digits_es(utterance: str) -> str:
     """Replace written numbers in Spanish text with their digit equivalents."""
     return ES.numbers_to_digits(utterance)
+
+
+def numbers_to_digits_spans_es(utterance: str) -> List[ConvertedNumber]:
+    """List the written numbers that :func:`numbers_to_digits_es` replaces.
+
+    Each entry gives the offsets of the phrase in ``utterance``, the phrase as
+    written, its digit replacement and its value.
+    """
+    return ES.numbers_to_digits_spans(utterance)
 
 
 def nice_number_es(number, speech=True, denominators=range(1, 21)):

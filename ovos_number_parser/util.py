@@ -38,6 +38,22 @@ class Token:
             raise AttributeError("Immutable!")
 
 
+@dataclass(frozen=True)
+class ConvertedNumber:
+    """A number phrase that a digit conversion replaced.
+
+    ``start`` and ``end`` are half-open code-point offsets into the text that
+    was passed in, before the conversion, so ``utterance[start:end] == surface``
+    holds. ``replacement`` is the digit string put in its place and ``value``
+    the number it stands for.
+    """
+    start: int
+    end: int
+    surface: str
+    replacement: str
+    value: Union[int, float]
+
+
 class Scale(str, Enum):
     """
     Defines the numerical scale to be used.
@@ -681,9 +697,41 @@ class RomanceNumberExtractor:
         Returns:
             str: The input text with written numbers replaced by their digit representations.
         """
+        _, output, _ = self._convert_numbers(utterance, scale)
+        return " ".join(output)
+
+    def numbers_to_digits_spans(self,
+                                utterance: str,
+                                scale: Optional[Scale] = None
+                                ) -> List[ConvertedNumber]:
+        """
+        List the number phrases :meth:`numbers_to_digits` replaces, in the order written.
+
+        Each entry holds the half-open code-point offsets of the phrase in
+        ``utterance``, the phrase as written, the digit string that replaces
+        it and the value it stands for. A number word the conversion leaves
+        alone is not listed.
+        """
+        words, _, converted = self._convert_numbers(utterance, scale)
+        offsets = []
+        cursor = 0
+        for word in words:
+            start = utterance.find(word, cursor)
+            if start < 0:
+                return []
+            cursor = start + len(word)
+            offsets.append((start, cursor))
+        return [ConvertedNumber(offsets[first][0], offsets[last - 1][1],
+                                utterance[offsets[first][0]:offsets[last - 1][1]],
+                                str(value), value)
+                for first, last, value in converted]
+
+    def _convert_numbers(self, utterance: str, scale: Optional[Scale]):
+        """Tokens, converted output tokens and the converted token ranges."""
         scale = scale or self.vocab.DEFAULT_SCALE
         words = word_tokenize(utterance)
         output = []
+        converted = []
         i = 0
 
         numbers_map = self.vocab.get_number_strings(scale)
@@ -742,6 +790,7 @@ class RomanceNumberExtractor:
                 if number_val is not False:
                     # If a valid number is found, add its digit representation to the output
                     output.append(str(number_val))
+                    converted.append((i, j, number_val))
                     # Advance the main index 'i' past the entire span
                     i = j
                 else:
@@ -755,7 +804,7 @@ class RomanceNumberExtractor:
                 output.append(words[i])
                 i += 1
 
-        return " ".join(output)
+        return words, output, converted
 
     def pronounce_number(self,
                          number: Union[int, float],

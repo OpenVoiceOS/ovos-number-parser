@@ -28,7 +28,8 @@ from ovos_number_parser.numbers_en import numbers_to_digits_en, is_ordinal_en, p
     is_fractional_en
 from ovos_number_parser.numbers_el import pronounce_number_el, pronounce_ordinal_el, \
     extract_number_el, is_fractional_el, is_ordinal_el
-from ovos_number_parser.numbers_es import (numbers_to_digits_es, pronounce_number_es, extract_number_es,
+from ovos_number_parser.numbers_es import (numbers_to_digits_es, numbers_to_digits_spans_es,
+                                           pronounce_number_es, extract_number_es,
                                            is_fractional_es, ES)
 from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu, \
     pronounce_ordinal_eu, is_ordinal_eu
@@ -101,7 +102,7 @@ from ovos_number_parser.numbers_pl import nice_number_pl
 from ovos_number_parser.numbers_ru import nice_number_ru
 from ovos_number_parser.numbers_sv import nice_number_sv
 from ovos_number_parser.numbers_uk import nice_number_uk
-from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
+from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation, ConvertedNumber
 
 
 # --- canonical short/long scale convention per language --------------------
