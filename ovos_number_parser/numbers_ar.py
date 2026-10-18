@@ -66,12 +66,13 @@ def _normalize_ar(text: str) -> str:
 # original nominative citation forms as the default; every spoken lect
 # defaults to the oblique case instead.
 #
-# A grammar stands behind that default for three lects only, each giving the
+# A grammar stands behind that default for four lects only, each giving the
 # ‑een/‑iin forms and no ‑aan/‑uun forms: Hijazi (Omar 1975, "itneen",
-# "talaatiin"), Gulf (Qafisheh 1970, "'iθneen") and Egyptian (Dirr 1904,
-# "etnen, itnen"); see AR_LECT_FORMS for the full references. For Najdi,
-# Levantine, Mesopotamian, Moroccan, Tunisian and Libyan no grammar has been
-# read, and the default is extrapolated from those three.
+# "talaatiin"), Gulf (Qafisheh 1970, "'iθneen"), Egyptian (Dirr 1904,
+# "etnen, itnen") and Najdi (Ingham 1994, p. 56, "rajjālēn itnēn" two men);
+# see AR_LECT_FORMS for the full references. For Levantine, Mesopotamian,
+# Moroccan, Tunisian and Libyan no grammar has been read, and the default is
+# extrapolated from those four.
 #
 # Code meanings: ISO 639-3 code table, https://iso639-3.sil.org/code_tables/639/data
 AR_DIALECT_DEFAULT_CASE = {
@@ -385,10 +386,10 @@ def _cardinal_ar(number: int, case: str = "nominative",
 # still composes the number, so a table names words and never arithmetic.
 #
 # Keyed by the ISO 639-3 code of the individual Arabic language, which is what
-# a caller passes as lang (acw, afb, arz); the macrolanguage
+# a caller passes as lang (acw, afb, arz, ars); the macrolanguage
 # code ar and the literary arb have no table and keep the literary
-# words, and so does any lect no source has been read for -- Najdi ars
-# among them, which is deliberate and not an oversight.
+# words, and so does any lect no source has been read for. A value no source
+# gives for a lect keeps its literary word in that lect's table too.
 #
 # Every form is quoted from a published grammar with its page. The Arabic
 # spelling of each is the form written in modern transcripts, counted
@@ -445,6 +446,38 @@ AR_LECT_FORMS = {
         700: "سبعمية",        # Qafisheh 1970 p. 302 sabaʕmiya; SADA n=79
         800: "ثمنمية",        # Qafisheh 1970 p. 305 θamanmiya; SADA n=16
         900: "تسعمية",        # Qafisheh 1970 p. 304 tisiʕmiya; SADA n=110
+    },
+    # Eastern Province Saudi Arabic, shipped under the Najdi code. Only 12, 100 and the spoken half نص
+    # (_SPOKEN_HALF_LOOKUP) come from a Najdi source: Bruce Ingham, Najdi Arabic: Central Arabian, John
+    # Benjamins, 1994, quoted from Google Books search-inside snippets of its preview (book id
+    # t1W7sEB_Kg8C), whose text layer drops the underline and underdot of the transcription ("talat" is
+    # ṯalāṯ; p. 14 lists the voiceless dental fricative among the consonants); Ingham's p. 171 also
+    # agrees on 300. Every other form is from the Eastern Province: Merrill Y. Van Wagoner et al.,
+    # Spoken Arabic (Saudi), Spoken Language Services, 1977, a course whose dialogues are set in Dhahran,
+    # read on the page images of the archive.org scan. The teens are written with ط after Habaka J.
+    # Feghali, Gulf Arabic: The Dialects of Kuwait, Bahrain, Qatar, UAE, and Oman, Dunwoody Press, 2008,
+    # p. 57: "it is very common in all Gulf dialects to realize the //-t-// in numbers 13 to 19 as an
+    # emphatic //-ṭ-//, e.g., //θamanṭaʕʃar// eighteen". No source prints these numerals in Arabic
+    # script; each spelling below transcribes the cited form letter for letter.
+    "ars": {
+        11: "احدعش",          # Van Wagoner 1977 p. 135 iHdaʿsh
+        12: "ثنعش",           # Ingham 1994 p. 56 "tnaʻaš rajjāl" twelve men; Van Wagoner p. 135 ithnaʿsh
+        13: "ثلاثطعش",        # Van Wagoner 1977 p. 135 thalaat taʿsh
+        14: "اربعطعش",        # Van Wagoner 1977 p. 135 arbaʿ taʿsh
+        15: "خمسطعش",         # Van Wagoner 1977 p. 135 khams taʿsh
+        16: "ستطعش",          # Van Wagoner 1977 p. 135 sitt taʿsh
+        17: "سبعطعش",         # Van Wagoner 1977 p. 135 sabiʿ taʿsh
+        18: "ثمانطعش",        # Van Wagoner 1977 p. 135 thimaan taʿsh
+        19: "تسعطعش",         # Van Wagoner 1977 p. 135 tisʿ taʿsh
+        100: "مية",           # Ingham 1994 p. 56 "myat rajjāl" a hundred men; Van Wagoner p. 136 miya
+        200: "ميتين",         # Van Wagoner 1977 p. 136 miyatayn
+        300: "ثلاث مية",      # Van Wagoner 1977 p. 136 thalaath miya; Ingham 1994 p. 171 "talat imyat iryāl"
+        400: "اربع مية",      # Van Wagoner 1977 p. 136 arbaʿ miya
+        500: "خمس مية",       # Van Wagoner 1977 p. 136 khams miya
+        600: "ست مية",        # Van Wagoner 1977 p. 136 sitt miya
+        700: "سبع مية",       # Van Wagoner 1977 p. 136 sabiʿ miya
+        800: "ثمان مية",      # Van Wagoner 1977 p. 136 thimaan miya
+        900: "تسع مية",       # Van Wagoner 1977 p. 136 tisiʿ miya
     },
     # Egyptian Arabic (Cairene). Source: Adolf Dirr, Colloquial Egyptian Arabic Grammar, for the Use of
     # Tourists, tr. W. H. Lyall, 1904, pp. 24 and 26.
@@ -541,7 +574,8 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
             in both registers. Any other value raises ValueError.
         lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
             cardinal words should be spoken instead of the literary ones --
-            ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian). The number is
+            ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian), ``ars``
+            (Najdi). The number is
             composed the same way either way and only the words differ; see
             :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
             ``ar`` and the literary ``arb`` all keep the literary words.
@@ -1028,6 +1062,21 @@ _HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة", "مية"})
 # is 1100). Alone, "ميت ريال" stays no number, because telling it from "a dead
 # ..." needs to know that the next word is a counted noun.
 _CONSTRUCT_HUNDRED_LOOKUP = _norm_map({"ميت": 100})
+# نص, the spoken half. Bruce Ingham, "Najdi Arabic: Central Arabian" (John
+# Benjamins, 1994), p. 114: "nuss sāʻah" half an hour, as the text layer of its
+# Google Books preview prints nuṣṣ. Merrill Y. Van Wagoner et al., "Spoken
+# Arabic (Saudi)" (Spoken Language Services, 1977), p. 139: nuṣṣ "one half".
+# Clive Holes, "Colloquial Arabic of the Gulf" (Routledge, 2010), p. 52:
+# "wáaHid u sittíin diináar u núSS" sixty-one and a half dinars. In the
+# written language نص is "text" (English Wiktionary, نص, Arabic: "text,
+# document"), so it is read as a half only in the lects listed below, only
+# after و and a unit, a ten or a teen ("خمسة ونص" is 5.5), and only where it
+# ends the number phrase: at the end of the text or before a unit word
+# ("خمسة ونص ريال"). Before any other word it can be "the text of" ("خمسة ونص
+# الكتاب"). After a hundred or a thousand ("مية ونص", "الف ونص") it is left
+# unread: spoken, those mean 150 and 1500, and no source read states that.
+_SPOKEN_HALF_LOOKUP = _norm_map({"نص": 0.5})
+_LECTS_WITH_SPOKEN_HALF = {"ars"}
 
 # Words that are also everyday words. A normaliser must not change what the
 # text says: reading water as 100 changes it, while leaving a real hundred as
@@ -1264,6 +1313,19 @@ def _group_slot(tokens, j):
     return None
 
 
+def _is_spoken_half(tokens, j):
+    """True when tokens[j] is نص read as a half: after و and a unit, a ten or
+    a teen, and at the end of the text or before a unit word. See
+    _SPOKEN_HALF_LOOKUP."""
+    if tokens[j] not in _SPOKEN_HALF_LOOKUP or j < 2 or tokens[j - 1] != "و":
+        return False
+    before = _bare(tokens[j - 2])
+    if not (before in _UNITS_LOOKUP or before in _TENS_LOOKUP or
+            before in _FUSED_TEENS_LOOKUP or before in _TEEN_SECOND_LOOKUP):
+        return False
+    return j + 1 == len(tokens) or tokens[j + 1] in _UNIT_WORDS_AR
+
+
 def _is_number(s):
     try:
         # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
@@ -1293,6 +1355,7 @@ def _tokenize_ar(text):
                 any(token[1:] in v for v in vocab) or
                 token[1:] in _TEEN_SECOND_LOOKUP or
                 token[1:] in _CONSTRUCT_HUNDRED_LOOKUP or
+                token[1:] in _SPOKEN_HALF_LOOKUP or
                 token[1:].startswith("ال") and
                 any(token[3:] in v for v in vocab)):
             tokens.append("و")
@@ -1330,9 +1393,10 @@ def _parse_ordinal_span(tokens, i):
     return None, i
 
 
-def _number_spans(tokens, ordinals=False):
+def _number_spans(tokens, ordinals=False, halves=False):
     """Yield (start, end, value) for each number in tokens; start includes a
-    minus sign before the number."""
+    minus sign before the number. ``halves`` reads the spoken half نص (see
+    _SPOKEN_HALF_LOOKUP)."""
     i = 0
     n = len(tokens)
     while i < n:
@@ -1349,7 +1413,7 @@ def _number_spans(tokens, ordinals=False):
                 yield start, j, -value if negative else value
                 i = j
                 continue
-        value, j = _parse_number_span(tokens, i)
+        value, j = _parse_number_span(tokens, i, halves)
         if value is None:
             i += 1
             continue
@@ -1363,7 +1427,7 @@ def _number_spans(tokens, ordinals=False):
         i = j
 
 
-def extract_numbers_ar(text, short_scale=True, ordinals=False):
+def extract_numbers_ar(text, short_scale=True, ordinals=False, lect=None):
     """
     Takes in a string and extracts a list of numbers.
 
@@ -1374,11 +1438,15 @@ def extract_numbers_ar(text, short_scale=True, ordinals=False):
         text (str): the string to extract numbers from
         short_scale (bool): ignored, Arabic scale words are unambiguous
         ordinals (bool): consider ordinal numbers ("الثالث" = 3)
+        lect (str, optional): the ISO 639-3 code of the lect the text is
+            in; ``ars`` also reads the spoken half نص (see
+            _SPOKEN_HALF_LOOKUP)
     Returns:
         list: list of extracted numbers as floats
     """
     return [value for _, _, value in
-            _number_spans(_tokenize_ar(text), ordinals)]
+            _number_spans(_tokenize_ar(text), ordinals,
+                          lect in _LECTS_WITH_SPOKEN_HALF)]
 
 
 def _closes_a_hundred(token):
@@ -1390,8 +1458,9 @@ def _closes_a_hundred(token):
     return tok in _UNITS_LOOKUP and (_UNITS_LOOKUP[tok] <= 2 or tok.endswith("ه"))
 
 
-def _parse_number_span(tokens, i):
-    """Parse one number starting at tokens[i].
+def _parse_number_span(tokens, i, halves=False):
+    """Parse one number starting at tokens[i]; ``halves`` reads the spoken
+    half نص.
 
     Returns (value, next_index); value is None if no number starts here."""
     total = 0
@@ -1403,6 +1472,9 @@ def _parse_number_span(tokens, i):
     while j < n:
         raw = tokens[j]
         if raw == "و" and started and j + 1 < n:
+            if halves and _is_spoken_half(tokens, j + 1):
+                j += 1
+                continue
             # the conjunction continues the number only when the next word is
             # a number component that fills a slot not already taken (two
             # units in a row, "ثلاثة وخمسة", are separate numbers, not eight)
@@ -1516,8 +1588,9 @@ def _parse_number_span(tokens, i):
             started = True
             j += 1
             continue
-        if tok in _FRACTIONS_LOOKUP:
-            current += _FRACTIONS_LOOKUP[tok]
+        if tok in _FRACTIONS_LOOKUP or halves and started and \
+                _is_spoken_half(tokens, j):
+            current += _FRACTIONS_LOOKUP.get(tok) or _SPOKEN_HALF_LOOKUP[tok]
             started = True
             j += 1
             break  # a fraction noun ends the number
@@ -1555,18 +1628,19 @@ def _parse_decimal_part(tokens, i):
     return value / 10 ** len(str(int(value))), j
 
 
-def extract_number_ar(text, ordinals=False):
+def extract_number_ar(text, ordinals=False, lect=None):
     """
     Extract the first number found in Modern Standard Arabic text.
 
     Args:
         text (str): the string to extract a number from
         ordinals (bool): consider ordinal numbers ("الثالث" = 3)
+        lect (str, optional): see ``extract_numbers_ar``
     Returns:
         (int, float or False): the extracted number, or False if the text
                                contains no number
     """
-    numbers = extract_numbers_ar(text, ordinals=ordinals)
+    numbers = extract_numbers_ar(text, ordinals=ordinals, lect=lect)
     if not numbers:
         return False
     value = numbers[0]
@@ -1645,11 +1719,13 @@ def _detach_proclitic(match):
 
 def _continues_a_number_ar(word):
     """True for a word that is a number only inside a number already
-    started: the construct hundred ميت, with or without an attached و."""
-    return _normalize_ar(word).removeprefix("و") in _CONSTRUCT_HUNDRED_LOOKUP
+    started: the construct hundred ميت and the spoken half نص, with or
+    without an attached و."""
+    bare = _normalize_ar(word).removeprefix("و")
+    return bare in _CONSTRUCT_HUNDRED_LOOKUP or bare in _SPOKEN_HALF_LOOKUP
 
 
-def _first_number_words_ar(words):
+def _first_number_words_ar(words, halves=False):
     """How many of `words` the first number covers, as this module reads them,
     or None when the first number does not start at the first word."""
     tokens, owner = [], []
@@ -1657,7 +1733,7 @@ def _first_number_words_ar(words):
         for token in _tokenize_ar(word):
             tokens.append(token)
             owner.append(w)
-    for start, end, _ in _number_spans(tokens):
+    for start, end, _ in _number_spans(tokens, halves=halves):
         if owner[start] != 0:
             return None
         return owner[end - 1] + 1
@@ -1668,9 +1744,10 @@ _MASK_RE = re.compile("\uf8ff(.)\uf8ff")
 _PUNCT_AR = ".,!?;:؟،؛"
 
 
-def _resolve_context_words_ar(utterance):
+def _resolve_context_words_ar(utterance, halves=False):
     """Decide each word that is a number only in context (see
-    ``_out_of_context``) against its sentence.
+    ``_out_of_context``, and with ``halves`` the spoken half نص, see
+    ``_is_spoken_half``) against its sentence.
 
     The span converter reads words one at a time, so such a word is settled
     first: where the sentence makes it a number it is spelled the
@@ -1685,16 +1762,19 @@ def _resolve_context_words_ar(utterance):
             tokens.append(token)
             owner.append(w)
     in_number = set()
-    for start, end, _ in _number_spans(tokens):
+    for start, end, _ in _number_spans(tokens, halves=halves):
         in_number.update(range(start, end))
     masked = []
     for k, token in enumerate(tokens):
-        if token not in _CONTEXT_CANONICAL_AR and not (
+        half = halves and token in _SPOKEN_HALF_LOOKUP
+        if not half and token not in _CONTEXT_CANONICAL_AR and not (
                 k not in in_number and _hundred_after_a_day_or_lady(tokens, k)):
             continue
         w = owner[k]
         word = written[w]
         if k in in_number:
+            if half:
+                continue
             lead = word[:len(word) - len(word.lstrip(_PUNCT_AR))]
             trail = word[len(word.rstrip(_PUNCT_AR)):]
             prefix = "".join(t for i, t in enumerate(tokens)
@@ -1721,11 +1801,12 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     # deferred: the shared converter lives in the package root, which imports
     # this module — importing it at module level would be circular
     from ovos_number_parser import _numbers_to_digits_generic
-    resolved, masked = _resolve_context_words_ar(utterance)
+    halves = resolve_ar_lect(lang) in _LECTS_WITH_SPOKEN_HALF
+    resolved, masked = _resolve_context_words_ar(utterance, halves)
     spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)
     spaced = _WORD_RE.sub(_detach_proclitic, spaced)
-    converted = _numbers_to_digits_generic(spaced, lang,
-                                           continues=_continues_a_number_ar,
-                                           first_number_words=_first_number_words_ar)
+    converted = _numbers_to_digits_generic(
+        spaced, lang, continues=_continues_a_number_ar,
+        first_number_words=lambda words: _first_number_words_ar(words, halves))
     converted = _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
     return _MASK_RE.sub(lambda m: masked[ord(m.group(1)) - 0xE000], converted)
