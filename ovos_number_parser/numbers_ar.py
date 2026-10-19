@@ -1980,6 +1980,51 @@ def _resolve_context_words_ar(utterance, halves=False):
     return " ".join(words), masked
 
 
+# The literary 11 and 12 written as one word, which the converter reads whole
+# (see _SADA_TEENS_AR): "اثنا عشر" is two words and the first, أحد, إحدى,
+# اثنا, اثني, اثنتا or اثنتي, is no number by itself ("ما في أحد" is "there
+# is nobody").
+_FUSED_LITERARY_TEENS = {1: "احدعشر", 2: "اثنعشر"}
+# The dual nouns of _DUAL_NOUNS_AR, which are not numerals: اثنتان and
+# اثنتين are.
+_DUAL_NOUN_TOKENS = _norm_keys(_DUAL_NOUNS_AR - {"اثنتان", "اثنتين"})
+_DUAL_MASK_RE = re.compile("\uf8fe(.)\uf8fe")
+
+
+def _join_literary_teens_ar(text):
+    """Write each literary 11 and 12 as one word: "اثنا عشر" as اثنعشر,
+    "وإحدى عشرة" as واحدعشر. A proclitic on the first word is kept, and
+    a mark of punctuation after عشر or عشرة."""
+    out = []
+    for word in text.split():
+        if out and out[-1][0] not in _PUNCT_AR and \
+                out[-1][-1] not in _PUNCT_AR and \
+                _normalize_ar(word.rstrip(_PUNCT_AR)) in _TEEN_SECOND_LOOKUP:
+            tokens = _tokenize_ar(out[-1])
+            if tokens[-1] in _TEEN_FIRST_LOOKUP and \
+                    all(t in _PROCLITICS_AR + "و" for t in tokens[:-1]):
+                out[-1] = out[-1][:len(tokens) - 1] + \
+                    _FUSED_LITERARY_TEENS[_TEEN_FIRST_LOOKUP[tokens[-1]]] + \
+                    word[len(word.rstrip(_PUNCT_AR)):]
+                continue
+        out.append(word)
+    return " ".join(out)
+
+
+def _mask_dual_nouns_ar(text):
+    """Mask each word that is a dual noun ("ساعتين" two hours), so that the
+    converter keeps it: written as 2 it would lose the noun it counts.
+    Returns the masked text and the masked words."""
+    masked = []
+
+    def mask(match):
+        if not any(t in _DUAL_NOUN_TOKENS for t in _tokenize_ar(match.group(0))):
+            return match.group(0)
+        masked.append(match.group(0))
+        return "\uf8fe" + chr(0xE000 + len(masked) - 1) + "\uf8fe"
+    return _WORD_RE.sub(mask, text), masked
+
+
 def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     """Replace spoken Arabic number spans with digits.
 
@@ -1988,17 +2033,22 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     number reads as an ordinary token, converts through the shared
     span converter, then glues the clitic back onto the produced digits
     ("و355000"). Text without glued clitics passes through the converter
-    unchanged.
+    unchanged. The literary 11 and 12 convert whole ("اثنا عشر شهرا" ->
+    "12 شهرا"), and a dual noun stays as written ("انتظرت ساعتين" keeps
+    ساعتين), since the digit 2 alone would drop the noun it counts.
     """
     # deferred: the shared converter lives in the package root, which imports
     # this module — importing it at module level would be circular
     from ovos_number_parser import _numbers_to_digits_generic
     halves = resolve_ar_lect(lang) in _LECTS_WITH_SPOKEN_HALF
     resolved, masked = _resolve_context_words_ar(utterance, halves)
+    resolved, duals = _mask_dual_nouns_ar(_join_literary_teens_ar(resolved))
     spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)
     spaced = _WORD_RE.sub(_detach_proclitic, spaced)
     converted = _numbers_to_digits_generic(
         spaced, lang, continues=_continues_a_number_ar,
         first_number_words=lambda words: _first_number_words_ar(words, halves))
     converted = _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
+    converted = _DUAL_MASK_RE.sub(lambda m: duals[ord(m.group(1)) - 0xE000],
+                                  converted)
     return _MASK_RE.sub(lambda m: masked[ord(m.group(1)) - 0xE000], converted)
