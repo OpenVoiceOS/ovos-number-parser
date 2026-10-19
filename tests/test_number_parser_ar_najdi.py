@@ -73,7 +73,13 @@ class TestSpokenHalf(unittest.TestCase):
 
     def test_it_converts_to_digits(self):
         self.assertEqual(numbers_to_digits("خمسة ونص ريال", lang="ars"), "5.5 ريال")
-        self.assertEqual(numbers_to_digits("الساعة ثلاثة ونص", lang="ars"), "الساعة 3.5")
+
+    def test_after_a_clock_hour_it_is_left_unread(self):
+        """After الساعة the half is thirty minutes past the hour, not 0.5."""
+        self.assertEqual(numbers_to_digits("الساعة ثلاثة ونص", lang="ars"),
+                         "الساعة 3 ونص")
+        self.assertEqual(extract_numbers_ar("الساعة خمسة عشر ونص", lect="ars"),
+                         [15])
 
     def test_after_a_hundred_or_a_thousand_it_is_left_unread(self):
         """Spoken, "مية ونص" is 150 and "الف ونص" 1500; no source read says so,
