@@ -29,18 +29,12 @@ def gap(reason):
 
 
 # The gaps, each stated once and used by every case it covers.
-TEEN_FIRST_TO_DIGITS = gap(
-    "numbers_to_digits leaves the first word of the literary 11 and 12 "
-    "(أحد, إحدى, اثنا, اثني, اثنتا) behind and writes عشر as 10")
 CONSTRUCT_DUAL = gap(
     "the construct dual, which drops its ن before the counted noun "
     "(مئتا, مئتي, ألفي, مليوني), is not read as 200, 2000 or 2000000")
 CONSTRUCT_DUAL_SPOKEN = gap(
     "200,000 is spoken مئتان ألف; before ألف the dual is in construct and "
     "drops its ن: مئتا ألف")
-DUAL_NOUN_LOSES_ITS_NOUN = gap(
-    "numbers_to_digits replaces a dual noun (ساعتين) with a bare 2, so the "
-    "counted noun is lost from the text")
 TAMYIZ_ACCUSATIVE = gap(
     "after 11 to 99 the counted noun is singular accusative, so a thousand is "
     "ألفًا (Wikipedia 'Arabic grammar', 12,222: 'iṯnā ‘ašara alfan'), but "
@@ -477,16 +471,11 @@ LITERARY_TO_DIGITS = [
     ("الإجازة خمسة عشر يوما", "الإجازة 15 يوما"),
     ("اشتريت ثلاثة عشر كتابا", "اشتريت 13 كتابا"),
     ("الدفعة الأولى عشرة آلاف", "الدفعة الأولى 10000"),
-    pytest.param("مدة الإيجار اثنا عشر شهرا", "مدة الإيجار 12 شهرا",
-                 marks=TEEN_FIRST_TO_DIGITS),
-    pytest.param("حجزنا إحدى عشرة غرفة", "حجزنا 11 غرفة",
-                 marks=TEEN_FIRST_TO_DIGITS),
-    pytest.param("في المعرض اثنتا عشرة سيارة", "في المعرض 12 سيارة",
-                 marks=TEEN_FIRST_TO_DIGITS),
-    pytest.param("المجموع مئة واثنا عشر ريالا", "المجموع 112 ريالا",
-                 marks=TEEN_FIRST_TO_DIGITS),
-    pytest.param("قطعت أحد عشر ألف كيلو", "قطعت 11000 كيلو",
-                 marks=TEEN_FIRST_TO_DIGITS),
+    ("مدة الإيجار اثنا عشر شهرا", "مدة الإيجار 12 شهرا"),
+    ("حجزنا إحدى عشرة غرفة", "حجزنا 11 غرفة"),
+    ("في المعرض اثنتا عشرة سيارة", "في المعرض 12 سيارة"),
+    ("المجموع مئة واثنا عشر ريالا", "المجموع 112 ريالا"),
+    ("قطعت أحد عشر ألف كيلو", "قطعت 11000 كيلو"),
     ("الحساب مية وأحد عشر ريال", "الحساب 111 ريال"),
     ("مكتبنا في الدور الحادي عشر", "مكتبنا في الدور الحادي عشر"),
     ("نحتفل بالذكرى الخامسة والعشرين",
@@ -504,13 +493,11 @@ def test_literary_to_digits(text, digits):
 
 @pytest.mark.parametrize("lang", BOTH)
 @pytest.mark.parametrize("text,kept", [
-    pytest.param("انتظرت ساعتين في المعرض",
-                 {"انتظرت ساعتين في المعرض", "انتظرت 2 ساعة في المعرض",
-                  "انتظرت 2 ساعات في المعرض"},
-                 marks=DUAL_NOUN_LOSES_ITS_NOUN),
-    pytest.param("قرأت النص مرتين",
-                 {"قرأت النص مرتين", "قرأت النص 2 مرة", "قرأت النص 2 مرات"},
-                 marks=DUAL_NOUN_LOSES_ITS_NOUN),
+    ("انتظرت ساعتين في المعرض",
+     {"انتظرت ساعتين في المعرض", "انتظرت 2 ساعة في المعرض",
+      "انتظرت 2 ساعات في المعرض"}),
+    ("قرأت النص مرتين",
+     {"قرأت النص مرتين", "قرأت النص 2 مرة", "قرأت النص 2 مرات"}),
 ])
 def test_a_dual_noun_keeps_its_noun(lang, text, kept):
     """The dual may stay as written or become 2 before its noun, singular
@@ -615,17 +602,9 @@ def test_feminine_above_ten_thousand_reads_back(lang, number):
     assert extract_number(spoken, lang=lang) == number, spoken
 
 
-# The values whose literary form starts a group with the 11 or 12 that
-# numbers_to_digits does not convert whole (TEEN_FIRST_TO_DIGITS). 111 is not
-# among them: its وأحد normalises to the spelling of واحد "one" and converts.
-TEEN_FIRST_IN_LITERARY = {12, 212}
-
-
 @pytest.mark.parametrize("lang", BOTH)
 @pytest.mark.parametrize("number", ROUND_TRIP_VALUES)
-def test_said_converts_to_its_digits(lang, number, request):
-    if lang == "ar" and number in TEEN_FIRST_IN_LITERARY:
-        request.applymarker(TEEN_FIRST_TO_DIGITS)
+def test_said_converts_to_its_digits(lang, number):
     spoken = pronounce_number(number, lang=lang)
     assert numbers_to_digits(f"المبلغ {spoken} ريال", lang=lang) == \
         f"المبلغ {number} ريال"
