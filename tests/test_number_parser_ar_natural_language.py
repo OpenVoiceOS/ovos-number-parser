@@ -29,38 +29,18 @@ def gap(reason):
 
 
 # The gaps, each stated once and used by every case it covers.
-HUNDRED_AND_ELEVEN = gap(
-    "مية or ميتين before و and the literary eleven loses its hundred: "
-    "'مية وأحد عشر' reads 11, not 111")
 TEEN_FIRST_TO_DIGITS = gap(
     "numbers_to_digits leaves the first word of the literary 11 and 12 "
     "(أحد, إحدى, اثنا, اثني, اثنتا) behind and writes عشر as 10")
-ORDINAL_LEAKS_AS_CARDINAL = gap(
-    "without ordinals=True, the عشر of an ordinal teen and an ordinal ten, "
-    "alone or in a compound, are read as cardinals, though 'الثالث' is not")
 CONSTRUCT_DUAL = gap(
     "the construct dual, which drops its ن before the counted noun "
     "(مئتا, مئتي, ألفي, مليوني), is not read as 200, 2000 or 2000000")
-NOMINATIVE_THOUSAND_DUAL = gap(
-    "ألفا is read as the accusative singular alfan, 1000; as a predicate "
-    "before its noun it is the nominative construct dual alfā, 2000")
 CONSTRUCT_DUAL_SPOKEN = gap(
     "200,000 is spoken مئتان ألف; before ألف the dual is in construct and "
     "drops its ن: مئتا ألف")
-CLOCK_TIME_IS_NOT_A_DECIMAL = gap(
-    "'الساعة ثلاثة ونص' is half past three, a clock time, and is converted "
-    "to the decimal 3.5")
-PRICE_IS_NOT_AN_EIGHTH = gap(
-    "ثمن 'price' is read as the fraction 1/8 before a noun")
-HALF_AFTER_SCALE = gap(
-    "نصف after a hundred, a thousand or a million adds 0.5: 'ألف ونصف' "
-    "reads 1000.5, which the phrase never means")
 DUAL_NOUN_LOSES_ITS_NOUN = gap(
     "numbers_to_digits replaces a dual noun (ساعتين) with a bare 2, so the "
     "counted noun is lost from the text")
-SECOND_AS_TIME = gap(
-    "with ordinals=True the noun ثانية 'a second' before واحدة is read as "
-    "the ordinal 2")
 TAMYIZ_ACCUSATIVE = gap(
     "after 11 to 99 the counted noun is singular accusative, so a thousand is "
     "ألفًا (Wikipedia 'Arabic grammar', 12,222: 'iṯnā ‘ašara alfan'), but "
@@ -257,22 +237,92 @@ LITERARY_SENTENCES = [
     ("ثلاثمئة وأحد عشر ريالا", 311),
     ("المجموع مئة واثنا عشر ريالا", 112),
     ("المجموع ألف وأحد عشر ريالا", 1011),
-    pytest.param("الحساب مية وأحد عشر ريال", 111, marks=HUNDRED_AND_ELEVEN),
+    ("الحساب مية وأحد عشر ريال", 111),
     pytest.param("دفعت مئتي ريال", 200, marks=CONSTRUCT_DUAL),
     pytest.param("هذه الأرض ثمنها مئتا ألف ريال", 200000, marks=CONSTRUCT_DUAL),
-    pytest.param("الميزانية ألفا ريال", 2000,
-                 marks=NOMINATIVE_THOUSAND_DUAL),
-    pytest.param("اشتغلنا بميزانية ألفي ريال", 2000, marks=CONSTRUCT_DUAL),
-    pytest.param("رصدنا مليوني ريال للحملة", 2000000, marks=CONSTRUCT_DUAL),
-    pytest.param("ثمن السيارة مئة ألف ريال", 100000,
-                 marks=PRICE_IS_NOT_AN_EIGHTH),
-    pytest.param("بكم ثمن التذكرة؟ خمسون ريالا", 50,
-                 marks=PRICE_IS_NOT_AN_EIGHTH),
+    ("الميزانية ألفا ريال", 2000),
+    ("اشتغلنا بميزانية ألفي ريال", 2000),
+    ("رصدنا مليوني ريال للحملة", 2000000),
+    ("ثمن السيارة مئة ألف ريال", 100000),
+    ("بكم ثمن التذكرة؟ خمسون ريالا", 50),
 ]
 
 
 @pytest.mark.parametrize("text,value", LITERARY_SENTENCES)
 def test_literary_sentence(text, value):
+    assert_value(extract_number(text, lang="ar"), value)
+
+
+# ألفا with no count before it is the dual in construct, 2,000; written with
+# the tanween of the accusative, ألفًا or ألفاً, it is the singular, 1,000.
+@pytest.mark.parametrize("text,value", [
+    ("الميزانية ألفا ريال", 2000),
+    ("قتل ألفاً", 1000),
+    ("قتل ألفًا", 1000),
+    ("حضر ألفاً وخمسمئة شخص", 1500),
+    ("ربح مليوناً في سنة واحدة", 1000000),
+    ("سبعة عشر ألفاً وخمسمئة ريال", 17500),
+])
+def test_alfa_is_the_dual_without_tanween(text, value):
+    assert_value(extract_number(text, lang="ar"), value)
+
+
+# With no counted noun directly after it, ألفا is the accusative singular
+# even without tanween, which speech and recognisers never write.
+@pytest.mark.parametrize("text,value", [
+    ("قتل ألفا", 1000),
+    ("دفع ألفا للمحامي", 1000),
+    ("دفع ألفا نقدا", 1000),
+    ("ربح مليونا في سنة واحدة", 1000000),
+    ("خسر مليارا", 1000000000),
+    ("حضر ألفا وخمسمئة شخص", 1500),
+    ("ألفا", 1000),
+    ("قتل ألفا آخرين", 1000),
+    ("دفع ألفا كاملة", 1000),
+    ("دفع ألفا فقط", 1000),
+    ("دفع ألفا بس", 1000),
+    ("يدفع ألفا كل شهر", 1000),
+    ("خسر مليارا خلال سنة", 1000000000),
+    ("دفع ألفا أو أكثر", 1000),
+    ("جمع ألفا وزيادة", 1000),
+    ("دفع ألفا عند الباب", 1000),
+    ("دفع ألفا بالضبط", 1000),
+    ("خسر مليارا، ثم ربح", 1000000000),
+])
+def test_bare_alfa_is_the_singular(text, value):
+    assert_value(extract_number(text, lang="ar"), value)
+
+
+def test_bare_alfa_before_another_number():
+    assert extract_numbers_ar("دفع ألفا أو ألفين") == [1000, 2000]
+
+
+# numbers_to_digits reads ألفا as extraction does: the dual before a unit
+# word, the singular anywhere else.
+@pytest.mark.parametrize("text,digits", [
+    ("الميزانية ألفا ريال", "الميزانية 2000 ريال"),
+    ("المبلغ مليون وألفا ريال", "المبلغ 1002000 ريال"),
+    ("قتل ألفا آخرين", "قتل 1000 آخرين"),
+    ("دفع ألفا أو ألفين", "دفع 1000 أو 2000"),
+    ("سبعة عشر ألفا وخمسمئة ريال", "17500 ريال"),
+])
+def test_alfa_converts_as_it_is_read(text, digits):
+    assert numbers_to_digits(text, lang="ar") == digits
+    assert extract_number(text, lang="ar") == \
+        extract_number(digits, lang="ar")
+
+
+# A definite ten after a plural noun counts it; only after a singular noun is
+# it an ordinal.
+@pytest.mark.parametrize("text,value", [
+    ("خلال السنوات العشرين الماضية", 20),
+    ("في الأعوام الثلاثين الأخيرة", 30),
+    ("الدقائق العشرين الأولى كانت صعبة", 20),
+    ("الرجال الأربعين", 40),
+    ("الكتب الثلاثين", 30),
+    ("بالسنوات العشرين", 20),
+])
+def test_a_definite_ten_after_a_plural_is_a_cardinal(text, value):
     assert_value(extract_number(text, lang="ar"), value)
 
 
@@ -317,7 +367,8 @@ SAUDI_SENTENCES = [
     ("وقفنا في نص الطريق", False),
     ("قريت ثلاث صفحات ونص الفصل", 3),
     ("أرسلت لك الصور الخمسة ونص العقد", 5),
-    pytest.param("الحساب مية وأحد عشر ريال", 111, marks=HUNDRED_AND_ELEVEN),
+    ("أجرة الساعة خمسة ونص ريال", 5.5),
+    ("الحساب مية وأحد عشر ريال", 111),
 ]
 
 
@@ -369,7 +420,7 @@ ORDINAL_SENTENCES = [
     ("شاهدت الحلقة العشرين", 20),
     ("الأسبوع الأول من الشهر", 1),
     ("الدفع في اليوم الثلاثين", 30),
-    pytest.param("انتظر ثانية واحدة", 1, marks=SECOND_AS_TIME),
+    ("انتظر ثانية واحدة", 1),
 ]
 
 
@@ -384,12 +435,11 @@ def test_ordinal_sentence(lang, text, value):
     "شقتي في الطابق الثالث",
     "الموعد الثاني يوم الأحد",
     "هذه المرة الأولى التي أتصل فيها",
-    pytest.param("مكتبنا في الدور الحادي عشر",
-                 marks=ORDINAL_LEAKS_AS_CARDINAL),
-    pytest.param("نحتفل بالذكرى الخامسة والعشرين",
-                 marks=ORDINAL_LEAKS_AS_CARDINAL),
-    pytest.param("ابني في الصف الثاني عشر", marks=ORDINAL_LEAKS_AS_CARDINAL),
-    pytest.param("شاهدت الحلقة العشرين", marks=ORDINAL_LEAKS_AS_CARDINAL),
+    "مكتبنا في الدور الحادي عشر",
+    "نحتفل بالذكرى الخامسة والعشرين",
+    "ابني في الصف الثاني عشر",
+    "شاهدت الحلقة العشرين",
+    "والحلقة العشرين كانت أطول",
 ])
 def test_an_ordinal_is_no_cardinal(lang, text):
     assert extract_number(text, lang=lang) is False
@@ -437,13 +487,10 @@ LITERARY_TO_DIGITS = [
                  marks=TEEN_FIRST_TO_DIGITS),
     pytest.param("قطعت أحد عشر ألف كيلو", "قطعت 11000 كيلو",
                  marks=TEEN_FIRST_TO_DIGITS),
-    pytest.param("الحساب مية وأحد عشر ريال", "الحساب 111 ريال",
-                 marks=HUNDRED_AND_ELEVEN),
-    pytest.param("مكتبنا في الدور الحادي عشر", "مكتبنا في الدور الحادي عشر",
-                 marks=ORDINAL_LEAKS_AS_CARDINAL),
-    pytest.param("نحتفل بالذكرى الخامسة والعشرين",
-                 "نحتفل بالذكرى الخامسة والعشرين",
-                 marks=ORDINAL_LEAKS_AS_CARDINAL),
+    ("الحساب مية وأحد عشر ريال", "الحساب 111 ريال"),
+    ("مكتبنا في الدور الحادي عشر", "مكتبنا في الدور الحادي عشر"),
+    ("نحتفل بالذكرى الخامسة والعشرين",
+     "نحتفل بالذكرى الخامسة والعشرين"),
     pytest.param("دفعت مئتي ريال", "دفعت 200 ريال", marks=CONSTRUCT_DUAL),
     pytest.param("المبلغ مليون ومئتا ألف ريال", "المبلغ 1200000 ريال",
                  marks=CONSTRUCT_DUAL),
@@ -493,8 +540,8 @@ SAUDI_TO_DIGITS = [
     ("حطيت نص الكمية بس", "حطيت نص الكمية بس"),
     ("خمسة ونص ريال وسبعة ريال", "5.5 ريال و7 ريال"),
     ("بين ثلاثطعش وخمسطعش سنة", "بين 13 و15 سنة"),
-    pytest.param("الحساب مية وأحد عشر ريال", "الحساب 111 ريال",
-                 marks=HUNDRED_AND_ELEVEN),
+    ("أجرة الساعة خمسة ونص ريال", "أجرة الساعة 5.5 ريال"),
+    ("الحساب مية وأحد عشر ريال", "الحساب 111 ريال"),
 ]
 
 
@@ -503,8 +550,7 @@ def test_saudi_to_digits(text, digits):
     assert numbers_to_digits(text, lang="ars") == digits
 
 
-@pytest.mark.parametrize("lang", [
-    "ar", pytest.param("ars", marks=CLOCK_TIME_IS_NOT_A_DECIMAL)])
+@pytest.mark.parametrize("lang", BOTH)
 @pytest.mark.parametrize("text", ["تعال الساعة ثلاثة ونص",
                                   "موعدك الساعة ثلاثة ونص"])
 def test_a_clock_time_is_no_decimal(lang, text):
@@ -516,12 +562,9 @@ def test_a_clock_time_is_no_decimal(lang, text):
 HALF_AFTER_A_ROUND_NUMBER = [
     ("الحساب مية ونص", 100.5, "ars"),
     ("السعر الف ونص", 1000.5, "ars"),
-    pytest.param("المبلغ حوالي مليون ونصف", 1000000.5, "ar",
-                 marks=HALF_AFTER_SCALE),
-    pytest.param("تكلفة التصليح ألف ونصف", 1000.5, "ar",
-                 marks=HALF_AFTER_SCALE),
-    pytest.param("رصيدك ثلاثة آلاف ونصف", 3000.5, "ar",
-                 marks=HALF_AFTER_SCALE),
+    ("المبلغ حوالي مليون ونصف", 1000000.5, "ar"),
+    ("تكلفة التصليح ألف ونصف", 1000.5, "ar"),
+    ("رصيدك ثلاثة آلاف ونصف", 3000.5, "ar"),
 ]
 
 
@@ -563,8 +606,8 @@ def test_said_in_a_sentence_reads_back(lang, options, number):
 
 
 @pytest.mark.parametrize("lang,number", [
-    pytest.param("ars", 111000, marks=HUNDRED_AND_ELEVEN),
-    pytest.param("ars", 211000, marks=HUNDRED_AND_ELEVEN),
+    ("ars", 111000),
+    ("ars", 211000),
     ("ar", 111000), ("ar", 211000), ("ars", 311000),
 ])
 def test_feminine_above_ten_thousand_reads_back(lang, number):
