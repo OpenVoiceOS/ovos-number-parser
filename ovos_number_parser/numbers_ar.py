@@ -345,12 +345,25 @@ def _cardinal_three_digit_ar(number: int, case: str = "nominative",
 
 
 def _cardinal_ar(number: int, case: str = "nominative",
-                 feminine: bool = False) -> str:
+                 feminine: bool = False, construct: bool = True) -> str:
     """Any whole number. The count before a scale word counts that word,
     which is masculine (ألف, مليون ...), so it stays masculine whatever the
     counted noun; only the last group below a thousand takes ``feminine``.
     Wikipedia "Arabic grammar": "thalāthatu ālāfin" 3,000; "iṯnā ‘ašara
     alfan wa-mi'atāni wa-thnatāni wa-‘ishrūna sanatan" 12,222 years.
+
+    A count ending in the dual two hundred is in construct with the scale
+    word after it and drops the dual's ن: 200,000 is مئتا ألف, and مئتي ألف
+    in the oblique. English Wiktionary, مئة, Arabic declension table, dual
+    construct: nominative "مِئَتَا miʔatā", accusative and genitive "مِئَتَيْ
+    miʔatay". ``construct=False`` keeps the full dual, for the lect tables,
+    which give the hundreds as words of their own.
+
+    The scale word after a count of 11 to 99 is written ألف, though grammar
+    puts it in the accusative, ألفًا (Wikipedia, above: "iṯnā ‘ašara alfan").
+    That ending is the indefinite accusative, and this module writes no
+    indefinite case ending on any word: case shows only in the endings of
+    the dual and the sound masculine plural (see ``_oblique``).
     """
     if number < 1000:
         return _cardinal_three_digit_ar(number, case, feminine)
@@ -368,7 +381,10 @@ def _cardinal_ar(number: int, case: str = "nominative",
             # scale nouns are masculine, so 3-10 take the ة-marked numeral
             parts.append(_ONES_AR[count] + " " + plural)
         else:
-            parts.append(_cardinal_ar(count, case) + " " + singular)
+            words = _cardinal_ar(count, case, construct=construct)
+            if construct and count % 1000 == 200:
+                words = words[:-1]
+            parts.append(words + " " + singular)
     if remainder:
         parts.append(_cardinal_three_digit_ar(remainder, case, feminine))
     return _AR_SEPARATOR.join(parts)
@@ -611,7 +627,7 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
                                                       gender=gender)
 
     whole = int(number)
-    result = _cardinal_ar(whole, case, feminine)
+    result = _cardinal_ar(whole, case, feminine, construct=not lect)
     if lect:
         result = _lect_cardinal(result, whole if number == whole else None,
                                 case, lect, feminine)
@@ -684,7 +700,7 @@ def pronounce_ordinal_ar(number, gender="masculine", case="nominative"):
             "the feminine and oblique Arabic ordinals above 99 are "
             "implemented for 100 and 1000 only")
     # beyond 99 Arabic uses the definite cardinal ("المئة", "الألف")
-    return "ال" + _cardinal_ar(number)
+    return "ال" + _cardinal_ar(number, construct=False)
 
 
 def nice_number_ar(number, speech=True, denominators=range(1, 11),
@@ -799,6 +815,11 @@ def _build_lookup():
             hundreds[word.replace("مئة", "مائة")] = value
     hundreds.update({"مئتين": 200, "مائتين": 200, "ثمانيمئة": 800,
                      "ثمانيمائة": 800})
+    # The construct dual, which drops its ن before the counted noun, as
+    # _cardinal_ar says it before a scale word. English Wiktionary, مئة,
+    # Arabic declension table, dual construct: nominative "مِئَتَا miʔatā",
+    # accusative and genitive "مِئَتَيْ miʔatay".
+    hundreds.update({"مئتا": 200, "مئتي": 200, "مائتا": 200, "مائتي": 200})
     # colloquial مية for مئة/مائة (100), including fused ثلاثمية..تسعمية
     # (Qafisheh 1970 gives θalaθmiya 300 and θamaanmiya 800, which the OCR of
     # the archive.org scan prints "§Sala6miya" and "§amaanmiya"); see

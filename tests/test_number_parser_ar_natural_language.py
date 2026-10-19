@@ -29,12 +29,6 @@ def gap(reason):
 
 
 # The gaps, each stated once and used by every case it covers.
-CONSTRUCT_DUAL = gap(
-    "the construct dual, which drops its ن before the counted noun "
-    "(مئتا, مئتي, ألفي, مليوني), is not read as 200, 2000 or 2000000")
-CONSTRUCT_DUAL_SPOKEN = gap(
-    "200,000 is spoken مئتان ألف; before ألف the dual is in construct and "
-    "drops its ن: مئتا ألف")
 TAMYIZ_ACCUSATIVE = gap(
     "after 11 to 99 the counted noun is singular accusative, so a thousand is "
     "ألفًا (Wikipedia 'Arabic grammar', 12,222: 'iṯnā ‘ašara alfan'), but "
@@ -108,7 +102,7 @@ def test_literary_thousands_after_eleven_to_ninety_nine(number, words):
 
 
 @pytest.mark.parametrize("number,words", [
-    pytest.param(200000, "مئتا ألف", marks=CONSTRUCT_DUAL_SPOKEN),
+    (200000, "مئتا ألف"),
 ])
 def test_literary_dual_hundred_before_a_thousand(number, words):
     assert pronounce_number(number, lang="ar") == words
@@ -232,8 +226,8 @@ LITERARY_SENTENCES = [
     ("المجموع مئة واثنا عشر ريالا", 112),
     ("المجموع ألف وأحد عشر ريالا", 1011),
     ("الحساب مية وأحد عشر ريال", 111),
-    pytest.param("دفعت مئتي ريال", 200, marks=CONSTRUCT_DUAL),
-    pytest.param("هذه الأرض ثمنها مئتا ألف ريال", 200000, marks=CONSTRUCT_DUAL),
+    ("دفعت مئتي ريال", 200),
+    ("هذه الأرض ثمنها مئتا ألف ريال", 200000),
     ("الميزانية ألفا ريال", 2000),
     ("اشتغلنا بميزانية ألفي ريال", 2000),
     ("رصدنا مليوني ريال للحملة", 2000000),
@@ -480,9 +474,8 @@ LITERARY_TO_DIGITS = [
     ("مكتبنا في الدور الحادي عشر", "مكتبنا في الدور الحادي عشر"),
     ("نحتفل بالذكرى الخامسة والعشرين",
      "نحتفل بالذكرى الخامسة والعشرين"),
-    pytest.param("دفعت مئتي ريال", "دفعت 200 ريال", marks=CONSTRUCT_DUAL),
-    pytest.param("المبلغ مليون ومئتا ألف ريال", "المبلغ 1200000 ريال",
-                 marks=CONSTRUCT_DUAL),
+    ("دفعت مئتي ريال", "دفعت 200 ريال"),
+    ("المبلغ مليون ومئتا ألف ريال", "المبلغ 1200000 ريال"),
 ]
 
 
