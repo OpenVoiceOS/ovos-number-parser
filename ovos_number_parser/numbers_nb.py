@@ -728,11 +728,25 @@ def _extract_numbers_with_text(tokens, t, ordinals=False, fractions=True):
 def _extract_number(text, t, ordinals=False):
     text = _expand_compound_numbers(text.lower(), t)
     if ordinals:
+        # An ordinal in the line wins, and the first one wins when there are
+        # several. A line with no ordinal falls through to the cardinal
+        # below: ordinals=True asks for ordinals to be READ, it does not ask
+        # for cardinals to be dropped. Sixteen of the eighteen languages
+        # here already behave that way; nb and nn returned False.
+        #
+        # The fall-through moves more than the lines with no ordinal. The
+        # leftmost-separated rule below calls this extractor for each span,
+        # so a span that used to read False now reads a value: a line whose
+        # numbers "og" separates reaches two spans and answers its leftmost
+        # one. "hundre og femte" answers 100 where it answered 5, and
+        # "en og tjuende" answers 1 where it answered 20. da and de answer
+        # their own spellings the same way, on this tree and before it.
+        # TestOgCompoundsUnderTheFlag in tests/test_number_parser_nb_nn.py
+        # pins the class with those controls beside it.
         for word in text.split():
             ordinal = _is_ordinal(word.strip(".,!?;:"), t)
             if ordinal is not False:
                 return ordinal
-        return False
     numbers = _extract_numbers_with_text(tokenize(text), t)
     if not numbers:
         return False
@@ -827,6 +841,13 @@ def is_fractional_nb(input_str, short_scale=False):
 
 def extract_number_nb(text, short_scale=False, ordinals=False):
     """Extract a number from Bokmål text, both counting traditions."""
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "nb", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     return _extract_number(text, _TABLES_NB, ordinals)
 
 

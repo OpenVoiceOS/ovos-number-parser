@@ -65,9 +65,10 @@ _MWL = NumberVocabulary(
     DEFAULT_SCALE=Scale.LONG,
     JOIN_WORD=["i"],
 
-    JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e um"
-    JOINER_ON_HUNDREDS=True,  # add JOIN_WORD from 100-1000 - "duzentos e um"
-    JOINER_ON_THOUSANDS=False,  # add JOIN_WORD from 1000-10000 - "mil e duzentos"
+    JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "bint'i un"
+    JOINER_ON_HUNDREDS=True,  # add JOIN_WORD from 100-1000 - "dous cientos i un"
+    JOINER_ON_THOUSANDS=False,  # add JOIN_WORD from 1000-10000 - "mil dous cientos"
+    MULTIPLY_HUNDREDS=True,  # analytic hundreds: "dous cientos" = 200
 
     DECIMAL_MARKER=["bírgula", "ponto", "birgula", ".", ","],
     NEGATIVE_SIGN=["menos"],
@@ -112,16 +113,19 @@ _MWL = NumberVocabulary(
         80: 'uitenta',
         90: 'nobenta'
     },
+    # the usual spoken pattern is periphrastic, "<unit> cientos";
+    # the synthetic forms (duzientos, quatrocientos, ...) are understood
+    # but read as lusisms, so they are accepted on extraction only
     HUNDREDS={
         100: 'cien',
-        200: 'duzientos',
-        300: 'trezientos',
-        400: 'quatrocientos',
-        500: 'quinhentos',
-        600: 'seiscientos',
-        700: 'sietecientos',
-        800: 'uitocientos',
-        900: 'nuobecientos'
+        200: 'dous cientos',
+        300: 'trés cientos',
+        400: 'quatro cientos',
+        500: 'cinco cientos',
+        600: 'seis cientos',
+        700: 'siete cientos',
+        800: 'uito cientos',
+        900: 'nuobe cientos'
     },
     FRACTION={
         2: 'meio',
@@ -180,15 +184,17 @@ _MWL = NumberVocabulary(
         'dezassiete': 17,
         'dezuito': 18,
         'dezanuobe': 19,
+        'ciento': 100,
+        'cientos': 100,
         'un ciento': 100,
-        'dous cientos': 200,
-        'trés cientos': 300,
-        'quatro cientos': 400,
-        'cinco cientos': 500,
-        'seis cientos': 600,
-        'siete cientos': 700,
-        'uito cientos': 800,
-        'nuobe cientos': 900,
+        'duzientos': 200,
+        'trezientos': 300,
+        'quatrocientos': 400,
+        'quinhentos': 500,
+        'seiscientos': 600,
+        'sietecientos': 700,
+        'uitocientos': 800,
+        'nuobecientos': 900,
         "bint": 20,
         "bint'i": 20
     },
