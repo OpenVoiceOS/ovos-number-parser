@@ -31,10 +31,12 @@ the Polish and Czech millions. Sources for the expected values:
   "miliontý", "dvoustý", "třístý" ("třístý třicátý devátý" = 339.),
   "čtyřstý", "pětistý", "devítistý"; SSČ at IJP "dvoustý" ("dvou~ v slož.",
   the joining form of "dvě"); cs.wiktionary "tisící devítistý třicátý
-  šestý" and its feminine and neuter forms; IJP "miliardtý" (ordinal of
-  "miliarda", 10^9 in the Czech long scale) and cs.wiktionary "bilion"
-  (10^12); a unit before tens comes first in a joined word, as in
-  cs.wiktionary "jednadvacetiletý" and "pětadvacetiletý".
+  šestý" and its feminine and neuter forms; IJP "miliardtý" ("čísl. řad.
+  k miliarda"; SSČ "miliarda ... tisíc milionů", 10^9 in the Czech long
+  scale) and cs.wiktionary "bilion" (10^12); the IJP chapter "Tvoření a
+  psaní výrazů složených z číslic a slov" ("42letý (= čtyřicetidvouletý i
+  dvaačtyřicetiletý)", "27denní (= dvacetisedmidenní i
+  sedmadvacetidenní)") for the tens-first joined stem.
 """
 import unittest
 
@@ -121,8 +123,7 @@ CASES = {
         3251: "třítisící dvoustý padesátý první",
         100000: "stotisící",
         1000000: "miliontý",
-        21000: "jednadvacetitisící",
-        25000: "pětadvacetitisící",
+        25000: "dvacetipětitisící",
         10 ** 9: "miliardtý",
         2 * 10 ** 9: "dvoumiliardtý",
         10 ** 12: "biliontý",

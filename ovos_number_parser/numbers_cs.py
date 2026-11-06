@@ -1309,12 +1309,6 @@ _ORDINAL_STEM_TEENS_CS = ["deseti", "jedenácti", "dvanácti", "třinácti",
                           "osmnácti", "devatenácti"]
 _ORDINAL_STEM_TENS_CS = ["", "", "dvaceti", "třiceti", "čtyřiceti", "padesáti",
                          "šedesáti", "sedmdesáti", "osmdesáti", "devadesáti"]
-# a unit before tens comes first, as in "jednadvacet" (cs.wiktionary
-# "jednadvacetiletý", "dvaadvacetiletý", "pětadvacetiletý",
-# "jednatřicetiletý"; no entry has "dvacetijedna-" or "dvacetipěti-")
-_ORDINAL_STEM_UNITS_BEFORE_TENS_CS = ["", "jedna", "dvaa", "třia", "čtyřia",
-                                      "pěta", "šesta", "sedma", "osma",
-                                      "devěta"]
 _ORDINAL_STEM_HUNDREDS_CS = ["", "sto", "dvouset", "tříset", "čtyřset",
                              "pětiset", "šestiset", "sedmiset", "osmiset",
                              "devítiset"]
@@ -1325,10 +1319,8 @@ def _ordinal_stem_cs(n):
     tens, units = divmod(rest, 10)
     if tens == 1:
         return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + _ORDINAL_STEM_TEENS_CS[units]
-    if tens == 0:
-        return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + _ORDINAL_STEM_UNITS_CS[units]
-    return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + \
-        _ORDINAL_STEM_UNITS_BEFORE_TENS_CS[units] + _ORDINAL_STEM_TENS_CS[tens]
+    return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + _ORDINAL_STEM_TENS_CS[tens] + \
+        _ORDINAL_STEM_UNITS_CS[units]
 
 
 def _ordinal_cs(n, short_scale=True):
