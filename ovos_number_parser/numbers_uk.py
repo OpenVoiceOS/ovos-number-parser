@@ -684,6 +684,9 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
         *head, last = result.split(" ")
         last = _GENDERED_LAST_WORD_UK.get(gender, {}).get(last, last)
         result = " ".join(head + [last])
+    elif result.endswith(("ий", "ій")):
+        *head, last = result.split(" ")
+        result = " ".join(head + [_ordinal_gender_uk(last, gender)])
     return result
 
 

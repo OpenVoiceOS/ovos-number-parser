@@ -503,6 +503,16 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
             last = _GENDERED_ONE_PL.get(gender, last)
         last = _GENDERED_LAST_WORD_PL.get(gender, {}).get(last, last)
         result = " ".join(head + [last])
+    else:
+        # every ordinal word agrees ("dwudziesta pierwsza"); a cardinal
+        # hundreds word stays ("sto dwudziesta pierwsza")
+        ordinal_words = set(_SHORT_ORDINAL_PL.values()) | set(_ORDINAL_HUNDREDS_PL.values())
+        *head, last = result.split(" ")
+        head = [_ordinal_gender_pl(w, gender) if w in ordinal_words else w
+                for w in head]
+        if last.endswith(("y", "i")) and last not in _NUM_STRING_PL.values():
+            last = _ordinal_gender_pl(last, gender)
+        result = " ".join(head + [last])
     return result
 
 
