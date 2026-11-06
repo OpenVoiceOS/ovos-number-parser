@@ -78,6 +78,21 @@ class TestRbnfFallbackGender(unittest.TestCase):
                                  pronounce_number(number, "mt"))
         self.assertEqual(pronounce_number(3, "mt", gender=F), "tlieta")
 
+    def test_maltese_feminine_one(self):
+        # Wiktionary "wieħed": the feminine is "waħda"; a count before "elf"
+        # keeps "wieħed" (CLDR spellout-cardinal-feminine)
+        cases = {
+            1: "waħda", 21: "waħda u għoxrin", 101: "mija u waħda",
+            1001: "elf u waħda", 100001: "mitt elf u waħda",
+            21000: "wieħed u għoxrin elf", 11: "ħdax", 111: "mija u ħdax",
+            103: "mija u tlieta",
+        }
+        for number, expected in cases.items():
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_number(number, "mt", gender=F),
+                                 expected)
+        self.assertEqual(pronounce_number(1, "mt"), "wieħed")
+
     def test_luxembourgish_feminine_ordinal(self):
         # Wiktionary "éischt": masculine éischten, neuter éischt; the feminine
         # after a determiner is éischt (déi éischt Kéier)
