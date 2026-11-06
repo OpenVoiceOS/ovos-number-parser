@@ -15,7 +15,8 @@
 #
 from math import floor, isfinite
 
-from ovos_number_parser.util import (convert_to_mixed_fraction, is_numeric, look_for_fractions, Token)
+from ovos_number_parser.util import (convert_to_mixed_fraction, is_numeric, look_for_fractions, Token,
+                                     GrammaticalGender)
 
 _NUM_STRING_SV = {
     0: 'noll',
@@ -165,7 +166,7 @@ def nice_number_sv(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -270,10 +271,17 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
     elif number == 0:
         return str(_NUM_STRING_SV[0])
     elif number < 0:
-        return "minus " + pronounce_number_sv(abs(number), places)
+        return "minus " + pronounce_number_sv(abs(number), places, gender=gender)
     else:
         if number == int(number):
-            return pronounce_whole_number_sv(number)
+            spoken = pronounce_whole_number_sv(number)
+            # Swedish has one common gender, "en" (ICU RBNF sv
+            # spellout-cardinal-reale and -feminine: "tjugoen", "ettusen en").
+            # FEMININE selects it; MASCULINE is the default gender and keeps
+            # the counting form "ett", as NEUTRAL does.
+            if gender == GrammaticalGender.FEMININE and spoken.endswith("ett"):
+                spoken = spoken[:-3] + "en"
+            return spoken
         else:
             whole_number_part = floor(number)
             fractional_part = number - whole_number_part

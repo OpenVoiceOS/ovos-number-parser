@@ -175,6 +175,13 @@ def is_fractional_nn(input_str, short_scale=False):
 
 def extract_number_nn(text, short_scale=False, ordinals=False):
     """Extract a number from Nynorsk text, both counting traditions."""
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "nn", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     return _extract_number(text, _TABLES_NN, ordinals)
 
 

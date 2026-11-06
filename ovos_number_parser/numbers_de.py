@@ -2,7 +2,16 @@ from collections import OrderedDict
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, ReplaceableNumber, Token,
-                                     look_for_fractions)
+                                     look_for_fractions, GrammaticalGender)
+
+#: the final 1 of a whole number before a feminine or neuter noun (ICU RBNF de
+#: spellout-cardinal-feminine and -neuter: "eine", "einhunderteine", "ein").
+#: The masculine keeps the counting form "eins": it is the default gender, so
+#: it also serves a caller that names no noun.
+_GENDERED_ONE_DE = {
+    GrammaticalGender.FEMININE: "eine",
+    GrammaticalGender.NEUTRAL: "ein",
+}
 
 _ARTICLES = {'der', 'das', 'die', 'dem', 'den'}
 
@@ -228,7 +237,13 @@ _FRACTION_MARKER = set()
 
 _NEGATIVES = {"minus"}
 
-_NUMBER_CONNECTORS = {"und"}
+# "und" only joins two numerals into one when they are written as a single
+# compound word ("siebenundneunzig" = 97); that case is already folded into
+# a digit string by _expand_compound_numbers_de before tokenization runs.
+# A spaced "und" between two numeral tokens ("sieben und neun") is the same
+# conjunction as English "and" ("seven and nine") and separates two numbers,
+# so it is not a connector for the tokenized extractor below.
+_NUMBER_CONNECTORS = set()
 
 _COMMA = {"komma", "comma", "punkt"}
 
@@ -272,7 +287,7 @@ def nice_number_de(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -285,6 +300,7 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "first" instead of "one"
+        gender (GrammaticalGender): gender of the noun a whole number counts
     Returns:
         (str): The pronounced number
     """
@@ -292,7 +308,10 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
     # TODO short_scale, scientific and ordinals
     # currently ignored
 
-    def pronounce_triplet_de(num):
+    # a decimal keeps "eins" ("eins Komma fünf")
+    one = _GENDERED_ONE_DE.get(gender, "eins") if number % 1 == 0 else "eins"
+
+    def pronounce_triplet_de(num, one="eins"):
         result = ""
         num = floor(num)
         if num > 99:
@@ -304,7 +323,7 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
         if num == 0:
             result += ''  # do nothing
         elif num == 1:
-            result += 'eins'  # need the s for the last digit
+            result += one  # need the s for the last digit
         elif num <= 20:
             result += _NUM_STRING[num]  # + _EXTRA_SPACE_DA
         elif num > 20:
@@ -348,15 +367,16 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
         if last_triplet == 1:
             if scale_level == 0:
                 if result != '':
-                    result += '' + 'eins'
+                    result += '' + one
                 else:
-                    result += "eins"
+                    result += one
             elif scale_level == 1:
                 result += 'ein' + _EXTRA_SPACE + 'tausend' + _EXTRA_SPACE
             else:
                 result += "eine " + _NUM_POWERS_OF_TEN[scale_level] + ' '
         elif last_triplet > 1:
-            result += pronounce_triplet_de(last_triplet)
+            result += pronounce_triplet_de(last_triplet,
+                                           one if scale_level == 0 else "eins")
             if scale_level == 1:
                 # result += _EXTRA_SPACE_DA
                 result += 'tausend' + _EXTRA_SPACE
@@ -380,14 +400,17 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
     elif number == 0:
         return str(_NUM_STRING[0])
     elif number < 0:
-        return "minus " + pronounce_number_de(abs(number), places)
+        return "minus " + pronounce_number_de(abs(number), places, gender=gender)
     else:
+        # a scale word ends in the space that joins it to the lower
+        # triplets, so a number with no lower triplets ends in that space
         if number == int(number):
-            return pronounce_whole_number_de(number)
+            return pronounce_whole_number_de(number).rstrip()
         else:
             whole_number_part = floor(number)
             fractional_part = number - whole_number_part
-            result += pronounce_whole_number_de(whole_number_part)
+            result += pronounce_whole_number_de(whole_number_part).rstrip() \
+                or _NUM_STRING[0]
             if places > 0:
                 result += " Komma"
                 result += pronounce_fractional_de(fractional_part, places)
@@ -889,14 +912,35 @@ def extract_number_de(text, short_scale=True, ordinals=False):
                                    was found
 
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "de", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     text = _expand_compound_numbers_de(text.lower())
     numbers = _extract_numbers_with_text_de(tokenize(text),
                                             short_scale, ordinals)
-    # if query ordinals only consider ordinals
+    # `ordinals=True` adds the ordinal reading, it does not replace the
+    # cardinal one, and an ordinal in the line wins over a cardinal beside
+    # it: "drei fünfte" is 5. Danish and German answer the same here, and both
+    # take the FIRST ordinal when a line holds several. English is not
+    # the anchor for either rule: it returns the LAST number of the
+    # line, so "fifth three" is 3 and "three fifth seven" is 7. Which
+    # rule this library should hold is open (panel item
+    # number-parser-ordinals-rule-v2); this code states what the two
+    # languages do, not what English does.
+    #
+    # The German extractor does answer an ordinal as the string "5.", so
+    # the clause that used to stand here selected correctly when an ordinal
+    # was present. What it lacked is the fallback: with no ordinal in the
+    # line it emptied the list, so "zähl bis fünf" answered None.
     if ordinals:
-        numbers = list(filter(lambda x: isinstance(x.value, str)
-                                        and x.value.endswith("."),
-                              numbers))
+        preferred = [x for x in numbers
+                     if isinstance(x.value, str) and x.value.endswith(".")]
+        if preferred:
+            numbers = preferred
 
     number = numbers[0].value if numbers else None
 

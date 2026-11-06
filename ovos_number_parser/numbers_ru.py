@@ -18,7 +18,15 @@ from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token
+    invert_dict, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender
+
+#: the last word of a cardinal that agrees with a feminine or neuter noun
+#: (ICU RBNF ru spellout-cardinal-feminine and -neuter); the scale words
+#: before it keep their own agreement ("одна тысяча")
+_GENDERED_LAST_WORD_RU = {
+    GrammaticalGender.FEMININE: {"один": "одна", "два": "две"},
+    GrammaticalGender.NEUTRAL: {"один": "одно"},
+}
 
 _NUM_STRING_RU = {
     0: 'ноль',
@@ -413,7 +421,7 @@ def nice_number_ru(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -426,6 +434,7 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "first" instead of "one"
+        gender (GrammaticalGender): gender of the noun a cardinal counts
     Returns:
         (str): The pronounced number
     """
@@ -500,6 +509,9 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
     # check for a direct match
     if num in number_names and not ordinals:
         result += number_names[num]
+    elif ordinals and num == int(num) and \
+            (word := _ordinal_ru(int(num), short_scale)):
+        result += word
     else:
         def _sub_thousand(n, ordinals=False):
             assert 0 <= n <= 999
@@ -660,7 +672,93 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
+    elif not ordinals:
+        *head, last = result.split(" ")
+        last = _GENDERED_LAST_WORD_RU.get(gender, {}).get(last, last)
+        result = " ".join(head + [last])
+    else:
+        *head, last = result.split(" ")
+        result = " ".join(head + [_ordinal_gender_ru(last, gender)])
     return result
+
+
+# Stems that join a count to "-тысячный", "-миллионный": the words are
+# written as one (ru.wikipedia "Порядковое числительное":
+# "тридцативосьмимиллионный"; ru.wiktionary "двухтысячный", "стотысячный",
+# "двухсоттысячный", "сорокатысячный", "девяностотысячный",
+# "двадцатипятитысячный").
+_ORDINAL_STEM_UNITS_RU = ["", "одно", "двух", "трёх", "четырёх", "пяти",
+                          "шести", "семи", "восьми", "девяти"]
+_ORDINAL_STEM_TEENS_RU = ["десяти", "одиннадцати", "двенадцати",
+                          "тринадцати", "четырнадцати", "пятнадцати",
+                          "шестнадцати", "семнадцати", "восемнадцати",
+                          "девятнадцати"]
+_ORDINAL_STEM_TENS_RU = ["", "", "двадцати", "тридцати", "сорока",
+                         "пятидесяти", "шестидесяти", "семидесяти",
+                         "восьмидесяти", "девяносто"]
+_ORDINAL_STEM_HUNDREDS_RU = ["", "сто", "двухсот", "трёхсот", "четырёхсот",
+                             "пятисот", "шестисот", "семисот", "восьмисот",
+                             "девятисот"]
+
+
+def _ordinal_stem_ru(n):
+    hundreds, rest = divmod(n, 100)
+    tens, units = divmod(rest, 10)
+    if tens == 1:
+        return _ORDINAL_STEM_HUNDREDS_RU[hundreds] + _ORDINAL_STEM_TEENS_RU[units]
+    return _ORDINAL_STEM_HUNDREDS_RU[hundreds] + _ORDINAL_STEM_TENS_RU[tens] + \
+        _ORDINAL_STEM_UNITS_RU[units]
+
+
+def _ordinal_ru(n, short_scale=True):
+    """Masculine ordinal of a whole number: the groups before the last
+    non-zero group stay cardinal ("две тысячи пятый"). Return None for 0 or
+    when that group has no scale name."""
+    if n < 1:
+        return None
+    scale, group = 0, n
+    while group % 1000 == 0:
+        scale, group = scale + 1, group // 1000
+    head = (group - group % 1000) * 1000 ** scale
+    group %= 1000
+    if scale:
+        name = (_SHORT_SCALE_RU if short_scale else _LONG_SCALE_RU).get(1000 ** scale)
+        if name is None:
+            return None
+        word = ("" if group == 1 else _ordinal_stem_ru(group)) + \
+            name.removesuffix("а") + "ный"
+    else:
+        hundreds, rest = divmod(group, 100)
+        if not rest:
+            word = _ORDINAL_BASE_RU[group]
+        else:
+            words = [_NUM_STRING_RU[hundreds * 100]] if hundreds else []
+            if rest in _ORDINAL_BASE_RU:
+                words.append(_ORDINAL_BASE_RU[rest])
+            else:
+                words += [_NUM_STRING_RU[rest - rest % 10],
+                          _ORDINAL_BASE_RU[rest % 10]]
+            word = " ".join(words)
+    if head:
+        word = f"{pronounce_number_ru(head, short_scale=short_scale)} {word}"
+    return word
+
+
+def _ordinal_gender_ru(word, gender):
+    """Inflect a masculine ordinal as an adjective: "первый" -> "первая",
+    "первое"; "второй" -> "вторая", "второе"; the soft "третий" -> "третья",
+    "третье" (ICU RBNF ru spellout-ordinal-feminine and -neuter)."""
+    if gender == GrammaticalGender.FEMININE:
+        if word.endswith("ий"):
+            return word[:-2] + "ья"
+        if word.endswith(("ый", "ой")):
+            return word[:-2] + "ая"
+    if gender == GrammaticalGender.NEUTRAL:
+        if word.endswith("ий"):
+            return word[:-2] + "ье"
+        if word.endswith(("ый", "ой")):
+            return word[:-2] + "ое"
+    return word
 
 
 def plural_ru(num: int, one: str, few: str, many: str):

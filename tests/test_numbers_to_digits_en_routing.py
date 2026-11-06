@@ -17,8 +17,10 @@ class TestEnglishDispatchRoute(unittest.TestCase):
     """English must reach numbers_to_digits_en, not the generic fallback."""
 
     def test_ordinal_compound_is_not_arithmetic(self):
-        # the generic fallback turned the ordinal into the reciprocal 1/5
-        self.assertEqual(numbers_to_digits("the twenty fifth", "en"), "the 20")
+        # the generic fallback turned the ordinal into the reciprocal 1/5;
+        # the ordinal word stays, as in "the twenty first" -> "the 20 first"
+        self.assertEqual(numbers_to_digits("the twenty fifth", "en"),
+                         "the 20 fifth")
 
     def test_plain_sentences_unchanged(self):
         self.assertEqual(numbers_to_digits("two thousand and one", "en"), "2001")
@@ -32,7 +34,8 @@ class TestOrdinalWordsAreNeverReciprocals(unittest.TestCase):
     """An ordinal word must never be fabricated into a fraction."""
 
     def test_ordinal_left_alone_when_ordinals_off(self):
-        self.assertEqual(numbers_to_digits_en("the twenty fifth"), "the 20")
+        self.assertEqual(numbers_to_digits_en("the twenty fifth"),
+                         "the 20 fifth")
         self.assertEqual(numbers_to_digits_en("the third week of june"),
                          "the third week of june")
         self.assertEqual(numbers_to_digits_en("march fifth"), "march fifth")

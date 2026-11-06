@@ -36,8 +36,8 @@ class TestDictionariesMWL(unittest.TestCase):
         """Test that HUNDREDS contains the expected numbers (100, 200, ..., 900)."""
         self.assertEqual(set(MWL.vocab.HUNDREDS.keys()), set(range(100, 1000, 100)))
         self.assertEqual(MWL.vocab.HUNDREDS[100], "cien")
-        self.assertEqual(MWL.vocab.HUNDREDS[200], "duzientos")
-        self.assertEqual(MWL.vocab.HUNDREDS[700], "sietecientos")
+        self.assertEqual(MWL.vocab.HUNDREDS[200], "dous cientos")
+        self.assertEqual(MWL.vocab.HUNDREDS[700], "siete cientos")
 
     def test_fraction_strings(self):
         """Test basic fraction dictionary values."""
@@ -67,19 +67,19 @@ class TestPronunciationMWL(unittest.TestCase):
     def test_cardinals_hundreds(self):
         self.assertEqual(MWL.pronounce_number(100), "cien")
         self.assertEqual(MWL.pronounce_number(101), "ciento i un")
-        self.assertEqual(MWL.pronounce_number(234), "duzientos i trinta i quatro")
-        self.assertEqual(MWL.pronounce_number(999), "nuobecientos i nobenta i nuobe")
+        self.assertEqual(MWL.pronounce_number(234), "dous cientos i trinta i quatro")
+        self.assertEqual(MWL.pronounce_number(999), "nuobe cientos i nobenta i nuobe")
 
     def test_cardinals_thousands(self):
         self.assertEqual(MWL.pronounce_number(1000), "mil")
-        self.assertEqual(MWL.pronounce_number(1234), "mil duzientos i trinta i quatro")
+        self.assertEqual(MWL.pronounce_number(1234), "mil dous cientos i trinta i quatro")
         self.assertEqual(MWL.pronounce_number(2000), "dous mil")
         self.assertEqual(MWL.pronounce_number(1000000), "un milhon")
         self.assertEqual(MWL.pronounce_number(2_000_000), "dous milhones")
 
     def test_cardinals_large(self):
         self.assertEqual(MWL.pronounce_number(1_234_567),
-                         "un milhon duzientos i trinta i quatro mil quinhentos i sessenta i siete")
+                         "un milhon dous cientos i trinta i quatro mil cinco cientos i sessenta i siete")
         self.assertEqual(MWL.pronounce_number(1_000_000_000), "mil milhones")  # Long scale default
         self.assertEqual(MWL.pronounce_number(1_000_000_000_000), "un bilion")  # Long scale default
 
@@ -222,7 +222,7 @@ class TestIntegrationMWL(unittest.TestCase):
         """Test round trip for numbers that require large scale support."""
         n = 1_234_567_899
         text = MWL.pronounce_number(n)
-        self.assertEqual(text, "mil duzientos i trinta i quatro milhones quinhentos i sessenta i siete mil uitocientos i nobenta i nuobe")
+        self.assertEqual(text, "mil dous cientos i trinta i quatro milhones cinco cientos i sessenta i siete mil uito cientos i nobenta i nuobe")
         extracted = MWL.extract_number(text)
         self.assertEqual(extracted, n, f"Failed on number: {n}. Text: {text}")
 
@@ -267,13 +267,13 @@ class TestGenderAgreementMWL(unittest.TestCase):
                 word, f"unit {n} must be gender invariant")
 
     def test_hundreds_inflect_feminine(self):
-        # The hundreds DO agree in gender: duzientos -> duzientas
+        # only the final element of a composite agrees: "dous cientas"
         self.assertEqual(
             MWL.pronounce_number(200, gender=GrammaticalGender.FEMININE),
-            "duzientas")
+            "dous cientas")
         self.assertEqual(
             MWL.pronounce_number(300, gender=GrammaticalGender.FEMININE),
-            "trezientas")
+            "trés cientas")
 
     def test_decimal_digits_not_gendered(self):
         # Feminine gender must not bleed into the fractional digits

@@ -16,7 +16,16 @@ import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions, invert_dict,
-                                     is_numeric, tokenize, partition_list, Token, ReplaceableNumber)
+                                     is_numeric, tokenize, partition_list, Token, ReplaceableNumber,
+                                     GrammaticalGender)
+
+#: the last word of a cardinal that agrees with a feminine or neuter noun
+#: (ICU RBNF uk spellout-cardinal-feminine and -neuter); the scale words
+#: before it keep their own agreement ("одна тисяча")
+_GENDERED_LAST_WORD_UK = {
+    GrammaticalGender.FEMININE: {"один": "одна", "два": "дві"},
+    GrammaticalGender.NEUTRAL: {"один": "одне"},
+}
 
 _NUM_STRING_UK = {
     0: "нуль",
@@ -211,9 +220,9 @@ _ORDINAL_BASE_UK = {
     1e2: "сотий",
     2e2: "двохсотий",
     3e2: "трьохсотий",
-    4e2: "чотирисотий",
+    4e2: "чотирьохсотий",
     5e2: "п'ятисотий",
-    6e2: "шістсотий",
+    6e2: "шестисотий",
     7e2: "семисотий",
     8e2: "восьмисотий",
     9e2: "дев'ятисотий",
@@ -429,7 +438,7 @@ def nice_number_uk(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -442,6 +451,7 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "first" instead of "one"
+        gender (GrammaticalGender): gender of the noun a cardinal counts
     Returns:
         (str): The pronounced number
     """
@@ -512,6 +522,9 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
     # check for a direct match
     if num in number_names and not ordinals:
         result += number_names[num]
+    elif ordinals and num == int(num) and \
+            (word := _ordinal_uk(int(num), short_scale)):
+        result += word
     else:
         def _sub_thousand(n, ordinals=False):
             assert 0 <= n <= 999
@@ -670,6 +683,13 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
+    elif not ordinals:
+        *head, last = result.split(" ")
+        last = _GENDERED_LAST_WORD_UK.get(gender, {}).get(last, last)
+        result = " ".join(head + [last])
+    elif result.endswith(("ий", "ій")):
+        *head, last = result.split(" ")
+        result = " ".join(head + [_ordinal_gender_uk(last, gender)])
     return result
 
 
@@ -1415,28 +1435,89 @@ def plural_uk(num: int, one: str, few: str, many: str):
     return many
 
 
-def pronounce_ordinal_uk(number):
+def _ordinal_gender_uk(word, gender):
+    """Inflect a masculine ordinal as an adjective: "перший" -> "перша",
+    "перше"; the soft "третій" -> "третя", "третє"."""
+    if gender == GrammaticalGender.FEMININE:
+        return word[:-2] + "я" if word.endswith("ій") else word[:-2] + "а"
+    if gender == GrammaticalGender.NEUTRAL:
+        return word[:-2] + "є" if word.endswith("ій") else word[:-2] + "е"
+    return word
+
+
+# Stems that join a count to "-тисячний", "-мільйонний", written as one
+# word (en.wiktionary "двохтисячний", "трьохтисячний", "чотирьохтисячний",
+# "п'ятитисячний", "десятитисячний", "двадцятитисячний", "сорокатисячний",
+# "дев'яностотисячний", "стотисячний", "двохсоттисячний").
+_ORDINAL_STEM_UNITS_UK = ["", "одно", "двох", "трьох", "чотирьох", "п'яти",
+                          "шести", "семи", "восьми", "дев'яти"]
+_ORDINAL_STEM_TEENS_UK = ["десяти", "одинадцяти", "дванадцяти", "тринадцяти",
+                          "чотирнадцяти", "п'ятнадцяти", "шістнадцяти",
+                          "сімнадцяти", "вісімнадцяти", "дев'ятнадцяти"]
+_ORDINAL_STEM_TENS_UK = ["", "", "двадцяти", "тридцяти", "сорока",
+                         "п'ятдесяти", "шістдесяти", "сімдесяти",
+                         "вісімдесяти", "дев'яносто"]
+_ORDINAL_STEM_HUNDREDS_UK = ["", "сто", "двохсот", "трьохсот", "чотирьохсот",
+                             "п'ятисот", "шестисот", "семисот", "восьмисот",
+                             "дев'ятисот"]
+
+
+def _ordinal_stem_uk(n):
+    hundreds, rest = divmod(n, 100)
+    tens, units = divmod(rest, 10)
+    if tens == 1:
+        return _ORDINAL_STEM_HUNDREDS_UK[hundreds] + _ORDINAL_STEM_TEENS_UK[units]
+    return _ORDINAL_STEM_HUNDREDS_UK[hundreds] + _ORDINAL_STEM_TENS_UK[tens] + \
+        _ORDINAL_STEM_UNITS_UK[units]
+
+
+def _ordinal_uk(n, short_scale=True):
+    """Masculine ordinal of a whole number: the groups before the last
+    non-zero group stay cardinal ("дві тисячі п'ятий"). Return None for 0 or
+    when that group has no scale name."""
+    if n < 1:
+        return None
+    scale, group = 0, n
+    while group % 1000 == 0:
+        scale, group = scale + 1, group // 1000
+    head = (group - group % 1000) * 1000 ** scale
+    group %= 1000
+    if scale:
+        name = (_SHORT_SCALE_UK if short_scale else _LONG_SCALE_UK).get(1000 ** scale)
+        if name is None:
+            return None
+        word = ("" if group == 1 else _ordinal_stem_uk(group)) + \
+            name.removesuffix("а") + "ний"
+    else:
+        hundreds, rest = divmod(group, 100)
+        if not rest:
+            word = _ORDINAL_BASE_UK[group]
+        else:
+            words = [_NUM_STRING_UK[hundreds * 100]] if hundreds else []
+            if rest in _ORDINAL_BASE_UK:
+                words.append(_ORDINAL_BASE_UK[rest])
+            else:
+                words += [_NUM_STRING_UK[rest - rest % 10],
+                          _ORDINAL_BASE_UK[rest % 10]]
+            word = " ".join(words)
+    if head:
+        word = f"{pronounce_number_uk(head, short_scale=short_scale)} {word}"
+    return word
+
+
+def pronounce_ordinal_uk(number, gender=GrammaticalGender.MASCULINE):
     """
-    Pronounce a number as a Ukrainian ordinal (masculine nominative).
+    Pronounce a number as a Ukrainian ordinal in the nominative.
 
     Only the final word is ordinal, preceding groups stay cardinal.
 
     Args:
         number (int): the number to pronounce
+        gender (GrammaticalGender): gender of the noun the ordinal agrees with
     Returns:
         (str): the ordinal in Ukrainian
     """
     number = int(number)
     if number <= 0:
         raise ValueError("Ukrainian ordinals start at 1")
-    if number in _ORDINAL_BASE_UK:
-        return _ORDINAL_BASE_UK[number]
-    if number < 100:
-        tens = number // 10 * 10
-        unit = number % 10
-        return f"{pronounce_number_uk(tens)} {_ORDINAL_BASE_UK[unit]}"
-    last = number % 100
-    if last:
-        prefix = number - last
-        return f"{pronounce_number_uk(prefix)} {pronounce_ordinal_uk(last)}"
-    raise NotImplementedError(f"cannot pronounce {number} as a Ukrainian ordinal")
+    return pronounce_number_uk(number, ordinals=True, gender=gender)

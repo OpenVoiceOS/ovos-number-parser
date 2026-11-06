@@ -624,7 +624,9 @@ def _extract_whole_number_with_text_fy(tokens, short_scale, ordinals):
                 word not in multiplies and \
                 not (ordinals and word in string_num_ordinal) and \
                 not is_numeric(word) and \
-                not is_fractional_fy(word, short_scale=short_scale) and \
+                not (is_fractional_fy(word, short_scale=short_scale) and
+                     (ordinals or
+                      not _is_ordinal_word_fy(word, short_scale))) and \
                 not look_for_fractions(word.split('/')):
             words_only = [token.word for token in number_words]
             if number_words and not all([w in _ARTICLES_FY |
@@ -686,9 +688,15 @@ def _extract_whole_number_with_text_fy(tokens, short_scale, ordinals):
             val = is_fractional_fy(word, short_scale=short_scale)
             current_val = val
 
-        # 2 fifths
+        # twa tredde
         if not ordinals:
             next_val = is_fractional_fy(next_word, short_scale=short_scale)
+            # an ordinal is the denominator of a proper fraction only:
+            # "ien tredde" is 1/3, "de tredde man" has no numerator
+            if next_val and _is_ordinal_word_fy(next_word, short_scale) \
+                    and not (val and val == int(val)
+                             and 0 < val < round(1 / next_val)):
+                next_val = None
             if next_val:
                 if not val:
                     val = 1
@@ -850,6 +858,17 @@ def extract_number_fy(text, short_scale=True, ordinals=False):
     text = _expand_compound_numbers_fy(text, short_scale)
     return _extract_number_with_text_fy(tokenize(text),
                                         short_scale, ordinals).value
+
+
+def _is_ordinal_word_fy(input_str, short_scale=True):
+    """True if the word is an ordinal name ("tredde", "fyfde").
+
+    Frisian spells a fraction denominator with the ordinal ("twa tredde"
+    = 2/3), but without a numerator the word is the ordinal: "de tredde man"
+    is no 0.333. "kwart" and "heal" are no ordinals.
+    """
+    table = _SHORT_ORDINAL_STRING_FY if short_scale else _LONG_ORDINAL_STRING_FY
+    return input_str.lower() in {name for num, name in table.items() if num > 2}
 
 
 def is_fractional_fy(input_str, short_scale=True):

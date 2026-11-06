@@ -16,11 +16,18 @@ Notes on the grammar encoded below:
 - "mila" (thousand) is invariable and never takes a preceding "un".
 - Occitan uses the long scale (milion, miliard).
 """
+from typing import Optional, Union
+
 from ovos_number_parser.util import (Scale, GrammaticalGender, NumberVocabulary,
                                      RomanceNumberExtractor)
 
 _FEM_SPECIAL = {"un": "una", "dos": "doas", "mièg": "mièja"}
 _MASC_SPECIAL = {v: k for k, v in _FEM_SPECIAL.items()}
+
+# standalone fraction spellings for 1/2: "mièg"/"mièja" take nothing before
+# them ("mièja liura" = half a pound); "mèg"/"mèja" are other forms of the
+# same word (issue #302)
+_HALF_WORDS = {"mièg", "mièja", "mèg", "mèja"}
 
 
 def swap_gender_oc(word: str, gender: GrammaticalGender) -> str:
@@ -44,11 +51,19 @@ def swap_gender_oc(word: str, gender: GrammaticalGender) -> str:
 
 
 def pluralize_oc(word: str) -> str:
-    """Pluralize an Occitan word (sibilant-final words take -es)."""
+    """Pluralize an Occitan word.
+
+    Noun classes after the Diccionari ortografic gramatical e morfologic de
+    l'occitan (Ubaud): consonant+vowel plus -is/-f/-g/-ns/-st/-sc/-xt finals
+    take -es; -tz loses the z and takes -ses ("votz" -> "voses"); -ç becomes
+    -ces ("tèrç" -> "tèrces"); everything else takes -s.
+    """
+    if word.endswith("tz"):
+        return word[:-2] + "ses"  # votz -> voses
     if word.endswith("ç"):
         return word[:-1] + "ces"  # tèrç -> tèrces
-    if word.endswith("ch") or word.endswith("x"):
-        return word + "es"
+    if word.endswith(("is", "f", "g", "ns", "st", "sc", "xt")):
+        return word + "es"  # peis -> peises, serf -> serfes, fàsc -> fàsces
     if not word.endswith("s"):
         return word + "s"
     return word
@@ -180,7 +195,12 @@ _OC = NumberVocabulary(
     },
     DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
-        'ueitanta': 80,  # attested alternative for ochanta
+        # variant spellings of 8 and 80 (issue #302, native reporter)
+        'ueit': 8,
+        'uòch': 8,  # Montpellier
+        'ueitanta': 80,  # Wiktionary alternative form (Cantalausa)
+        'uechanta': 80,
+        'uòchanta': 80,  # Montpellier
     },
     ORDINAL_UNITS={
         1: 'primièr',
@@ -230,3 +250,34 @@ _OC = NumberVocabulary(
 )
 
 OC = RomanceNumberExtractor(_OC)
+
+
+def is_half_word(word: str) -> bool:
+    """True for the spellings of the half fraction: mièg, mièja, mèg, mèja."""
+    return word.lower() in _HALF_WORDS
+
+
+class OCExtractorMixin:
+    """Overwrites to give the half word the behavior issue #302 reports."""
+
+    def extract_number(self,
+                       text: str,
+                       ordinals: bool = False,
+                       scale: Scale = None,
+                       ) -> Union[int, float, bool]:
+        # "mièg"/"mièja"/"mèg"/"mèja" standalone and bare ("Portaràs mièja
+        # liura de salsissa") and when preceded by a fraction in the 1-|
+        # position all read one half
+        result = super().extract_number(text, ordinals=ordinals, scale=scale)
+        if result is not False:
+            return result
+        if isinstance(text, str) and is_half_word(text.strip()):
+            return 0.5
+        return False
+
+
+class OCCExtractor(OCExtractorMixin, RomanceNumberExtractor):
+    pass
+
+
+OC = OCCExtractor(_OC)
