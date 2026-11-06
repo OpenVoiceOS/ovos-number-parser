@@ -17,7 +17,18 @@ import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token
+    invert_dict, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender
+
+#: the last word of a cardinal that agrees with a feminine or neuter noun
+#: (ICU RBNF pl spellout-cardinal-feminine and -neuter); a compound ending in
+#: 1 keeps "jeden" ("dwadzieścia jeden"), so only the bare 1 inflects
+_GENDERED_LAST_WORD_PL = {
+    GrammaticalGender.FEMININE: {"dwa": "dwie"},
+}
+_GENDERED_ONE_PL = {
+    GrammaticalGender.FEMININE: "jedna",
+    GrammaticalGender.NEUTRAL: "jedno",
+}
 
 _NUM_STRING_PL = {
     0: 'zero',
@@ -305,7 +316,8 @@ def nice_number_pl(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
-                        ordinals=False, scientific_run=False):
+                        ordinals=False, scientific_run=False,
+                        gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -318,6 +330,7 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "first" instead of "one"
+        gender (GrammaticalGender): gender of the noun a cardinal counts
     Returns:
         (str): The pronounced number
     """
@@ -484,6 +497,12 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
+    elif not ordinals:
+        *head, last = result.split(" ")
+        if abs(num) == 1:
+            last = _GENDERED_ONE_PL.get(gender, last)
+        last = _GENDERED_LAST_WORD_PL.get(gender, {}).get(last, last)
+        result = " ".join(head + [last])
     return result
 
 
@@ -1128,12 +1147,26 @@ _ORDINAL_HUNDREDS_PL = {
 }
 
 
-def pronounce_ordinal_pl(number):
+def _ordinal_gender_pl(word, gender):
+    """Inflect a masculine ordinal as an adjective: "pierwszy" -> "pierwsza",
+    "pierwsze"; "drugi" -> "druga", "drugie"; "trzeci" -> "trzecia",
+    "trzecie"."""
+    if gender == GrammaticalGender.FEMININE:
+        if word.endswith("y") or word.endswith("gi"):
+            return word[:-1] + "a"
+        return word + "a"
+    if gender == GrammaticalGender.NEUTRAL:
+        return word[:-1] + "e" if word.endswith("y") else word + "e"
+    return word
+
+
+def pronounce_ordinal_pl(number, gender=GrammaticalGender.MASCULINE):
     """
-    Pronounce a number as a Polish ordinal (masculine nominative).
+    Pronounce a number as a Polish ordinal in the nominative.
 
     Args:
         number (int): the number to pronounce
+        gender (GrammaticalGender): gender of the noun the ordinal agrees with
     Returns:
         (str): the ordinal in Polish
     """
@@ -1141,15 +1174,16 @@ def pronounce_ordinal_pl(number):
     if number <= 0:
         raise ValueError("Polish ordinals start at 1")
     if number in _SHORT_ORDINAL_PL:
-        return _SHORT_ORDINAL_PL[number]
+        return _ordinal_gender_pl(_SHORT_ORDINAL_PL[number], gender)
     if number in _ORDINAL_HUNDREDS_PL:
-        return _ORDINAL_HUNDREDS_PL[number]
+        return _ordinal_gender_pl(_ORDINAL_HUNDREDS_PL[number], gender)
     if number < 100:
         tens = number // 10 * 10
         unit = number % 10
-        return f"{_SHORT_ORDINAL_PL[tens]} {_SHORT_ORDINAL_PL[unit]}"
+        return f"{_ordinal_gender_pl(_SHORT_ORDINAL_PL[tens], gender)} " \
+               f"{_ordinal_gender_pl(_SHORT_ORDINAL_PL[unit], gender)}"
     last = number % 100
     if last:
         prefix = number - last
-        return f"{pronounce_number_pl(prefix)} {pronounce_ordinal_pl(last)}"
+        return f"{pronounce_number_pl(prefix)} {pronounce_ordinal_pl(last, gender)}"
     raise NotImplementedError(f"cannot pronounce {number} as a Polish ordinal")

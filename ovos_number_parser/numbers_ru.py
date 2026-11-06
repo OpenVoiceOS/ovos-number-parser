@@ -18,7 +18,15 @@ from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token
+    invert_dict, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender
+
+#: the last word of a cardinal that agrees with a feminine or neuter noun
+#: (ICU RBNF ru spellout-cardinal-feminine and -neuter); the scale words
+#: before it keep their own agreement ("одна тысяча")
+_GENDERED_LAST_WORD_RU = {
+    GrammaticalGender.FEMININE: {"один": "одна", "два": "две"},
+    GrammaticalGender.NEUTRAL: {"один": "одно"},
+}
 
 _NUM_STRING_RU = {
     0: 'ноль',
@@ -413,7 +421,7 @@ def nice_number_ru(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -426,6 +434,7 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "first" instead of "one"
+        gender (GrammaticalGender): gender of the noun a cardinal counts
     Returns:
         (str): The pronounced number
     """
@@ -660,6 +669,10 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
+    elif not ordinals:
+        *head, last = result.split(" ")
+        last = _GENDERED_LAST_WORD_RU.get(gender, {}).get(last, last)
+        result = " ".join(head + [last])
     return result
 
 
