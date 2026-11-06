@@ -931,9 +931,11 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("cs"):
         return pronounce_number_cs(number, places, short_scale, scientific, ordinals)
     if lang.startswith("da"):
-        return pronounce_number_da(number, places, short_scale, scientific, ordinals)
+        return pronounce_number_da(number, places, short_scale, scientific, ordinals,
+                                   gender=gender)
     if lang.startswith("de"):
-        return pronounce_number_de(number, places, short_scale, scientific, ordinals)
+        return pronounce_number_de(number, places, short_scale, scientific, ordinals,
+                                   gender=gender)
     if lang.startswith("gl"):
         return GL.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang.startswith("el"):
@@ -974,7 +976,8 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("nn"):
         return pronounce_number_nn(number, places, short_scale, scientific, ordinals)
     if lang.startswith("nb") or lang.startswith("no"):
-        return pronounce_number_nb(number, places, short_scale, scientific, ordinals)
+        return pronounce_number_nb(number, places, short_scale, scientific, ordinals,
+                                   gender=gender)
     if lang.startswith("nl"):
         return pronounce_number_nl(number, places, short_scale, scientific, ordinals)
     if lang.startswith("pl"):
@@ -994,7 +997,8 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("sl"):
         return pronounce_number_sl(number, places, short_scale, scientific, ordinals)
     if lang.startswith("sv"):
-        return pronounce_number_sv(number, places, short_scale, scientific, ordinals)
+        return pronounce_number_sv(number, places, short_scale, scientific, ordinals,
+                                   gender=gender)
     if lang.startswith("uk"):
         return pronounce_number_uk(number, places, short_scale, scientific, ordinals)
     # fallback to unicode RBNF
@@ -1085,7 +1089,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     if _is_ar(lang):
         return pronounce_ordinal_ar(number, gender=gender, case=case)
     if lang.startswith("da"):
-        return pronounce_ordinal_da(number)
+        return pronounce_ordinal_da(number, gender)
     if lang.startswith("de"):
         return pronounce_ordinal_de(number)
     if lang.startswith("et"):
