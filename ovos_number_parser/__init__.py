@@ -1017,10 +1017,24 @@ _RBNF_GENDER = {
     GrammaticalGender.NEUTRAL: "neuter",
 }
 
-#: gendered rule sets whose data is not the numeral: the Bosnian feminine set
-#: spells 1 as "jedinica", the noun for the digit, where the feminine numeral
-#: is "jedna" (Wiktionary "jedan", Serbo-Croatian, declined on the stem jedn-)
-_RBNF_UNUSABLE = {("bs", "spellout-cardinal-feminine")}
+#: gendered rule sets whose CLDR data does not give the form the gender asks
+#: for, so the language keeps the engine default for that gender:
+#:
+#: - bs cardinal feminine spells 1 as "jedinica", the noun for the digit; the
+#:   feminine numeral is "jedna" (Wiktionary "jedan", Serbo-Croatian)
+#: - be ordinal masculine spells 3 and 4 "трэйці" and "чацьверты"; the forms
+#:   are "трэці" and "чацвёрты" (Wiktionary "трэці", "чацвёрты")
+#: - lb ordinal feminine gives "éischter", the dative and independent form;
+#:   after a determiner the feminine is "éischt" (Wiktionary "éischt", and the
+#:   adjective table at Wiktionary "grouss")
+#: - mt cardinal feminine holds the forms before a noun ("tliet", "ħdax-il"),
+#:   and Maltese 2 to 10 do not inflect for gender
+_RBNF_UNUSABLE = {
+    ("bs", "spellout-cardinal-feminine"),
+    ("be", "spellout-ordinal-masculine"),
+    ("lb", "spellout-ordinal-feminine"),
+    ("mt", "spellout-cardinal-feminine"),
+}
 
 
 def _pronounce_rbnf(number, lang, ordinals, gender):
