@@ -1309,6 +1309,12 @@ _ORDINAL_STEM_TEENS_CS = ["deseti", "jedenácti", "dvanácti", "třinácti",
                           "osmnácti", "devatenácti"]
 _ORDINAL_STEM_TENS_CS = ["", "", "dvaceti", "třiceti", "čtyřiceti", "padesáti",
                          "šedesáti", "sedmdesáti", "osmdesáti", "devadesáti"]
+# a unit before tens comes first, as in "jednadvacet" (cs.wiktionary
+# "jednadvacetiletý", "dvaadvacetiletý", "pětadvacetiletý",
+# "jednatřicetiletý"; no entry has "dvacetijedna-" or "dvacetipěti-")
+_ORDINAL_STEM_UNITS_BEFORE_TENS_CS = ["", "jedna", "dvaa", "třia", "čtyřia",
+                                      "pěta", "šesta", "sedma", "osma",
+                                      "devěta"]
 _ORDINAL_STEM_HUNDREDS_CS = ["", "sto", "dvouset", "tříset", "čtyřset",
                              "pětiset", "šestiset", "sedmiset", "osmiset",
                              "devítiset"]
@@ -1319,8 +1325,10 @@ def _ordinal_stem_cs(n):
     tens, units = divmod(rest, 10)
     if tens == 1:
         return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + _ORDINAL_STEM_TEENS_CS[units]
-    return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + _ORDINAL_STEM_TENS_CS[tens] + \
-        _ORDINAL_STEM_UNITS_CS[units]
+    if tens == 0:
+        return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + _ORDINAL_STEM_UNITS_CS[units]
+    return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + \
+        _ORDINAL_STEM_UNITS_BEFORE_TENS_CS[units] + _ORDINAL_STEM_TENS_CS[tens]
 
 
 def _ordinal_cs(n, short_scale=True):
@@ -1364,17 +1372,21 @@ def _ordinal_gender_cs(word, gender):
     return word
 
 
-def pronounce_ordinal_cs(number, gender=GrammaticalGender.MASCULINE):
+def pronounce_ordinal_cs(number, gender=GrammaticalGender.MASCULINE,
+                         short_scale=False):
     """
     Pronounce a number as a Czech ordinal in the nominative.
 
     Args:
         number (int): the number to pronounce
         gender (GrammaticalGender): gender of the noun the ordinal agrees with
+        short_scale (bool): use the short scale; Czech uses the long scale,
+            where 10^9 is "miliarda"
     Returns:
         (str): the ordinal in Czech
     """
     number = int(number)
     if number <= 0:
         raise ValueError("Czech ordinals start at 1")
-    return pronounce_number_cs(number, ordinals=True, gender=gender)
+    return pronounce_number_cs(number, short_scale=short_scale, ordinals=True,
+                               gender=gender)

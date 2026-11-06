@@ -10,7 +10,8 @@ the Polish and Czech millions. Sources for the expected values:
   "четырёхтысячный", "пятитысячный", "десятитысячный", "двадцатитысячный",
   "двадцатипятитысячный", "сорокатысячный", "девяностотысячный",
   "стотысячный", "двухсоттысячный", "пятисоттысячный", "миллионный",
-  "двухмиллионный", "миллиардный";
+  "двухмиллионный", "двадцатиодномиллионный" (the joining form "одно" of 1),
+  "миллиардный";
 - Ukrainian: en.wiktionary "двохтисячний", "трьохтисячний",
   "чотирьохтисячний", "п'ятитисячний", "десятитисячний", "двадцятитисячний",
   "сорокатисячний", "дев'яностотисячний", "стотисячний", "двохсоттисячний",
@@ -22,18 +23,24 @@ the Polish and Czech millions. Sources for the expected values:
   "dziesięciotysięczny", "jedenastotysięczny", "dwudziestotysięczny",
   "stutysięczny", "pięćsettysięczny"; pl.wiktionary "czterotysięczny",
   "ośmiotysięczny", "czterdziestotysięczny", "dwusetny", "pięćsetny",
-  "milionowy", "miliardowy";
+  "milionowy", "miliardowy"; the joining forms "dwudziestojedno-", "dwustu-",
+  "trzystu-", "czterystu-" from pl.wiktionary "dwudziestojednoletni",
+  "dwustuletni", "trzystuletni", "czterystuletni";
 - Czech: IJP ÚJČ "tisící" ("tisící dvoustý padesátý druhý" = 1252.),
   "třítisící" ("třítisící dvoustý padesátý první" = 3251.), "stotisící",
   "miliontý", "dvoustý", "třístý" ("třístý třicátý devátý" = 339.),
   "čtyřstý", "pětistý", "devítistý"; SSČ at IJP "dvoustý" ("dvou~ v slož.",
   the joining form of "dvě"); cs.wiktionary "tisící devítistý třicátý
-  šestý" and its feminine and neuter forms.
+  šestý" and its feminine and neuter forms; IJP "miliardtý" (ordinal of
+  "miliarda", 10^9 in the Czech long scale) and cs.wiktionary "bilion"
+  (10^12); a unit before tens comes first in a joined word, as in
+  cs.wiktionary "jednadvacetiletý" and "pětadvacetiletý".
 """
 import unittest
 
 from ovos_number_parser import pronounce_number, pronounce_ordinal
-from ovos_number_parser.util import GrammaticalGender
+from ovos_number_parser.numbers_cs import pronounce_ordinal_cs
+from ovos_number_parser.util import GrammaticalGender, Scale
 
 F = GrammaticalGender.FEMININE
 N = GrammaticalGender.NEUTRAL
@@ -56,6 +63,7 @@ CASES = {
         1000000: "миллионный",
         2000000: "двухмиллионный",
         38000000: "тридцативосьмимиллионный",
+        21000000: "двадцатиодномиллионный",
         1000000000: "миллиардный",
     },
     "uk": {
@@ -94,6 +102,10 @@ CASES = {
         1000000: "milionowy",
         1500000: "milion pięćsettysięczny",
         1000000000: "miliardowy",
+        21000: "dwudziestojednotysięczny",
+        200000: "dwustutysięczny",
+        300000: "trzystutysięczny",
+        400000: "czterystutysięczny",
     },
     "cs": {
         200: "dvoustý",
@@ -109,6 +121,11 @@ CASES = {
         3251: "třítisící dvoustý padesátý první",
         100000: "stotisící",
         1000000: "miliontý",
+        21000: "jednadvacetitisící",
+        25000: "pětadvacetitisící",
+        10 ** 9: "miliardtý",
+        2 * 10 ** 9: "dvoumiliardtý",
+        10 ** 12: "biliontý",
     },
 }
 
@@ -127,6 +144,17 @@ class TestOrdinalScaleWords(unittest.TestCase):
             for number, expected in CASES[lang].items():
                 with self.subTest(lang=lang, number=number):
                     self.assertEqual(pronounce_ordinal(number, lang), expected)
+
+    def test_czech_scale(self):
+        # Czech defaults to the long scale; an explicit scale reaches both
+        # entry points alike
+        self.assertEqual(pronounce_ordinal_cs(2 * 10 ** 9), "dvoumiliardtý")
+        for scale in Scale:
+            with self.subTest(scale=scale):
+                self.assertEqual(
+                    pronounce_ordinal(2 * 10 ** 9, "cs", scale=scale),
+                    pronounce_number(2 * 10 ** 9, "cs", ordinals=True,
+                                     scale=scale))
 
     def test_czech_gender_reaches_every_word(self):
         self.assertEqual(pronounce_ordinal(1936, "cs", gender=F),
