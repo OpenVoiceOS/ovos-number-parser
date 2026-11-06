@@ -1022,8 +1022,6 @@ _RBNF_GENDER = {
 #:
 #: - bs cardinal feminine spells 1 as "jedinica", the noun for the digit; the
 #:   feminine numeral is "jedna" (Wiktionary "jedan", Serbo-Croatian)
-#: - be ordinal masculine spells 3 and 4 "трэйці" and "чацьверты"; the forms
-#:   are "трэці" and "чацвёрты" (Wiktionary "трэці", "чацвёрты")
 #: - lb ordinal feminine gives "éischter", the dative and independent form;
 #:   after a determiner the feminine is "éischt" (Wiktionary "éischt", and the
 #:   adjective table at Wiktionary "grouss")
@@ -1031,9 +1029,18 @@ _RBNF_GENDER = {
 #:   and Maltese 2 to 10 do not inflect for gender
 _RBNF_UNUSABLE = {
     ("bs", "spellout-cardinal-feminine"),
-    ("be", "spellout-ordinal-masculine"),
     ("lb", "spellout-ordinal-feminine"),
     ("mt", "spellout-cardinal-feminine"),
+}
+
+#: words the CLDR data misspells, with the Wiktionary form: Belarusian
+#: "трэці" (трэцяя, трэцяе) and "чацвёрты" (чацвёртая, чацвёртае)
+_RBNF_WORD_FIXES = {
+    "be": {
+        "трэйці": "трэці", "трэццяя": "трэцяя", "трэццяе": "трэцяе",
+        "чацьверты": "чацвёрты", "чацьвертая": "чацвёртая",
+        "чацьвертае": "чацвёртае",
+    },
 }
 
 
@@ -1054,10 +1061,13 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
         ruleset = f"spellout-{form.name.lower()}-{_RBNF_GENDER.get(gender)}"
         if ruleset in engine.rulesets and (base, ruleset) not in _RBNF_UNUSABLE \
                 and (ordinals or gender != GrammaticalGender.MASCULINE):
-            return engine.format_number(number, ruleset_names=[ruleset]).text
-        return engine.format_number(number, form).text
+            text = engine.format_number(number, ruleset_names=[ruleset]).text
+        else:
+            text = engine.format_number(number, form).text
     except Exception as err:
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
+    fixes = _RBNF_WORD_FIXES.get(base, {})
+    return " ".join(fixes.get(word, word) for word in text.split(" "))
 
 
 def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = None) -> str:
