@@ -1022,14 +1022,11 @@ _RBNF_GENDER = {
 #:
 #: - bs cardinal feminine spells 1 as "jedinica", the noun for the digit; the
 #:   feminine numeral is "jedna" (Wiktionary "jedan", Serbo-Croatian)
-#: - be ordinal masculine spells 3 and 4 "трэйці" and "чацьверты"; the forms
-#:   are "трэці" and "чацвёрты" (Wiktionary "трэці", "чацвёрты")
 #: - lb ordinal feminine gives "éischter", the dative and independent form;
 #:   after a determiner the feminine is "éischt" (Wiktionary "éischt", and the
 #:   adjective table at Wiktionary "grouss")
 _RBNF_UNUSABLE = {
     ("bs", "spellout-cardinal-feminine"),
-    ("be", "spellout-ordinal-masculine"),
     ("lb", "spellout-ordinal-feminine"),
 }
 
@@ -1039,6 +1036,29 @@ _RBNF_UNUSABLE = {
 #: feminine of "wieħed" (Wiktionary "wieħed"), inflects for gender
 _RBNF_WORD_SWAP_ONLY = {
     ("mt", "spellout-cardinal-feminine"): ("wieħed", "waħda"),
+}
+
+#: words the CLDR data misspells, with the Wiktionary form. Belarusian: the
+#: ordinals of en.wiktionary "Module:number list/data/be" ("трэці",
+#: "чацвёрты", "пяцідзясяты", "шасцідзесяты", "сямідзясяты", "двухсоты",
+#: "шасцісоты"); the feminine in -ая and the neuter in -ае follow the
+#: Wiktionary declension tables of "трэці", "чацвёрты", "пяцідзясяты",
+#: "двухсоты" and "шасцісоты"
+_RBNF_WORD_FIXES = {
+    "be": {
+        "трэйці": "трэці", "трэццяя": "трэцяя", "трэццяе": "трэцяе",
+        "чацьверты": "чацвёрты", "чацьвертая": "чацвёртая",
+        "чацьвертае": "чацвёртае",
+        "пяцідзесятая": "пяцідзясятая", "пяцьдзесятае": "пяцідзясятае",
+        "шэсцьдзесяты": "шасцідзесяты", "шэсцідзесятая": "шасцідзесятая",
+        "шэсцідзясятае": "шасцідзесятае",
+        "семдзесяты": "сямідзясяты", "семдзесятая": "сямідзясятая",
+        "сямдзясятае": "сямідзясятае",
+        "дзвухсоты": "двухсоты", "дзвухсотая": "двухсотая",
+        "дзвухсотае": "двухсотае",
+        "шасьцісоты": "шасцісоты", "шасьцісотая": "шасцісотая",
+        "шасьцісотае": "шасцісотае",
+    },
 }
 
 
@@ -1061,17 +1081,18 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
                 and (ordinals or gender != GrammaticalGender.MASCULINE):
             text = engine.format_number(number, ruleset_names=[ruleset]).text
             swap = _RBNF_WORD_SWAP_ONLY.get((base, ruleset))
-            if swap is None:
-                return text
-            default = engine.format_number(number, form).text
-            pairs = list(zip(default.split(" "), text.split(" ")))
-            if default.count(" ") == text.count(" ") and \
-                    all(a == b or (a, b) == swap for a, b in pairs):
-                return text
-            return default
-        return engine.format_number(number, form).text
+            if swap is not None:
+                default = engine.format_number(number, form).text
+                pairs = list(zip(default.split(" "), text.split(" ")))
+                if default.count(" ") != text.count(" ") or \
+                        not all(a == b or (a, b) == swap for a, b in pairs):
+                    text = default
+        else:
+            text = engine.format_number(number, form).text
     except Exception as err:
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
+    fixes = _RBNF_WORD_FIXES.get(base, {})
+    return " ".join(fixes.get(word, word) for word in text.split(" "))
 
 
 def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = None) -> str:
