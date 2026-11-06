@@ -1,14 +1,5 @@
 # Changelog
 
-## [0.24.7a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.7a1) (2026-11-06)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.6a1...0.24.7a1)
-
-**Merged pull requests:**
-
-- fix: gender on ordinals=True, German null below 1, Bokmål source [\#392](https://github.com/OpenVoiceOS/ovos-number-parser/pull/392) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix: pick the RBNF rule set by gender in the fallback [\#385](https://github.com/OpenVoiceOS/ovos-number-parser/pull/385) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.6a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.6a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.5a1...0.24.6a1)
