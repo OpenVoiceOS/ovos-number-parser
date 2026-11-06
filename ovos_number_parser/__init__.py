@@ -1027,13 +1027,18 @@ _RBNF_GENDER = {
 #: - lb ordinal feminine gives "éischter", the dative and independent form;
 #:   after a determiner the feminine is "éischt" (Wiktionary "éischt", and the
 #:   adjective table at Wiktionary "grouss")
-#: - mt cardinal feminine holds the forms before a noun ("tliet", "ħdax-il"),
-#:   and Maltese 2 to 10 do not inflect for gender
 _RBNF_UNUSABLE = {
     ("bs", "spellout-cardinal-feminine"),
     ("be", "spellout-ordinal-masculine"),
     ("lb", "spellout-ordinal-feminine"),
-    ("mt", "spellout-cardinal-feminine"),
+}
+
+#: gendered rule sets used only where their output is the engine default with
+#: one word swapped, mapped to that swap: the mt cardinal feminine set holds
+#: the forms before a noun ("tliet", "ħdax-il"), and only "waħda", the
+#: feminine of "wieħed" (Wiktionary "wieħed"), inflects for gender
+_RBNF_WORD_SWAP_ONLY = {
+    ("mt", "spellout-cardinal-feminine"): ("wieħed", "waħda"),
 }
 
 
@@ -1054,7 +1059,16 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
         ruleset = f"spellout-{form.name.lower()}-{_RBNF_GENDER.get(gender)}"
         if ruleset in engine.rulesets and (base, ruleset) not in _RBNF_UNUSABLE \
                 and (ordinals or gender != GrammaticalGender.MASCULINE):
-            return engine.format_number(number, ruleset_names=[ruleset]).text
+            text = engine.format_number(number, ruleset_names=[ruleset]).text
+            swap = _RBNF_WORD_SWAP_ONLY.get((base, ruleset))
+            if swap is None:
+                return text
+            default = engine.format_number(number, form).text
+            pairs = list(zip(default.split(" "), text.split(" ")))
+            if default.count(" ") == text.count(" ") and \
+                    all(a == b or (a, b) == swap for a, b in pairs):
+                return text
+            return default
         return engine.format_number(number, form).text
     except Exception as err:
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
