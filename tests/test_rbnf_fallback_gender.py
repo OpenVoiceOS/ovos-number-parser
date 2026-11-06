@@ -7,11 +7,11 @@ expected strings are the output of the named rule set, read straight from
 ``unicode_rbnf``. The Hindi words follow Wiktionary "दूसरा" (Hindi ordinal
 "second", an adjective in -ā whose feminine is "दूसरी"). Where the CLDR data
 is wrong, the expected words come from Wiktionary: Belarusian "першы",
-"другі", "пяты", Luxembourgish "éischt".
+"другі", "трэці", "чацвёрты", "пяты", Luxembourgish "éischt".
 """
 import unittest
 
-from unicode_rbnf import FormatPurpose, RbnfEngine
+from unicode_rbnf import RbnfEngine
 
 from ovos_number_parser import pronounce_number, pronounce_ordinal
 from ovos_number_parser.util import GrammaticalGender
@@ -101,25 +101,37 @@ class TestRbnfFallbackGender(unittest.TestCase):
         self.assertEqual(pronounce_ordinal(1, "lb", gender=M), "éischten")
 
     def test_belarusian_ordinals(self):
-        # the CLDR masculine set misspells 3 and 4 ("трэйці", "чацьверты"),
-        # so the default keeps the engine default
-        engine = RbnfEngine.for_language("be")
-        for number in (1, 3, 4):
-            with self.subTest(number=number):
-                self.assertNotIn(pronounce_ordinal(number, "be"),
-                                 ("трэйці", "чацьверты"))
-                self.assertEqual(
-                    pronounce_ordinal(number, "be"),
-                    engine.format_number(number, FormatPurpose.ORDINAL).text)
-        # Wiktionary "першы", "другі", "пяты"
+        # en.wiktionary "Module:number list/data/be" and the declension
+        # tables of "першы", "другі", "трэці", "чацвёрты", "пяты",
+        # "пяцідзясяты", "двухсоты", "шасцісоты"; the CLDR data spells them
+        # "трэйці", "чацьверты", "пяцьдзесятае", "шэсцьдзесяты",
+        # "семдзесяты", "дзвухсоты", "шасьцісоты"
         cases = {
-            (1, F): "першая", (2, F): "другая", (5, F): "пятая",
-            (1, N): "першае", (2, N): "другое", (5, N): "пятае",
+            (1, M): "першы", (2, M): "другі", (3, M): "трэці",
+            (4, M): "чацвёрты", (5, M): "пяты",
+            (1, F): "першая", (2, F): "другая", (3, F): "трэцяя",
+            (4, F): "чацвёртая", (5, F): "пятая",
+            (1, N): "першае", (2, N): "другое", (3, N): "трэцяе",
+            (4, N): "чацвёртае", (5, N): "пятае",
+            (23, M): "дваццаць трэці", (23, F): "дваццаць трэцяя",
+            (24, N): "дваццаць чацвёртае", (43, F): "сорак трэцяя",
+            (104, M): "сто чацвёрты",
+            (50, F): "пяцідзясятая", (50, N): "пяцідзясятае",
+            (60, M): "шасцідзесяты", (60, F): "шасцідзесятая",
+            (60, N): "шасцідзесятае",
+            (70, M): "сямідзясяты", (70, F): "сямідзясятая",
+            (70, N): "сямідзясятае",
+            (200, M): "двухсоты", (200, F): "двухсотая", (200, N): "двухсотае",
+            (600, M): "шасцісоты", (600, F): "шасцісотая", (600, N): "шасцісотае",
         }
         for (number, gender), expected in cases.items():
             with self.subTest(number=number, gender=gender):
                 self.assertEqual(pronounce_ordinal(number, "be", gender=gender),
                                  expected)
+                self.assertEqual(
+                    pronounce_number(number, "be", ordinals=True, gender=gender),
+                    expected)
+        self.assertEqual(pronounce_ordinal(3, "be"), "трэці")
 
     def test_bosnian_feminine_rule_set_is_not_used(self):
         # the CLDR Bosnian feminine set spells 1 as the noun "jedinica"
