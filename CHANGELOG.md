@@ -385,10 +385,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.7a2...0.19.7a3)
 
-**Merged pull requests:**
-
-- fix: drop the plural -s on French quatre-vingt/cent before mille [\#278](https://github.com/OpenVoiceOS/ovos-number-parser/pull/278) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.19.7a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.19.7a2) (2026-07-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.19.7a1...0.19.7a2)
