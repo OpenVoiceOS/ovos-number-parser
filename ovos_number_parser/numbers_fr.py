@@ -398,7 +398,12 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
                                           digits, gender,
                                           _force_hundreds_join,
                                           _under_higher_scale)
-        return _fix_vingt_cent_plural_fr(result)
+        result = _fix_vingt_cent_plural_fr(result)
+        # only the final "un" agrees with the noun; a count before "mille" or
+        # "million" keeps "un" (ICU RBNF fr spellout-cardinal-feminine)
+        if gender == GrammaticalGender.FEMININE and isinstance(number, int):
+            result = re.sub(r"\bun$", "une", result)
+        return result
 
 
 #: "quatre-vingts" and "cents" lose their plural -s directly before "mille".

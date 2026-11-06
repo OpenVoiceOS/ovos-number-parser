@@ -2,7 +2,16 @@ import re
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
-                                     ReplaceableNumber, Token, look_for_fractions)
+                                     ReplaceableNumber, Token, look_for_fractions,
+                                     GrammaticalGender)
+
+#: the last word of a whole number before a common-gender (FEMININE) or neuter
+#: noun (ICU RBNF da spellout-cardinal-common and -neuter: "hundrede og en",
+#: "hundrede og et"). The masculine is the default gender and keeps its output.
+_GENDERED_LAST_WORD_DA = {
+    GrammaticalGender.FEMININE: {"et": "en"},
+    GrammaticalGender.NEUTRAL: {"en": "et"},
+}
 
 
 _ARTICLES = {'en', 'et'}
@@ -338,7 +347,7 @@ def nice_number_da(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -464,10 +473,13 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
     elif number == 0:
         return str(_NUM_STRING_DA[0])
     elif number < 0:
-        return "minus " + pronounce_number_da(abs(number), places)
+        return "minus " + pronounce_number_da(abs(number), places, gender=gender)
     else:
         if number == int(number):
-            return re.sub(r'\s+', ' ', pronounce_whole_number_da(number)).strip()
+            spoken = re.sub(r'\s+', ' ', pronounce_whole_number_da(number)).strip()
+            *head, last = spoken.split(" ")
+            last = _GENDERED_LAST_WORD_DA.get(gender, {}).get(last, last)
+            return " ".join(head + [last])
         else:
             whole_number_part = floor(number)
             fractional_part = number - whole_number_part
@@ -478,7 +490,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             return re.sub(r'\s+', ' ', result).strip()
 
 
-def pronounce_ordinal_da(number):
+def pronounce_ordinal_da(number, gender=GrammaticalGender.MASCULINE):
     """
     This function pronounces a number as an ordinal
 
@@ -487,6 +499,9 @@ def pronounce_ordinal_da(number):
 
     Args:
         number (int): the number to format
+        gender (GrammaticalGender): NEUTRAL gives the neuter "andet" for 2
+            (ICU RBNF da spellout-ordinal-neuter); the other ordinals have
+            one form
     Returns:
         (str): The pronounced number string.
     """
@@ -508,6 +523,8 @@ def pronounce_ordinal_da(number):
     if number < 0 or number != int(number):
         return number
     if number < 20:
+        if number == 2 and gender == GrammaticalGender.NEUTRAL:
+            return "andet"
         return ordinals[number]
     if 30 <= number < 40:
         # tredive -> tredivte, enogtredive -> enogtredivte: drop the

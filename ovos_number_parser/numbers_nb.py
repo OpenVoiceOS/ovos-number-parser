@@ -26,10 +26,19 @@ Sources:
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
-                                     ReplaceableNumber, Token, look_for_fractions)
+                                     ReplaceableNumber, Token, look_for_fractions,
+                                     GrammaticalGender)
 
 # indefinite articles are homographs of "one"
 _ARTICLES_NB = {'en', 'ei', 'et', 'ett'}
+
+#: the numeral "one" as a separate final word before a feminine or neuter noun:
+#: "én, ei, ett" (Wiktionary "ett", Norwegian Bokmål, usage notes, after
+#: Språkrådet "Et eller ett?"). A compound such as "tjueen" keeps its form.
+_GENDERED_ONE_NB = {
+    GrammaticalGender.FEMININE: "ei",
+    GrammaticalGender.NEUTRAL: "ett",
+}
 
 _NUM_STRING_NB = {
     0: 'null',
@@ -813,15 +822,23 @@ def nice_number_nb(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_nb(number, places=2, short_scale=False,
-                        scientific=False, ordinals=False):
+                        scientific=False, ordinals=False,
+                        gender=GrammaticalGender.MASCULINE):
     """Convert a number to its spoken Bokmål equivalent.
 
     Uses the modern tens-first counting order ("tjueen") and the official
-    modern forms "sju"/"tjue" (1951 counting reform).
+    modern forms "sju"/"tjue" (1951 counting reform). A final "en" of a whole
+    number takes the form of ``gender`` ("ei", "ett").
     """
     if ordinals:
         return pronounce_ordinal_nb(number)
-    return _pronounce_number(number, _TABLES_NB, places)
+    spoken = _pronounce_number(number, _TABLES_NB, places)
+    if number % 1 == 0:
+        *head, last = spoken.split(" ")
+        if last == "en":
+            last = _GENDERED_ONE_NB.get(gender, last)
+        spoken = " ".join(head + [last])
+    return spoken
 
 
 def pronounce_ordinal_nb(number):
