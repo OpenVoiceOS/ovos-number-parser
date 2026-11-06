@@ -998,10 +998,42 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang.startswith("uk"):
         return pronounce_number_uk(number, places, short_scale, scientific, ordinals)
     # fallback to unicode RBNF
+    return _pronounce_rbnf(number, lang, ordinals, gender)
+
+
+#: the word an ICU RBNF rule set name uses for each grammatical gender,
+#: as in "spellout-ordinal-masculine" and "spellout-cardinal-neuter"
+_RBNF_GENDER = {
+    GrammaticalGender.MASCULINE: "masculine",
+    GrammaticalGender.FEMININE: "feminine",
+    GrammaticalGender.NEUTRAL: "neuter",
+}
+
+#: gendered rule sets whose data is not the numeral: the Bosnian feminine set
+#: spells 1 as "jedinica", the noun for the digit, where the feminine numeral
+#: is "jedna" (Wiktionary "jedan", Serbo-Croatian, declined on the stem jedn-)
+_RBNF_UNUSABLE = {("bs", "spellout-cardinal-feminine")}
+
+
+def _pronounce_rbnf(number, lang, ordinals, gender):
+    """Speak ``number`` with the Unicode RBNF rule set for ``gender``.
+
+    ``FormatResult.text`` is the output of the shortest rule set name
+    (``unicode_rbnf.engine.FormatResult``), so the gender is selected by name.
+    A language with no rule set for the gender keeps the engine default. A
+    masculine cardinal also keeps it: the default ``spellout-numbering`` is the
+    counting form, and the Maltese and Venetian masculine sets are the forms
+    before a noun ("żewġ", "du") and not the bare number ("tnejn", "do").
+    """
+    form = FormatPurpose.ORDINAL if ordinals else FormatPurpose.CARDINAL
+    base = lang.split("-")[0]
     try:
-        engine = RbnfEngine.for_language(lang.split("-")[0])
-        fmt = FormatPurpose.ORDINAL if ordinals else FormatPurpose.CARDINAL
-        return engine.format_number(number, fmt).text
+        engine = RbnfEngine.for_language(base)
+        ruleset = f"spellout-{form.name.lower()}-{_RBNF_GENDER.get(gender)}"
+        if ruleset in engine.rulesets and (base, ruleset) not in _RBNF_UNUSABLE \
+                and (ordinals or gender != GrammaticalGender.MASCULINE):
+            return engine.format_number(number, ruleset_names=[ruleset]).text
+        return engine.format_number(number, form).text
     except Exception as err:
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
 
@@ -1137,12 +1169,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     if lang.startswith("kab"):
         return pronounce_ordinal_kab(number, gender)
     # fallback to unicode RBNF
-    try:
-        engine = RbnfEngine.for_language(lang.split("-")[0])
-        fmt = FormatPurpose.ORDINAL
-        return engine.format_number(number, fmt).text
-    except Exception as err:
-        raise NotImplementedError(f"Unsupported language: '{lang}'") from err
+    return _pronounce_rbnf(number, lang, True, gender)
 
 
 #: a hyphen or underscore sitting between two letters is just a spelling of the
