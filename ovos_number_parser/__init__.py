@@ -1208,7 +1208,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     if lang.startswith("gl"):
         return pronounce_ordinal_gl(number, gender=gender, scale=scale)
     if lang.startswith("cs"):
-        return pronounce_ordinal_cs(number, gender)
+        return pronounce_ordinal_cs(number, gender, short_scale=short_scale)
     if lang.startswith("sk"):
         return pronounce_ordinal_sk(number)
     if lang.startswith("pl"):
