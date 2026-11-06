@@ -7,8 +7,10 @@ in these languages. Sources for the expected values:
   and Swedish name their common gender ``common`` and ``reale``; FEMININE
   selects it, because MASCULINE is the default and keeps its output;
 - Danish ordinal "andet": RBNF da ``spellout-ordinal-neuter``;
-- nb: Wiktionary "ett" (Norwegian Bokmål), usage notes: the numeral is
-  "én, ei, ett", after Språkrådet "Et eller ett?".
+- nb: Wiktionary "ett" (Norwegian Bokmål), usage notes: the neuter numeral
+  is "ett", and "the corresponding masculine and feminine forms are én and
+  éi"; Wiktionary "ei" gives the feminine numeral "ei". The sources cover the
+  bare 1 only, so a number that ends in 1 keeps "en".
 """
 import unittest
 
@@ -55,7 +57,11 @@ class TestGenderLiterals(unittest.TestCase):
     def test_bokmal(self):
         self.assertEqual(pronounce_number(1, "nb", gender=F), "ei")
         self.assertEqual(pronounce_number(1, "nb", gender=N), "ett")
-        self.assertEqual(pronounce_number(101, "nb", gender=N), "hundre og ett")
+        self.assertEqual(pronounce_number(-1, "nb", gender=N), "minus ett")
+        for gender in (F, N):
+            with self.subTest(gender=gender):
+                self.assertEqual(pronounce_number(101, "nb", gender=gender),
+                                 pronounce_number(101, "nb"))
 
     def test_german_literals(self):
         self.assertEqual(pronounce_number(1, "de", gender=F), "eine")

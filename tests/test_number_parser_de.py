@@ -19,7 +19,7 @@ class TestGermanPronounce(unittest.TestCase):
                 self.assertEqual(pronounce_number(number, lang="de"), spoken)
 
     def test_pronounce_negative_and_decimal(self):
-        expected = {-7: 'minus sieben', -42: 'minus zweiundvierzig', 2.5: 'zwei Komma fünf null null', 3.14: 'drei Komma eins vier null', -3.5: 'minus drei Komma fünf null null', 0.5: ' Komma fünf null null'}
+        expected = {-7: 'minus sieben', -42: 'minus zweiundvierzig', 2.5: 'zwei Komma fünf null null', 3.14: 'drei Komma eins vier null', -3.5: 'minus drei Komma fünf null null', 0.5: 'null Komma fünf null null'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="de"), spoken)
@@ -35,7 +35,7 @@ class TestGermanExtract(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="de"), number)
 
     def test_extract_negative_and_decimal(self):
-        expected = {-7: 'minus sieben', -42: 'minus zweiundvierzig', 2.5: 'zwei Komma fünf null null', 3.14: 'drei Komma eins vier null', -3.5: 'minus drei Komma fünf null null', 0.5: ' Komma fünf null null'}
+        expected = {-7: 'minus sieben', -42: 'minus zweiundvierzig', 2.5: 'zwei Komma fünf null null', 3.14: 'drei Komma eins vier null', -3.5: 'minus drei Komma fünf null null', 0.5: 'null Komma fünf null null'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="de"), number)

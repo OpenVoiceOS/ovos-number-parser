@@ -409,7 +409,8 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
         else:
             whole_number_part = floor(number)
             fractional_part = number - whole_number_part
-            result += pronounce_whole_number_de(whole_number_part).rstrip()
+            result += pronounce_whole_number_de(whole_number_part).rstrip() \
+                or _NUM_STRING[0]
             if places > 0:
                 result += " Komma"
                 result += pronounce_fractional_de(fractional_part, places)

@@ -673,7 +673,27 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
         *head, last = result.split(" ")
         last = _GENDERED_LAST_WORD_RU.get(gender, {}).get(last, last)
         result = " ".join(head + [last])
+    else:
+        *head, last = result.split(" ")
+        result = " ".join(head + [_ordinal_gender_ru(last, gender)])
     return result
+
+
+def _ordinal_gender_ru(word, gender):
+    """Inflect a masculine ordinal as an adjective: "первый" -> "первая",
+    "первое"; "второй" -> "вторая", "второе"; the soft "третий" -> "третья",
+    "третье" (ICU RBNF ru spellout-ordinal-feminine and -neuter)."""
+    if gender == GrammaticalGender.FEMININE:
+        if word.endswith("ий"):
+            return word[:-2] + "ья"
+        if word.endswith(("ый", "ой")):
+            return word[:-2] + "ая"
+    if gender == GrammaticalGender.NEUTRAL:
+        if word.endswith("ий"):
+            return word[:-2] + "ье"
+        if word.endswith(("ый", "ой")):
+            return word[:-2] + "ое"
+    return word
 
 
 def plural_ru(num: int, one: str, few: str, many: str):
