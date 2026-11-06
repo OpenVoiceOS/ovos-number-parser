@@ -1148,6 +1148,9 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
     # check for a direct match
     if num in number_names and not ordinals:
         result += number_names[num]
+    elif ordinals and num == int(num) and \
+            (word := _ordinal_cs(int(num), short_scale)):
+        result += word
     else:
         def _sub_thousand(n, ordinals=False):
             assert 0 <= n <= 999
@@ -1286,8 +1289,8 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
         last = _GENDERED_LAST_WORD_CS.get(gender, {}).get(last, last)
         result = " ".join(head + [last])
     else:
-        *head, last = result.split(" ")
-        result = " ".join(head + [_ordinal_gender_cs(last, gender)])
+        result = " ".join(_ordinal_gender_cs(word, gender)
+                          for word in result.split(" "))
     return result
 
 
@@ -1295,6 +1298,59 @@ _ORDINAL_HUNDREDS_CS = {
     200: "dvoustý", 300: "třístý", 400: "čtyřstý", 500: "pětistý",
     600: "šestistý", 700: "sedmistý", 800: "osmistý", 900: "devítistý",
 }
+
+
+# Stems that join a count to "-tisící", "-miliontý", written as one word
+# (IJP ÚJČ "třítisící", "stotisící"; SSČ "dvou~ v slož.").
+_ORDINAL_STEM_UNITS_CS = ["", "jedna", "dvou", "tří", "čtyř", "pěti", "šesti",
+                          "sedmi", "osmi", "devíti"]
+_ORDINAL_STEM_TEENS_CS = ["deseti", "jedenácti", "dvanácti", "třinácti",
+                          "čtrnácti", "patnácti", "šestnácti", "sedmnácti",
+                          "osmnácti", "devatenácti"]
+_ORDINAL_STEM_TENS_CS = ["", "", "dvaceti", "třiceti", "čtyřiceti", "padesáti",
+                         "šedesáti", "sedmdesáti", "osmdesáti", "devadesáti"]
+_ORDINAL_STEM_HUNDREDS_CS = ["", "sto", "dvouset", "tříset", "čtyřset",
+                             "pětiset", "šestiset", "sedmiset", "osmiset",
+                             "devítiset"]
+
+
+def _ordinal_stem_cs(n):
+    hundreds, rest = divmod(n, 100)
+    tens, units = divmod(rest, 10)
+    if tens == 1:
+        return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + _ORDINAL_STEM_TEENS_CS[units]
+    return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + _ORDINAL_STEM_TENS_CS[tens] + \
+        _ORDINAL_STEM_UNITS_CS[units]
+
+
+def _ordinal_cs(n, short_scale=True):
+    """Masculine ordinal of a whole number. Every part is ordinal (IJP ÚJČ
+    "tisící dvoustý padesátý druhý" = 1252., "třítisící dvoustý padesátý
+    první" = 3251.). Return None for 0 or when a group has no scale name."""
+    if n < 1:
+        return None
+    ordinals = _SHORT_ORDINAL_CS if short_scale else _LONG_ORDINAL_CS
+    words = []
+    for scale in reversed(range(len(str(n)) // 3 + 1)):
+        group = n // 1000 ** scale % 1000
+        if not group:
+            continue
+        if scale:
+            name = ordinals.get(1000 ** scale)
+            if name is None:
+                return None
+            words.append(("" if group == 1 else _ordinal_stem_cs(group)) + name)
+            continue
+        hundreds, rest = divmod(group, 100)
+        if hundreds:
+            words.append(_ORDINAL_HUNDREDS_CS.get(group - rest) or
+                         _ORDINAL_BASE_CS[100])
+        if rest in _ORDINAL_BASE_CS:
+            words.append(_ORDINAL_BASE_CS[rest])
+        elif rest:
+            words += [_ORDINAL_BASE_CS[rest - rest % 10],
+                      _ORDINAL_BASE_CS[rest % 10]]
+    return " ".join(words)
 
 
 def _ordinal_gender_cs(word, gender):
@@ -1321,17 +1377,4 @@ def pronounce_ordinal_cs(number, gender=GrammaticalGender.MASCULINE):
     number = int(number)
     if number <= 0:
         raise ValueError("Czech ordinals start at 1")
-    if number in _SHORT_ORDINAL_CS:
-        return _ordinal_gender_cs(_SHORT_ORDINAL_CS[number], gender)
-    if number in _ORDINAL_HUNDREDS_CS:
-        return _ordinal_gender_cs(_ORDINAL_HUNDREDS_CS[number], gender)
-    if number < 100:
-        tens = number // 10 * 10
-        unit = number % 10
-        return f"{_ordinal_gender_cs(_SHORT_ORDINAL_CS[tens], gender)} " \
-               f"{_ordinal_gender_cs(_SHORT_ORDINAL_CS[unit], gender)}"
-    last = number % 100
-    if last:
-        prefix = number - last
-        return f"{pronounce_number_cs(prefix)} {pronounce_ordinal_cs(last, gender)}"
-    raise NotImplementedError(f"cannot pronounce {number} as a Czech ordinal")
+    return pronounce_number_cs(number, ordinals=True, gender=gender)

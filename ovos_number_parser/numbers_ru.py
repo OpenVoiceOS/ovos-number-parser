@@ -509,6 +509,9 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
     # check for a direct match
     if num in number_names and not ordinals:
         result += number_names[num]
+    elif ordinals and num == int(num) and \
+            (word := _ordinal_ru(int(num), short_scale)):
+        result += word
     else:
         def _sub_thousand(n, ordinals=False):
             assert 0 <= n <= 999
@@ -677,6 +680,68 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
         *head, last = result.split(" ")
         result = " ".join(head + [_ordinal_gender_ru(last, gender)])
     return result
+
+
+# Stems that join a count to "-тысячный", "-миллионный": the words are
+# written as one (ru.wikipedia "Порядковое числительное":
+# "тридцативосьмимиллионный"; ru.wiktionary "двухтысячный", "стотысячный",
+# "двухсоттысячный", "сорокатысячный", "девяностотысячный",
+# "двадцатипятитысячный").
+_ORDINAL_STEM_UNITS_RU = ["", "одно", "двух", "трёх", "четырёх", "пяти",
+                          "шести", "семи", "восьми", "девяти"]
+_ORDINAL_STEM_TEENS_RU = ["десяти", "одиннадцати", "двенадцати",
+                          "тринадцати", "четырнадцати", "пятнадцати",
+                          "шестнадцати", "семнадцати", "восемнадцати",
+                          "девятнадцати"]
+_ORDINAL_STEM_TENS_RU = ["", "", "двадцати", "тридцати", "сорока",
+                         "пятидесяти", "шестидесяти", "семидесяти",
+                         "восьмидесяти", "девяносто"]
+_ORDINAL_STEM_HUNDREDS_RU = ["", "сто", "двухсот", "трёхсот", "четырёхсот",
+                             "пятисот", "шестисот", "семисот", "восьмисот",
+                             "девятисот"]
+
+
+def _ordinal_stem_ru(n):
+    hundreds, rest = divmod(n, 100)
+    tens, units = divmod(rest, 10)
+    if tens == 1:
+        return _ORDINAL_STEM_HUNDREDS_RU[hundreds] + _ORDINAL_STEM_TEENS_RU[units]
+    return _ORDINAL_STEM_HUNDREDS_RU[hundreds] + _ORDINAL_STEM_TENS_RU[tens] + \
+        _ORDINAL_STEM_UNITS_RU[units]
+
+
+def _ordinal_ru(n, short_scale=True):
+    """Masculine ordinal of a whole number: the groups before the last
+    non-zero group stay cardinal ("две тысячи пятый"). Return None for 0 or
+    when that group has no scale name."""
+    if n < 1:
+        return None
+    scale, group = 0, n
+    while group % 1000 == 0:
+        scale, group = scale + 1, group // 1000
+    head = (group - group % 1000) * 1000 ** scale
+    group %= 1000
+    if scale:
+        name = (_SHORT_SCALE_RU if short_scale else _LONG_SCALE_RU).get(1000 ** scale)
+        if name is None:
+            return None
+        word = ("" if group == 1 else _ordinal_stem_ru(group)) + \
+            name.removesuffix("а") + "ный"
+    else:
+        hundreds, rest = divmod(group, 100)
+        if not rest:
+            word = _ORDINAL_BASE_RU[group]
+        else:
+            words = [_NUM_STRING_RU[hundreds * 100]] if hundreds else []
+            if rest in _ORDINAL_BASE_RU:
+                words.append(_ORDINAL_BASE_RU[rest])
+            else:
+                words += [_NUM_STRING_RU[rest - rest % 10],
+                          _ORDINAL_BASE_RU[rest % 10]]
+            word = " ".join(words)
+    if head:
+        word = f"{pronounce_number_ru(head, short_scale=short_scale)} {word}"
+    return word
 
 
 def _ordinal_gender_ru(word, gender):

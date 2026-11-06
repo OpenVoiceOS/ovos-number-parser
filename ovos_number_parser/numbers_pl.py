@@ -382,6 +382,8 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
     # check for a direct match
     if num in number_names and not ordinals:
         result += number_names[num]
+    elif ordinals and num == int(num) and (word := _ordinal_pl(int(num))):
+        result += word
     else:
         def _sub_thousand(n, ordinals=False, iteration=0):
             assert 0 <= n <= 999
@@ -1157,6 +1159,69 @@ _ORDINAL_HUNDREDS_PL = {
 }
 
 
+# Stems that join a count to "-tysięczny", "-milionowy", written as one word
+# (en.wiktionary "trzytysięczny", "pięciotysięczny", "dziesięciotysięczny",
+# "jedenastotysięczny", "dwudziestotysięczny", "stutysięczny",
+# "pięćsettysięczny"; M. Jagodziński, "Liczebniki": "2000. – dwutysięczny",
+# "1 500 000. – milion pięćsettysięczny").
+_ORDINAL_STEM_UNITS_PL = ["", "jedno", "dwu", "trzy", "cztero", "pięcio",
+                          "sześcio", "siedmio", "ośmio", "dziewięcio"]
+_ORDINAL_STEM_TEENS_PL = ["dziesięcio", "jedenasto", "dwunasto", "trzynasto",
+                          "czternasto", "piętnasto", "szesnasto",
+                          "siedemnasto", "osiemnasto", "dziewiętnasto"]
+_ORDINAL_STEM_TENS_PL = ["", "", "dwudziesto", "trzydziesto", "czterdziesto",
+                         "pięćdziesięcio", "sześćdziesięcio",
+                         "siedemdziesięcio", "osiemdziesięcio",
+                         "dziewięćdziesięcio"]
+_ORDINAL_STEM_HUNDREDS_PL = ["", "stu", "dwustu", "trzystu", "czterystu",
+                             "pięćset", "sześćset", "siedemset", "osiemset",
+                             "dziewięćset"]
+
+
+def _ordinal_stem_pl(n):
+    hundreds, rest = divmod(n, 100)
+    tens, units = divmod(rest, 10)
+    if tens == 1:
+        return _ORDINAL_STEM_HUNDREDS_PL[hundreds] + _ORDINAL_STEM_TEENS_PL[units]
+    return _ORDINAL_STEM_HUNDREDS_PL[hundreds] + _ORDINAL_STEM_TENS_PL[tens] + \
+        _ORDINAL_STEM_UNITS_PL[units]
+
+
+def _ordinal_pl(n):
+    """Masculine ordinal of a whole number. Tens and units are ordinal
+    ("dwudziesty pierwszy"); the hundreds and the groups before them stay
+    cardinal, and only the last word is ordinal when tens and units are
+    absent ("dwa tysiące setny", Jagodziński). Return None for 0 or when the
+    last non-zero group has no scale name."""
+    if n < 1:
+        return None
+    scale, group = 0, n
+    while group % 1000 == 0:
+        scale, group = scale + 1, group // 1000
+    head = (group - group % 1000) * 1000 ** scale
+    group %= 1000
+    if scale:
+        name = "tysięczny" if scale == 1 else _SHORT_ORDINAL_PL.get(1000 ** scale)
+        if name is None:
+            return None
+        word = ("" if group == 1 else _ordinal_stem_pl(group)) + name
+    else:
+        hundreds, rest = divmod(group, 100)
+        if not rest:
+            word = _ORDINAL_HUNDREDS_PL.get(group) or _ORDINAL_BASE_PL[group]
+        else:
+            words = [_NUM_STRING_PL[hundreds * 100]] if hundreds else []
+            if rest in _ORDINAL_BASE_PL:
+                words.append(_ORDINAL_BASE_PL[rest])
+            else:
+                words += [_ORDINAL_BASE_PL[rest - rest % 10],
+                          _ORDINAL_BASE_PL[rest % 10]]
+            word = " ".join(words)
+    if head:
+        word = f"{pronounce_number_pl(head)} {word}"
+    return word
+
+
 def _ordinal_gender_pl(word, gender):
     """Inflect a masculine ordinal as an adjective: "pierwszy" -> "pierwsza",
     "pierwsze"; "drugi" -> "druga", "drugie"; "trzeci" -> "trzecia",
@@ -1183,17 +1248,4 @@ def pronounce_ordinal_pl(number, gender=GrammaticalGender.MASCULINE):
     number = int(number)
     if number <= 0:
         raise ValueError("Polish ordinals start at 1")
-    if number in _SHORT_ORDINAL_PL:
-        return _ordinal_gender_pl(_SHORT_ORDINAL_PL[number], gender)
-    if number in _ORDINAL_HUNDREDS_PL:
-        return _ordinal_gender_pl(_ORDINAL_HUNDREDS_PL[number], gender)
-    if number < 100:
-        tens = number // 10 * 10
-        unit = number % 10
-        return f"{_ordinal_gender_pl(_SHORT_ORDINAL_PL[tens], gender)} " \
-               f"{_ordinal_gender_pl(_SHORT_ORDINAL_PL[unit], gender)}"
-    last = number % 100
-    if last:
-        prefix = number - last
-        return f"{pronounce_number_pl(prefix)} {pronounce_ordinal_pl(last, gender)}"
-    raise NotImplementedError(f"cannot pronounce {number} as a Polish ordinal")
+    return pronounce_number_pl(number, ordinals=True, gender=gender)
