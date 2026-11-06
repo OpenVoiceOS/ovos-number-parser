@@ -101,8 +101,11 @@ class TestRbnfFallbackGender(unittest.TestCase):
         self.assertEqual(pronounce_ordinal(1, "lb", gender=M), "éischten")
 
     def test_belarusian_ordinals(self):
-        # Wiktionary "першы", "другі", "трэці", "чацвёрты", "пяты"; the CLDR
-        # data spells 3 and 4 "трэйці", "трэццяя", "чацьверты", "чацьвертая"
+        # en.wiktionary "Module:number list/data/be" and the declension
+        # tables of "першы", "другі", "трэці", "чацвёрты", "пяты",
+        # "пяцідзясяты", "двухсоты", "шасцісоты"; the CLDR data spells them
+        # "трэйці", "чацьверты", "пяцьдзесятае", "шэсцьдзесяты",
+        # "семдзесяты", "дзвухсоты", "шасьцісоты"
         cases = {
             (1, M): "першы", (2, M): "другі", (3, M): "трэці",
             (4, M): "чацвёрты", (5, M): "пяты",
@@ -113,6 +116,13 @@ class TestRbnfFallbackGender(unittest.TestCase):
             (23, M): "дваццаць трэці", (23, F): "дваццаць трэцяя",
             (24, N): "дваццаць чацвёртае", (43, F): "сорак трэцяя",
             (104, M): "сто чацвёрты",
+            (50, F): "пяцідзясятая", (50, N): "пяцідзясятае",
+            (60, M): "шасцідзесяты", (60, F): "шасцідзесятая",
+            (60, N): "шасцідзесятае",
+            (70, M): "сямідзясяты", (70, F): "сямідзясятая",
+            (70, N): "сямідзясятае",
+            (200, M): "двухсоты", (200, F): "двухсотая", (200, N): "двухсотае",
+            (600, M): "шасцісоты", (600, F): "шасцісотая", (600, N): "шасцісотае",
         }
         for (number, gender), expected in cases.items():
             with self.subTest(number=number, gender=gender):
