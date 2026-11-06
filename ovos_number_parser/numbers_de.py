@@ -388,12 +388,14 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
     elif number < 0:
         return "minus " + pronounce_number_de(abs(number), places)
     else:
+        # a scale word ends in the space that joins it to the lower
+        # triplets, so a number with no lower triplets ends in that space
         if number == int(number):
-            return pronounce_whole_number_de(number)
+            return pronounce_whole_number_de(number).rstrip()
         else:
             whole_number_part = floor(number)
             fractional_part = number - whole_number_part
-            result += pronounce_whole_number_de(whole_number_part)
+            result += pronounce_whole_number_de(whole_number_part).rstrip()
             if places > 0:
                 result += " Komma"
                 result += pronounce_fractional_de(fractional_part, places)
