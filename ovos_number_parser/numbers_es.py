@@ -81,7 +81,8 @@ _ES = NumberVocabulary(
     DECIMAL_MARKER=["coma", "punto", ".", ","],
     NEGATIVE_SIGN=["menos"],
     NEGATIVE_IDIOMS=[("al", "menos"), ("por", "lo", "menos"), ("a", "lo", "menos"),
-                     ("a", "menos", "que"), ("más", "o", "menos")],
+                     ("a", "menos", "que"), ("más", "o", "menos"),
+                     ("cuando", "menos")],
     UNITS={
         0: 'cero',
         1: 'uno',

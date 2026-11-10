@@ -24,6 +24,7 @@ Sources:
       every pronounced form in this module is an attested entry)
 """
 import sys
+from fractions import Fraction
 from decimal import Decimal
 from math import floor, isfinite
 
@@ -672,9 +673,20 @@ def _extract_real_number_with_text(tokens, t):
         if _fraction_val:
             if _prev_val is not None and prev_word not in t.articles and \
                     word not in t.string_fraction:  # compound fraction word
-                # the sign covers the whole mixed number: -5 1/2 is -(5 + 1/2)
-                if _prev_val < 0 and _prev_val == int(_prev_val):
-                    _val = _prev_val - _fraction_val
+                if _prev_val == int(_prev_val) and 0 < _fraction_val < 1:
+                    whole = abs(int(_prev_val))
+                    mixed = float(whole + Fraction(_fraction_val))
+                    if not whole < mixed < whole + 1:
+                        # from 2**52 on no float keeps both parts: the whole
+                        # number keeps its digits and the fraction is a
+                        # number of its own ("9007199254740993 1/2")
+                        val = _prev_val
+                        number_words.pop(-1)
+                        break
+                    # the sign covers the whole mixed number: -5 1/2 is
+                    # -(5 + 1/2), and -0 1/2 is -0.5
+                    negative_whole = _prev_val < 0 or prev_word.startswith("-")
+                    _val = -mixed if negative_whole else mixed
                 else:
                     _val = _prev_val + _fraction_val
                 if prev_word not in t.connectors and \

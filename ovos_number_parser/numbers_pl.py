@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import sys
+from fractions import Fraction
 from decimal import Decimal
 import re
 from collections import OrderedDict
@@ -903,10 +904,12 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
 
         # a digit fraction right after a number ends that number. A proper
         # fraction after a whole number completes it as a mixed number
-        # ("5 1/2" = 5.5) whose sign covers both parts; any other fraction
-        # is a number of its own ("3.5 1/2" is 3.5, then 1/2)
+        # ("5 1/2" = 5.5) whose sign covers both parts ("-0 1/2" = -0.5);
+        # any other fraction is a number of its own ("3.5 1/2" is 3.5, then
+        # 1/2)
         a_pieces = word.split('/')
-        if look_for_fractions(a_pieces) and number_end == idx - 1 and val:
+        if look_for_fractions(a_pieces) and number_end == idx - 1 \
+                and val is not False and val is not None:
             fraction = float(a_pieces[0]) / float(a_pieces[1])
             if val == int(val) and 0 < fraction < 1:
                 if abs(val) > sys.float_info.max:
@@ -916,8 +919,17 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
                     number_words = []
                     to_sum = []
                     break
-                val = val - fraction if val < 0 else val + fraction
-                number_words.append(token)
+                whole = abs(int(val))
+                mixed = float(whole + Fraction(float(a_pieces[0]))
+                              / Fraction(float(a_pieces[1])))
+                # the float must keep both parts: from 2**52 on it cannot, so
+                # the whole number keeps its digits and the fraction is a
+                # number of its own ("9007199254740993 1/2")
+                if whole < mixed < whole + 1:
+                    negative_whole = val < 0 or \
+                        tokens[idx - 1].word.startswith("-")
+                    val = -mixed if negative_whole else mixed
+                    number_words.append(token)
             break
 
         if word not in string_num_scale and \
@@ -1012,6 +1024,9 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
         aPieces = word.split('/')
         if look_for_fractions(aPieces):
             val = float(aPieces[0]) / float(aPieces[1])
+            if not val:
+                # a zero fraction is the number 0 ("0/2" reads as 0)
+                val = 0
             current_val = val
         elif val:
             if all([

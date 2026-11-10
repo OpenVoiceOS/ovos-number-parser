@@ -132,6 +132,51 @@ class TestMixedNumber(unittest.TestCase):
                 self.assertEqual(numbers_to_digits("x 5 3/2 y", lang),
                                  "x 5 1.5 y")
 
+    def test_signed_zero_whole_part(self):
+        for lang in MIXED:
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number("-0 1/2", lang), Fraction(-1, 2))
+                self.assertEqual(numbers_to_digits("-0 1/2", lang), "-0.5")
+        for lang in ("da", "de", "nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number("-0 1/2", lang), Fraction(-1, 2))
+
+    def test_zero_fraction_after_a_number(self):
+        # 0/2 is the number 0: it adds nothing to the number before it and
+        # is written as 0
+        for lang in MIXED:
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number("5 0/2", lang), 5)
+                self.assertEqual(numbers_to_digits("5 0/2", lang), "5 0")
+                self.assertEqual(numbers_to_digits("x 0/2 y", lang), "x 0 y")
+
+    def test_mixed_number_no_float_holds(self):
+        # from 2**52 on a float cannot hold a whole part and a half; the
+        # whole number keeps every digit and the fraction is a second number
+        whole = 2 ** 53 + 1
+        for lang in list(MIXED) + ["da", "de", "nb", "nn"]:
+            with self.subTest(lang=lang):
+                value = extract_number(f"{whole} 1/2", lang)
+                self.assertIsInstance(value, int)
+                self.assertEqual(value, whole)
+                self.assertEqual(numbers_to_digits(f"{whole} 1/2", lang),
+                                 f"{whole} 0.5")
+                self.assertEqual(numbers_to_digits(f"{10 ** 19 + 1} 1/2", lang),
+                                 f"{10 ** 19 + 1} 0.5")
+                # below 2**52 the float holds the mixed number exactly
+                self.assertEqual(extract_number(f"{2 ** 52 - 1} 1/2", lang),
+                                 Fraction(2 ** 53 - 1, 2))
+                self.assertEqual(extract_number("5 1/3", lang),
+                                 float(5 + Fraction(1, 3)))
+
+    def test_fraction_after_a_sign_word_is_not_joined(self):
+        # the number before the sign word ends there: "5 min 1/2" is no
+        # mixed number 5.5
+        for lang in ("nl", "fy"):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number("5 min 1/2", lang), -5)
+        self.assertEqual(numbers_to_digits("5 min 1/2", "nl"), "5 min 0.5")
+
     def test_mixed_whole_part_past_float_range(self):
         big = "9" * 400
         for lang in MIXED:
@@ -147,6 +192,15 @@ class TestMixedNumber(unittest.TestCase):
                 self.assertEqual(extract_number("-5 1/2", lang), Fraction(-11, 2))
                 self.assertEqual(extract_number("minus 5 1/2", lang),
                                  Fraction(-11, 2))
+
+    def test_non_integral_whole_part_adds(self):
+        # a decimal or fractional value before a fraction is no mixed number
+        # whole part, so the sign rule of the mixed number does not apply:
+        # the two values add
+        for lang in ("da", "nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number("-1/2 1/2", lang), 0)
+                self.assertEqual(extract_number("-3.5 1/2", lang), -3)
 
     def test_whole_part_past_float_range(self):
         # the value has no float, so it is no number, as the digit string
@@ -190,12 +244,15 @@ IDIOMS = {
                     "a menos que tenhas {} dias", "mais ou menos {} dias"]),
     "es": ("tres", ["al menos {} días", "por lo menos {} días",
                     "a lo menos {} días", "a menos que tengas {} días",
-                    "más o menos {} días"]),
+                    "más o menos {} días", "cuando menos {} días"]),
     "fr": ("trois", ["au moins {} jours", "du moins {} jours",
                      "à moins que tu aies {} jours", "à moins de {} jours",
-                     "plus ou moins {} jours", "{} heures moins dix"]),
+                     "plus ou moins {} jours", "pour le moins {} jours",
+                     "à tout le moins {} jours", "{} heures moins dix"]),
     "it": ("tre", ["più o meno {} ore", "a meno che tu abbia {} ore",
-                   "a meno di {} ore", "sono le {} meno dieci"]),
+                   "a meno di {} ore", "sono le {} meno dieci",
+                   "per lo meno {} ore", "quanto meno {} ore",
+                   "perlomeno {} ore", "quantomeno {} ore"]),
     "ca": ("tres", ["al menys {} dies", "a menys que tinguis {} dies",
                     "més o menys {} dies", "ni més ni menys {} dies"]),
     "gl": ("tres", ["polo menos {} días", "ao menos {} días",
@@ -227,6 +284,17 @@ class TestRomanceSigns(unittest.TestCase):
                     with self.subTest(lang=lang, text=text):
                         self.assertEqual(extract_number(text, lang), 3)
         self.assertEqual(extract_number("une heure moins dix", "fr"), 1)
+
+    def test_minus_word_after_a_french_clock_head_signs_nothing(self):
+        # a glued hour ("9h"), "midi" (noon) and "minuit" (midnight) head
+        # the clock form "<hour> moins <minutes>"
+        for text in ("il est 9h moins 10", "il est 21h30 moins 10",
+                     "midi moins 10", "il est midi moins 10",
+                     "minuit moins dix"):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "fr"), 10)
+        self.assertEqual(numbers_to_digits("midi moins dix", "fr"),
+                         "midi moins 10")
 
     def test_idiom_keeps_the_minus_word_in_digits(self):
         self.assertEqual(numbers_to_digits("pelo menos três dias", "pt"),

@@ -583,7 +583,8 @@ class RomanceNumberExtractor:
         Tell if the NEGATIVE_SIGN word at tokens[idx] signs the number after it.
 
         The word signs a number only as a prefix: a number must follow it, no
-        number may come before it ("tres menos dos" is a subtraction), and it
+        number may come before it ("tres menos dos" is a subtraction), nor a
+        token that starts with digits ("9h moins 10" is clock time), and it
         must not be part of a NEGATIVE_IDIOMS phrase ("pelo menos tres").
         """
         def is_number(tok: str) -> bool:
@@ -593,7 +594,8 @@ class RomanceNumberExtractor:
 
         if idx + 1 >= len(tokens) or not is_number(tokens[idx + 1]):
             return False
-        if idx and is_number(tokens[idx - 1]):
+        if idx and (is_number(tokens[idx - 1])
+                    or tokens[idx - 1].removeprefix("-")[:1].isdigit()):
             return False
         for idiom in self.vocab.NEGATIVE_IDIOMS:
             for k, word in enumerate(idiom):
