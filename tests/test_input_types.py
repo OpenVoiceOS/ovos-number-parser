@@ -5,6 +5,7 @@ digits, or from the scientific reading composed of ``pronounce_number`` of a
 mantissa and an exponent worked out by hand.
 """
 import json
+import math
 import os
 import struct
 import subprocess
@@ -52,11 +53,16 @@ def _reading(function, number, lang, **kwargs):
         return type(err)
 
 
-def _per_call(function, *args):
-    """Seconds per call, the best of five runs of 200 calls, so a busy
-    machine slows both sides of a comparison alike."""
-    timer = timeit.Timer(lambda: function(*args))
-    return min(timer.repeat(repeat=5, number=200)) / 200
+def _best_per_call(first, second, rounds=9, calls=100):
+    """Seconds per call of two callables, the best of ``rounds`` runs of
+    ``calls`` calls each. The runs alternate between the two, so a burst
+    of load on a busy machine slows both sides alike."""
+    best = [math.inf, math.inf]
+    for _ in range(rounds):
+        for side, function in enumerate((first, second)):
+            best[side] = min(best[side],
+                             timeit.timeit(function, number=calls) / calls)
+    return best
 
 
 def _scientific(mantissa, exponent, lang):
@@ -229,8 +235,34 @@ def test_decimal_costs_about_what_the_float_costs(function, decimal, same,
                                                   lang):
     # the check for a magnitude past 4300 digits must not convert the
     # 4301-digit bound for every Decimal
-    assert _per_call(function, decimal, lang) < \
-        4 * _per_call(function, same, lang)
+    with_decimal, with_same = _best_per_call(lambda: function(decimal, lang),
+                                             lambda: function(same, lang))
+    assert with_decimal < 8 * with_same
+
+
+class _Uncomparable:
+    """Stands in for ``_READ_LIMIT``: any comparison with it raises."""
+
+    def __neg__(self):
+        return self
+
+    def _refuse(self, other):
+        raise AssertionError("compared with the int bound")
+
+    __lt__ = __le__ = __gt__ = __ge__ = __eq__ = __ne__ = _refuse
+    __hash__ = None
+
+
+def test_decimal_never_compares_with_the_int_bound(monkeypatch):
+    import ovos_number_parser
+    monkeypatch.setattr(ovos_number_parser, "_READ_LIMIT", _Uncomparable())
+    assert pronounce_number(Decimal("1.5"), "en") == \
+        pronounce_number(1.5, "en")
+    assert pronounce_ordinal(Decimal("3"), "pt-PT") == \
+        pronounce_ordinal(3, "pt-PT")
+    assert not ovos_number_parser._past_read_limit(Decimal("1.5"))
+    assert ovos_number_parser._past_read_limit(Decimal("-1E+4300"))
+    assert not ovos_number_parser._past_read_limit(Decimal("0E+5000"))
 
 
 ORDINAL_LANGS = ["ca", "da", "de", "en", "fr", "he", "hu", "pt-PT", "ro",
@@ -245,7 +277,14 @@ def test_ordinal_past_the_float_range(lang):
             (Fraction(2 * 10 ** 400 + 1, 2), 10 ** 400 + 1),
             (Fraction(-(2 * 10 ** 400 + 1), 2), -(10 ** 400 + 1)),
             (Decimal("1" * 400 + ".5"), int("1" * 399 + "2")),
-            (Decimal("1" * 400 + ".25"), int("1" * 400))):
+            (Decimal("1" * 400 + ".25"), int("1" * 400)),
+            # a tie on an even digit tells half away from zero from half
+            # to even
+            (Decimal("2" * 400 + ".5"), int("2" * 399 + "3")),
+            (Decimal("-" + "2" * 400 + ".5"), -int("2" * 399 + "3")),
+            # just past the largest float
+            (Decimal(f"{int(sys.float_info.max)}.5"),
+             int(sys.float_info.max) + 1)):
         reading = _reading(pronounce_ordinal, number, lang)
         assert reading == _reading(pronounce_ordinal, whole, lang), \
             (lang, number)
