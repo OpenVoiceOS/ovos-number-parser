@@ -242,10 +242,12 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             if places > 0:
                 result += " egész "
                 fraction = pronounce_whole_number_hu(
-                    round(fractional_part * 10 ** places))
-                result += fraction.replace(_NUM_STRING_HU[2], 'két')
+                    round(fractional_part * 10 ** places)).strip('-')
+                result += fraction.replace(_NUM_STRING_HU[2], 'két') \
+                    or _NUM_STRING_HU[0]
                 fraction_suffixes = [
-                    'tized', 'század', 'ezred', 'tízezred', 'százezred']
+                    'tized', 'század', 'ezred', 'tízezred', 'százezred',
+                    'milliomod', 'tízmilliomod', 'százmilliomod', 'milliárdod']
                 if places <= len(fraction_suffixes):
                     result += ' ' + fraction_suffixes[places - 1]
             return result

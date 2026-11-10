@@ -893,8 +893,8 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
 
         result += _whole_number(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
+    # a float too large for the scale words reads scientifically
+    if not result and "e+" in str(num):
         return pronounce_number_sk(num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:

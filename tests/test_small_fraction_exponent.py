@@ -29,11 +29,6 @@ _DECIMAL_WORD = {
     "uk": "крапка",
 }
 
-#: languages that read a positive value below 1e-4 digit by digit; the others
-#: read it scientifically and only their negative reading is digit by digit
-_DIGIT_READING = ("bg", "en", "et", "fi", "id", "it", "ms", "ru")
-
-
 def _minus(lang):
     return pronounce_number(-1, lang).rsplit(" ", 1)[0]
 
@@ -43,7 +38,7 @@ def _reading(lang, whole, digits):
                     + [pronounce_number(int(d), lang) for d in digits])
 
 
-@pytest.mark.parametrize("lang", _DIGIT_READING)
+@pytest.mark.parametrize("lang", sorted(_DECIMAL_WORD))
 @pytest.mark.parametrize("value, places, digits", [
     (1e-05, 5, "00001"),
     (1e-05, 8, "00001"),

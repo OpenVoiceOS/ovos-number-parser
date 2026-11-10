@@ -460,8 +460,8 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
     if ordinals:
         result = result.replace(" ", "")
 
-    # deal with scientific notation unpronounceable as number
-    if (not result or result == "neskončno") and "e" in str(num):
+    # a float too large for the scale words reads scientifically
+    if (not result or result == "neskončno") and "e+" in str(num):
         return pronounce_number_sl(num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
