@@ -175,13 +175,13 @@ _LONG_SCALE = {
     100: 'hundrede',
     1000: 'tusinde',
     1000000: 'million',
-    1e9: "milliard",
-    1e12: 'billion',
-    1e15: "billiard",
-    1e18: "trillion",
-    1e21: "trilliard",
-    1e24: "quadrillion",
-    1e27: "quadrilliard"
+    10 ** 9: "milliard",
+    10 ** 12: 'billion',
+    10 ** 15: "billiard",
+    10 ** 18: "trillion",
+    10 ** 21: "trilliard",
+    10 ** 24: "quadrillion",
+    10 ** 27: "quadrilliard"
 }
 
 _MULTIPLIER = set(_LONG_SCALE.values())
@@ -1068,8 +1068,11 @@ def extract_number_da(text, short_scale=False, ordinals=False):
 
     if not numbers:
         return False
+    number = numbers[0].value
+    if isinstance(number, int):
+        return number
     try:
-        number = float(numbers[0].value)
+        number = float(number)
     except (OverflowError, ValueError):
         return False
     if not isfinite(number):

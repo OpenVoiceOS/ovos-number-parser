@@ -18,7 +18,7 @@ import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF pl spellout-cardinal-feminine and -neuter); a compound ending in
@@ -1098,7 +1098,8 @@ def _initialize_number_data(short_scale):
     """
     multiplies = _MULTIPLIES_SHORT_SCALE_PL
 
-    string_num_scale = invert_dict(_SHORT_SCALE_PL)
+    string_num_scale = {word: exact_int(value)
+                        for value, word in _SHORT_SCALE_PL.items()}
     string_num_scale.update(generate_plurals_pl(string_num_scale))
     return multiplies, _STRING_SHORT_ORDINAL_PL, string_num_scale
 

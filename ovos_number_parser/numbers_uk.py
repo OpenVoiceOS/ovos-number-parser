@@ -16,7 +16,7 @@ from decimal import Decimal
 import re
 from collections import OrderedDict
 
-from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions, invert_dict,
+from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions, invert_dict, exact_int,
                                      is_numeric, tokenize, partition_list, Token, ReplaceableNumber,
                                      GrammaticalGender)
 
@@ -347,7 +347,7 @@ _STRING_NUM_UK = invert_dict(_NUM_STRING_UK)
 _STRING_NUM_UK.update(generate_plurals_uk(_STRING_NUM_UK))
 _STRING_NUM_UK.update(_PLURALS)
 _STRING_NUM_UK.update({
-    "трильйон": 1e18,
+    "трильйон": 10 ** 18,
     "половина": 0.5, "половиною": 0.5, "половини": 0.5, "половин": 0.5, "половинами": 0.5, "пів": 0.5,
     "одна": 1, "одної": 1, "одній": 1, "одну": 1
 })
@@ -1215,7 +1215,8 @@ def _initialize_number_data(short_scale):
         else _STRING_LONG_ORDINAL_UK
 
     string_num_scale_uk = _SHORT_SCALE_UK if short_scale else _LONG_SCALE_UK
-    string_num_scale_uk = invert_dict(string_num_scale_uk)
+    string_num_scale_uk = {word: exact_int(value)
+                           for value, word in string_num_scale_uk.items()}
     string_num_scale_uk.update(generate_plurals_uk(string_num_scale_uk))
     return multiplies, string_num_ordinal_uk, string_num_scale_uk
 

@@ -2,7 +2,7 @@ from decimal import Decimal
 from collections import OrderedDict
 
 import re
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
+from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber,
                                      GrammaticalGender)
 
@@ -847,7 +847,8 @@ def _initialize_number_data(short_scale):
         else _STRING_LONG_ORDINAL_CS
 
     string_num_scale_cs = _SHORT_SCALE_CS if short_scale else _LONG_SCALE_CS
-    string_num_scale_cs = invert_dict(string_num_scale_cs)
+    string_num_scale_cs = {word: exact_int(value)
+                           for value, word in string_num_scale_cs.items()}
     string_num_scale_cs.update(_SCALE_DECLENSIONS_CS)
     string_num_scale_cs.update(generate_plurals_cs(string_num_scale_cs))
     return multiplies, string_num_ordinal_cs, string_num_scale_cs

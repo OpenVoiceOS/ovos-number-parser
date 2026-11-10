@@ -192,13 +192,13 @@ _LONG_SCALE = OrderedDict([
     (100, 'hundert'),
     (1000, 'tausend'),
     (1000000, 'million'),
-    (1e9, "milliarde"),
-    (1e12, 'billion'),
-    (1e15, "billiarde"),
-    (1e18, "trillion"),
-    (1e21, "trilliarde"),
-    (1e24, "quadrillion"),
-    (1e27, "quadrilliarde")
+    (10 ** 9, "milliarde"),
+    (10 ** 12, 'billion'),
+    (10 ** 15, "billiarde"),
+    (10 ** 18, "trillion"),
+    (10 ** 21, "trilliarde"),
+    (10 ** 24, "quadrillion"),
+    (10 ** 27, "quadrilliarde")
 ])
 
 _MULTIPLIER = set(_LONG_SCALE.values())
@@ -939,7 +939,7 @@ def extract_number_de(text, short_scale=True, ordinals=False):
 
     number = numbers[0].value if numbers else None
 
-    if number:
+    if number and not isinstance(number, int):
         try:
             number = float(number)
         except (OverflowError, ValueError):

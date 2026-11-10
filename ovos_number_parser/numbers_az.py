@@ -17,7 +17,7 @@ from decimal import Decimal
 import re
 from collections import OrderedDict
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
+from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber)
 
 _NUM_STRING_AZ = {
@@ -1075,7 +1075,8 @@ def _initialize_number_data_az(short_scale, speech=True):
         else _STRING_LONG_ORDINAL_AZ
 
     string_num_scale_az = _SHORT_SCALE_AZ if short_scale else _LONG_SCALE_AZ
-    string_num_scale_az = invert_dict(string_num_scale_az)
+    string_num_scale_az = {word: exact_int(value)
+                           for value, word in string_num_scale_az.items()}
 
     return multiplies, string_num_ordinal_az, string_num_scale_az
 
