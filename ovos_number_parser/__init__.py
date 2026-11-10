@@ -1081,6 +1081,39 @@ _RBNF_WORD_FIXES = {
     },
 }
 
+#: words the CLDR data writes in the script of another language, with the
+#: word of the language. The wrong script never occurs in a correct reading,
+#: so each word is replaced wherever it occurs, also inside the fraction
+#: digits a rule set writes with no separator. Lao: the rule sets keep the
+#: Thai words for zero, minus, the decimal point, the scale words and the
+#: ordinal prefix
+_RBNF_SCRIPT_FIXES = {
+    "lo": {
+        "ศูนย์": "ສູນ", "ลบ": "ລົບ", "จุด": "ຈຸດ", "ร้อย": "ຮ້ອຍ",
+        "พัน": "ພັນ", "หมื่น": "ໝື່ນ", "แสน": "ແສນ", "ล้าน": "ລ້ານ",
+        "ที่": "ທີ່",
+    },
+}
+
+#: the rule set ``spellout-numbering`` reads through, for languages where the
+#: engine cannot use it for a fraction (``spellout-numbering`` has no "x.x"
+#: rule) and takes the shortest rule set name instead: the cy feminine set
+#: ("dwy") or the mt set of the forms before a noun ("tnax-il"), not the
+#: counting form
+_RBNF_COUNTING = {
+    "cy": "spellout-cardinal-masculine",
+    "mt": "spellout-cardinal-type-b-masculine",
+}
+
+#: the decimal-point word and the rule set of languages whose "x.x" rule reads
+#: the fraction as a numerator over a power of ten ("он екі бүтін жүзден
+#: жиырма бес", twelve and twenty-five hundredths); the engine reads that rule
+#: set digit by digit and gets "оннан нөл" for every digit
+_RBNF_FRACTIONS = {
+    "kk": ("бүтін", "fractions"),
+    "ky": ("бүтүн", "z-spellout-fraction"),
+}
+
 
 def _pronounce_rbnf(number, lang, ordinals, gender):
     """Speak ``number`` with the Unicode RBNF rule set for ``gender``.
@@ -1091,6 +1124,8 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     masculine cardinal also keeps it: the default ``spellout-numbering`` is the
     counting form, and the Maltese and Venetian masculine sets are the forms
     before a noun ("żewġ", "du") and not the bare number ("tnejn", "do").
+    Where the engine cannot read a fraction with ``spellout-numbering``,
+    ``_RBNF_COUNTING`` names the rule set it reads through.
 
     A negative cardinal with a fraction is read as its magnitude with the
     minus word of the same rule set, because the engine reads only the
@@ -1099,6 +1134,11 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     less the reading of 1, so it keeps the side and the spacing the rule set
     gives it. A language whose reading of -1 does not hold the reading of 1
     keeps the engine reading.
+
+    A positive fraction in a language of ``_RBNF_FRACTIONS`` is read as the
+    whole part, the decimal-point word, and the fraction digits as one number
+    after the word for their power of ten. That word is the reading of the
+    power of ten in the fraction rule set less the reading of 1.
     """
     if (not ordinals and math.isfinite(number) and number < 0
             and number != int(number)):
@@ -1113,21 +1153,37 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     base = lang.split("-")[0]
     try:
         engine = RbnfEngine.for_language(base)
+        if (base in _RBNF_FRACTIONS and not ordinals and math.isfinite(number)
+                and number > 0 and number != int(number)):
+            point, fraction_set = _RBNF_FRACTIONS[base]
+            whole, digits = f"{Decimal(str(number)):f}".split(".")
+            one = _pronounce_rbnf(1, lang, False, gender)
+            denominator = engine.format_number(
+                10 ** len(digits), ruleset_names=[fraction_set]).text
+            if denominator.endswith(one):
+                return " ".join([_pronounce_rbnf(int(whole), lang, False, gender),
+                                 point, denominator[:-len(one)]
+                                 + _pronounce_rbnf(int(digits), lang, False, gender)])
+        counting = None
+        if base in _RBNF_COUNTING and not ordinals:
+            counting = [_RBNF_COUNTING[base]]
         ruleset = f"spellout-{form.name.lower()}-{_RBNF_GENDER.get(gender)}"
         if ruleset in engine.rulesets and (base, ruleset) not in _RBNF_UNUSABLE \
                 and (ordinals or gender != GrammaticalGender.MASCULINE):
             text = engine.format_number(number, ruleset_names=[ruleset]).text
             swap = _RBNF_WORD_SWAP_ONLY.get((base, ruleset))
             if swap is not None:
-                default = engine.format_number(number, form).text
+                default = engine.format_number(number, form, ruleset_names=counting).text
                 pairs = list(zip(default.split(" "), text.split(" ")))
                 if default.count(" ") != text.count(" ") or \
                         not all(a == b or (a, b) == swap for a, b in pairs):
                     text = default
         else:
-            text = engine.format_number(number, form).text
+            text = engine.format_number(number, form, ruleset_names=counting).text
     except Exception as err:
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
+    for wrong, right in _RBNF_SCRIPT_FIXES.get(base, {}).items():
+        text = text.replace(wrong, right)
     fixes = _RBNF_WORD_FIXES.get(base, {})
     return " ".join(fixes.get(word, word) for word in text.split(" "))
 
