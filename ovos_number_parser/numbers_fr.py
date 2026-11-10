@@ -367,7 +367,7 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
         """French-specific top-level quirks that predate the shared engine.
 
         Kept as an override rather than a change to the shared engine: (1)
-        very large/small magnitudes and non-integer floats >= 1000 fall back
+        very large magnitudes and non-integer floats >= 1000 fall back
         to a raw numeral, matching the legacy ``pronounce_number_fr`` bug
         that never spoke decimals above 1000; (2) an integer-valued float
         ("80.0") is normalised to ``int`` first so it never enters the
@@ -383,7 +383,7 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
                                             _force_hundreds_join, _under_higher_scale)
 
         abs_n = abs(number)
-        if abs_n != 0 and (abs_n >= 10 ** 15 or abs_n < 1e-4):
+        if abs_n >= 10 ** 15:
             sign = "moins " if number < 0 else ""
             return sign + str(abs_n)
 
