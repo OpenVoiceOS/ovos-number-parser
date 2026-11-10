@@ -1,7 +1,10 @@
 import math
 import re
+import sys
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from fractions import Fraction
+from numbers import Real
 from os.path import commonprefix
 from typing import List
 from typing import Optional
@@ -627,6 +630,74 @@ def _pronounce_complex(number: complex, lang: str, places: int,
     return f"{_speak(number.real)} {connective} {magnitude}{i_w}"
 
 
+#: By default CPython refuses ``str()`` of an int with more than 4300 digits
+#: (``sys.int_info.default_max_str_digits``), and converting a value that long
+#: to or from an int takes time that grows faster than its length. A magnitude
+#: this large reads in the scientific form in every language, built from its
+#: leading digits alone.
+_READ_LIMIT = 10 ** 4300
+
+#: the largest finite float, exactly; ``copy_abs()`` of a Decimal compares
+#: with it without rounding to the context precision as ``abs()`` does
+_FLOAT_MAX = Decimal(sys.float_info.max)
+
+
+def _past_read_limit(number) -> bool:
+    """
+    Whether an int, Decimal or Fraction has more than 4300 integer digits.
+
+    A Decimal is judged by the exponent of its leading digit: comparing it
+    with the int ``_READ_LIMIT`` converts that 4301-digit int on every call.
+    """
+    if isinstance(number, Decimal):
+        return number.is_finite() and bool(number) \
+            and number.adjusted() >= 4300
+    return isinstance(number, (int, Fraction)) \
+        and not -_READ_LIMIT < number < _READ_LIMIT
+
+
+def _from_other_real(number):
+    """
+    A ``numbers.Real`` that is not an int, float, Decimal or Fraction (numpy
+    float32, numpy int64) as the Decimal its ``str()`` writes, so it reads as
+    the float written with the same digits: ``str(numpy.float32(1.256))`` is
+    "1.256", while its binary value is 1.25600004196...
+    A value whose ``str()`` is not a decimal numeral becomes its float.
+    Anything else is returned unchanged.
+    """
+    if isinstance(number, (int, float, Decimal, Fraction)) \
+            or not isinstance(number, Real):
+        return number
+    try:
+        return Decimal(str(number))
+    except InvalidOperation:
+        return float(number)
+
+
+def _fraction_as_decimal(number: Fraction,
+                         places: int) -> Union[int, Decimal]:
+    """A Fraction as its int when it is integral, else as a Decimal.
+
+    The Decimal holds two digits past each rounding ``pronounce_number``
+    makes at ``places``: the decimals of a plain reading, the mantissa
+    decimals of a scientific one and the first significant digit of a value
+    below the quantum. Its last digit is made odd when the expansion goes
+    on, so each rounding, half away from zero, rounds the Fraction exactly:
+    1/3 at 2 places reads as 0.33, and 1/8 at 2 places as 0.13.
+    """
+    if number.denominator == 1:
+        return number.numerator
+    numerator, denominator = abs(number.numerator), number.denominator
+    # the zeros after the decimal point before the first significant digit,
+    # or more
+    zeros = max(0, math.ceil((denominator.bit_length() - numerator.bit_length())
+                             * math.log10(2)) + 1)
+    shift = places + 2 + zeros
+    kept, cut = divmod(numerator * 10 ** shift, denominator)
+    return Decimal((int(number < 0),
+                    Decimal(kept | bool(cut)).as_tuple().digits, -shift))
+
+
 def _round_for_speech(number: Union[int, float, Decimal],
                       places: int) -> Union[int, float]:
     """Round a real number to ``places`` decimals, half away from zero.
@@ -826,8 +897,8 @@ def _has_unread_digits(spoken: str) -> bool:
     return bool(_DIGIT_RUN.search(spoken))
 
 
-def _pronounce_bignum_fallback(number: Union[int, float, Decimal], lang: str,
-                               places: int) -> str:
+def _pronounce_bignum_fallback(number: Union[int, float, Decimal, Fraction],
+                               lang: str, places: int) -> str:
     """
     Spoken scientific reading for finite numbers a language's tables cannot
     name, computed from the decimal digits so it never leaves the float range.
@@ -836,9 +907,19 @@ def _pronounce_bignum_fallback(number: Union[int, float, Decimal], lang: str,
     Only the connective joining them is looked up, and falls back to English
     for languages missing from _SCIENTIFIC_WORDS. Hungarian reads a
     one-digit mantissa and a negative exponent with its own words.
+
+    Only the leading digits a rounding at ``places`` reads are computed, so
+    a value past ``_READ_LIMIT`` never goes through ``str()`` of the whole
+    number.
     """
-    if isinstance(number, float):
-        number = int(number)
+    if not isinstance(number, Decimal):
+        magnitude = abs(int(number))
+        # bit_length() * log10(2) is the digit count to within one, so at
+        # least places + 2 leading digits are kept
+        cut = max(0, int(magnitude.bit_length() * math.log10(2)) - places - 3)
+        number = Decimal((int(number < 0),
+                          Decimal(magnitude // 10 ** cut).as_tuple().digits,
+                          cut))
     # the sign rides on the mantissa so each language speaks its own minus
     # word ("menos dois...") instead of an English prefix
     mantissa, exponent = scientific_parts(number, places)
@@ -907,8 +988,14 @@ def pronounce_number(number: Union[int, float], lang: str,
     Parameters:
         number (int or float): The number to pronounce. A ``decimal.Decimal``
             reads as the float written with the same digits, and an integral
-            one as the int with the same digits. A Decimal below the float
-            range keeps its digit and its sign.
+            one as the int with the same digits, and a Decimal below the
+            float range keeps its digit and its sign. Any other
+            ``numbers.Real`` (numpy float32) reads as the float its ``str()``
+            writes, and a ``fractions.Fraction`` is rounded from its exact
+            value. A number with more than 4300 integer digits reads in the
+            scientific form in every language except Kabyle, which raises
+            OverflowError past its ceiling of 9999, and ValueError for a
+            negative number.
         lang (str): BCP-47 language code specifying the language for pronunciation.
         places (int, optional): Number of decimal places to include (default is 3).
             The fractional part is rounded to this precision half away from zero
@@ -967,6 +1054,7 @@ def pronounce_number(number: Union[int, float], lang: str,
     lang2 = _base_lang(lang)
     if isinstance(number, complex):
         return _pronounce_complex(number, lang, places, scale, digits, gender)
+    number = _from_other_real(number)
     if isinstance(number, Decimal) and not number.is_finite():
         number = float("nan") if number.is_nan() else float(number)
     if isinstance(number, float) and number != number:
@@ -984,6 +1072,14 @@ def pronounce_number(number: Union[int, float], lang: str,
         digits = _DEFAULT_DIGIT_PRONUNCIATION.get(
             lang2, DigitPronunciation.FULL_NUMBER)
 
+    if _past_read_limit(number):
+        if lang2 != "kab":
+            return _pronounce_bignum_fallback(number, lang, places)
+        # Kabyle reads up to 9999, and its backend raises for any int this
+        # large without the cost of converting this one
+        number = _READ_LIMIT if number > 0 else -_READ_LIMIT
+    if isinstance(number, Fraction):
+        number = _fraction_as_decimal(number, places)
     if scientific and _has_scientific_mode(lang):
         # places counts the mantissa decimals: round the mantissa once, from
         # the exact digits, and hand the backend the rounded value
@@ -1422,6 +1518,11 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
       
     Parameters:
         number (int or float): The number to convert to its ordinal spoken equivalent.
+            A ``decimal.Decimal`` or ``fractions.Fraction`` reads as its int
+            when it is integral and as its float otherwise; one past the
+            float range is rounded half away from zero to its int. Any other
+            ``numbers.Real`` (numpy float32) reads as the number its ``str()``
+            writes.
         lang (str): BCP-47 language code specifying the language for pronunciation.
         short_scale (bool, optional): Whether to use the short (True) or long (False) scale for large numbers. Defaults to True.
         gender (GrammaticalGender, optional): Grammatical gender to use for languages that require it. Defaults to masculine.
@@ -1435,7 +1536,39 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
       
     Raises:
         NotImplementedError: If the language is not supported.
+        ValueError: If ``number`` is a Decimal of more than 4300 integer
+            digits, which no int conversion reaches in reasonable time.
     """
+    number = _from_other_real(number)
+    if isinstance(number, Decimal) and _past_read_limit(number):
+        # a language with no ordinals raises NotImplementedError first;
+        # converting this Decimal to an int alone would take minutes
+        pronounce_ordinal(1, lang, short_scale, gender, scale, case)
+        raise ValueError("no ordinal reading for a Decimal of more "
+                         "than 4300 digits")
+    if isinstance(number, Decimal) and number.is_finite():
+        # Decimal arithmetic throughout: a Fraction of a Decimal with a long
+        # coefficient or a far negative exponent takes minutes to build
+        whole = number.to_integral_value()
+        if number == whole:
+            number = int(whole)
+        elif number.copy_abs() <= _FLOAT_MAX:
+            number = float(number)
+        else:
+            # no float holds it: round half away from zero to its int
+            number = int(number.to_integral_value(rounding=ROUND_HALF_UP))
+    elif isinstance(number, Decimal):
+        number = float(number)
+    elif isinstance(number, Fraction):
+        if number.denominator == 1:
+            number = number.numerator
+        elif abs(number) <= sys.float_info.max:
+            number = float(number)
+        else:
+            # no float holds it: round half away from zero to its int
+            whole = (2 * abs(number.numerator) + number.denominator) \
+                // (2 * number.denominator)
+            number = whole if number > 0 else -whole
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
     lang2 = _base_lang(lang)
