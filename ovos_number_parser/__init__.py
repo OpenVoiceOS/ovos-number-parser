@@ -2,6 +2,7 @@ import math
 import re
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
+from os.path import commonprefix
 from typing import List
 from typing import Optional
 from typing import Union
@@ -894,6 +895,14 @@ def pronounce_number(number: Union[int, float], lang: str,
     # Round to the spoken precision before dispatch so every backend speaks a
     # rounded value instead of a truncated one (see _round_for_speech).
     number = _round_for_speech(number, places)
+    # a negative value below the rounding quantum keeps its minus word only
+    # when digits follow it: a reading that is the zero word alone is unsigned
+    if not ordinals and -1 < number < 0:
+        args = (places, short_scale, scientific, ordinals, digits, gender,
+                scale, case)
+        unsigned = _pronounce_number_dispatch(-number, lang, *args)
+        if unsigned == _pronounce_number_dispatch(0, lang, *args):
+            return unsigned
     try:
         spoken = _pronounce_number_dispatch(
             number, lang, places, short_scale, scientific, ordinals,
@@ -1146,6 +1155,11 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
 
     A positive fraction in a language of ``_RBNF_COUNTING`` is read as the
     whole part for ``gender``, then the rest of the counting reading.
+
+    The engine splits a fraction from ``str(Decimal)``, which writes a value
+    below 1e-6 as "1E-7" and has no "." to split on. Such a value is read with
+    five zeros after the point, and the zero that the reading with four zeros
+    lacks is repeated for every further zero.
     """
     if (not ordinals and math.isfinite(number) and number < 0
             and number != int(number)):
@@ -1156,6 +1170,17 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
             return minus_one[:-len(one)] + magnitude
         if minus_one.startswith(one):
             return magnitude + minus_one[len(one):]
+    if (not ordinals and math.isfinite(number) and 0 < number < 1e-6
+            and lang.split("-")[0] not in _RBNF_FRACTIONS):
+        zeros = -Decimal(str(number)).adjusted() - 1
+        significant = f"{Decimal(str(number)):f}".lstrip("0.")
+        longer = _pronounce_rbnf(Decimal("0.00000" + significant), lang,
+                                 False, gender)
+        shorter = _pronounce_rbnf(Decimal("0.0000" + significant), lang,
+                                  False, gender)
+        cut = len(commonprefix([longer, shorter]))
+        zero = longer[cut:cut + len(longer) - len(shorter)]
+        return longer[:cut] + zero * (zeros - 5) + longer[cut:]
     form = FormatPurpose.ORDINAL if ordinals else FormatPurpose.CARDINAL
     base = lang.split("-")[0]
     try:

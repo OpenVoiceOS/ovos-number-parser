@@ -92,6 +92,16 @@ class TestFractionAsNumerator(unittest.TestCase):
                 self.assertEqual(pronounce_number(0.999999999999, lang, places=12),
                                  _say(1, lang))
 
+    #: the word for ten millionths in the CLDR fraction rule set
+    TEN_MILLIONTHS = {"kk": "он миллионнан", "ky": "он миллиондон"}
+
+    def test_fraction_below_one_millionth_is_read_over_its_power_of_ten(self):
+        for lang, (point, _, _) in self.WORDS.items():
+            words = self.TEN_MILLIONTHS[lang]
+            with self.subTest(lang=lang):
+                self.assertEqual(pronounce_number(3e-7, lang, places=8),
+                                 f"{_say(0, lang)} {point} {words} {_say(3, lang)}")
+
     def test_fraction_below_eleven_digits_reads_as_its_whole_part(self):
         cases = ((0.1 + 0.2 - 0.3, 3), (2e-14, 3), (3 + 4e-13, 13))
         for lang in self.WORDS:
@@ -108,6 +118,14 @@ class TestCountingFormDigits(unittest.TestCase):
         "mt": ("punt", {"żewġ", "tliet", "ħames", "sebaʼ", "tnax-il"}),
         "cy": ("pwynt", {"dwy", "tair"}),
     }
+
+    def test_value_below_one_millionth_reads_each_digit(self):
+        for lang, (point, _) in self.WORDS.items():
+            expected = " ".join([_say(0, lang), point] + [_say(0, lang)] * 6
+                                + [_say(2, lang), _say(5, lang)])
+            with self.subTest(lang=lang):
+                self.assertEqual(pronounce_number(2.5e-7, lang, places=8),
+                                 expected)
 
     def test_digits_take_the_counting_form(self):
         for lang, (point, wrong) in self.WORDS.items():
