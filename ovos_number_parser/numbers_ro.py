@@ -84,6 +84,7 @@ _RO = NumberVocabulary(
     NUMBER_OVERFLOW="număr exagerat de mare",
     # Romanian uses the long scale: milion 10^6, miliard 10^9, bilion 10^12
     DEFAULT_SCALE=Scale.LONG,
+    DIGIT_GROUP_MARK=".",
 
     # "și" joins tens to units and is the only joiner that is pronounced;
     # "de" links counts of twenty and above to their scale word

@@ -75,6 +75,7 @@ _PT_PT = NumberVocabulary(
     NO_PLURAL=[1000], # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
 
     DEFAULT_SCALE=Scale.LONG,
+    DIGIT_GROUP_MARK=".",
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
@@ -283,6 +284,7 @@ _PT_BR = NumberVocabulary(
     swap_gender=swap_gender_pt,  # used for female forms
     pluralize=pluralize_pt,  # use for plural forms
     DEFAULT_SCALE=Scale.SHORT,
+    DIGIT_GROUP_MARK=".",
     DIVIDED_BY_ZERO=_PT_PT.DIVIDED_BY_ZERO,
     DENOMINATOR_PARTICLE=_PT_PT.DENOMINATOR_PARTICLE,
     HUNDRED_PARTICLE=_PT_PT.HUNDRED_PARTICLE,

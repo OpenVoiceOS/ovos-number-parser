@@ -885,33 +885,55 @@ def _extract_decimal_with_text_en(tokens, short_scale, ordinals):
 
             number = numbers1[-1]
             decimal = numbers2[0]
+            scale_words = _initialize_number_data_en(short_scale)[2]
             # concatenate consecutive single digits after the marker
-            # ("point one four" -> .14)
+            # ("point one four" -> .14). A scale word that ends the reading
+            # multiplies all of it ("one point two five million" -> 1250000)
             _digits = ""
             _digit_tokens = []
+            _scale = 1
             _prev_end = None
             for _num in numbers2:
                 _v = _num.value
-                if _v is None or _v is False or float(_v) != int(_v) \
-                        or not 0 <= _v <= 9:
+                if _v is None or _v is False or float(_v) != int(_v):
                     break
                 if _prev_end is not None and _num.start_index != _prev_end + 1:
                     break
-                _digits += str(int(_v))
+                _num_scale = scale_words.get(_num.tokens[-1].word.lower(), 1) \
+                    if len(_num.tokens) > 1 else 1
+                if _num_scale < 1000 or not math.isfinite(_num_scale) \
+                        or _v % _num_scale:
+                    _num_scale = 1
+                if not 0 <= _v // _num_scale <= 9:
+                    if not _digits and _num_scale > 1:
+                        # a composed reading before the scale word
+                        # ("one point twenty five million")
+                        _digits = str(int(_v // _num_scale))
+                        _digit_tokens = _num.tokens
+                        _scale = _num_scale
+                    break
+                _digits += str(int(_v // _num_scale))
                 _digit_tokens.extend(_num.tokens)
                 _prev_end = _num.end_index
-            if len(_digits) > 1:
-                _frac = float("0." + _digits)
-                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_EN for _t in number.tokens))
-                        else number.value + _frac), \
-                    number.tokens + partitions[1] + _digit_tokens
-
-            # TODO handle number dot number number number
-            if "." not in str(decimal.text):
-                _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_EN for _t in number.tokens))
-                        else number.value + _frac2), \
-                       number.tokens + partitions[1] + decimal.tokens
+                if _num_scale > 1:
+                    _scale = _num_scale
+                    break
+            if len(_digits) < 2 and _scale == 1:
+                # TODO handle number dot number number number
+                if "." in str(decimal.text) or not str(decimal.value).isdigit():
+                    continue
+                _digits = str(decimal.value)
+                _digit_tokens = decimal.tokens
+            negative = number.value < 0 or \
+                any(_t.word.lower() in _NEGATIVES_EN for _t in number.tokens)
+            _whole = Decimal(repr(number.value))
+            _frac = Decimal("0." + _digits)
+            value = (_whole - _frac if negative else _whole + _frac) * _scale
+            if _scale > 1 and value == value.to_integral_value():
+                value = int(value)
+            else:
+                value = float(value)
+            return value, number.tokens + partitions[1] + _digit_tokens
     return None, None
 
 

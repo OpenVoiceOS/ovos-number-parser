@@ -324,13 +324,8 @@ _STRING_SCALE_HU = {
     'trilliárd': 1000000000000000000000,
 }
 
-_DECIMAL_SUFFIXES_HU = {
-    'tized': 10,
-    'század': 100,
-    'ezred': 1000,
-    'tízezred': 10000,
-    'százezred': 100000,
-}
+_DECIMAL_SUFFIXES_HU = {word: 10 ** places for places, word
+                        in enumerate(_FRACTION_SUFFIXES_HU, start=1)}
 
 _STRING_FRACTION_HU = {word: val for val, word in _FRACTION_STRING_HU.items()}
 
@@ -479,7 +474,8 @@ def extract_number_hu(text, short_scale=True, ordinals=False):
             frac_val = _parse_number_word_hu(tokens[idx + 2])
             if frac_val is not None and idx + 3 < len(tokens) and \
                     tokens[idx + 3] in _DECIMAL_SUFFIXES_HU:
-                val += frac_val / _DECIMAL_SUFFIXES_HU[tokens[idx + 3]]
+                val = float(Decimal(val) + Decimal(frac_val)
+                            / _DECIMAL_SUFFIXES_HU[tokens[idx + 3]])
             elif frac_val is not None:
                 # bare "egész" defaults to tenths
                 val += frac_val / 10

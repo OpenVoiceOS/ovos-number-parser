@@ -425,6 +425,7 @@ def _parse_number_span(tokens, i):
     Returns (value, next_index); value is None if no number starts here."""
     total = 0
     current = 0
+    largest = 0
     started = False
     n = len(tokens)
     j = i
@@ -477,7 +478,14 @@ def _parse_number_span(tokens, i):
             j += 1
             continue
         if tok in _SCALES_LOOKUP:
-            total += (current if current else 1) * _SCALES_LOOKUP[tok]
+            scale = _SCALES_LOOKUP[tok]
+            if total and scale > largest:
+                # a scale word above every scale before it multiplies the
+                # whole number ("שנים עשר מיליון טריליון" = 12 * 10**6 * 10**12)
+                total = (total + current) * scale
+            else:
+                total += (current if current else 1) * scale
+            largest = max(largest, scale)
             current = 0
             started = True
             j += 1
@@ -488,6 +496,7 @@ def _parse_number_span(tokens, i):
                 current += 200
             else:
                 total += value
+                largest = max(largest, value // 2)
                 current = 0
             started = True
             j += 1

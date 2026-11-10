@@ -455,17 +455,20 @@ def numbers_to_digits_de(text, short_scale=False,
         str
         The original text, with numbers subbed in where appropriate.
     """
-    text = _expand_compound_numbers_de(text)
-    tokens = tokenize(text)
+    tokens = tokenize(_expand_compound_numbers_de(text))
+    # nouns such as "Millionen" are capitalised, the number words are not
+    lowered = [Token(token.word.lower(), token.index) for token in tokens]
     numbers_to_replace = \
-        _extract_numbers_with_text_de(tokens, short_scale, ordinals, fractions)
+        _extract_numbers_with_text_de(lowered, short_scale, ordinals, fractions)
     numbers_to_replace.sort(key=lambda number: number.start_index)
 
     results = []
-    for token in tokens:
+    for token, low in zip(tokens, lowered):
         if not numbers_to_replace or \
                 token.index < numbers_to_replace[0].start_index:
-            results.append(token.word)
+            # the extractor rewrites some tokens, "13.30 Uhr" to "13:30 Uhr"
+            results.append(token.word if low.word == token.word.lower()
+                           else low.word)
         else:
             if numbers_to_replace and \
                     token.index == numbers_to_replace[0].start_index:
@@ -639,6 +642,13 @@ def _extract_real_number_with_text_de(tokens, short_scale):
 
         # is this word already a number or a word of a number?
         _val = _current_val = is_number_de(word)
+
+        # a hundreds word after a scale word takes the smaller number that
+        # follows it ("zwölf Millionen dreihundert fünfundvierzig")
+        if to_sum and not _comma and _current_val is not None \
+                and word not in _MULTIPLIER and prev_word in _STRING_NUM \
+                and _prev_val in range(100, 1000, 100) and _current_val < 100:
+            _val = _current_val = _prev_val + _current_val
 
         # is this a negative number?
         if _current_val is not None and prev_word in _NEGATIVES:

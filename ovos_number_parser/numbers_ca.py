@@ -130,6 +130,7 @@ _CA = NumberVocabulary(
 
     NUMBER_OVERFLOW="número exageradament gran",
     DEFAULT_SCALE=Scale.LONG,  # 10^9 = "miliard", 10^12 = "bilió"
+    DIGIT_GROUP_MARK=".",
     JOIN_WORD=["i"],
 
     JOINER_ON_TWENTYS=True,       # "vint i un" (hyphenated on output)

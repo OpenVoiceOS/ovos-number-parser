@@ -1017,7 +1017,10 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
                 and prev_word not in _NEGATIVES:
 
             number_words = [token]
-        elif prev_word in _SUMS and word in _SUMS:
+        elif prev_word in _SUMS and word in _SUMS \
+                and not _STRING_NUM_UK.get(word, 100) < 100 <= _STRING_NUM_UK.get(prev_word, 0):
+            # two tens words are two numbers; a tens word after a
+            # hundreds word continues it ("триста сорок")
             number_words = [token]
         else:
             number_words.append(token)

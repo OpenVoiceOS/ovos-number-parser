@@ -778,8 +778,8 @@ def _get_ordinal_fr(word):
     """
     if word:
         for ordinal in _ORDINAL_ENDINGS_FR:
-            if word[0].isdecimal() and ordinal in word:
-                result = word.replace(ordinal, "")
+            if word[0].isdecimal() and word.endswith(ordinal):
+                result = word[:-len(ordinal)]
                 if result.isdecimal():
                     return int(result)
 

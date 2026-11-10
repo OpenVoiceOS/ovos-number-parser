@@ -558,6 +558,10 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         return numbers_to_digits_gl(utterance)
     if lang2 == "de":
         return numbers_to_digits_de(utterance)
+    if lang2 == "nn":
+        return numbers_to_digits_nn(utterance)
+    if lang2 in ("nb", "no"):
+        return numbers_to_digits_nb(utterance)
     if lang2 == "pt":
         return PT_PT.numbers_to_digits(utterance, scale=scale)
     if lang2 == "mwl":

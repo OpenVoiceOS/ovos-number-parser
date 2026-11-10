@@ -1066,6 +1066,7 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
         # Normalize Russian inflection of numbers (один, одна, одно,...)
         if not ordinals:
             word = _text_ru_inflection_normalize(word, 1)
+            prev_word = _text_ru_inflection_normalize(prev_word, 1)
 
         if word not in string_num_scale and \
                 word not in _STRING_NUM_RU and \
@@ -1087,7 +1088,10 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
                 and not (ordinals and prev_word in string_num_ordinal) \
                 and prev_word not in _NEGATIVES:
             number_words = [token]
-        elif prev_word in _SUMS and word in _SUMS:
+        elif prev_word in _SUMS and word in _SUMS \
+                and not _STRING_NUM_RU.get(word, 100) < 100 <= _STRING_NUM_RU.get(prev_word, 0):
+            # two tens words are two numbers; a tens word after a
+            # hundreds word continues it ("триста сорок")
             number_words = [token]
         else:
             number_words.append(token)

@@ -21,7 +21,7 @@ take the ``ke-`` prefix ("kedua" = 2nd) with the irregular "pertama"
 (1st).
 """
 import re
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union
 
@@ -56,6 +56,7 @@ class _LangDef:
     eight: str
     billion: str      # 1e9
     trillion: str     # 1e12
+    group_mark: str   # groups the thousands of a digit string
     quarter_words: Dict[str, float] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -78,9 +79,9 @@ class _LangDef:
 
 
 _ID = _LangDef(code="id", zero="nol", eight="delapan",
-               billion="miliar", trillion="triliun")
+               billion="miliar", trillion="triliun", group_mark=".")
 _MS = _LangDef(code="ms", zero="sifar", eight="lapan",
-               billion="bilion", trillion="trilion",
+               billion="bilion", trillion="trilion", group_mark=",",
                quarter_words={"suku": 0.25})
 
 _LANGS = {"id": _ID, "ms": _MS}
@@ -232,9 +233,10 @@ def _parse_tokens(tokens: List[str], lang: _LangDef) -> Optional[float]:
     """
     extra = _EXTRA_INPUT.get(lang.code, {})
     extra_scales = _EXTRA_SCALES.get(lang.code, {})
-    total = 0.0
+    total = 0
     hundreds = 0
     small = 0
+    largest = 0
     seen = False
     seen_group = False
     for tok in tokens:
@@ -255,6 +257,7 @@ def _parse_tokens(tokens: List[str], lang: _LangDef) -> Optional[float]:
             value = _SE_FORMS[tok]
             if value >= 1000:
                 total += value
+                largest = max(largest, value)
                 seen_group = True
             elif value == 100:
                 hundreds += 100
@@ -277,9 +280,15 @@ def _parse_tokens(tokens: List[str], lang: _LangDef) -> Optional[float]:
         elif tok in lang.group_multipliers or tok in extra_scales:
             mult = lang.group_multipliers.get(tok, extra_scales.get(tok))
             group = hundreds + small
-            if not group:
+            if total and mult > largest:
+                # a scale word above every scale before it multiplies the
+                # whole number ("dua belas juta triliun" = 12 * 10**6 * 10**12)
+                total = (total + group) * mult
+            elif not group:
                 return None
-            total += group * mult
+            else:
+                total += group * mult
+            largest = max(largest, mult)
             hundreds = small = 0
             seen_group = True
         else:
@@ -291,7 +300,8 @@ def _parse_tokens(tokens: List[str], lang: _LangDef) -> Optional[float]:
 
 
 def _tokenize(text: str) -> List[str]:
-    return text.lower().replace(",", " ").split()
+    # a comma between two digits belongs to the number ("8,5", "1,000")
+    return re.sub(r"(?<!\d),|,(?!\d)", " ", text.lower()).split()
 
 
 def _is_number_token(tok: str, lang: _LangDef) -> bool:
@@ -311,6 +321,11 @@ def _extract_number(text: str, lang: _LangDef,
 
         # digits (also "8,5")
         clean = tok.strip(".!?;:")
+        group = lang.group_mark
+        decimal = "," if group == "." else "."
+        if re.fullmatch(rf"-?\d{{1,3}}(?:{re.escape(group)}\d{{3}})+"
+                        rf"(?:{re.escape(decimal)}\d+)?", clean):
+            clean = clean.replace(group, "")
         if re.fullmatch(r"-?\d+(?:[.,]\d+)?", clean):
             num = clean.replace(",", ".")
             if not is_numeric(num):
@@ -319,6 +334,10 @@ def _extract_number(text: str, lang: _LangDef,
             # "2 setengah" = 2.5
             if i + 1 < len(tokens) and tokens[i + 1] in fractions:
                 val += fractions[tokens[i + 1]]
+            elif val == int(val):
+                # a whole float rounds the digit string; above 2 ** 53 it
+                # also drops digits of the whole part
+                return int(Decimal(num).to_integral_value(ROUND_HALF_UP))
             return int(val) if val == int(val) else val
         pieces = clean.split("/")
         if len(pieces) == 2 and all(p.lstrip("-").isdecimal() for p in pieces) \

@@ -1643,6 +1643,7 @@ def _parse_number_span(tokens, i, halves=False):
     Returns (value, next_index); value is None if no number starts here."""
     total = 0
     current = 0
+    largest = 0
     started = False
     filled = set()  # magnitude slots already used in the current <1000 group
     n = len(tokens)
@@ -1756,8 +1757,15 @@ def _parse_number_span(tokens, i, halves=False):
             j += 1
             continue
         if tok in _SCALES_LOOKUP:
-            count = current or (2 if _is_construct_dual(tokens, j) else 1)
-            total += count * _SCALES_LOOKUP[tok]
+            scale = _SCALES_LOOKUP[tok]
+            if total and scale > largest:
+                # a scale word above every scale before it multiplies the
+                # whole number ("اثنا عشر مليون تريليون" = 12 * 10**6 * 10**12)
+                total = (total + current) * scale
+            else:
+                count = current or (2 if _is_construct_dual(tokens, j) else 1)
+                total += count * scale
+            largest = max(largest, scale)
             current = 0
             filled = set()
             started = True
@@ -1765,6 +1773,7 @@ def _parse_number_span(tokens, i, halves=False):
             continue
         if tok in _SCALE_DUALS_LOOKUP:
             total += _SCALE_DUALS_LOOKUP[tok]
+            largest = max(largest, _SCALE_DUALS_LOOKUP[tok] // 2)
             current = 0
             filled = set()
             started = True

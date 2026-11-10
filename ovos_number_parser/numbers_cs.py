@@ -288,9 +288,19 @@ _SCALE_DECLENSIONS_CS = {
     "tisíce": 1000
 }
 
+# plural forms of the long scale words: "dva miliony", "pět milionů",
+# "dvě miliardy", "pět miliard"
+_LONG_SCALE_PLURALS_CS = {
+    form: exact_int(value)
+    for value, word in _LONG_SCALE_CS.items()
+    for form in ((word + "y", word + "ů") if word.endswith("ion") else
+                 (word[:-1] + "y", word[:-1]) if word.endswith("iarda") else ())
+}
+
 _MULTIPLIES_LONG_SCALE_CS = set(_LONG_SCALE_CS.values()) | \
                             generate_plurals_cs(_LONG_SCALE_CS.values()) | \
-                            set(_SCALE_DECLENSIONS_CS)
+                            set(_SCALE_DECLENSIONS_CS) | \
+                            set(_LONG_SCALE_PLURALS_CS)
 
 _MULTIPLIES_SHORT_SCALE_CS = set(_SHORT_SCALE_CS.values()) | \
                              generate_plurals_cs(_SHORT_SCALE_CS.values()) | \
@@ -848,6 +858,8 @@ def _initialize_number_data(short_scale):
                            for value, word in string_num_scale_cs.items()}
     string_num_scale_cs.update(_SCALE_DECLENSIONS_CS)
     string_num_scale_cs.update(generate_plurals_cs(string_num_scale_cs))
+    if not short_scale:
+        string_num_scale_cs.update(_LONG_SCALE_PLURALS_CS)
     return multiplies, string_num_ordinal_cs, string_num_scale_cs
 
 
