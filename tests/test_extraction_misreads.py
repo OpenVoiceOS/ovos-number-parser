@@ -45,6 +45,26 @@ class TestEnglishDecimalBeforeScale(unittest.TestCase):
     def test_scale_words_multiply_together(self):
         self.assertEqual(extract_number("one point five thousand million",
                                         "en"), 15 * 10 ** 8)
+        self.assertEqual(extract_number("one point five hundred thousand",
+                                        "en"), 15 * 10 ** 4)
+
+    def test_a_smaller_number_after_the_scale_adds(self):
+        for text, expected in (
+                ("two point five million three hundred", 25 * 10 ** 5 + 300),
+                ("one point five million two thousand", 15 * 10 ** 5 + 2000),
+                ("minus two point five million three hundred",
+                 -(25 * 10 ** 5 + 300))):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "en"), expected)
+                self.assertEqual(numbers_to_digits(text, "en"), str(expected))
+
+    def test_oh_after_point_is_zero(self):
+        for text, expected in (("one point oh five", "1.05"),
+                               ("one point five oh five", "1.505"),
+                               ("one point oh oh five", "1.005")):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "en"), float(expected))
+                self.assertEqual(numbers_to_digits(text, "en"), expected)
 
     def test_point_needs_digits_directly_after_it(self):
         text = "at one point there were two million users"
@@ -79,6 +99,17 @@ class TestGermanSpacedHundreds(unittest.TestCase):
         for text in ("Er hat es außer Acht gelassen", "Nimm dich in Acht",
                      "Der Elf Legolas", "Tausend Dank",
                      "Millionen Menschen protestierten"):
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, "de"), text)
+
+    def test_capitalised_fraction_nouns_need_a_count(self):
+        for text, expected in (("ein Viertel", Fraction(1, 4)),
+                               ("drei Viertel", Fraction(3, 4)),
+                               ("zwei Drittel", Fraction(2, 3))):
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, "de"),
+                                 str(float(expected)))
+        for text in ("das erste Viertel", "Er wohnt im Viertel"):
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, "de"), text)
 

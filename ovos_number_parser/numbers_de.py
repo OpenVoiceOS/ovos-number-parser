@@ -456,9 +456,10 @@ def numbers_to_digits_de(text, short_scale=False,
         The original text, with numbers subbed in where appropriate.
     """
     tokens = tokenize(_expand_compound_numbers_de(text))
-    # the nouns "Millionen" and "Komma" are capitalised; a scale noun reads
-    # as a number only after a count ("zwölf Millionen", not "Millionen
-    # Menschen"), and "Komma" only between two numbers
+    # the nouns "Millionen", "Viertel" and "Komma" are capitalised; a scale
+    # or fraction noun reads as a number only after a count ("zwölf
+    # Millionen", "drei Viertel", not "Millionen Menschen", "im Viertel"),
+    # and "Komma" only between two numbers
     lowered = []
     for idx, token in enumerate(tokens):
         word = token.word.lower()
@@ -466,12 +467,19 @@ def numbers_to_digits_de(text, short_scale=False,
             is_number_de(lowered[-1].word) is not None
         if after_number and (
                 _STRING_LONG_SCALE.get(word, 0) >= 10 ** 6
+                or word in _STRING_FRACTION
                 or word in _COMMA and idx + 1 < len(tokens)
                 and is_number_de(tokens[idx + 1].word) is not None):
             token = Token(word, token.index)
         lowered.append(token)
-    numbers_to_replace = \
-        _extract_numbers_with_text_de(lowered, short_scale, ordinals, fractions)
+    # a capitalised fraction noun left without a count is the noun
+    # ("im Viertel", "das erste Viertel")
+    numbers_to_replace = [
+        number for number in _extract_numbers_with_text_de(
+            lowered, short_scale, ordinals, fractions)
+        if not any(token.word[:1].isupper()
+                   and token.word.lower() in _STRING_FRACTION
+                   for token in number.tokens)]
     numbers_to_replace.sort(key=lambda number: number.start_index)
 
     results = []
