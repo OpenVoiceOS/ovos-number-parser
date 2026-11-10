@@ -15,9 +15,9 @@ References:
     * https://en.wiktionary.org/wiki/Appendix:Finnish_numbers
 """
 from decimal import Decimal
-from math import floor, isfinite
+from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
 
 _NUM_STRING_FI = {
     0: 'nolla',
@@ -454,14 +454,11 @@ def _extract_span_fi(tokens, idx):
 
     # digits, including comma decimals
     cleaned = token.replace(',', '.')
-    try:
-        val = float(cleaned)
-        if isfinite(val):
-            if val == int(val) and '.' not in cleaned:
-                val = int(val)
-            return val, idx + 1
-    except ValueError:
-        pass
+    if is_numeric(cleaned):
+        val = numeric_value(cleaned)
+        if val == int(val) and '.' not in cleaned:
+            val = int(val)
+        return val, idx + 1
 
     frac = is_fractional_fi(token)
     if frac:

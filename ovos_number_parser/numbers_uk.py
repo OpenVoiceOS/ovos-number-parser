@@ -17,7 +17,7 @@ import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions, invert_dict, exact_int,
-                                     is_numeric, tokenize, partition_list, Token, ReplaceableNumber,
+                                     is_numeric, numeric_value, tokenize, partition_list, Token, ReplaceableNumber,
                                      GrammaticalGender, scientific_notation)
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
@@ -1025,10 +1025,7 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
             number_words.append(token)
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?

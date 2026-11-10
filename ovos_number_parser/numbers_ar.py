@@ -19,8 +19,7 @@ citations.
 """
 
 import re
-from math import isfinite
-from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
 
 _AR_SEPARATOR = " و"  # the conjunction attaches to the following word
 
@@ -1315,7 +1314,7 @@ def _joined_to_a_number(tokens, j):
             tokens[j + 2] in _TEEN_SECOND_LOOKUP:
         return True
     return j + 2 < len(tokens) and tokens[j + 1] == "و" and (
-        _is_number(tokens[j + 2]) or _group_slot(tokens, j + 2) is not None
+        is_numeric(tokens[j + 2]) or _group_slot(tokens, j + 2) is not None
         and _licenses(tokens, j + 2))
 
 
@@ -1434,15 +1433,6 @@ def _is_round(token):
     tok = _bare(token)
     return tok in _HUNDREDS_LOOKUP or tok in _SCALES_LOOKUP or \
         tok in _SCALE_DUALS_LOOKUP or tok in _CONSTRUCT_HUNDRED_LOOKUP
-
-
-def _is_number(s):
-    try:
-        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
-        # string) carries no usable number and must not be treated as one
-        return isfinite(float(s))
-    except ValueError:
-        return False
 
 
 def _tokenize_ar(text):
@@ -1681,11 +1671,11 @@ def _parse_number_span(tokens, i, halves=False):
                 j += 1
                 continue
             break
-        if _is_number(raw):
+        if is_numeric(raw):
             if started:
                 break
-            value = float(raw)
-            if value.is_integer():
+            value = numeric_value(raw)
+            if value == int(value):
                 value = int(value)
             # a digit run directly followed by a scale word multiplies it
             # ("355 ألف" = 355000)

@@ -224,20 +224,44 @@ def is_numeric(input_str: str) -> bool:
         input_str (str): The string to test for numeric value.
 
     Returns:
-        bool: True if the string is a finite number (or a plain integer string,
-            which stays exact even when it exceeds float range), False for a
-            non-finite token such as "inf", "nan" or "1e309".
+        bool: True if the string is a finite number or a plain integer string
+            that ``int`` can read, False for a non-finite token such as "inf",
+            "nan" or "1e309".
     """
     try:
         val = float(input_str)
     except ValueError:
         return False
-    if math.isfinite(val):
+    if input_str.strip().lstrip("+-").isdigit():
+        # a plain integer string is read exactly, even beyond float range.
+        # One longer than the interpreter's integer string conversion limit
+        # (sys.get_int_max_str_digits) cannot be read or written back, so it
+        # carries no usable number
+        try:
+            int(input_str)
+        except ValueError:
+            return False
         return True
-    # a plain integer string that overflows float to inf is still a usable
-    # number (Python ints are unbounded); a non-finite token such as "inf",
-    # "nan" or "1e309" carries no usable number and must not be treated as one
-    return input_str.strip().lstrip("+-").isdigit()
+    return math.isfinite(val)
+
+
+def numeric_value(input_str: str) -> Union[int, float]:
+    """
+    Return the value of a string that ``is_numeric`` accepts.
+
+    A plain integer string, signed or not, is read with ``int`` and keeps
+    every digit, where ``float`` keeps only about 17 significant digits. Any
+    other numeric string, a decimal or an exponent, is read as a float.
+
+    Args:
+        input_str (str): a string for which ``is_numeric`` is True
+
+    Returns:
+        int for a plain integer string, else float
+    """
+    if input_str.strip().lstrip("+-").isdigit():
+        return int(input_str)
+    return float(input_str)
 
 
 def look_for_fractions(split_list: List[str]) -> bool:
@@ -554,8 +578,9 @@ class RomanceNumberExtractor:
         ordinals_map = self.vocab.get_ordinal_strings(scale)
         scales_map = self.vocab.SHORT_SCALE if scale == Scale.SHORT else self.vocab.LONG_SCALE
 
-        # normalize and tokenize
-        clean_text = text.lower().replace('-', ' ')
+        # normalize and tokenize; a hyphen joins words ("vinte-e-dois"), but
+        # a hyphen that opens a token before a digit is the minus sign ("-12")
+        clean_text = re.sub(r"(?<=\S)-|-(?!\d)", " ", text.lower())
         # the joiner is kept: it is what tells "vinte e um" (21, one number)
         # apart from "tres e vinte" (3 and 20, two numbers)
         tokens = clean_text.split()
@@ -564,13 +589,13 @@ class RomanceNumberExtractor:
         for tok in tokens:
             t = tok.strip(".,!?;:").replace(",", ".")
             if t and t.lstrip("-").replace(".", "", 1).isdecimal():
-                val = float(t)
-                # an out-of-range digit token (e.g. "1e309" or a 400-digit
-                # string) overflows to inf/nan; it carries no usable number,
+                # an out-of-range token (a 400-digit decimal, or a digit
+                # string longer than int() reads) carries no usable number,
                 # so skip it rather than return a non-finite value
-                if not math.isfinite(val):
+                if not is_numeric(t):
                     continue
-                return int(val) if val.is_integer() else val
+                val = numeric_value(t)
+                return int(val) if val == int(val) else val
             if tok in numbers_map or tok in ordinals_map or tok in scales_map:
                 break
 

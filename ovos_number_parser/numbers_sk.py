@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 import re
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, Token, ReplaceableNumber, scientific_notation)
+                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_notation)
 
 _NUM_STRING_SK = {
     0: 'nula',
@@ -527,10 +527,7 @@ def _extract_whole_number_with_text_sk(tokens, short_scale, ordinals):
 
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?

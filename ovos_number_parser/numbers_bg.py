@@ -28,7 +28,7 @@ when parsing, but pronunciation always produces the full standard forms
 from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions, \
     invert_dict, ReplaceableNumber, partition_list, tokenize, Token, scientific_notation
 
 _NUM_STRING_BG = {
@@ -743,10 +743,7 @@ def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
 
         # is this word already a number?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number?
