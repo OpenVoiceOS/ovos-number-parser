@@ -709,9 +709,15 @@ _SCIENTIFIC_WORDS = {
 }
 
 
+#: individual languages that the IANA Language Subtag Registry places inside a
+#: macrolanguage and that share the written standard of its module
+_MACROLANGUAGE_MEMBERS = {"azj": "az", "ekk": "et", "pes": "fa", "zsm": "ms"}
+
+
 def _base_lang(lang: str) -> str:
     """Bare language code, so "pt-BR", "pt_BR" and "PT" resolve to "pt"."""
-    return lang.lower().replace("_", "-").split("-")[0]
+    base = lang.lower().replace("_", "-").split("-")[0]
+    return _MACROLANGUAGE_MEMBERS.get(base, base)
 
 
 def _is_ar(lang: str) -> bool:

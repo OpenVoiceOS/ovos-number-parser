@@ -88,6 +88,39 @@ class TestCollidingCodes(unittest.TestCase):
             f"{rbnf('fil', 2, FormatPurpose.ORDINAL)}")
 
 
+class TestMacrolanguageMembers(unittest.TestCase):
+    """An individual language inside a macrolanguage, with the same written
+    standard, reads like the macrolanguage code (IANA Language Subtag
+    Registry, "Macrolanguage" field)."""
+
+    MEMBERS = {"azj": "az", "ekk": "et", "pes": "fa", "zsm": "ms"}
+
+    def test_member_reads_like_macrolanguage(self):
+        for member, macro in self.MEMBERS.items():
+            for number in NUMBERS + [3.5, -21]:
+                with self.subTest(member=member, number=number):
+                    self.assertEqual(pronounce_number(number, member),
+                                     pronounce_number(number, macro))
+                    self.assertEqual(pronounce_ordinal(abs(int(number)) or 1, member),
+                                     pronounce_ordinal(abs(int(number)) or 1, macro))
+            for number in [7, 21, 1234]:
+                spoken = pronounce_number(number, macro)
+                with self.subTest(member=member, spoken=spoken):
+                    self.assertEqual(extract_number(spoken, member),
+                                     extract_number(spoken, macro))
+                    self.assertEqual(numbers_to_digits(f"x {spoken} y", member),
+                                     numbers_to_digits(f"x {spoken} y", macro))
+            with self.subTest(member=member, fraction="3/4"):
+                self.assertEqual(pronounce_fraction("3/4", member),
+                                 pronounce_fraction("3/4", macro))
+                self.assertEqual(is_fractional("x", member),
+                                 is_fractional("x", macro))
+
+    def test_member_with_region_subtag(self):
+        self.assertEqual(pronounce_number(21, "azj-AZ"), pronounce_number(21, "az"))
+        self.assertEqual(pronounce_number(21, "zsm_MY"), pronounce_number(21, "ms"))
+
+
 class TestTagSpelling(unittest.TestCase):
     #: tag -> the tag it must read exactly like
     SAME = {
