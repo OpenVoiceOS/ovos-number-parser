@@ -18,11 +18,12 @@ from ovos_number_parser.util import GrammaticalGender
 F = GrammaticalGender.FEMININE
 
 #: the languages with no native module that the RBNF data reads; zu has no
-#: rule for negative numbers and is tested on its own
+#: rule for negative numbers and is tested on its own, and lo, whose RBNF
+#: data has the Thai minus word, is tested in test_rbnf_decimal_words
 FALLBACK_LANGS = (
     "af", "ak", "am", "be", "bs", "ccp", "chr", "cy", "ee", "eo", "ff", "fo",
     "ga", "hi", "hy", "is", "ja", "ka", "kk", "kl", "km", "ko", "ky", "lb",
-    "lo", "lrc", "lt", "lv", "mk", "mt", "my", "ne", "qu", "se", "sq", "sr",
+    "lrc", "lt", "lv", "mk", "mt", "my", "ne", "qu", "se", "sq", "sr",
     "sr_Latn", "su", "sw", "ta", "th", "vec", "vi", "yue", "yue_Hans", "zh",
     "zh_Hant",
 )

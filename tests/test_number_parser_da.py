@@ -13,7 +13,7 @@ class TestDanishPronounce(unittest.TestCase):
                 self.assertEqual(pronounce_number(number, lang="da"), spoken)
 
     def test_pronounce_negative_and_decimal(self):
-        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: 'komma fem nul nul'}
+        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: 'nul komma fem nul nul'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="da"), spoken)
@@ -64,7 +64,7 @@ class TestDanishExtract(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="da"), number)
 
     def test_extract_negative_and_decimal(self):
-        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: 'komma fem nul nul'}
+        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: 'nul komma fem nul nul'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="da"), number)

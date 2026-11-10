@@ -2,6 +2,7 @@ import math
 import re
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
+from os.path import commonprefix
 from typing import List
 from typing import Optional
 from typing import Union
@@ -915,6 +916,14 @@ def pronounce_number(number: Union[int, float], lang: str,
     # Round to the spoken precision before dispatch so every backend speaks a
     # rounded value instead of a truncated one (see _round_for_speech).
     number = _round_for_speech(number, places)
+    # a negative value below the rounding quantum keeps its minus word only
+    # when digits follow it: a reading that is the zero word alone is unsigned
+    if not ordinals and -1 < number < 0:
+        args = (places, short_scale, scientific, ordinals, digits, gender,
+                scale, case)
+        unsigned = _pronounce_number_dispatch(-number, lang, *args)
+        if unsigned == _pronounce_number_dispatch(0, lang, *args):
+            return unsigned
     try:
         spoken = _pronounce_number_dispatch(
             number, lang, places, short_scale, scientific, ordinals,
@@ -1103,6 +1112,41 @@ _RBNF_WORD_FIXES = {
     },
 }
 
+#: words the CLDR data writes in the script of another language, with the
+#: word of the language. The wrong script never occurs in a correct reading,
+#: so each word is replaced wherever it occurs, also inside the fraction
+#: digits a rule set writes with no separator. Lao: the rule sets keep the
+#: Thai words for zero, minus, the decimal point, the scale words and the
+#: ordinal prefix
+_RBNF_SCRIPT_FIXES = {
+    "lo": {
+        "ศูนย์": "ສູນ", "ลบ": "ລົບ", "จุด": "ຈຸດ", "ร้อย": "ຮ້ອຍ",
+        "พัน": "ພັນ", "หมื่น": "ໝື່ນ", "แสน": "ແສນ", "ล้าน": "ລ້ານ",
+        "ที่": "ທີ່",
+    },
+}
+
+#: the rule set ``spellout-numbering`` reads through, for languages where the
+#: engine cannot use it for a fraction (``spellout-numbering`` has no "x.x"
+#: rule) and takes the shortest rule set name instead: the cy feminine set
+#: ("dwy") or the mt set of the forms before a noun ("tnax-il"), not the
+#: counting form. The fraction digits are read with this set in every gender;
+#: the whole part reads as the integer does for the gender
+_RBNF_COUNTING = {
+    "cy": "spellout-cardinal-masculine",
+    "mt": "spellout-cardinal-type-b-masculine",
+}
+
+#: the decimal-point word and the rule set of languages whose "x.x" rule reads
+#: the fraction as a numerator over a power of ten ("он екі бүтін жүзден
+#: жиырма бес", twelve and twenty-five hundredths); the engine reads that rule
+#: set digit by digit and gets "оннан нөл" for every digit. The rule set has
+#: words up to hundred billionths, so a longer fraction is rounded to that
+_RBNF_FRACTIONS = {
+    "kk": ("бүтін", "fractions"),
+    "ky": ("бүтүн", "z-spellout-fraction"),
+}
+
 
 #: characters the CLDR data writes in place of rule syntax, removed from every
 #: reading of the locale. The sr_Latn ordinal rules open with "‘" (U+2018)
@@ -1144,6 +1188,8 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     masculine cardinal also keeps it: the default ``spellout-numbering`` is the
     counting form, and the Maltese and Venetian masculine sets are the forms
     before a noun ("żewġ", "du") and not the bare number ("tnejn", "do").
+    Where the engine cannot read a fraction with ``spellout-numbering``,
+    ``_RBNF_COUNTING`` names the rule set it reads through.
 
     A negative cardinal with a fraction is read as its magnitude with the
     minus word of the same rule set, because the engine reads only the
@@ -1152,6 +1198,21 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     less the reading of 1, so it keeps the side and the spacing the rule set
     gives it. A language whose reading of -1 does not hold the reading of 1
     keeps the engine reading.
+
+    A positive fraction in a language of ``_RBNF_FRACTIONS`` is read as the
+    whole part, the decimal-point word, and the fraction digits as one number
+    after the word for their power of ten. That word is the reading of the
+    power of ten in the fraction rule set less the reading of 1. The fraction
+    is first rounded half up to the longest power of ten the rule set has a
+    word for; a fraction that rounds to zero reads as its whole part.
+
+    A positive fraction in a language of ``_RBNF_COUNTING`` is read as the
+    whole part for ``gender``, then the rest of the counting reading.
+
+    The engine splits a fraction from ``str(Decimal)``, which writes a value
+    below 1e-6 as "1E-7" and has no "." to split on. Such a value is read with
+    five zeros after the point, and the zero that the reading with four zeros
+    lacks is repeated for every further zero.
     """
     if (not ordinals and math.isfinite(number) and number < 0
             and number != int(number)):
@@ -1162,10 +1223,48 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
             return minus_one[:-len(one)] + magnitude
         if minus_one.startswith(one):
             return magnitude + minus_one[len(one):]
+    if (not ordinals and math.isfinite(number) and 0 < number < 1e-6
+            and _base_lang(lang) not in _RBNF_FRACTIONS):
+        zeros = -Decimal(str(number)).adjusted() - 1
+        significant = f"{Decimal(str(number)):f}".lstrip("0.")
+        longer = _pronounce_rbnf(Decimal("0.00000" + significant), lang,
+                                 False, gender)
+        shorter = _pronounce_rbnf(Decimal("0.0000" + significant), lang,
+                                  False, gender)
+        cut = len(commonprefix([longer, shorter]))
+        zero = longer[cut:cut + len(longer) - len(shorter)]
+        return longer[:cut] + zero * (zeros - 5) + longer[cut:]
     form = FormatPurpose.ORDINAL if ordinals else FormatPurpose.CARDINAL
+    base = _base_lang(lang)
     locale = _rbnf_locale(lang)
     try:
         engine = RbnfEngine.for_language(locale)
+        if (base in _RBNF_FRACTIONS and not ordinals and math.isfinite(number)
+                and number > 0 and number != int(number)):
+            point, fraction_set = _RBNF_FRACTIONS[base]
+            one = _pronounce_rbnf(1, lang, False, gender)
+            denominators = {}
+            for value in engine.rulesets[fraction_set].numeric_rules:
+                reading = engine.format_number(value, ruleset_names=[fraction_set]).text
+                if reading.endswith(one):
+                    denominators[len(str(value)) - 1] = reading[:-len(one)]
+            rounded = Decimal(str(number)).quantize(
+                Decimal(10) ** -max(denominators), ROUND_HALF_UP).normalize()
+            whole, _, digits = f"{rounded:f}".partition(".")
+            if not digits:
+                return _pronounce_rbnf(int(whole), lang, False, gender)
+            if len(digits) in denominators:
+                return " ".join([_pronounce_rbnf(int(whole), lang, False, gender),
+                                 point, denominators[len(digits)]
+                                 + _pronounce_rbnf(int(digits), lang, False, gender)])
+        if (base in _RBNF_COUNTING and not ordinals and math.isfinite(number)
+                and number > 0 and number != int(number)):
+            counting = [_RBNF_COUNTING[base]]
+            whole = int(number)
+            text = engine.format_number(number, ruleset_names=counting).text
+            whole_text = engine.format_number(whole, ruleset_names=counting).text
+            if text.startswith(whole_text + " "):
+                return _pronounce_rbnf(whole, lang, False, gender) + text[len(whole_text):]
         ruleset = f"spellout-{form.name.lower()}-{_RBNF_GENDER.get(gender)}"
         if ruleset in engine.rulesets and (locale, ruleset) not in _RBNF_UNUSABLE \
                 and (ordinals or gender != GrammaticalGender.MASCULINE):
@@ -1182,6 +1281,8 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     except Exception as err:
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
     text = text.translate(_RBNF_CHARACTER_FIXES.get(locale, {}))
+    for wrong, right in _RBNF_SCRIPT_FIXES.get(base, {}).items():
+        text = text.replace(wrong, right)
     fixes = _RBNF_WORD_FIXES.get(locale, {})
     return " ".join(fixes.get(word, word) for word in text.split(" "))
 
