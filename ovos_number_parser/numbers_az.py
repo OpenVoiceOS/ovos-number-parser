@@ -534,13 +534,14 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "mənfi " or not result):
+        result += "sıfır"
     # a float too large for the scale words reads scientifically
     if not result and "e+" in str(num):
         return pronounce_number_az(num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "mənfi " or not result):
-            result += "sıfır"
         result += " nöqtə"
         _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]

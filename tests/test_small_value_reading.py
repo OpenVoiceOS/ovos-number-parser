@@ -1,8 +1,9 @@
-"""Values below 1e-4 read their digits, for both signs.
+"""Values below 1e-4 read their digits, for both signs, at every ``places``.
 
 French read such a value as the raw numeral "1e-05". Hungarian left the
 numerator out when it rounds to zero and had no denominator past five
-places. The Unicode RBNF fallback raised for a value below 1e-6, because
+places. At places=0, a value below one read as an empty string in az, cs,
+da, hr, it, pl, sk, sl, tr and uk. The Unicode RBNF fallback raised for a value below 1e-6, because
 ``unicode_rbnf`` splits the fraction from ``str(Decimal)``, which writes
 "1E-7". Each expected reading is composed from readings that do not pass
 through the changed code: integer readings, and for RBNF the engine's own
@@ -59,6 +60,10 @@ def _hu(whole, numerator, denominator):
     (1e-05, 8, 1000, "százmilliomod"),
     (2e-05, 8, 2000, "százmilliomod"),
     (1e-09, 9, 1, "milliárdod"),
+    (0.5, 10, 5 * 10 ** 9, "tízmilliárdod"),
+    (0.5, 12, 5 * 10 ** 11, "billiomod"),
+    (0.25, 24, 25 * 10 ** 22, "kvadrilliomod"),
+    (0.25, 30, 25 * 10 ** 22, "kvadrilliomod"),
 ])
 def test_hu_small_value_names_numerator_and_denominator(
         value, places, numerator, denominator):
@@ -71,6 +76,20 @@ def test_hu_small_value_names_numerator_and_denominator(
 def test_hu_round_thousands_numerator_has_no_hyphen():
     assert pronounce_number(5.2, "hu", places=4) == \
         _hu(5, 2000, "tízezred")
+
+
+#: languages that read a value below one as their zero word at places=0
+_ZERO_AT_NO_PLACES = ("az", "cs", "da", "hr", "it", "pl", "sk", "sl", "tr",
+                      "uk")
+
+
+@pytest.mark.parametrize("lang", _ZERO_AT_NO_PLACES)
+@pytest.mark.parametrize("value", [1e-05, 1e-07, 0.4])
+def test_value_below_one_at_no_places_reads_zero(lang, value):
+    zero = pronounce_number(0, lang)
+    minus = pronounce_number(-1, lang).rsplit(" ", 1)[0]
+    assert pronounce_number(value, lang, places=0) == zero
+    assert pronounce_number(-value, lang, places=0) == minus + " " + zero
 
 
 def _rbnf(lang, number):

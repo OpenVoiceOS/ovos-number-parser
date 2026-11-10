@@ -460,14 +460,14 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
     if ordinals:
         result = result.replace(" ", "")
 
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "minus " or not result):
+        result += "nič"
     # a float too large for the scale words reads scientifically
     if (not result or result == "neskončno") and "e+" in str(num):
         return pronounce_number_sl(num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "minus " or not result):
-            result += "nič"
-
         if int(abs(num)) % 100 == 1:
             result += " cela"
         elif int(abs(num)) % 100 == 2:

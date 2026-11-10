@@ -1,5 +1,7 @@
-from ovos_number_parser.util import (convert_to_mixed_fraction)
+from decimal import Decimal
 from math import floor, isfinite
+
+from ovos_number_parser.util import (convert_to_mixed_fraction)
 _NUM_STRING_HU = {
     0: 'nulla',
     1: 'egy',
@@ -129,6 +131,16 @@ def nice_number_hu(number, speech=True, denominators=range(1, 21)):
     return return_string
 
 
+#: the fraction word of 10 ** n for n = 1 to 24: "tíz" or "száz" before the
+#: fraction word of a power of 1000 fills the places between them. 24 places
+#: is the most whose numerator the scale words of _NUM_POWERS_OF_TEN can read.
+_FRACTION_SUFFIXES_HU = ['tized', 'század'] + [
+    prefix + scale
+    for scale in ('ezred', 'milliomod', 'milliárdod', 'billiomod',
+                  'billiárdod', 'trilliomod', 'trilliárdod')
+    for prefix in ('', 'tíz', 'száz')] + ['kvadrilliomod']
+
+
 def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
@@ -235,21 +247,18 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             return pronounce_whole_number_hu(number).strip('-')
         else:
             whole_number_part = floor(number)
-            fractional_part = number - whole_number_part
             if whole_number_part == 0:
                 result += _NUM_STRING_HU[0]
             result += pronounce_whole_number_hu(whole_number_part)
             if places > 0:
+                places = min(places, len(_FRACTION_SUFFIXES_HU))
                 result += " egész "
-                fraction = pronounce_whole_number_hu(
-                    round(fractional_part * 10 ** places)).strip('-')
+                numerator = round((Decimal(str(number)) - whole_number_part)
+                                  * 10 ** places)
+                fraction = pronounce_whole_number_hu(numerator).strip('-')
                 result += fraction.replace(_NUM_STRING_HU[2], 'két') \
                     or _NUM_STRING_HU[0]
-                fraction_suffixes = [
-                    'tized', 'század', 'ezred', 'tízezred', 'százezred',
-                    'milliomod', 'tízmilliomod', 'százmilliomod', 'milliárdod']
-                if places <= len(fraction_suffixes):
-                    result += ' ' + fraction_suffixes[places - 1]
+                result += ' ' + _FRACTION_SUFFIXES_HU[places - 1]
             return result
 
 
