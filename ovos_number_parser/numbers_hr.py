@@ -6,6 +6,7 @@ the count: "tisuću" (1000), "dvije tisuće" (2000), "pet tisuća" (5000),
 "milijun" / "dva milijuna", "milijarda" / "dvije milijarde" / "pet milijardi".
 Croatian uses the long scale (milijun = 1e6, milijarda = 1e9, bilijun = 1e12).
 """
+from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
@@ -393,7 +394,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
         if abs(num) < 1.0 and (result == "minus " or not result):
             result += "nula"
         result += " zarez"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]

@@ -1,4 +1,5 @@
 from math import isfinite
+from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import (convert_to_mixed_fraction)
@@ -476,7 +477,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
         else:
             result += " celih"
 
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]

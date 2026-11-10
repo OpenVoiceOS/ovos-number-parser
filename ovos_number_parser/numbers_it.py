@@ -1,4 +1,5 @@
 import collections
+from decimal import Decimal
 
 import re
 from typing import Optional, Union
@@ -834,7 +835,7 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
         if abs(num) < 1.0 and (result == "meno " or not result):
             result += "zero"
         result += " virgola"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]

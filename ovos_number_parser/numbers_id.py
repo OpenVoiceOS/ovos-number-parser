@@ -21,6 +21,7 @@ take the ``ke-`` prefix ("kedua" = 2nd) with the irregular "pertama"
 (1st).
 """
 import re
+from decimal import Decimal
 from dataclasses import dataclass, field
 from math import isfinite
 from typing import Dict, List, Optional, Union
@@ -165,7 +166,7 @@ def _pronounce_number(number: Union[int, float], lang: _LangDef,
 
     if number != int(number) and places > 0:
         result += " koma"
-        _num_str = str(number).split(".")[1][0:places]
+        _num_str = f"{Decimal(str(number)):f}".split(".")[1][0:places]
         for char in _num_str:
             result += " " + lang.num_string[int(char)]
     return result
