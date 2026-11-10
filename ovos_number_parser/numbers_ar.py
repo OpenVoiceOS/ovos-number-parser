@@ -111,7 +111,7 @@ def resolve_ar_lang(lang: str):
                          default register, or None if ``lang`` does not name
                          an Arabic variety this engine serves.
     """
-    return AR_DIALECT_DEFAULT_CASE.get(lang.lower().split("-")[0])
+    return AR_DIALECT_DEFAULT_CASE.get(lang.lower().replace("_", "-").split("-")[0])
 
 
 # Gender. A cardinal takes the form that goes with the gender of the counted

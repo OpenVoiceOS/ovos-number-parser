@@ -1,9 +1,11 @@
 # API reference
 
 All public functions live in the top-level `ovos_number_parser` package and
-take a BCP-47 language code (`lang`). Language dialects resolve by prefix, so
-`"pt-BR"`, `"pt-PT"` and `"pt"` all reach the Portuguese parser (with variant
-handling where it matters, e.g. Brazilian vs European Portuguese).
+take a BCP-47 language code (`lang`). The primary language subtag selects the
+parser and must match exactly, in any letter case and with `-` or `_` between
+subtags, so `"pt-BR"`, `"pt_PT"` and `"pt"` all reach the Portuguese parser
+(with variant handling where it matters, e.g. Brazilian vs European
+Portuguese), while `"fil"` (Filipino) does not reach the Finnish parser.
 
 All 40 supported languages provide every public function. Where a language has
 no hand-written implementation, a documented generic fallback fills in:
