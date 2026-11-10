@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.23a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.23a1) (2026-11-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.22a1...0.24.23a1)
+
+**Merged pull requests:**
+
+- fix: read scale words from the language's own table [\#425](https://github.com/OpenVoiceOS/ovos-number-parser/pull/425) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.22a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.22a1) (2026-11-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.21a1...0.24.22a1)
@@ -387,10 +395,6 @@
 ## [0.21.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.21.1a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.21.0a1...0.21.1a1)
-
-**Merged pull requests:**
-
-- fix\(ar\): decline twelve in the oblique case \(اثنا عشر -\> اثني عشر\) [\#316](https://github.com/OpenVoiceOS/ovos-number-parser/pull/316) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.21.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.21.0a1) (2026-09-20)
 
