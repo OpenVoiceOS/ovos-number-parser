@@ -3,7 +3,7 @@ from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, ReplaceableNumber, Token,
-                                     look_for_fractions, GrammaticalGender)
+                                     look_for_fractions, GrammaticalGender, numeric_value)
 
 #: the final 1 of a whole number before a feminine or neuter noun (ICU RBNF de
 #: spellout-cardinal-feminine and -neuter: "eine", "einhunderteine", "ein").
@@ -800,10 +800,7 @@ def _get_ordinal_index(input_str: str, type_: type = str):
 
 def is_number_de(word: str):
     if is_numeric_de(word):
-        if word.isdigit():
-            return int(word)
-        else:
-            return float(word)
+        return numeric_value(word)
     elif word in _STRING_NUM:
         return _STRING_NUM.get(word)
     elif word in _STRING_LONG_SCALE:
@@ -825,7 +822,7 @@ def is_numeric_de(input_str):
     if input_str.endswith('.'):
         return False
     try:
-        float(input_str)
+        numeric_value(input_str)
         return True
     except ValueError:
         return False
