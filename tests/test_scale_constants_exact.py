@@ -26,9 +26,11 @@ CASES = [
     ("nn", "tolv trillionar tre hundre og førtifem", 12 * 10 ** 18 + 345),
     ("pl", "dwanaście trylionów trzysta czterdzieści pięć", 12 * 10 ** 18 + 345),
     ("ru", "двенадцать квинтиллионов триста сорок пять", 12 * 10 ** 18 + 345),
+    ("ru", "двенадцать квинтиллионов пять тысяч", 12 * 10 ** 18 + 5000),
     ("sv", "tiotusen biljoner sju", 10 ** 4 * 10 ** 12 + 7),
     ("tr", "on iki kentilyon üç yüz kırk beş", 12 * 10 ** 18 + 345),
     ("uk", "дванадцять трильйонів триста сорок п'ять", 12 * 10 ** 18 + 345),
+    ("uk", "один трильйон триста сорок п'ять", 10 ** 18 + 345),
 ]
 
 #: languages whose numbers_to_digits keeps each of these phrases as one number
