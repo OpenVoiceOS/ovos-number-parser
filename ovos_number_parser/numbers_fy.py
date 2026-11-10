@@ -285,7 +285,7 @@ def pronounce_number_fy(number, places=2, short_scale=True, scientific=False,
             if scale_level >= 2:
                 result += " " + _NUM_POWERS_OF_TEN_FY[scale_level] + ' '
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_fy(num, scale_level) + result
 

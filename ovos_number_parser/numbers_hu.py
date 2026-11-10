@@ -230,7 +230,7 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             if scale_level > 0:
                 result += '-'
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_hu(num,
                                          scale_level) + result

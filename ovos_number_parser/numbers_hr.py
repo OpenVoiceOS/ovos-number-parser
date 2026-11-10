@@ -10,7 +10,7 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions, \
-    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, scientific_notation
 
 _NUM_STRING_HR = {
     0: 'nula',
@@ -272,7 +272,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus beskonačnost"
     if scientific:
-        number = '%E' % num
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -282,7 +282,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
                     abs(float(n)), places, short_scale, False, ordinals=False),
                 'minus ' if power < 0 else '',
                 pronounce_number_hr(abs(power), places, short_scale, False,
-                                    ordinals=True))
+                                    ordinals=False))
 
     number_names = _NUM_STRING_HR.copy()
     number_names.update(_SCALE_HR)
@@ -322,7 +322,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
 
         def _scale_hr(n):
             if n > max(_SCALE_HR.keys()):
-                return "beskonačnost"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -386,14 +386,15 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
 
         result += _scale_hr(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "minus ") and num >= 1e6:
+        return result + pronounce_number_hr(
+            num, places, short_scale, scientific=True)
     if num != int(num) and abs(num) < 1.0 \
             and (result == "minus " or not result):
         result += "nula"
-    # a float too large for the scale words reads scientifically
-    if not result and "e+" in str(num):
-        return pronounce_number_hr(num, places, short_scale, scientific=True)
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
+    if not num == int(num) and places > 0:
         result += " zarez"
         _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]

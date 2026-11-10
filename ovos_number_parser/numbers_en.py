@@ -20,7 +20,7 @@ from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber)
+                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_notation)
 
 _ARTICLES_EN = {'a', 'an', 'the'}
 
@@ -403,15 +403,7 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
         num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
                                                rounding=ROUND_HALF_UP)) or 0.0
     if scientific:
-        try:
-            number = '%E' % num
-        except OverflowError:
-            # int larger than the float range: derive the mantissa and
-            # exponent from its digits so it still reads scientifically.
-            digits = str(abs(int(num)))
-            frac = digits[1:7].rstrip("0")
-            number = "%s%s%sE+%d" % ("-" if num < 0 else "", digits[0],
-                                     "." + frac if frac else "", len(digits) - 1)
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -615,8 +607,9 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
     # deal with a magnitude that has no spoken name: read it scientifically
     # (covers floats in "e" notation and very large ints alike) so a finite
     # value never returns an empty string.
-    if not result and abs(num) >= 1e6:
-        return pronounce_number_en(num, places, short_scale, scientific=True)
+    if result in ("", "minus ") and num >= 1e6:
+        return result + pronounce_number_en(
+            num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
         if abs(num) < 1.0 and (result == "minus " or not result):

@@ -438,7 +438,7 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
                     result += ""  # Miljioen
                 result += ""  # Miljard, Miljoen
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_nl(num,
                                          scale_level) + result + ''

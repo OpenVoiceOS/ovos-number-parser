@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 import re
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber)
+                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_notation)
 
 _NUM_STRING_SK = {
     0: 'nula',
@@ -791,7 +791,7 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "mínus nekonečno"
     if scientific:
-        number = '%E' % num
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -856,7 +856,7 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
 
         def _whole_number(n):
             if n >= max(_SCALE_SK.keys()) * 1000:
-                return "nekonečno"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -890,14 +890,15 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
 
         result += _whole_number(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "mínus ") and num >= 1e6:
+        return result + pronounce_number_sk(
+            num, places, short_scale, scientific=True)
     if num != int(num) and abs(num) < 1.0 \
             and (result == "mínus " or not result):
         result += "nula"
-    # a float too large for the scale words reads scientifically
-    if not result and "e+" in str(num):
-        return pronounce_number_sk(num, places, short_scale, scientific=True)
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
+    if not num == int(num) and places > 0:
         result += " celá"
         _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]

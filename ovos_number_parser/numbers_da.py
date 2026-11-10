@@ -457,7 +457,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             if scale_level >= 2:
                 result += "er "  # MilliardER, MillioneER
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_da(num,
                                          scale_level) + result + _EXTRA_SPACE_DA

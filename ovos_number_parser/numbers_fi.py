@@ -176,7 +176,7 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     if ordinals:
         return pronounce_ordinal_fi(number)
     if abs(number) >= 10 ** 15:  # beyond the supported scale words
-        return f"{Decimal(str(number)):f}"
+        return f"{Decimal(str(number)):f}".removesuffix(".0")
     if number < 0:
         return "miinus " + pronounce_number_fi(abs(number), places)
     if number == int(number):

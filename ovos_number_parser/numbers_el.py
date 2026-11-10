@@ -168,7 +168,7 @@ def pronounce_number_el(number, places=2, scientific=False, ordinals=False):
         if power != 0:
             mantissa = pronounce_number_el(abs(float(n)), places)
             exponent = pronounce_number_el(abs(power), places)
-            return "{}{} επί δέκα στη δύναμη {}{}".format(
+            return "{}{} επί δέκα στη δύναμη του {}{}".format(
                 _MINUS_EL + " " if float(n) < 0 else "", mantissa,
                 _MINUS_EL + " " if power < 0 else "", exponent)
     if ordinals:

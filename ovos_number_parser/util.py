@@ -316,6 +316,25 @@ def convert_to_mixed_fraction(number: Union[int, float], denominators=range(1, 2
     return int_number, int(round(numerator)), denominator
 
 
+def scientific_notation(number: Union[int, float]) -> str:
+    """
+    Format ``number`` as ``'%E' % number`` does, ints beyond the float range
+    included.
+
+    ``'%E'`` converts to float, which raises OverflowError for an int such as
+    10 ** 400; such an int is then formatted from its exact decimal value.
+
+    Args:
+        number (int or float): finite number to format
+    Returns:
+        (str): the number as "<mantissa>E<signed exponent>", e.g. "1.000000E+400"
+    """
+    try:
+        return '%E' % number
+    except OverflowError:
+        return format(Decimal(number), '.6E')
+
+
 @dataclass
 class NumberVocabulary:
     LANG: str
