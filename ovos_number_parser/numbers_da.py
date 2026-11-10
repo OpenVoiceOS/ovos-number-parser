@@ -1,10 +1,11 @@
 import re
+import sys
 from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
                                      ReplaceableNumber, Token, look_for_fractions,
-                                     GrammaticalGender, numeric_value)
+                                     GrammaticalGender, numeric_value, fits_str_limit)
 
 #: the last word of a whole number before a common-gender (FEMININE) or neuter
 #: noun (ICU RBNF da spellout-cardinal-common and -neuter: "hundrede og en",
@@ -547,6 +548,8 @@ def numbers_to_digits_da(text, short_scale=False,
     numbers_to_replace = \
         _extract_numbers_with_text_da(tokens, short_scale, ordinals, fractions)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -668,10 +671,14 @@ def _extract_real_number_with_text_da(tokens, short_scale):
         _current_val = None
 
         word = token.word
+        # a sign after a summed part opens the next number: "5 og -3" is 5,
+        # then -3
+        opens_signed = bool(to_sum) and (
+            word in _NEGATIVES or word.startswith("-") and is_numeric_da(word))
 
         if word in _NUMBER_CONNECTORS and not number_words:
             continue
-        if word in (_NEGATIVES | _NUMBER_CONNECTORS | _COMMA):
+        if word in (_NEGATIVES | _NUMBER_CONNECTORS | _COMMA) and not opens_signed:
             number_words.append(token)
             if word in _COMMA:
                 _comma = token
@@ -681,7 +688,7 @@ def _extract_real_number_with_text_da(tokens, short_scale):
         prev_word = tokens[idx - 1].word if idx > 0 else ""
         next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
 
-        if word not in _STRING_LONG_SCALE and \
+        if opens_signed or word not in _STRING_LONG_SCALE and \
                 word not in _DA_NUMBERS and \
                 word not in _MULTIPLIER and \
                 not is_numeric_da(word) and \
@@ -737,10 +744,19 @@ def _extract_real_number_with_text_da(tokens, short_scale):
 
         # fraction handling
         _fraction_val = is_fractional_da(word, short_scale=short_scale)
+        if _fraction_val and _prev_val is not None \
+                and abs(_prev_val) > sys.float_info.max:
+            # a whole part past the float range takes no fraction: like the
+            # digit string "999...9.5", the mixed number is no number
+            number_words.clear()
+            to_sum.clear()
+            val = _val = _current_val = None
+            continue
         if _fraction_val:
             if _prev_val is not None and prev_word not in _ARTICLES and \
                     word not in _STRING_FRACTION_DA:  # sammensat brøk
-                _val = _prev_val + _fraction_val
+                # the sign covers the whole mixed number: -5 1/2 is -(5 + 1/2)
+                _val = _prev_val - _fraction_val if _prev_val < 0 else _prev_val + _fraction_val
                 if prev_word not in _NUMBER_CONNECTORS and tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])
             elif _prev_val is not None:

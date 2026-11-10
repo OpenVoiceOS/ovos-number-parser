@@ -245,6 +245,29 @@ def is_numeric(input_str: str) -> bool:
     return math.isfinite(val)
 
 
+def fits_str_limit(value: Any) -> bool:
+    """
+    Return False for an integer that ``str`` cannot write.
+
+    An integer with more digits than the interpreter's integer string
+    conversion limit (``sys.get_int_max_str_digits``) has no decimal string.
+    It is no number, as a digit string past that limit is none for
+    ``is_numeric``.
+
+    Args:
+        value: a value an extractor produced
+
+    Returns:
+        bool: False for an integer past the limit, else True
+    """
+    if isinstance(value, int):
+        try:
+            str(value)
+        except ValueError:
+            return False
+    return True
+
+
 def numeric_value(input_str: str) -> Union[int, float]:
     """
     Return the value of a string that ``is_numeric`` accepts.
@@ -579,15 +602,17 @@ class RomanceNumberExtractor:
         scales_map = self.vocab.SHORT_SCALE if scale == Scale.SHORT else self.vocab.LONG_SCALE
 
         # normalize and tokenize; a hyphen joins words ("vinte-e-dois"), but
-        # a hyphen that opens a token before a digit is the minus sign ("-12")
-        clean_text = re.sub(r"(?<=\S)-|-(?!\d)", " ", text.lower())
+        # a hyphen that opens a token before a digit or a decimal separator
+        # is the minus sign ("-12", "-.5")
+        clean_text = re.sub(r"(?<=\S)-|-(?![.,]?\d)", " ", text.lower())
         # the joiner is kept: it is what tells "vinte e um" (21, one number)
         # apart from "tres e vinte" (3 and 20, two numbers)
         tokens = clean_text.split()
 
         # a digit token wins if it appears before any spoken number word
-        for tok in tokens:
-            t = tok.strip(".,!?;:").replace(",", ".")
+        for idx, tok in enumerate(tokens):
+            # a leading decimal separator belongs to the number (".5")
+            t = tok.rstrip(".,!?;:").lstrip("!?;:").replace(",", ".")
             if t and t.lstrip("-").replace(".", "", 1).isdecimal():
                 # an out-of-range token (a 400-digit decimal, or a digit
                 # string longer than int() reads) carries no usable number,
@@ -595,6 +620,9 @@ class RomanceNumberExtractor:
                 if not is_numeric(t):
                     continue
                 val = numeric_value(t)
+                if idx and tokens[idx - 1] in self.vocab.NEGATIVE_SIGN:
+                    # the minus word signs digits as it signs number words
+                    val = -val
                 return int(val) if val == int(val) else val
             if tok in numbers_map or tok in ordinals_map or tok in scales_map:
                 break

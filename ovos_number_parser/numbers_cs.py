@@ -725,14 +725,14 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
         # so no per-token negation happens here
 
         # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            aPieces = word.split('/')
-            if look_for_fractions(aPieces):
-                val = float(aPieces[0]) / float(aPieces[1])
-                current_val = val
+        # look for fractions like "2/3". A digit fraction is a value of its
+        # own: the value of a number before it ("5 1/2") must not block it
+        aPieces = word.split('/')
+        if look_for_fractions(aPieces):
+            val = float(aPieces[0]) / float(aPieces[1])
+            current_val = val
 
-        else:
+        elif val:
             if all([
                 prev_word in _SUMS,
                 word not in _SUMS,

@@ -2,7 +2,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions, Token, \
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, fits_str_limit, look_for_fractions, Token, \
     ReplaceableNumber, tokenize, partition_list, invert_dict
 
 _ARTICLES_FY = {'de', 'it'}
@@ -360,6 +360,8 @@ def numbers_to_digits_fy(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_fy(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:

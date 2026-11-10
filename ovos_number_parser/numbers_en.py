@@ -20,7 +20,7 @@ from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_notation)
+                                     partition_list, is_numeric, numeric_value, fits_str_limit, Token, ReplaceableNumber, scientific_notation)
 
 _ARTICLES_EN = {'a', 'an', 'the'}
 
@@ -679,6 +679,8 @@ def numbers_to_digits_en(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_en(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:

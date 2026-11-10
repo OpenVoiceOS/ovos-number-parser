@@ -17,7 +17,7 @@ import math
 from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions, \
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, fits_str_limit, look_for_fractions, \
     invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, scientific_notation
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
@@ -784,6 +784,8 @@ def numbers_to_digits_ru(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_ru(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -1157,12 +1159,12 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
         # per-token negation happens here
 
         # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            a_pieces = word.split('/')
-            if look_for_fractions(a_pieces):
-                val = float(a_pieces[0]) / float(a_pieces[1])
-        else:
+        # look for fractions like "2/3". A digit fraction is a value of its
+        # own: the value of a number before it ("5 1/2") must not block it
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces):
+            val = float(a_pieces[0]) / float(a_pieces[1])
+        elif val:
             if all([
                 prev_word in _SUMS,
                 word not in _SUMS,
