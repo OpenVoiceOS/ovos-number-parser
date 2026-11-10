@@ -611,7 +611,8 @@ def _pronounce_complex(number: complex, lang: str, places: int,
     return f"{_speak(number.real)} {connective} {magnitude}{i_w}"
 
 
-def _round_for_speech(number: Union[int, float], places: int) -> Union[int, float]:
+def _round_for_speech(number: Union[int, float, Decimal],
+                      places: int) -> Union[int, float]:
     """Round a real number to ``places`` decimals, half away from zero.
 
     The per-language cardinal formatters keep only the first ``places``
@@ -633,21 +634,33 @@ def _round_for_speech(number: Union[int, float], places: int) -> Union[int, floa
     here. A non-zero value whose magnitude is smaller than the rounding quantum
     is left untouched, so its sub-quantum fractional reading and sign survive
     rather than collapsing to an unsigned zero.
+
+    A finite ``Decimal`` is rounded from its own digits and comes back as the
+    int or float the backends read, so it reads as the float written with the
+    same digits. A Decimal with no fraction digits ("12", "1E+30"), or an
+    integral one a float cannot hold exactly, becomes an int with every digit.
+    A non-integral Decimal with more significant digits than a float holds
+    after rounding reads as the nearest float.
     """
-    if isinstance(number, int) or not isinstance(number, float):
-        return number
-    if not math.isfinite(number):
+    if isinstance(number, Decimal):
+        if number == number.to_integral_value() and (
+                number.as_tuple().exponent >= 0 or float(number) != number):
+            return int(number)
+        exact, number = number, float(number)
+    elif isinstance(number, float) and math.isfinite(number):
+        exact = Decimal(str(number))
+    else:
         return number
     if number == 0:
         # normalise -0.0 to 0.0 so no language speaks "minus zero"
         return 0.0
-    if number.is_integer():
+    if exact == exact.to_integral_value():
         # no fractional part to shorten; also avoids quantize overflow on very
         # large integer-valued floats (1e300)
         return number
     quantum = Decimal(1).scaleb(-places)
     try:
-        rounded = Decimal(str(number)).quantize(quantum, rounding=ROUND_HALF_UP)
+        rounded = exact.quantize(quantum, rounding=ROUND_HALF_UP)
     except (ArithmeticError, ValueError):
         # a value too large to quantize at this precision is already far coarser
         # than ``places`` decimals; leave it untouched
@@ -810,7 +823,9 @@ def pronounce_number(number: Union[int, float], lang: str,
     Converts a numeric value to its pronounced form, supporting various languages, decimal precision, scale (short or long), scientific notation, ordinal forms, digit pronunciation styles, and grammatical gender where applicable. Falls back to Unicode RBNF for unsupported languages.
      
     Parameters:
-        number (int or float): The number to pronounce.
+        number (int or float): The number to pronounce. A ``decimal.Decimal``
+            reads as the float written with the same digits, and an integral
+            one as the int with the same digits.
         lang (str): BCP-47 language code specifying the language for pronunciation.
         places (int, optional): Number of decimal places to include (default is 3).
             The fractional part is rounded to this precision half away from zero
@@ -856,6 +871,8 @@ def pronounce_number(number: Union[int, float], lang: str,
     short_scale = scale == Scale.SHORT
     if isinstance(number, complex):
         return _pronounce_complex(number, lang, places, scale, digits, gender)
+    if isinstance(number, Decimal) and not number.is_finite():
+        number = float("nan") if number.is_nan() else float(number)
     if isinstance(number, float) and number != number:
         raise ValueError("cannot pronounce NaN (not a number)")
     # Infinity is not tied to any named-scale table; handle it uniformly for
