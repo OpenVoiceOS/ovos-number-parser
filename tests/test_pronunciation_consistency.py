@@ -8,6 +8,7 @@ of an equivalent value at enough places, integer readings of the digits, or
 the reading of a value whose digits need no rounding.
 """
 from decimal import Decimal
+from fractions import Fraction
 from unittest import mock
 
 import pytest
@@ -315,3 +316,33 @@ def test_hu_value_finer_than_its_denominators(value, places, expected):
 def test_hu_direct_call_finer_than_its_denominators():
     assert pronounce_number_hu(7e-26, 30) == \
         "hétszer tíz a mínusz huszonhatodikon"
+
+
+@pytest.mark.parametrize("lang", LANGS)
+@pytest.mark.parametrize("fraction, equivalent, covering", [
+    (Fraction(-7, 10 ** 30), -7e-30, 30),
+    (Fraction(1, 30000), 3e-05, 5),
+    (Fraction(-1, 7000), -0.0001, 4),
+])
+def test_fraction_below_the_quantum_reads_its_first_digit(
+        lang, fraction, equivalent, covering):
+    assert pronounce_number(fraction, lang, places=3) == \
+        pronounce_number(equivalent, lang, places=covering)
+
+
+@pytest.mark.parametrize("lang", CONNECTIVES)
+def test_fraction_past_the_float_range_reads_scientifically(lang):
+    assert pronounce_number(Fraction(-1, 10 ** 400), lang) == " ".join([
+        pronounce_number(-1, lang), CONNECTIVES[lang],
+        pronounce_number(-400, lang)])
+
+
+@pytest.mark.parametrize("lang", SCIENTIFIC_MODE)
+@pytest.mark.parametrize("fraction, rounded", [
+    (Fraction(123449, 10000), 12.34),
+    (Fraction(-12344, 10 ** 6), -0.01234),
+    (Fraction(1, 3), 0.3333),
+])
+def test_scientific_fraction_rounds_its_mantissa_once(lang, fraction, rounded):
+    assert pronounce_number(fraction, lang, places=3, scientific=True) == \
+        pronounce_number(rounded, lang, places=6, scientific=True)
