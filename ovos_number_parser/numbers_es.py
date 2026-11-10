@@ -49,6 +49,7 @@ _ES = NumberVocabulary(
     NUMBER_OVERFLOW="número exageradamente grande",
     # Spain follows the long scale: millón 10^6, millardo 10^9, billón 10^12
     DEFAULT_SCALE=Scale.LONG,
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["y"],
 
     JOINER_ON_TWENTYS=True,  # "treinta y uno"; 21-29 are fused, joiner kept for extraction

@@ -643,6 +643,10 @@ def numbers_to_digits_uk(text, short_scale=True, ordinals=False):
     text = text.lower()
 
     tokens = tokenize(text)
+    # one scale for the whole text: a scale word only the long scale has
+    # ("більярд") sets the long scale
+    if any(token.word in _LONG_ONLY_MULTIPLIES_UK for token in tokens):
+        short_scale = False
     numbers_to_replace = \
         _extract_numbers_with_text_uk(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
@@ -887,9 +891,6 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
         The value parsed, and tokens that it corresponds to.
 
     """
-    # a scale word only the long scale has ("більярд") sets the long scale
-    if any(token.word.lower() in _LONG_ONLY_MULTIPLIES_UK for token in tokens):
-        short_scale = False
     multiplies, string_num_ordinal, string_num_scale = \
         _initialize_number_data(short_scale)
     number_words = []  # type: [Token]
@@ -1166,8 +1167,12 @@ def extract_number_uk(text, short_scale=True, ordinals=False):
                                    was found
 
     """
-    return _extract_number_with_text_uk(tokenize(text.lower()),
-                                        short_scale, ordinals).value
+    tokens = tokenize(text.lower())
+    # one scale for the whole text: a scale word only the long scale has
+    # ("більярд") sets the long scale
+    if any(token.word in _LONG_ONLY_MULTIPLIES_UK for token in tokens):
+        short_scale = False
+    return _extract_number_with_text_uk(tokens, short_scale, ordinals).value
 
 
 def is_fractional_uk(input_str, word, short_scale=True):

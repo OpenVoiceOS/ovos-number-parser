@@ -378,7 +378,8 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
     def pronounce_number(self, number, places=2, scale=None, ordinals=False,
                          digits=None,
                          gender=GrammaticalGender.MASCULINE,
-                         _force_hundreds_join=False, _under_higher_scale=False):
+                         _force_hundreds_join=False, _under_higher_scale=False,
+                         _fraction_digits=False):
         """French-specific top-level quirks that predate the shared engine.
 
         Kept as an override rather than a change to the shared engine: (1)
@@ -395,7 +396,8 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
                 or (isinstance(number, float) and not math.isfinite(number)):
             return super().pronounce_number(number, places, scale, ordinals,
                                             digits, gender,
-                                            _force_hundreds_join, _under_higher_scale)
+                                            _force_hundreds_join, _under_higher_scale,
+                                            _fraction_digits)
 
         abs_n = abs(number)
         if abs_n >= 10 ** 15:
@@ -408,13 +410,38 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
         result = super().pronounce_number(number, places, scale, ordinals,
                                           digits, gender,
                                           _force_hundreds_join,
-                                          _under_higher_scale)
+                                          _under_higher_scale,
+                                          _fraction_digits)
         result = _fix_vingt_cent_plural_fr(result)
         # only the final "un" agrees with the noun; a count before "mille" or
         # "million" keeps "un" (ICU RBNF fr spellout-cardinal-feminine)
         if gender == GrammaticalGender.FEMININE and isinstance(number, int):
             result = re.sub(r"\bun$", "une", result)
         return result
+
+    def pronounce_ordinal(self, number, gender=GrammaticalGender.MASCULINE,
+                          scale=None):
+        """A regional ordinal is its cardinal with the suffix -ième
+        ("septante-deux" -> "septante-deuxième"), as the regional tens are."""
+        if not self.decimal_tens or not isinstance(number, (int, float)) \
+                or int(number) == 0:
+            return super().pronounce_ordinal(number, gender, scale)
+        if number < 0:
+            return f"{self.vocab.NEGATIVE_SIGN[0]} " \
+                   f"{self.pronounce_ordinal(abs(number), gender, scale)}"
+        if int(number) == 1:
+            return "première" if gender == GrammaticalGender.FEMININE \
+                else "premier"
+        cardinal = self.pronounce_number(int(number), scale=scale)
+        if cardinal.endswith("s") and not cardinal.endswith("trois"):
+            cardinal = cardinal[:-1]
+        if cardinal.endswith("cinq"):
+            return cardinal + "uième"
+        if cardinal.endswith("neuf"):
+            return cardinal[:-1] + "vième"
+        if cardinal.endswith("e"):
+            cardinal = cardinal[:-1]
+        return cardinal + "ième"
 
 
 #: "quatre-vingts" and "cents" lose their plural -s directly before "mille".

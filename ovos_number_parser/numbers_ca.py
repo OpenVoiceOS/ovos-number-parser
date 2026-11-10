@@ -130,6 +130,7 @@ _CA = NumberVocabulary(
 
     NUMBER_OVERFLOW="número exageradament gran",
     DEFAULT_SCALE=Scale.LONG,  # 10^9 = "miliard", 10^12 = "bilió"
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["i"],
 
     JOINER_ON_TWENTYS=True,       # "vint i un" (hyphenated on output)
@@ -381,10 +382,11 @@ class CatalanNumberExtractor(RomanceNumberExtractor):
                          digits: DigitPronunciation = DigitPronunciation.DIGIT_BY_DIGIT,
                          gender: GrammaticalGender = GrammaticalGender.MASCULINE,
                          _force_hundreds_join: bool = False,
-                         _under_higher_scale: bool = False) -> str:
+                         _under_higher_scale: bool = False,
+                         _fraction_digits: bool = False) -> str:
         spoken = super().pronounce_number(number, places, scale, ordinals,
                                           digits, gender, _force_hundreds_join,
-                                          _under_higher_scale)
+                                          _under_higher_scale, _fraction_digits)
         return _hyphenate_ca(spoken)
 
 

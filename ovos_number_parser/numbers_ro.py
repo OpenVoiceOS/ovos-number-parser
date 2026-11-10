@@ -84,6 +84,8 @@ _RO = NumberVocabulary(
     NUMBER_OVERFLOW="număr exagerat de mare",
     # Romanian uses the long scale: milion 10^6, miliard 10^9, bilion 10^12
     DEFAULT_SCALE=Scale.LONG,
+    # "un milion de trilioane" is the largest compound over trilion
+    MAX_SCALE_COUNT=10 ** 9,
 
     # "și" joins tens to units and is the only joiner that is pronounced;
     # "de" links counts of twenty and above to their scale word

@@ -1,31 +1,36 @@
 """Scale words of cs, it, uk, the shared Romance engine and regional French.
 
 Every expected reading is composed in this file from the scale names of the
-language's own tables (cited in the pull request), with the count of each
-group read by ``pronounce_number`` below a thousand. The readings must also
-extract back to the same value.
+language's own tables and the agreement rules of its grammar (cited in the
+pull request), with the count of each group read by ``pronounce_number``
+below a thousand. The readings must also extract back to the same value.
 """
 import re
 import unittest
 
-from unicode_rbnf import RbnfEngine
+from unicode_rbnf import FormatPurpose, RbnfEngine
 
-from ovos_number_parser import (extract_number, pronounce_number,
+from ovos_number_parser import (GrammaticalGender, extract_number,
+                                numbers_to_digits, pronounce_number,
                                 _pronounce_bignum_fallback)
+from ovos_number_parser.numbers_it import pronounce_number_it
 
-#: Czech long scale (cs.wikipedia "Názvy velkých čísel")
+#: Czech long scale (cs.wikipedia "Desítková soustava", "Názvy velkých čísel")
 CS_LONG = ["tisíc", "milion", "miliarda", "bilion", "biliarda", "trilion",
            "triliarda", "kvadrilion", "kvadriliarda", "kvintilion",
            "kvintiliarda", "sextilion", "sextiliarda", "septilion",
            "septiliarda", "oktilion", "oktiliarda", "nonilion", "noniliarda",
-           "decilion", "deciliarda"]
+           "decilion", "deciliarda", "undecilion", "undeciliarda",
+           "duodecilion", "duodeciliarda", "tredecilion", "tredeciliarda",
+           "kvadrodecilion", "kvadrodeciliarda", "kvindecilion",
+           "kvindeciliarda", "sexdecilion", "sexdeciliarda"]
 
-#: Italian long scale (it.wikipedia "Scala lunga e scala corta"), singular
+#: Italian long scale, singular: it.wikipedia "Scala lunga e scala corta" to
+#: quadrilione, "Quadriliardo", "Quintilione", and "Ordini di grandezza
+#: (numeri)" for quintiliardo, sistilione and sistiliardo
 IT_LONG = ["mille", "milione", "miliardo", "bilione", "biliardo", "trilione",
            "triliardo", "quadrilione", "quadriliardo", "quintilione",
-           "quintiliardo", "sestilione", "sestiliardo", "settilione",
-           "settiliardo", "ottilione", "ottiliardo", "nonilione",
-           "noniliardo", "decilione", "deciliardo"]
+           "quintiliardo", "sistilione", "sistiliardo"]
 
 #: Ukrainian short scale (uk.wikipedia "Іменні назви степенів тисячі")
 UK_SHORT = ["тисяча", "мільйон", "мільярд", "трильйон", "квадрильйон",
@@ -43,16 +48,39 @@ UK_LONG = ["тисяча", "мільйон", "мільярд", "більйон",
            "децильйон", "децильярд"]
 
 
+def counted_cs(z, noun):
+    """``z`` of a Czech scale noun (Internetová jazyková příručka, "Počítaný
+    předmět po číslovkách"): 1-4 agree with the noun as adjectives ("jeden
+    milion", "dvě miliardy"), a compound ending in 2-4 agrees with its last
+    member, and 5 up and a compound ending in 1 take the genitive plural
+    ("pět milionů", "dvacet jedna milionů")."""
+    feminine = noun.endswith("a")
+    if z == 1:
+        return noun if noun == "tisíc" else \
+            ("jedna " if feminine else "jeden ") + noun
+    last_two = z % 100
+    if last_two % 10 in (2, 3, 4) and last_two // 10 != 1:
+        gender = GrammaticalGender.FEMININE if feminine \
+            else GrammaticalGender.MASCULINE
+        count = pronounce_number(z, "cs", gender=gender)
+        plural = {"tisíc": "tisíce"}.get(noun) or \
+            (noun[:-1] + "y" if feminine else noun + "y")
+    else:
+        count = pronounce_number(z, "cs")
+        plural = noun if noun == "tisíc" else \
+            (noun[:-1] if feminine else noun + "ů")
+    return f"{count} {plural}"
+
+
 def compose_cs(n):
-    """Czech long-scale reading: groups of three digits, largest first,
-    each count followed by the uninflected scale noun."""
+    """Czech long-scale reading: groups of three digits, largest first."""
     groups = []
     k = 0
     while n:
         n, z = divmod(n, 1000)
         if z:
-            word = pronounce_number(z, "cs")
-            groups.append(word if not k else f"{word} {CS_LONG[k - 1]}")
+            groups.append(pronounce_number(z, "cs") if not k
+                          else counted_cs(z, CS_LONG[k - 1]))
         k += 1
     return ", ".join(reversed(groups))
 
@@ -87,10 +115,27 @@ class TestCzechLongScale(unittest.TestCase):
             with self.subTest(power=3 * k):
                 self.assertEqual(pronounce_number(10 ** (3 * k), "cs"), name)
 
+    def test_dictionary_examples(self):
+        # SSČ "tři miliony korun", IJP "obchod za tři miliardy", SSJČ "pět
+        # miliard" and "dvacet sedm milionů", ASCS bilion "milion milionů"
+        for value, spoken in [(3 * 10 ** 6, "tři miliony"),
+                              (3 * 10 ** 9, "tři miliardy"),
+                              (5 * 10 ** 9, "pět miliard"),
+                              (27 * 10 ** 6, "dvacet sedm milionů"),
+                              (7 * 10 ** 12, "sedm bilionů"),
+                              (2 * 10 ** 12, "dva biliony"),
+                              (2 * 10 ** 9, "dvě miliardy"),
+                              (2000, "dva tisíce"), (5000, "pět tisíc")]:
+            with self.subTest(value=value):
+                self.assertEqual(pronounce_number(value, "cs"), spoken)
+                self.assertEqual(extract_number(spoken, "cs"), value)
+
     def test_composed_readings(self):
         values = [7 * 10 ** 9, 7 * 10 ** 12, 10 ** 16, 7 * 10 ** 15,
                   999999 * 10 ** 12, 2 * 10 ** 15 + 5, 1234567890,
-                  1234567890123, 1234567890123456789, 5 * 10 ** 60 + 3]
+                  1234567890123, 1234567890123456789, 5 * 10 ** 60 + 3,
+                  21 * 10 ** 6, 22 * 10 ** 9, 102 * 10 ** 6, 112 * 10 ** 12,
+                  2001, 22000, 7 * 10 ** 99]
         for value in values:
             with self.subTest(value=value):
                 self.assertEqual(pronounce_number(value, "cs"),
@@ -98,14 +143,20 @@ class TestCzechLongScale(unittest.TestCase):
 
     def test_round_trip(self):
         for value in [7 * 10 ** 12, 10 ** 16, 1234567890123456789,
-                      999999 * 10 ** 12, 7 * 10 ** 63]:
+                      999999 * 10 ** 12, 7 * 10 ** 63, 22 * 10 ** 9,
+                      21 * 10 ** 6, 2002000, 7 * 10 ** 99]:
             with self.subTest(value=value):
                 spoken = pronounce_number(value, "cs")
                 self.assertEqual(extract_number(spoken, "cs"), value)
 
+    def test_thousand_with_decimals(self):
+        digits = " ".join(pronounce_number(d, "cs") for d in (2, 5))
+        self.assertEqual(pronounce_number(1000.25, "cs"),
+                         f"{pronounce_number(1000, 'cs')} tečka {digits}")
+
     def test_past_the_table_reads_scientifically(self):
-        self.assertEqual(pronounce_number(10 ** 66, "cs"),
-                         pronounce_number(10 ** 66, "cs", scientific=True))
+        self.assertEqual(pronounce_number(10 ** 102, "cs"),
+                         pronounce_number(10 ** 102, "cs", scientific=True))
 
 
 class TestItalianLongScale(unittest.TestCase):
@@ -117,7 +168,7 @@ class TestItalianLongScale(unittest.TestCase):
 
     def test_composed_readings(self):
         values = [7 * 10 ** 9, 7 * 10 ** 12, 10 ** 16, 7 * 10 ** 15,
-                  10 ** 24, 999 * 10 ** 63, 2 * 10 ** 12 + 10 ** 6,
+                  10 ** 24, 999 * 10 ** 39, 2 * 10 ** 12 + 10 ** 6,
                   21 * 10 ** 15]
         for value in values:
             with self.subTest(value=value):
@@ -126,7 +177,7 @@ class TestItalianLongScale(unittest.TestCase):
 
     def test_round_trip(self):
         for value in [7 * 10 ** 12, 10 ** 15, 10 ** 24, 1234567890123456789,
-                      21 * 10 ** 15, 999 * 10 ** 63]:
+                      21 * 10 ** 15, 999 * 10 ** 39, 10 ** 36]:
             with self.subTest(value=value):
                 spoken = pronounce_number(value, "it")
                 self.assertEqual(extract_number(spoken, "it"), value)
@@ -138,8 +189,13 @@ class TestItalianLongScale(unittest.TestCase):
         self.assertEqual(extract_number("mille bilioni", "it"), 10 ** 15)
 
     def test_past_the_table_reads_scientifically(self):
-        spoken = pronounce_number(10 ** 66, "it")
-        self.assertEqual(spoken, _pronounce_bignum_fallback(10 ** 66, "it", 3))
+        for value in (10 ** 42, 7 * 10 ** 45, 10 ** 66, -10 ** 66):
+            with self.subTest(value=value):
+                self.assertEqual(pronounce_number(value, "it"),
+                                 pronounce_number(value, "it",
+                                                  scientific=True))
+                self.assertEqual(pronounce_number_it(value),
+                                 pronounce_number_it(value, scientific=True))
 
 
 class TestUkrainianScales(unittest.TestCase):
@@ -178,12 +234,20 @@ class TestUkrainianScales(unittest.TestCase):
     def test_long_only_word_reads_in_the_long_scale(self):
         self.assertEqual(extract_number("сім більярдів", "uk"), 7 * 10 ** 15)
 
+    def test_scale_is_decided_for_the_whole_text(self):
+        # with "більярд" anywhere in the text, "трильйон" is the long-scale
+        # 10 ** 18 wherever it stands
+        self.assertEqual(numbers_to_digits("трильйон і сім більярдів", "uk"),
+                         f"{10 ** 18} і {7 * 10 ** 15}")
+        self.assertEqual(numbers_to_digits("сім більярдів і трильйон", "uk"),
+                         f"{7 * 10 ** 15} і {10 ** 18}")
+
 
 class TestRomanceScalesDoNotStack(unittest.TestCase):
     #: (lang, first value past the largest scale word, last value read in
     #: words, the largest scale word in its plural)
     CASES = [
-        ("ro", 10 ** 24, 999999 * 10 ** 18, "trilioane"),
+        ("ro", 10 ** 27, 999999999 * 10 ** 18, "trilioane"),
         ("pt-BR", 10 ** 69, 999999 * 10 ** 63, "vigintilhões"),
         ("gl", 10 ** 400, None, None),
         ("es", 10 ** 42, 999999 * 10 ** 36, "sextillones"),
@@ -208,13 +272,39 @@ class TestRomanceScalesDoNotStack(unittest.TestCase):
                 self.assertEqual(pronounce_number(value, lang),
                                  _pronounce_bignum_fallback(value, lang, 3))
 
-    def test_largest_scale_word_appears_once(self):
-        for lang, _, last, word in self.CASES:
-            if last is None:
-                continue
+    def test_romanian_dictionary_compound(self):
+        # DN and MDN '00 cvadrilion, DEX '09 catralion: "un milion de
+        # trilioane"
+        self.assertEqual(pronounce_number(10 ** 24, "ro"),
+                         "un milion de trilioane")
+        self.assertEqual(pronounce_number(999999999 * 10 ** 18, "ro"),
+                         f"{pronounce_number(999999999, 'ro')} de trilioane")
+
+    def test_no_english_connective(self):
+        # ast, mwl and oc have no scientific reading of their own
+        for lang, value, word in (("ast", 10 ** 42, "sextillones"),
+                                  ("mwl", 10 ** 42, "sextiliones"),
+                                  ("oc", 10 ** 18, "bilions")):
             with self.subTest(lang=lang):
-                spoken = pronounce_number(last, lang)
-                self.assertEqual(spoken.split().count(word), 1, spoken)
+                spoken = pronounce_number(value, lang)
+                self.assertNotIn("times ten", spoken)
+                self.assertIn(word, spoken.split())
+
+    def test_decimal_digits_keep_their_reading(self):
+        # the digits after the comma read as a count of millions and the
+        # remainder that follows a million ("un millón ...")
+        for value, places, whole, high, low in (
+                (12.123456789012344, 15, 12, 123456789, 12344),
+                (0.1234567890123, 13, 0, 1234567, 890123),
+                (5.1234567890123, 13, 5, 1234567, 890123)):
+            with self.subTest(value=value):
+                after_million = pronounce_number(10 ** 6 + low, "an")
+                self.assertTrue(after_million.startswith("un millón "))
+                expected = (f"{pronounce_number(whole, 'an')} coma "
+                            f"{pronounce_number(high, 'an')} millones "
+                            f"{after_million[len('un millón '):]}")
+                self.assertEqual(pronounce_number(value, "an", places=places),
+                                 expected)
 
 
 class TestFrenchLargeFloats(unittest.TestCase):
@@ -278,13 +368,13 @@ class TestRegionalFrenchCardinals(unittest.TestCase):
                 with self.subTest(lang=lang, value=value):
                     self.assertEqual(pronounce_number(value, lang), expected)
 
-    def test_round_trip(self):
+    def test_regional_readings_round_trip(self):
         for lang in ("fr-BE", "fr-CH"):
-            for value in list(range(2000)) + [71000, 91000000]:
+            for value in [71, 90, 1979, 71000, 91000000, 197519]:
                 with self.subTest(lang=lang, value=value):
-                    self.assertEqual(
-                        extract_number(pronounce_number(value, lang), lang),
-                        value)
+                    spoken = pronounce_number(value, lang)
+                    self.assertNotEqual(spoken, pronounce_number(value, "fr"))
+                    self.assertEqual(extract_number(spoken, lang), value)
 
     def test_france_keeps_vigesimal_tens(self):
         for lang in ("fr", "fr-FR", "fr-CA"):
@@ -293,6 +383,52 @@ class TestRegionalFrenchCardinals(unittest.TestCase):
                                  "soixante-dix-sept")
                 self.assertEqual(pronounce_number(98, lang),
                                  "quatre-vingt-dix-huit")
+
+
+class TestRegionalFrenchOrdinals(unittest.TestCase):
+    def test_tens(self):
+        for lang, ordinals in (("fr-BE", {70: "septantième",
+                                          90: "nonantième"}),
+                               ("fr-CH", {70: "septantième",
+                                          80: "huitantième",
+                                          90: "nonantième"})):
+            for value, word in ordinals.items():
+                with self.subTest(lang=lang, value=value):
+                    self.assertEqual(
+                        pronounce_number(value, lang, ordinals=True), word)
+
+    def test_agrees_with_cldr(self):
+        # CLDR spellout-ordinal writes "-et-" after cent and quatre-vingt
+        # ("cent-et-unième", "quatre-vingt-et-unième") though its cardinal
+        # is "cent un"; the Académie française writes "cent trois" and forms
+        # the ordinal on the cardinal ("un trois-centième"). fr_BE also
+        # keeps its cardinal quirks ("quatre-vingt un", "quatre-vingts
+        # mille").
+        values = list(range(1, 2000)) + [71000, 80000, 91000000, 10 ** 6,
+                                         2 * 10 ** 6, 197519]
+        for locale, lang in (("fr_BE", "fr-BE"), ("fr_CH", "fr-CH")):
+            engine = RbnfEngine.for_language(locale)
+            for value in values:
+                expected = engine.format_number(
+                    value, FormatPurpose.ORDINAL).text_by_ruleset[
+                    "spellout-ordinal-masculine"]
+                expected = re.sub(r"\b(cent|mille)-et-(?=un|onz)", r"\1 ",
+                                  expected)
+                expected = expected.replace("quatre-vingt-et-", "quatre-vingt-")
+                expected = re.sub(r"quatre-vingt (?=\w+ième$)",
+                                  "quatre-vingt-", expected)
+                expected = expected.replace("quatre-vingts mill",
+                                            "quatre-vingt mill")
+                with self.subTest(lang=lang, value=value):
+                    self.assertEqual(
+                        pronounce_number(value, lang, ordinals=True), expected)
+
+    def test_feminine_first(self):
+        for lang in ("fr-BE", "fr-CH"):
+            with self.subTest(lang=lang):
+                self.assertEqual(pronounce_number(
+                    1, lang, ordinals=True,
+                    gender=GrammaticalGender.FEMININE), "première")
 
 
 if __name__ == "__main__":

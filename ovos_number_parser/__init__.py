@@ -959,10 +959,14 @@ def pronounce_number(number: Union[int, float], lang: str,
         # contract; every other language falls back to a spoken scientific
         # reading rather than crashing. An index or key error on an
         # ordinary-magnitude number keeps its original error so genuine bugs
-        # are not masked; an OverflowError is the signal of a table that
-        # ends below 10 ** 15.
-        if lang2 != "kab" and (abs(number) >= 10 ** 15
-                               or isinstance(error, OverflowError)):
+        # are not masked. An OverflowError from 10 ** 12 up is a whole part
+        # past the largest scale compound (a million millions at the
+        # smallest), read scientifically where the connective is localized.
+        if lang2 != "kab" and (
+                abs(number) >= 10 ** 15
+                or (isinstance(error, OverflowError)
+                    and abs(number) >= 10 ** 12
+                    and lang2 in _SCIENTIFIC_WORDS)):
             return _pronounce_bignum_fallback(number, lang, places)
         raise
     # A backend that does not raise past its scale table returns padded or

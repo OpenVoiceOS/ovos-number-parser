@@ -221,8 +221,8 @@ _FRACTION_STRING_IT = {
     20: 'ventesim'
 }
 
-#: Italian long scale: every power of a thousand from a million up has a
-#: name, the -iardo word being a thousand times the -ione word before it
+#: Italian long scale: every power of a thousand from a million to 10 ** 39
+#: has a name, the -iardo word being a thousand times the -ione word before it
 _LONG_SCALE_IT = collections.OrderedDict([
     (100, 'cento'),
     (1000, 'mila'),
@@ -236,16 +236,8 @@ _LONG_SCALE_IT = collections.OrderedDict([
     (10 ** 27, 'quadriliardi'),
     (10 ** 30, 'quintilioni'),
     (10 ** 33, 'quintiliardi'),
-    (10 ** 36, 'sestilioni'),
-    (10 ** 39, 'sestiliardi'),
-    (10 ** 42, 'settilioni'),
-    (10 ** 45, 'settiliardi'),
-    (10 ** 48, 'ottilioni'),
-    (10 ** 51, 'ottiliardi'),
-    (10 ** 54, 'nonilioni'),
-    (10 ** 57, 'noniliardi'),
-    (10 ** 60, 'decilioni'),
-    (10 ** 63, 'deciliardi'),
+    (10 ** 36, 'sistilioni'),
+    (10 ** 39, 'sistiliardi'),
 ])
 
 _SHORT_SCALE_IT = collections.OrderedDict([
@@ -442,11 +434,8 @@ _IT = NumberVocabulary(
                 10 ** 18: 'trilione', 10 ** 21: 'triliardo',
                 10 ** 24: 'quadrilione', 10 ** 27: 'quadriliardo',
                 10 ** 30: 'quintilione', 10 ** 33: 'quintiliardo',
-                10 ** 36: 'sestilione', 10 ** 39: 'sestiliardo',
-                10 ** 42: 'settilione', 10 ** 45: 'settiliardo',
-                10 ** 48: 'ottilione', 10 ** 51: 'ottiliardo',
-                10 ** 54: 'nonilione', 10 ** 57: 'noniliardo',
-                10 ** 60: 'decilione', 10 ** 63: 'deciliardo'},
+                10 ** 36: 'sistilione', 10 ** 39: 'sistiliardo',
+                10 ** 60: 'decilione'},
 
     GENDERED_SPELLINGS={GrammaticalGender.FEMININE: {1: 'una'}},
     DIGIT_SPELLINGS={},
@@ -777,7 +766,7 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
                     continue
                 plural = _LONG_SCALE_IT.get(1000 ** i)
                 if plural is None:
-                    raise OverflowError(f"no Italian name for 10 ** {3 * i}")
+                    return ""
                 # milione/miliardo are separate words, unlike the fused "mila":
                 # "un milione", "due milioni", "un miliardo" (Crusca allows the
                 # spaced form for these large scale words). The table holds
@@ -796,7 +785,12 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
         if short_scale:
             result += _short_scale(num)
         else:
-            result += _long_scale(num)
+            spoken = _long_scale(num)
+            # a magnitude with no spoken name reads scientifically
+            if not spoken and num >= 1000000:
+                return result + pronounce_number_it(num, places, short_scale,
+                                                    scientific=True)
+            result += spoken
 
     # normalizza unità misura singole e 'ragionevoli' ed ad inizio stringa
     if result == 'mila':

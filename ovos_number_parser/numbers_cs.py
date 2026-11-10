@@ -101,9 +101,21 @@ _LONG_SCALE_CS = OrderedDict([
     (10 ** 57, "noniliarda"),
     (10 ** 60, "decilion"),
     (10 ** 63, "deciliarda"),
+    (10 ** 66, "undecilion"),
+    (10 ** 69, "undeciliarda"),
+    (10 ** 72, "duodecilion"),
+    (10 ** 75, "duodeciliarda"),
+    (10 ** 78, "tredecilion"),
+    (10 ** 81, "tredeciliarda"),
+    (10 ** 84, "kvadrodecilion"),
+    (10 ** 87, "kvadrodeciliarda"),
+    (10 ** 90, "kvindecilion"),
+    (10 ** 93, "kvindeciliarda"),
+    (10 ** 96, "sexdecilion"),
+    (10 ** 99, "sexdeciliarda"),
     (10 ** 120, "vigintilion"),
     (10 ** 180, "trigintilion"),
-    (10 ** 303, "kvinkvagintiliarda"),
+    (10 ** 303, "kvingintiliarda"),
     (10 ** 600, "centilion"),
     (10 ** 603, "centiliarda")
 ])
@@ -288,9 +300,20 @@ _SCALE_DECLENSIONS_CS = {
     "tisíce": 1000
 }
 
+#: plural forms of the long-scale nouns: the nominative after 2-4
+#: ("dva miliony", "dvě miliardy") and the genitive after 5 and up
+#: ("pět milionů", "pět miliard")
+_LONG_SCALE_PLURALS_CS = {
+    form: value
+    for value, name in _LONG_SCALE_CS.items() if value >= 10 ** 6
+    for form in ((name + "y", name + "ů") if name.endswith("ion")
+                 else (name[:-1] + "y", name[:-1]))
+}
+
 _MULTIPLIES_LONG_SCALE_CS = set(_LONG_SCALE_CS.values()) | \
                             generate_plurals_cs(_LONG_SCALE_CS.values()) | \
-                            set(_SCALE_DECLENSIONS_CS)
+                            set(_SCALE_DECLENSIONS_CS) | \
+                            set(_LONG_SCALE_PLURALS_CS)
 
 _MULTIPLIES_SHORT_SCALE_CS = set(_SHORT_SCALE_CS.values()) | \
                              generate_plurals_cs(_SHORT_SCALE_CS.values()) | \
@@ -848,6 +871,8 @@ def _initialize_number_data(short_scale):
                            for value, word in string_num_scale_cs.items()}
     string_num_scale_cs.update(_SCALE_DECLENSIONS_CS)
     string_num_scale_cs.update(generate_plurals_cs(string_num_scale_cs))
+    if not short_scale:
+        string_num_scale_cs.update(_LONG_SCALE_PLURALS_CS)
     return multiplies, string_num_ordinal_cs, string_num_scale_cs
 
 
@@ -1207,6 +1232,8 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
                                 number += _SHORT_SCALE_CS[num] + "tý"
                             else:
                                 number = _SHORT_SCALE_CS[n] + "tý"
+                    elif i == 1:
+                        number = _counted(z, "tisíc")
                     else:
                         number += hundreds[i]
                 res.append(number)
@@ -1222,6 +1249,28 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
                 res.append(r)
             return res
 
+        def _counted(z, name):
+            """``z`` of the scale noun ``name``, in the form the count takes:
+            jeden/jedna, then the nominative plural after 2-4 and after a
+            compound ending in 2-4, else the genitive plural"""
+            feminine = name.endswith("a")
+            if z == 1:
+                if name == "tisíc":
+                    return name
+                return ("jedna " if feminine else "jeden ") + name
+            count = _sub_thousand(z)
+            if z % 10 in (2, 3, 4) and z % 100 // 10 != 1:
+                if feminine:
+                    *head, last = count.split(" ")
+                    count = " ".join(head + [_GENDERED_LAST_WORD_CS[
+                        GrammaticalGender.FEMININE].get(last, last)])
+                    return count + " " + name[:-1] + "y"
+                return count + " " + ("tisíce" if name == "tisíc"
+                                      else name + "y")
+            if feminine:
+                return count + " " + name[:-1]
+            return count + " " + (name if name == "tisíc" else name + "ů")
+
         def _long_scale(n):
             if n >= max(_LONG_SCALE_CS.keys()):
                 return ""
@@ -1232,16 +1281,16 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
             for i, z in enumerate(_split_by(n, 1000)):
                 if not z:
                     continue
-                number = _sub_thousand(z)
-                if i:
-                    if ordi:
-                        # _ordinal_cs found no ordinal name for this group
-                        raise OverflowError(f"no Czech ordinal for {n}")
-                    name = _LONG_SCALE_CS.get(1000 ** i)
-                    if name is None:
-                        return ""
-                    number += " " + name
-                res.append(number)
+                if not i:
+                    res.append(_sub_thousand(z))
+                    continue
+                if ordi:
+                    # _ordinal_cs found no ordinal name for this group
+                    raise OverflowError(f"no Czech ordinal for {n}")
+                name = _LONG_SCALE_CS.get(1000 ** i)
+                if name is None:
+                    return ""
+                res.append(_counted(z, name))
             return ", ".join(reversed(res))
 
         if short_scale:
