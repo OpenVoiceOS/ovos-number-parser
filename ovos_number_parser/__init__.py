@@ -1071,7 +1071,24 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     masculine cardinal also keeps it: the default ``spellout-numbering`` is the
     counting form, and the Maltese and Venetian masculine sets are the forms
     before a noun ("żewġ", "du") and not the bare number ("tnejn", "do").
+
+    A negative cardinal with a fraction is read as its magnitude with the
+    minus word of the same rule set, because the engine reads only the
+    integer part of a negative number (``int(-number)`` in
+    ``RbnfEngine.iter_format_number``). The minus word is the reading of -1
+    less the reading of 1, so it keeps the side and the spacing the rule set
+    gives it. A language whose reading of -1 does not hold the reading of 1
+    keeps the engine reading.
     """
+    if (not ordinals and math.isfinite(number) and number < 0
+            and number != int(number)):
+        minus_one = _pronounce_rbnf(-1, lang, False, gender)
+        one = _pronounce_rbnf(1, lang, False, gender)
+        magnitude = _pronounce_rbnf(-number, lang, False, gender)
+        if minus_one.endswith(one):
+            return minus_one[:-len(one)] + magnitude
+        if minus_one.startswith(one):
+            return magnitude + minus_one[len(one):]
     form = FormatPurpose.ORDINAL if ordinals else FormatPurpose.CARDINAL
     base = lang.split("-")[0]
     try:
