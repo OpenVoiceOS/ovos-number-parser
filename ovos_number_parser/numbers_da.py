@@ -4,7 +4,7 @@ from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
                                      ReplaceableNumber, Token, look_for_fractions,
-                                     GrammaticalGender)
+                                     GrammaticalGender, numeric_value)
 
 #: the last word of a whole number before a common-gender (FEMININE) or neuter
 #: noun (ICU RBNF da spellout-cardinal-common and -neuter: "hundrede og en",
@@ -693,10 +693,11 @@ def _extract_real_number_with_text_da(tokens, short_scale):
                 # a leading "minus" negates the whole magnitude even when the
                 # sign never reached the summed parts, as with a scaled group
                 # ("minus en million" -> the product is 1000000, not -1000000
-                # until the marker is reapplied here)
+                # until the marker is reapplied here); so does the sign of
+                # leading digits ("-12")
                 magnitude = sum(abs(part) for part in to_sum)
-                val = -magnitude if any(t.word in _NEGATIVES
-                                        for t in number_words) else magnitude
+                val = -magnitude if to_sum[0] < 0 or any(
+                    t.word in _NEGATIVES for t in number_words) else magnitude
 
             if number_words and (not all([w in _ARTICLES | _NEGATIVES
                                           | _NUMBER_CONNECTORS for w in words_only])
@@ -773,8 +774,8 @@ def _extract_real_number_with_text_da(tokens, short_scale):
         if not next_word and number_words:
             if to_sum:
                 magnitude = sum(abs(part) for part in to_sum)
-                val = -magnitude if any(t.word in _NEGATIVES
-                                        for t in number_words) else magnitude
+                val = -magnitude if to_sum[0] < 0 or any(
+                    t.word in _NEGATIVES for t in number_words) else magnitude
             else:
                 val = _val
 
@@ -839,10 +840,7 @@ def is_fractional_da(input_str, short_scale=False):
 
 def is_number_da(word: str):
     if is_numeric_da(word):
-        if word.isdigit():
-            return int(word)
-        else:
-            return float(word)
+        return numeric_value(word)
     elif word in _DA_NUMBERS:
         return _DA_NUMBERS.get(word)
     elif word in _STRING_LONG_SCALE:
@@ -864,7 +862,7 @@ def is_numeric_da(input_str):
     if input_str.endswith('.'):
         return False
     try:
-        float(input_str)
+        numeric_value(input_str)
         return True
     except ValueError:
         return False
@@ -976,7 +974,7 @@ def _fold_scale_groups_da(text):
             else:
                 val = is_number_da(w)
             if isinstance(val, (int, float)) and val is not True \
-                    and float(val).is_integer() and 0 <= val < 1000:
+                    and 0 <= val < 1000 and float(val).is_integer():
                 current += int(val)
                 saw = True
                 j += 1

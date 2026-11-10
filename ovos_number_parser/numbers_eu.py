@@ -1,5 +1,5 @@
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
-                                     is_numeric)
+                                     is_numeric, numeric_value)
 
 _NUM_STRING_EU = {
     "zero": 0,
@@ -522,14 +522,14 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
             idx += 1
             continue
 
-        if word.isdecimal():
+        if word.isdecimal() and is_numeric(word):
             current += int(word)
             got_number = True
             idx += 1
             continue
 
         if is_numeric(word):
-            result = float(word)
+            result = numeric_value(word)
             got_number = True
             idx += 1
             break
