@@ -15,9 +15,10 @@ import unittest
 
 from unicode_rbnf import FormatPurpose, RbnfEngine
 
-from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
-                                numbers_to_digits, pronounce_fraction,
-                                pronounce_number, pronounce_ordinal)
+from ovos_number_parser import (GrammaticalGender, extract_number,
+                                is_fractional, is_ordinal, numbers_to_digits,
+                                pronounce_fraction, pronounce_number,
+                                pronounce_ordinal)
 
 #: registry code -> the supported language whose module used to read it
 COLLIDING = {
@@ -37,6 +38,11 @@ NUMBERS = [0, 1, 2, 7, 21, 99, 100, 1234, 10 ** 6]
 
 def rbnf(locale, number, purpose):
     return RbnfEngine.for_language(locale).format_number(number, purpose).text
+
+
+def masculine_ordinal(locale, number):
+    return RbnfEngine.for_language(locale).format_number(
+        number, ruleset_names=["spellout-ordinal-masculine"]).text
 
 
 class TestCollidingCodes(unittest.TestCase):
@@ -79,6 +85,14 @@ class TestCollidingCodes(unittest.TestCase):
                 self.assertEqual(numbers_to_digits(f"x {spoken} y", code),
                                  f"x {spoken} y")
                 self.assertFalse(is_ordinal(pronounce_ordinal(3, other), code))
+
+    def test_fraction_does_not_borrow_a_module(self):
+        for code in COLLIDING:
+            if code in RBNF_LOCALES:
+                continue
+            with self.subTest(code=code):
+                with self.assertRaises(NotImplementedError):
+                    pronounce_fraction("1/2", code)
 
     def test_filipino_fraction_is_filipino(self):
         # numerator and ordinal denominator, both from the Filipino rules
@@ -164,6 +178,57 @@ class TestTagSpelling(unittest.TestCase):
                     self.assertEqual(
                         pronounce_number(number, tag),
                         rbnf(locale, number, FormatPurpose.CARDINAL))
+
+    def test_serbian_latin_is_the_cyrillic_reading_transliterated(self):
+        # Serbian Cyrillic and Latin letters map one to one (Wikipedia,
+        # "Serbian Cyrillic alphabet", table of the 30 letters and their Latin
+        # counterparts)
+        cyrillic = "абвгдђежзијклљмнњопрстћуфхцчџш"
+        latin = ["a", "b", "v", "g", "d", "đ", "e", "ž", "z", "i", "j", "k",
+                 "l", "lj", "m", "n", "nj", "o", "p", "r", "s", "t", "ć", "u",
+                 "f", "h", "c", "č", "dž", "š"]
+        to_latin = {ord(c): l for c, l in zip(cyrillic, latin)}
+        for gender in GrammaticalGender:
+            for number in list(range(1, 1001)) + [2002, 100001]:
+                with self.subTest(gender=gender, number=number):
+                    self.assertEqual(
+                        pronounce_ordinal(number, "sr-Latn", gender=gender),
+                        pronounce_ordinal(number, "sr", gender=gender)
+                        .translate(to_latin))
+
+    def test_serbian_latin_ordinal_recognised(self):
+        # the Cyrillic table is built first, so a table shared between "sr"
+        # and "sr-Latn" would miss the Latin form
+        self.assertEqual(is_ordinal("двадесет и први", "sr"), 21)
+        self.assertEqual(is_ordinal("dvadeset i prvi", "sr-Latn"), 21)
+
+    def test_regional_french_ordinals_recognised_leniently(self):
+        # fr-BE and fr-CH speak the regional CLDR ordinals and read both
+        # those and the forms of France
+        for tag, locale in [("fr-BE", "fr_BE"), ("fr-CH", "fr_CH")]:
+            for number in range(1, 101):
+                regional = masculine_ordinal(locale, number)
+                france = masculine_ordinal("fr", number)
+                with self.subTest(tag=tag, number=number):
+                    self.assertEqual(pronounce_ordinal(number, tag), regional)
+                    self.assertEqual(is_ordinal(regional, tag), number)
+                    self.assertEqual(is_ordinal(france, tag), number)
+        self.assertEqual(pronounce_ordinal(70, "fr-BE"), "septantième")
+        self.assertEqual(is_ordinal("soixante-dixième", "fr-BE"), 70)
+        self.assertEqual(is_ordinal("quatre-vingt-dixième", "fr-CH"), 90)
+
+    def test_complex_connectives_ignore_case(self):
+        for tag, same in [("RU", "ru"), ("De", "de"), ("ru_RU", "ru")]:
+            with self.subTest(tag=tag):
+                self.assertEqual(pronounce_number(complex(2, -3), tag),
+                                 pronounce_number(complex(2, -3), same))
+
+    def test_hungarian_hyphen_kept_with_region(self):
+        # "kétezer-ötszáz" is 2000 + 500; the hyphen marks the thousand
+        # boundary and must not turn into a space
+        for tag in ["hu", "hu-HU", "hu_HU", "HU"]:
+            with self.subTest(tag=tag):
+                self.assertEqual(extract_number("kétezer-ötszáz", tag), 2500)
 
     def test_region_branches_kept(self):
         # Brazilian Portuguese is short scale, European Portuguese long scale

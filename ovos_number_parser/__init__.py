@@ -259,8 +259,13 @@ def _pronounce_fraction_generic(fraction_word: str, lang: str) -> str:
 _ORDINAL_REVERSE_CACHE = {}
 
 
-def _is_ordinal_generic(input_str: str, lang: str):
-    """Fallback ordinal detection via reverse lookup over pronounce_ordinal."""
+def _ordinal_reverse_table(lang: str) -> dict:
+    """Spoken ordinal -> value for ``lang``, built from pronounce_ordinal.
+
+    A tag with a region or script subtag also knows the forms of its bare
+    language, so "fr-BE" reads "soixante-dixième" as well as the
+    "septantième" it speaks.
+    """
     if lang not in _ORDINAL_REVERSE_CACHE:
         table = {}
         candidates = list(range(1, 101)) + \
@@ -277,8 +282,17 @@ def _is_ordinal_generic(input_str: str, lang: str):
                 table.setdefault(word[:-1] + "o", n)
             elif word.endswith("o"):
                 table.setdefault(word[:-1] + "a", n)
+        base = _base_lang(lang)
+        if base != lang:
+            for word, n in _ordinal_reverse_table(base).items():
+                table.setdefault(word, n)
         _ORDINAL_REVERSE_CACHE[lang] = table
-    return _ORDINAL_REVERSE_CACHE[lang].get(input_str.lower().strip(), False)
+    return _ORDINAL_REVERSE_CACHE[lang]
+
+
+def _is_ordinal_generic(input_str: str, lang: str):
+    """Fallback ordinal detection via reverse lookup over pronounce_ordinal."""
+    return _ordinal_reverse_table(lang).get(input_str.lower().strip(), False)
 
 
 _WESTERN_DIGITS = "0123456789"
@@ -1090,6 +1104,17 @@ _RBNF_WORD_FIXES = {
 }
 
 
+#: characters the CLDR data writes in place of rule syntax, removed from every
+#: reading of the locale. The sr_Latn ordinal rules open with "‘" (U+2018)
+#: where sr has the ASCII apostrophe that makes the space after it part of the
+#: text, so "dvadeset‘ i prvi" is "dvadeset i prvi". The "‘" follows any
+#: hundreds word ("sto‘", "dvadesetsto‘", "hiljadusto‘"), so no word list
+#: covers it.
+_RBNF_CHARACTER_FIXES = {
+    "sr_Latn": str.maketrans("", "", "\u2018"),
+}
+
+
 #: the locales unicode_rbnf ships rules for: a bare language ("sr") or a
 #: language with a script or region subtag ("sr_Latn", "zh_Hant", "de_CH")
 _RBNF_LOCALES = frozenset(RbnfEngine.get_supported_languages())
@@ -1156,6 +1181,7 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
             text = engine.format_number(number, form).text
     except Exception as err:
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
+    text = text.translate(_RBNF_CHARACTER_FIXES.get(locale, {}))
     fixes = _RBNF_WORD_FIXES.get(locale, {})
     return " ".join(fixes.get(word, word) for word in text.split(" "))
 
