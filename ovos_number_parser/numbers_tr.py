@@ -22,6 +22,7 @@ short scale ("milyar" = 1e9). The decimal separator is spoken "virgül"
 the special words "yarım" (a standalone half), "buçuk" (a half after a
 number: "bir buçuk" = 1.5) and "çeyrek" (a quarter).
 """
+from decimal import Decimal
 import re
 from collections import OrderedDict
 
@@ -434,7 +435,7 @@ def pronounce_number_tr(number, places=2, short_scale=True, scientific=False,
         if abs(num) < 1.0 and (result == "eksi " or not result):
             result += "sıfır"
         result += " virgül"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
