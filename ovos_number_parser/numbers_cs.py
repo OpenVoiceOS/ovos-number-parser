@@ -81,31 +81,31 @@ _FRACTION_STRING_CS = {
 _LONG_SCALE_CS = OrderedDict([
     (100, 'sto'),
     (1000, 'tisíc'),
-    (1000000, 'milion'),
-    (1e9, "miliarda"),
-    (1e12, "bilion"),
-    (1e15, "biliarda"),
-    (1e18, "trilion"),
-    (1e21, "triliarda"),
-    (1e24, "kvadrilion"),
-    (1e27, "kvadriliarda"),
-    (1e30, "kvintilion"),
-    (1e33, "kvintiliarda"),
-    (1e36, "sextilion"),
-    (1e39, "sextiliarda"),
-    (1e42, "septilion"),
-    (1e45, "septiliarda"),
-    (1e48, "oktilion"),
-    (1e51, "oktiliarda"),
-    (1e54, "nonilion"),
-    (1e57, "noniliarda"),
-    (1e60, "decilion"),
-    (1e63, "deciliarda"),
-    (1e120, "vigintilion"),
-    (1e180, "trigintilion"),
-    (1e303, "kvinkvagintiliarda"),
-    (1e600, "centilion"),
-    (1e603, "centiliarda")
+    (10 ** 6, 'milion'),
+    (10 ** 9, "miliarda"),
+    (10 ** 12, "bilion"),
+    (10 ** 15, "biliarda"),
+    (10 ** 18, "trilion"),
+    (10 ** 21, "triliarda"),
+    (10 ** 24, "kvadrilion"),
+    (10 ** 27, "kvadriliarda"),
+    (10 ** 30, "kvintilion"),
+    (10 ** 33, "kvintiliarda"),
+    (10 ** 36, "sextilion"),
+    (10 ** 39, "sextiliarda"),
+    (10 ** 42, "septilion"),
+    (10 ** 45, "septiliarda"),
+    (10 ** 48, "oktilion"),
+    (10 ** 51, "oktiliarda"),
+    (10 ** 54, "nonilion"),
+    (10 ** 57, "noniliarda"),
+    (10 ** 60, "decilion"),
+    (10 ** 63, "deciliarda"),
+    (10 ** 120, "vigintilion"),
+    (10 ** 180, "trigintilion"),
+    (10 ** 303, "kvinkvagintiliarda"),
+    (10 ** 600, "centilion"),
+    (10 ** 603, "centiliarda")
 ])
 
 _SHORT_SCALE_CS = OrderedDict([
@@ -1225,44 +1225,22 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
         def _long_scale(n):
             if n >= max(_LONG_SCALE_CS.keys()):
                 return ""
-            ordi = ordinals
-            if int(n) != n:
-                ordi = False
+            ordi = ordinals and int(n) == n
             n = int(n)
             assert 0 <= n
             res = []
-            for i, z in enumerate(_split_by(n, 1000000)):
+            for i, z in enumerate(_split_by(n, 1000)):
                 if not z:
                     continue
-                number = pronounce_number_cs(z, places, True, scientific,
-                                             ordinals=ordi and not i)
-                # strip off the comma after the thousand
+                number = _sub_thousand(z)
                 if i:
-                    if i >= len(hundreds):
-                        return ""
-                    # plus one as we skip 'thousand'
-                    # (and 'hundred', but this is excluded by index value)
-                    number = number.replace(',', '')
-
                     if ordi:
-                        if i * 1000000 in _LONG_ORDINAL_CS:
-                            if z == 1:
-                                number = _LONG_ORDINAL_CS[
-                                    (i + 1) * 1000000]
-                            else:
-                                number += _LONG_ORDINAL_CS[
-                                    (i + 1) * 1000000]
-                        else:
-                            if n not in _LONG_SCALE_CS:
-                                num = int("1" + "0" * (len(str(n)) - 2))
-
-                                number += " " + _LONG_SCALE_CS[
-                                    num] + "tý"
-                            else:
-                                number = " " + _LONG_SCALE_CS[n] + "tý"
-                    else:
-
-                        number += " " + hundreds[i + 1]
+                        # _ordinal_cs found no ordinal name for this group
+                        raise OverflowError(f"no Czech ordinal for {n}")
+                    name = _LONG_SCALE_CS.get(1000 ** i)
+                    if name is None:
+                        return ""
+                    number += " " + name
                 res.append(number)
             return ", ".join(reversed(res))
 

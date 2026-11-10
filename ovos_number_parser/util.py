@@ -935,6 +935,11 @@ class RomanceNumberExtractor:
 
         count = n // scale_val[0]
         remainder = n % scale_val[0]
+        # a count of a million or more would stack two scale words of a
+        # million or more ("trilioane de trilioane"): the number is past the
+        # largest scale word the language names
+        if count >= 10 ** 6:
+            raise OverflowError(f"no scale word for {n}")
 
         # Pronounce the 'count' part of the number
         is_singular = count == 1 or scale_val[0] in self.vocab.NO_PLURAL

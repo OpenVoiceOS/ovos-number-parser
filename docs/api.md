@@ -50,6 +50,12 @@ Convert a numeric value to its spoken form.
 - `gender`: `GrammaticalGender` enum for languages whose numerals inflect
   (e.g. Portuguese `"uma hora"` vs `"um minuto"`).
 
+A number past the largest scale word a language names is read in scientific
+form (`pronounce_number(10 ** 100, "ro")` gives
+`"unu virgulă zero ori zece la puterea o sută"`). Belgian and Swiss French
+(`fr-BE`, `fr-CH`) read 70 and 90 as `septante` and `nonante`; Swiss French
+also reads 80 as `huitante`.
+
 ## `pronounce_ordinal(number, lang, short_scale=True, gender=...)`
 
 Spoken ordinal form (`1 -> "first"`). Languages without a handwritten
