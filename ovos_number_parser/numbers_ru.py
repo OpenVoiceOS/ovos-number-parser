@@ -668,7 +668,7 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
         if abs(num) < 1.0 and (result == "минус " or not result):
             result += "ноль"
         result += " точка"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]

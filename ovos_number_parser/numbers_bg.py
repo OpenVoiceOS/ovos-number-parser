@@ -25,6 +25,7 @@ tens ("единайсет", "двайсет", "трийсет", "четирий�
 when parsing, but pronunciation always produces the full standard forms
 ("единадесет", "двадесет", "тридесет", "четиридесет", "шестдесет").
 """
+from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
@@ -434,7 +435,7 @@ def pronounce_number_bg(number, places=2, short_scale=True, scientific=False,
     # deal with fractional part
     if not num == int(num) and places > 0:
         result += " запетая"
-        _num_str = str(num).split(".")[1][0:places]
+        _num_str = f"{Decimal(str(num)):f}".split(".")[1][0:places]
         for char in _num_str:
             result += " " + _NUM_STRING_BG[int(char)]
     return result
