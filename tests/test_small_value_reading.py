@@ -3,7 +3,8 @@
 French read such a value as the raw numeral "1e-05". Hungarian left the
 numerator out when it rounds to zero and had no denominator past five
 places. At places=0, a value below one read as an empty string in az, cs,
-da, hr, it, pl, sk, sl, tr and uk. The Unicode RBNF fallback raised for a value below 1e-6, because
+da, hr, it, pl, sk, sl, tr and uk. A negative value whose reading is the
+zero word alone keeps no minus word, since no digit follows it. The Unicode RBNF fallback raised for a value below 1e-6, because
 ``unicode_rbnf`` splits the fraction from ``str(Decimal)``, which writes
 "1E-7". Each expected reading is composed from readings that do not pass
 through the changed code: integer readings, and for RBNF the engine's own
@@ -83,13 +84,34 @@ _ZERO_AT_NO_PLACES = ("az", "cs", "da", "hr", "it", "pl", "sk", "sl", "tr",
                       "uk")
 
 
+#: languages whose reading of a negative value below the rounding quantum
+#: is the zero word alone, with the places that give that reading
+_ZERO_ALONE = [(lang, 0) for lang in (
+    "ar", "az", "bg", "cs", "da", "de", "el", "et", "eu", "fa", "fi", "fil",
+    "fy", "he", "hr", "hu", "id", "it", "ms", "nb", "nl", "nn", "pl", "sk",
+    "sl", "sv", "tr", "uk")] + [(lang, 3) for lang in (
+    "ar", "el", "eu", "fa", "he")]
+
+
 @pytest.mark.parametrize("lang", _ZERO_AT_NO_PLACES)
 @pytest.mark.parametrize("value", [1e-05, 1e-07, 0.4])
 def test_value_below_one_at_no_places_reads_zero(lang, value):
-    zero = pronounce_number(0, lang)
-    minus = pronounce_number(-1, lang).rsplit(" ", 1)[0]
-    assert pronounce_number(value, lang, places=0) == zero
-    assert pronounce_number(-value, lang, places=0) == minus + " " + zero
+    assert pronounce_number(value, lang, places=0) == pronounce_number(0, lang)
+
+
+@pytest.mark.parametrize("lang, places, value", [
+    (lang, places, value) for lang, places in _ZERO_ALONE
+    for value in (-1e-05, -1e-07, -0.0004) + ((-0.4,) if places == 0 else ())])
+def test_negative_value_read_as_zero_has_no_minus_word(lang, places, value):
+    assert pronounce_number(value, lang, places=places) == \
+        pronounce_number(0, lang)
+
+
+@pytest.mark.parametrize("lang", ("ar", "de", "en", "es", "hu", "af"))
+def test_negative_value_keeps_minus_word_before_digits(lang):
+    minus = pronounce_number(-1, lang).split(pronounce_number(1, lang))[0]
+    assert pronounce_number(-1e-05, lang, places=5) == \
+        minus + pronounce_number(1e-05, lang, places=5)
 
 
 def _rbnf(lang, number):
