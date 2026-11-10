@@ -1,14 +1,5 @@
 # Changelog
 
-## [0.24.13a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.13a1) (2026-11-10)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.12a1...0.24.13a1)
-
-**Merged pull requests:**
-
-- fix: read fractions below 1e-4 without the exponent string [\#404](https://github.com/OpenVoiceOS/ovos-number-parser/pull/404) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix: read fractional digits from the decimal string in da/de/fy/nb/nn/nl/sv [\#402](https://github.com/OpenVoiceOS/ovos-number-parser/pull/402) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.12a1) (2026-11-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.11a1...0.24.12a1)
