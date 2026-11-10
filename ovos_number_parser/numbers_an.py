@@ -41,6 +41,7 @@ _AN = NumberVocabulary(
 
     NUMBER_OVERFLOW="numero exageradament gran",
     DEFAULT_SCALE=Scale.LONG,
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["y"],
 
     JOINER_ON_TWENTYS=True,  # 21-29 have fused spellings, joiner kept for extraction
