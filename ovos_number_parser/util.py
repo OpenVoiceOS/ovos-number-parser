@@ -216,6 +216,24 @@ def exact_int(value: Any) -> Any:
     return value
 
 
+def exact_sum(values: List[Union[int, float]]) -> float:
+    """
+    Add numbers as the decimals their literals spell.
+
+    Spoken decimal digits are summed one place at a time ("eins Komma eins
+    vier" is 1 + 0.1 + 0.04), and float addition gives 1.1400000000000001.
+    ``repr`` keeps the written digits of each part, so the sum is exact
+    before it becomes a float.
+
+    Args:
+        values: the parts of one number
+
+    Returns:
+        float nearest to the exact sum
+    """
+    return float(sum(Decimal(repr(value)) for value in values))
+
+
 def is_numeric(input_str: str) -> bool:
     """
     Return True if the input string represents a valid number, otherwise False.
@@ -592,7 +610,8 @@ class RomanceNumberExtractor:
 
         # a digit token wins if it appears before any spoken number word
         group = self.vocab.DIGIT_GROUP_MARK
-        grouped = re.compile(rf"-?\d{{1,3}}(?:{re.escape(group)}\d{{3}})+(?:,\d+)?")
+        # a group number never starts with 0 ("0.500" is a decimal)
+        grouped = re.compile(rf"-?[1-9]\d{{0,2}}(?:{re.escape(group)}\d{{3}})+(?:,\d+)?")
         for tok in tokens:
             t = tok.strip(".,!?;:")
             if group and grouped.fullmatch(t):
@@ -769,13 +788,16 @@ class RomanceNumberExtractor:
         """
         scale = scale or self.vocab.DEFAULT_SCALE
         numbers_map = self.vocab.get_number_strings(scale)
-        # a hyphen chain of number words and joiners is one spoken number
-        # ("vinte-e-dois"); other hyphenated words keep their hyphens
+        # a hyphen chain of number words around a joiner is one spoken
+        # number ("vinte-e-dois"); without a joiner it is a range
+        # ("doi-trei"), and other hyphenated words keep their hyphens
+        joiners = set(self.vocab.JOIN_WORD) - set(self.vocab.MULTIPLICATIVE_JOIN_WORD)
         utterance = re.sub(
             r"[^\W\d_]+(?:-[^\W\d_]+)+",
             lambda m: m.group().replace("-", " ") if all(
-                w in numbers_map or w in self.vocab.JOIN_WORD
-                for w in m.group().split("-")) else m.group(),
+                w in numbers_map or w in joiners
+                for w in m.group().split("-"))
+            and joiners & set(m.group().split("-")) else m.group(),
             utterance)
         words = word_tokenize(utterance)
         output = []

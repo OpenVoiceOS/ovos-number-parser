@@ -28,7 +28,7 @@ from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
                                      ReplaceableNumber, Token, look_for_fractions,
-                                     GrammaticalGender, numeric_value)
+                                     GrammaticalGender, numeric_value, exact_sum)
 
 # indefinite articles are homographs of "one"
 _ARTICLES_NB = {'en', 'ei', 'et', 'ett'}
@@ -500,7 +500,12 @@ def _expand_compound_numbers(text, t):
             elif v is not None and (prev_was_scale or span_len == 0):
                 current += v
                 prev_was_scale = False
-            elif w == 'og' and j + 1 < len(expanded) and span_len:
+            elif w == 'og' and j + 1 < len(expanded) and span_len \
+                    and total + current >= 100 and not (
+                        j + 2 < len(expanded)
+                        and _is_fractional(expanded[j + 2], t)):
+                # "og" adds a smaller number after a hundred or a scale
+                # word; "hundre og en halv" is 100.5, not 101 halves
                 nxt = _int_value(expanded[j + 1])
                 if nxt is not None and nxt < (total + current):
                     j += 1
@@ -616,7 +621,11 @@ def _extract_real_number_with_text(tokens, t):
             if _val is not None:
                 to_sum.append(_val)
             if to_sum:
-                if to_sum[0] < 0:
+                if _comma and len(to_sum) > 1:
+                    # spoken decimal digits add without float error
+                    val = -exact_sum([-to_sum[0]] + to_sum[1:]) \
+                        if to_sum[0] < 0 else exact_sum(to_sum)
+                elif to_sum[0] < 0:
                     val = to_sum[0] - sum(to_sum[1:])
                 else:
                     val = sum(to_sum)
@@ -624,6 +633,11 @@ def _extract_real_number_with_text(tokens, t):
             if number_words and (not all([w in t.articles | t.negatives
                                           | t.connectors for w in words_only])
                                  or str(val) == number_words[-1].word):
+                # "og" before a word that is no number stays text
+                # ("hundre og femte")
+                while number_words and \
+                        number_words[-1].word in t.connectors | t.comma:
+                    number_words.pop()
                 break
             else:
                 number_words.clear()
@@ -648,28 +662,39 @@ def _extract_real_number_with_text(tokens, t):
             _val = 0 - _current_val
 
         # is the prev word a number and should we multiply it?
-        if _prev_val is not None and (word in t.scale or word in t.articles):
+        if _prev_val is not None and (word in t.scale or (
+                word in t.articles and not _is_fractional(prev_word, t))):
             to_sum.append(_prev_val * _current_val or _current_val)
             _val = _current_val = None
 
         _fraction_val = _is_fractional(word, t)
+        # a plural fraction counts the number before it: "to tredjedeler"
+        # is 2/3
+        _plural_of = word[:-len(t.fraction_plural_suffix)] \
+            if word.endswith(t.fraction_plural_suffix) else None
         if _fraction_val:
             if _prev_val is not None and prev_word not in t.articles and \
-                    word not in t.string_fraction:  # compound fraction word
+                    word not in t.string_fraction and \
+                    _plural_of not in t.string_fraction:
+                # compound fraction word
                 _val = _prev_val + _fraction_val
                 if prev_word not in t.connectors and \
                         tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])
             elif _prev_val is not None:
-                _val = _prev_val * _fraction_val
+                _val = _prev_val / t.string_fraction[_plural_of] \
+                    if _plural_of in t.string_fraction \
+                    else _prev_val * _fraction_val
                 if tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])
             else:
                 _val = _fraction_val
             _current_val = _val
 
-        # directly following numbers without relation
-        if (_is_numeric(prev_word) or prev_word in t.string_num) \
+        # directly following numbers without relation; "halv tre" is a
+        # clock time, not one number
+        if (_is_numeric(prev_word) or prev_word in t.string_num
+                or _is_fractional(prev_word, t)) \
                 and not _fraction_val and not _is_fractional(next_word, t) \
                 and not to_sum:
             val = _prev_val
@@ -690,7 +715,10 @@ def _extract_real_number_with_text(tokens, t):
         if not next_word and number_words:
             _negative = any(_tok.word.lower() in t.negatives
                             for _tok in number_words)
-            if to_sum and to_sum[0] < 0:
+            if _comma and len(to_sum) > 1:
+                val = -exact_sum([-to_sum[0]] + to_sum[1:]) \
+                    if to_sum[0] < 0 else exact_sum(to_sum)
+            elif to_sum and to_sum[0] < 0:
                 val = to_sum[0] - sum(to_sum[1:])
             else:
                 val = sum(to_sum) if to_sum else _val
@@ -698,6 +726,13 @@ def _extract_real_number_with_text(tokens, t):
             # neither the value nor to_sum[0]; recover it from the minus token
             if _negative and isinstance(val, (int, float)) and val > 0:
                 val = -val
+
+    # a line that ends in "og" or "komma" ("tre og") keeps the word as text
+    while number_words and number_words[-1].word in t.connectors | t.comma:
+        number_words.pop()
+        if val is None and to_sum:
+            val = to_sum[0] - sum(to_sum[1:]) if to_sum[0] < 0 \
+                else sum(to_sum)
 
     return val, number_words
 

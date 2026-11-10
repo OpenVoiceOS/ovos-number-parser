@@ -3,7 +3,7 @@ from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, ReplaceableNumber, Token,
-                                     look_for_fractions, GrammaticalGender, numeric_value)
+                                     look_for_fractions, GrammaticalGender, numeric_value, exact_sum)
 
 #: the final 1 of a whole number before a feminine or neuter noun (ICU RBNF de
 #: spellout-cardinal-feminine and -neuter: "eine", "einhunderteine", "ein").
@@ -456,8 +456,20 @@ def numbers_to_digits_de(text, short_scale=False,
         The original text, with numbers subbed in where appropriate.
     """
     tokens = tokenize(_expand_compound_numbers_de(text))
-    # nouns such as "Millionen" are capitalised, the number words are not
-    lowered = [Token(token.word.lower(), token.index) for token in tokens]
+    # the nouns "Millionen" and "Komma" are capitalised; a scale noun reads
+    # as a number only after a count ("zwölf Millionen", not "Millionen
+    # Menschen"), and "Komma" only between two numbers
+    lowered = []
+    for idx, token in enumerate(tokens):
+        word = token.word.lower()
+        after_number = bool(lowered) and \
+            is_number_de(lowered[-1].word) is not None
+        if after_number and (
+                _STRING_LONG_SCALE.get(word, 0) >= 10 ** 6
+                or word in _COMMA and idx + 1 < len(tokens)
+                and is_number_de(tokens[idx + 1].word) is not None):
+            token = Token(word, token.index)
+        lowered.append(token)
     numbers_to_replace = \
         _extract_numbers_with_text_de(lowered, short_scale, ordinals, fractions)
     numbers_to_replace.sort(key=lambda number: number.start_index)
@@ -612,7 +624,11 @@ def _extract_real_number_with_text_de(tokens, short_scale):
             if _val is not None:
                 to_sum.append(_val)
             if to_sum:
-                if to_sum[0] < 0:
+                if _comma and len(to_sum) > 1:
+                    # spoken decimal digits add without float error
+                    val = -exact_sum([-to_sum[0]] + to_sum[1:]) \
+                        if to_sum[0] < 0 else exact_sum(to_sum)
+                elif to_sum[0] < 0:
                     val = to_sum[0] - sum(to_sum[1:])
                 else:
                     val = sum(to_sum)
@@ -720,7 +736,10 @@ def _extract_real_number_with_text_de(tokens, short_scale):
 
         if not next_word and number_words:
             _negative = any(t.word.lower() in _NEGATIVES for t in number_words)
-            if to_sum and to_sum[0] < 0:
+            if _comma and len(to_sum) > 1:
+                val = -exact_sum([-to_sum[0]] + to_sum[1:]) \
+                    if to_sum[0] < 0 else exact_sum(to_sum)
+            elif to_sum and to_sum[0] < 0:
                 # negated number: components extend the magnitude
                 val = to_sum[0] - sum(to_sum[1:])
             else:

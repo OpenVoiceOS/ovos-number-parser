@@ -885,6 +885,12 @@ def _extract_decimal_with_text_en(tokens, short_scale, ordinals):
 
             number = numbers1[-1]
             decimal = numbers2[0]
+            # the digits sit directly around the marker; "at one point there
+            # were two million users" holds no decimal
+            marker = partitions[1][0].index
+            if number.end_index != marker - 1 \
+                    or decimal.start_index != marker + 1:
+                return None, None
             scale_words = _initialize_number_data_en(short_scale)[2]
             # concatenate consecutive single digits after the marker
             # ("point one four" -> .14). A scale word that ends the reading
@@ -899,10 +905,15 @@ def _extract_decimal_with_text_en(tokens, short_scale, ordinals):
                     break
                 if _prev_end is not None and _num.start_index != _prev_end + 1:
                     break
-                _num_scale = scale_words.get(_num.tokens[-1].word.lower(), 1) \
-                    if len(_num.tokens) > 1 else 1
-                if _num_scale < 1000 or not math.isfinite(_num_scale) \
-                        or _v % _num_scale:
+                # the scale words that end the reading multiply together
+                # ("five thousand million")
+                _num_scale = 1
+                for _tok in reversed(_num.tokens[1:]):
+                    _word_scale = scale_words.get(_tok.word.lower(), 1)
+                    if _word_scale < 1000 or not math.isfinite(_word_scale):
+                        break
+                    _num_scale *= _word_scale
+                if _v % _num_scale:
                     _num_scale = 1
                 if not 0 <= _v // _num_scale <= 9:
                     if not _digits and _num_scale > 1:

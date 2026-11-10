@@ -4,11 +4,14 @@ Every expected value is integer arithmetic, a float literal of the same
 digits, or the reading of an independently computed number by
 pronounce_number, never the output of the extractor under test.
 """
+import re
 import unittest
 from decimal import Decimal
+from fractions import Fraction
 
 from ovos_number_parser import (extract_number, is_fractional,
                                 numbers_to_digits, pronounce_number)
+from ovos_number_parser.util import Scale
 
 
 class TestEnglishDecimalBeforeScale(unittest.TestCase):
@@ -39,6 +42,16 @@ class TestEnglishDecimalBeforeScale(unittest.TestCase):
         self.assertEqual(extract_number("one point one four", "en"), 1.14)
         self.assertEqual(extract_number("one point five", "en"), 1.5)
 
+    def test_scale_words_multiply_together(self):
+        self.assertEqual(extract_number("one point five thousand million",
+                                        "en"), 15 * 10 ** 8)
+
+    def test_point_needs_digits_directly_after_it(self):
+        text = "at one point there were two million users"
+        self.assertEqual(numbers_to_digits(text, "en"),
+                         f"at 1 point there were {2 * 10 ** 6} users")
+        self.assertEqual(extract_number(text, "en"), 1)
+
 
 class TestGermanSpacedHundreds(unittest.TestCase):
     def test_hundreds_after_a_scale_word(self):
@@ -59,12 +72,26 @@ class TestGermanSpacedHundreds(unittest.TestCase):
             with self.subTest(spoken=spoken):
                 self.assertEqual(numbers_to_digits(spoken, "de"), str(x))
         self.assertEqual(numbers_to_digits(
-            "Zwölf Millionen dreihundert fünfundvierzig Euro", "de"),
-            f"{12 * 10 ** 6 + 345} Euro")
+            "er zahlte zwölf Millionen dreihundert fünfundvierzig Euro",
+            "de"), f"er zahlte {12 * 10 ** 6 + 345} Euro")
+
+    def test_capitalised_nouns_without_a_count_stay_text(self):
+        for text in ("Er hat es außer Acht gelassen", "Nimm dich in Acht",
+                     "Der Elf Legolas", "Tausend Dank",
+                     "Millionen Menschen protestierten"):
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, "de"), text)
 
     def test_clock_time_keeps_its_rewrite(self):
         self.assertEqual(numbers_to_digits("um 07.30 Uhr", "de"),
                          "um 07:30 Uhr")
+
+    def test_decimal_digits_are_exact(self):
+        for text in ("eins komma eins vier null", "eins Komma eins vier null"):
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, "de"), "1.14")
+        self.assertEqual(extract_number("minus eins komma eins vier", "de"),
+                         -1.14)
 
 
 class TestDigitGroups(unittest.TestCase):
@@ -98,6 +125,27 @@ class TestDigitGroups(unittest.TestCase):
             with self.subTest(lang=lang):
                 self.assertEqual(extract_number("3.14159", lang), 3.14159)
                 self.assertEqual(extract_number("1.5", lang), 1.5)
+
+    def test_a_group_never_starts_with_zero(self):
+        for lang in self.GROUPED:
+            for text, expected in (("0.500", 0.5), ("-0.500", -0.5),
+                                   ("0.050", 0.05), ("1.5", 1.5),
+                                   ("12.000", 12000),
+                                   ("1.234.567", 1234567)):
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(extract_number(text, lang), expected)
+        for lang in ("it", "ca"):
+            with self.subTest(lang=lang):
+                self.assertEqual(numbers_to_digits("0.500", lang), "0.5")
+        self.assertEqual(extract_number("0,500", "ms"), 0.5)
+
+    def test_commas_that_are_no_group_separate_numbers(self):
+        for lang in ("id", "ms"):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number("1,2,3", lang), 1)
+        self.assertEqual(extract_number("12,000,000", "id"), 12)
+        self.assertEqual(extract_number("12,000,000", "ms"), 12 * 10 ** 6)
+        self.assertEqual(extract_number("100,000.25", "id"), 100)
 
 
 class TestRomanceDecimalAboveFloatPrecision(unittest.TestCase):
@@ -138,6 +186,15 @@ class TestHyphenatedRomanceNumbers(unittest.TestCase):
         self.assertEqual(numbers_to_digits("vinte-e-dois gatos", "pt"),
                          "22 gatos")
 
+    def test_a_chain_without_a_joiner_is_no_sum(self):
+        for lang, text, numbers in (("ro", "au venit doi-trei oameni", [2, 3]),
+                                    ("ro", "vreo cinci-șase zile", []),
+                                    ("pt", "zero-zero", [0, 0]),
+                                    ("pt", "cinco-cinco", [5, 5])):
+            with self.subTest(lang=lang, text=text):
+                digits = re.findall(r"\d+", numbers_to_digits(text, lang))
+                self.assertEqual([int(d) for d in digits], numbers)
+
 
 class TestHungarianDecimalRoundTrip(unittest.TestCase):
     def test_every_denominator(self):
@@ -176,6 +233,16 @@ class TestSlavicPluralScaleWords(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(extract_number(text, "cs"), expected)
 
+    def test_czech_short_scale(self):
+        # "milion" and "miliarda" have one value in both scales
+        for text, expected in (("dvanáct milionů", 12 * 10 ** 6),
+                               ("dvě miliardy", 2 * 10 ** 9)):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "cs",
+                                                scale=Scale.SHORT), expected)
+                self.assertEqual(extract_number(text, "cs", ordinals=True),
+                                 expected)
+
     def test_slovak(self):
         cases = [("dvanásť triliónov", 12 * 10 ** 18),
                  ("tri trilióny", 3 * 10 ** 18),
@@ -203,6 +270,24 @@ class TestScaleAfterScaleRoundTrip(unittest.TestCase):
                 with self.subTest(lang=lang, spoken=spoken):
                     self.assertEqual(extract_number(spoken, lang), x)
 
+    def test_romance_scale_after_scale(self):
+        cases = [("es", "doce millones de billones", 12 * 10 ** 6 * 10 ** 12),
+                 ("pt", "doze milhões de biliões", 12 * 10 ** 6 * 10 ** 12),
+                 ("ca", "dotze milions de bilions", 12 * 10 ** 6 * 10 ** 12),
+                 ("it", "dodici milioni di miliardi", 12 * 10 ** 6 * 10 ** 9)]
+        for lang, text, expected in cases:
+            with self.subTest(lang=lang, text=text):
+                self.assertEqual(extract_number(text, lang), expected)
+
+    def test_and_adds_a_larger_scale(self):
+        # "و" and "ו" join two numbers by addition
+        cases = [("ar", "ألفان ومليون", 2 * 1000 + 10 ** 6),
+                 ("ar", "خمسة آلاف ومليون", 5 * 1000 + 10 ** 6),
+                 ("he", "אלפיים ומיליון", 2 * 1000 + 10 ** 6)]
+        for lang, text, expected in cases:
+            with self.subTest(lang=lang, text=text):
+                self.assertEqual(extract_number(text, lang), expected)
+
     def test_romance_scale_groups_unchanged(self):
         cases = [("pt", "mil milhões", 10 ** 9),
                  ("pt", "dois mil milhões trezentos mil", 2 * 10 ** 9 + 300000),
@@ -224,6 +309,51 @@ class TestNumbersToDigitsKeepsOneSpan(unittest.TestCase):
     def test_two_tens_stay_two_numbers(self):
         self.assertEqual(numbers_to_digits("двадцать тридцать", "ru"),
                          "20 30")
+
+
+class TestNorwegianNumbersToDigits(unittest.TestCase):
+    """numbers_to_digits for nb and nn uses the module converter."""
+
+    def test_and_a_half(self):
+        for lang, text in (("nb", "tre og en halv"), ("nn", "tre og ein halv")):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number(text, lang), 3 + 0.5)
+                self.assertEqual(numbers_to_digits(text, lang), "3.5")
+        self.assertEqual(
+            numbers_to_digits("sett en timer på tre og en halv time", "nb"),
+            "sett en timer på 3.5 time")
+        self.assertEqual(numbers_to_digits("hundre og en halv", "nb"), "100.5")
+
+    def test_plural_fractions_count_the_number_before_them(self):
+        for lang, plural in (("nb", "er"), ("nn", "ar")):
+            for count, word, fraction, denominator in (
+                    (2, "to", "tredjedel", 3), (3, "tre", "fjerdedel", 4)):
+                text = f"{word} {fraction}{plural}"
+                expected = float(Fraction(count, denominator))
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(extract_number(text, lang), expected)
+                    self.assertEqual(numbers_to_digits(text, lang),
+                                     str(expected))
+
+    def test_og_before_an_ordinal_stays_text(self):
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(numbers_to_digits("hundre og femte gang", lang),
+                                 "100 og femte gang")
+                self.assertEqual(numbers_to_digits("tre og", lang), "3 og")
+
+    def test_clock_half_is_two_numbers(self):
+        # "halv tre" is half past two; the date parser reads the clock
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(numbers_to_digits("klokka er halv tre", lang),
+                                 "klokka er 0.5 3")
+
+    def test_decimal_digits_are_exact(self):
+        for lang, text in (("nb", "en komma en fire null"),
+                           ("nn", "ein komma ein fire null")):
+            with self.subTest(lang=lang):
+                self.assertEqual(numbers_to_digits(text, lang), "1.14")
 
 
 if __name__ == "__main__":

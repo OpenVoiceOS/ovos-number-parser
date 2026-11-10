@@ -71,6 +71,11 @@ class _LangDef:
                                            "ratus"}
         self.num_string = {0: self.zero}
         self.num_string.update({v: k for k, v in self.units.items()})
+        group = re.escape(self.group_mark)
+        decimal = re.escape("," if self.group_mark == "." else ".")
+        # a group number never starts with 0 ("0.500" is a decimal)
+        self.grouped_digits = re.compile(
+            rf"-?[1-9]\d{{0,2}}(?:{group}\d{{3}})+(?:{decimal}\d+)?")
 
     def fraction_words(self) -> Dict[str, float]:
         words = dict(_HALF_WORDS)
@@ -299,9 +304,18 @@ def _parse_tokens(tokens: List[str], lang: _LangDef) -> Optional[float]:
     return int(result) if result == int(result) else result
 
 
-def _tokenize(text: str) -> List[str]:
-    # a comma between two digits belongs to the number ("8,5", "1,000")
-    return re.sub(r"(?<!\d),|,(?!\d)", " ", text.lower()).split()
+def _tokenize(text: str, lang: _LangDef) -> List[str]:
+    tokens = []
+    for tok in re.sub(r"(?<!\d),|,(?!\d)", " ", text.lower()).split():
+        # a comma between two digits belongs to the number ("8,5", "1,000"),
+        # in any other digit string it separates numbers ("1,2,3")
+        clean = tok.strip(".!?;:")
+        if lang.grouped_digits.fullmatch(clean) \
+                or re.fullmatch(r"-?\d+(?:[.,]\d+)?", clean):
+            tokens.append(tok)
+        else:
+            tokens.extend(tok.split(","))
+    return tokens
 
 
 def _is_number_token(tok: str, lang: _LangDef) -> bool:
@@ -312,7 +326,7 @@ def _is_number_token(tok: str, lang: _LangDef) -> bool:
 
 def _extract_number(text: str, lang: _LangDef,
                     ordinals: bool = False) -> Union[int, float, bool]:
-    tokens = _tokenize(text)
+    tokens = _tokenize(text, lang)
     fractions = lang.fraction_words()
 
     i = 0
@@ -321,11 +335,8 @@ def _extract_number(text: str, lang: _LangDef,
 
         # digits (also "8,5")
         clean = tok.strip(".!?;:")
-        group = lang.group_mark
-        decimal = "," if group == "." else "."
-        if re.fullmatch(rf"-?\d{{1,3}}(?:{re.escape(group)}\d{{3}})+"
-                        rf"(?:{re.escape(decimal)}\d+)?", clean):
-            clean = clean.replace(group, "")
+        if lang.grouped_digits.fullmatch(clean):
+            clean = clean.replace(lang.group_mark, "")
         if re.fullmatch(r"-?\d+(?:[.,]\d+)?", clean):
             num = clean.replace(",", ".")
             if not is_numeric(num):

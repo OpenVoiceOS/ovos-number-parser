@@ -479,9 +479,10 @@ def _parse_number_span(tokens, i):
             continue
         if tok in _SCALES_LOOKUP:
             scale = _SCALES_LOOKUP[tok]
-            if total and scale > largest:
+            if total and scale > largest and tokens[j - 1] != "ו":
                 # a scale word above every scale before it multiplies the
-                # whole number ("שנים עשר מיליון טריליון" = 12 * 10**6 * 10**12)
+                # whole number ("שנים עשר מיליון טריליון" = 12 * 10**6 * 10**12);
+                # after "ו" it adds ("אלפיים ומיליון" = 1002000)
                 total = (total + current) * scale
             else:
                 total += (current if current else 1) * scale

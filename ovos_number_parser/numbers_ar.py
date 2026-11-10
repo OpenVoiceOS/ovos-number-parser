@@ -1758,9 +1758,10 @@ def _parse_number_span(tokens, i, halves=False):
             continue
         if tok in _SCALES_LOOKUP:
             scale = _SCALES_LOOKUP[tok]
-            if total and scale > largest:
+            if total and scale > largest and tokens[j - 1] != "و":
                 # a scale word above every scale before it multiplies the
-                # whole number ("اثنا عشر مليون تريليون" = 12 * 10**6 * 10**12)
+                # whole number ("اثنا عشر مليون تريليون" = 12 * 10**6 * 10**12);
+                # after "و" it adds ("ألفان ومليون" = 1002000)
                 total = (total + current) * scale
             else:
                 count = current or (2 if _is_construct_dual(tokens, j) else 1)
