@@ -266,3 +266,42 @@ def test_unsupported_language_raises_before_the_size():
             pronounce_ordinal(3, lang)
         with pytest.raises(NotImplementedError):
             pronounce_ordinal(Decimal("1E+4300"), lang)
+
+
+#: Decimals whose conversion to a Fraction takes seconds to minutes, each
+#: with the int or float that holds the same value
+SLOW_FRACTIONS = [
+    ("Decimal('1E-99999999')", 0.0),
+    ("Decimal('-1E-99999999')", -0.0),
+    ("Decimal('1E-999999999999')", 0.0),
+    ("Decimal('0.' + '1' * 300000)", float("0." + "1" * 40)),
+    ("Decimal('1' * 1000000 + 'E-999700')", float("1." + "1" * 40 + "e299")),
+    ("Decimal('1' + '0' * 1000000 + 'E-999000')", 10 ** 1000),
+    ("Decimal('1' * 4000 + 'E+100')", int("1" * 4000) * 10 ** 100),
+    ("Decimal('1' * 1000000 + 'E+1000')", None),
+]
+
+
+@pytest.mark.parametrize("lang", ["pt-PT", "de"])
+def test_ordinal_decimal_conversion_finishes(lang):
+    code = ("import json; from decimal import Decimal; "
+            "from ovos_number_parser import pronounce_ordinal as o\n"
+            "def r(n):\n"
+            "    try: return repr(o(n, %r))\n"
+            "    except Exception as e: return type(e).__name__\n"
+            "print(json.dumps([%s]))"
+            % (lang, ", ".join(f"r({expr})" for expr, _ in SLOW_FRACTIONS)))
+    env = dict(os.environ, PYTHONPATH=os.pathsep.join(
+        [ROOT, os.environ.get("PYTHONPATH", "")]))
+    done = subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env,
+                          capture_output=True, text=True, timeout=60,
+                          check=True)
+    expected = []
+    for _, same in SLOW_FRACTIONS:
+        if same is None:
+            expected.append("ValueError")
+            continue
+        reading = _reading(pronounce_ordinal, same, lang)
+        expected.append(reading.__name__ if isinstance(reading, type)
+                        else repr(reading))
+    assert json.loads(done.stdout) == expected

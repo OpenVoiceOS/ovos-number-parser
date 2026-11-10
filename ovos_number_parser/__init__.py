@@ -636,6 +636,10 @@ def _pronounce_complex(number: complex, lang: str, places: int,
 #: leading digits alone.
 _READ_LIMIT = 10 ** 4300
 
+#: the largest finite float, exactly; ``copy_abs()`` of a Decimal compares
+#: with it without rounding to the context precision as ``abs()`` does
+_FLOAT_MAX = Decimal(sys.float_info.max)
+
 
 def _past_read_limit(number) -> bool:
     """
@@ -1470,19 +1474,29 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         pronounce_ordinal(1, lang, short_scale, gender, scale, case)
         raise ValueError("no ordinal reading for a Decimal of more "
                          "than 4300 digits")
-    if isinstance(number, Decimal) and not number.is_finite():
-        number = float(number)
-    elif isinstance(number, (Decimal, Fraction)):
-        exact = Fraction(number)
-        if exact.denominator == 1:
-            number = exact.numerator
-        elif abs(exact) <= sys.float_info.max:
-            number = float(exact)
+    if isinstance(number, Decimal) and number.is_finite():
+        # Decimal arithmetic throughout: a Fraction of a Decimal with a long
+        # coefficient or a far negative exponent takes minutes to build
+        whole = number.to_integral_value()
+        if number == whole:
+            number = int(whole)
+        elif number.copy_abs() <= _FLOAT_MAX:
+            number = float(number)
         else:
             # no float holds it: round half away from zero to its int
-            whole = (2 * abs(exact.numerator) + exact.denominator) \
-                // (2 * exact.denominator)
-            number = whole if exact > 0 else -whole
+            number = int(number.to_integral_value(rounding=ROUND_HALF_UP))
+    elif isinstance(number, Decimal):
+        number = float(number)
+    elif isinstance(number, Fraction):
+        if number.denominator == 1:
+            number = number.numerator
+        elif abs(number) <= sys.float_info.max:
+            number = float(number)
+        else:
+            # no float holds it: round half away from zero to its int
+            whole = (2 * abs(number.numerator) + number.denominator) \
+                // (2 * number.denominator)
+            number = whole if number > 0 else -whole
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
     lang2 = _base_lang(lang)
