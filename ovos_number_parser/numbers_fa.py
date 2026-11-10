@@ -1,7 +1,7 @@
 import math
 from enum import IntEnum
 
-from ovos_number_parser.util import (convert_to_mixed_fraction)
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
 
 _FRACTION_STRING_FA = {
     2: 'دوم',
@@ -104,15 +104,6 @@ class NumberVariantFA(IntEnum):
     FORMAL = 1
 
 
-def _is_number(s):
-    try:
-        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
-        # string) carries no usable number and must not be treated as one
-        return math.isfinite(float(s))
-    except ValueError:
-        return False
-
-
 def _parse_sentence(text):
     for key, value in _COLLOQUIAL_VARIANT.items():
         text = text.replace(key, value)
@@ -181,9 +172,9 @@ def _parse_sentence(text):
             current_number += s
             s = 0
             mode = 'num'
-        elif _is_number(x):
+        elif is_numeric(x):
             current_words.append(x)
-            current_number = float(x)
+            current_number = numeric_value(x)
             finish_num()
         else:
             finish_num()

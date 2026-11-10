@@ -8,8 +8,7 @@ value times two (``מאתיים`` = 200, ``אלפיים`` = 2000). Niqqud (vowel
 points and cantillation marks) is stripped before matching.
 """
 
-from math import isfinite
-from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
 
 # niqqud and cantillation marks are stripped so vocalized text matches
 _NORM_TABLE = {c: None for c in range(0x0591, 0x05C8)}
@@ -323,15 +322,6 @@ _ORDINAL_UNITS_LOOKUP = {w: v for v, w in _ORDINALS_HE.items()}
 _ORDINAL_UNITS_LOOKUP.update({w: v for v, w in _ORDINALS_FEM_HE.items()})
 
 
-def _is_number(s):
-    try:
-        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
-        # string) carries no usable number and must not be treated as one
-        return isfinite(float(s))
-    except ValueError:
-        return False
-
-
 def _in_vocab(token):
     return (token in _UNITS_LOOKUP or token in _TENS_LOOKUP or
             token in _SCALES_LOOKUP or token in _SCALE_DUALS_LOOKUP or
@@ -450,11 +440,11 @@ def _parse_number_span(tokens, i):
                 j += 1
                 continue
             break
-        if _is_number(tok):
+        if is_numeric(tok):
             if started:
                 break
-            value = float(tok)
-            if value.is_integer():
+            value = numeric_value(tok)
+            if value == int(value):
                 value = int(value)
             return value, j + 1
         # teens: unit word followed by עשר/עשרה

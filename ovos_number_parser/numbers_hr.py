@@ -9,7 +9,7 @@ Croatian uses the long scale (milijun = 1e6, milijarda = 1e9, bilijun = 1e12).
 from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions, \
     invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token
 
 _NUM_STRING_HR = {
@@ -742,10 +742,7 @@ def _extract_whole_number_with_text_hr(tokens, short_scale, ordinals):
 
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?
