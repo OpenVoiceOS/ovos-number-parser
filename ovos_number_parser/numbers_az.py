@@ -538,13 +538,11 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
     if result in ("", "mənfi ") and num >= 1e6:
         return result + pronounce_number_az(
             num, places, short_scale, scientific=True)
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_az(num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "mənfi " or not result):
+        result += "sıfır"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "mənfi " or not result):
-            result += "sıfır"
+    if not num == int(num) and places > 0:
         result += " nöqtə"
         _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]

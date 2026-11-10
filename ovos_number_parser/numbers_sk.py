@@ -894,13 +894,11 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
     if result in ("", "mínus ") and num >= 1e6:
         return result + pronounce_number_sk(
             num, places, short_scale, scientific=True)
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_sk(num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "mínus " or not result):
+        result += "nula"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "mínus " or not result):
-            result += "nula"
+    if not num == int(num) and places > 0:
         result += " celá"
         _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]

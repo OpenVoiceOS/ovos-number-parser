@@ -477,11 +477,11 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             return " ".join(head + [last])
         else:
             whole_number_part = floor(number)
-            result += pronounce_whole_number_da(whole_number_part)
+            result += pronounce_whole_number_da(whole_number_part) or _NUM_STRING_DA[0]
             if places > 0:
                 result += " komma"
                 result += pronounce_fractional_da(number, places)
-            return re.sub(r'\s+', ' ', result).strip()
+            return re.sub(r'\s+', ' ', result).strip() or _NUM_STRING_DA[0]
 
 
 def pronounce_ordinal_da(number, gender=GrammaticalGender.MASCULINE):

@@ -676,13 +676,11 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
     if result in ("", "мінус ") and num >= 1e6:
         return result + pronounce_number_uk(
             num, places, short_scale, scientific=True)
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_uk(num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "мінус " or not result):
+        result += "нуль"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "мінус " or not result):
-            result += "нуль"
+    if not num == int(num) and places > 0:
         result += " крапка"
         _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]

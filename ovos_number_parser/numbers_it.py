@@ -830,10 +830,11 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
     # takes none, so only a "tre" that ends a longer word is accented.
     result = re.sub(r"(?<=[a-zàèéìòù])tre\b", "tré", result)
 
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "meno " or not result):
+        result += "zero"
     # Deal with fractional part
     if not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "meno " or not result):
-            result += "zero"
         result += " virgola"
         _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]

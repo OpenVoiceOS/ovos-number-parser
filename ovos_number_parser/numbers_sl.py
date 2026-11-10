@@ -464,14 +464,11 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
     if ordinals:
         result = result.replace(" ", "")
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_sl(num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "minus " or not result):
+        result += "nič"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "minus " or not result):
-            result += "nič"
-
+    if not num == int(num) and places > 0:
         if int(abs(num)) % 100 == 1:
             result += " cela"
         elif int(abs(num)) % 100 == 2:

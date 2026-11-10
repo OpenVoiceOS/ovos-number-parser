@@ -390,13 +390,11 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
     if result in ("", "minus ") and num >= 1e6:
         return result + pronounce_number_hr(
             num, places, short_scale, scientific=True)
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_hr(num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "minus " or not result):
+        result += "nula"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "minus " or not result):
-            result += "nula"
+    if not num == int(num) and places > 0:
         result += " zarez"
         _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]

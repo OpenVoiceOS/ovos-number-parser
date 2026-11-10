@@ -2,6 +2,7 @@ import math
 import re
 from dataclasses import dataclass
 from decimal import Decimal, ROUND_HALF_UP
+from os.path import commonprefix
 from typing import List
 from typing import Optional
 from typing import Union
@@ -135,7 +136,7 @@ def _canonical_scale(lang: str) -> Scale:
     Portuguese is short scale (10^9 = "um bilhão"), so ``pt`` is resolved by
     region rather than by the bare language code.
     """
-    lang2 = lang.lower().split("-")[0]
+    lang2 = _base_lang(lang)
     if lang2 == "pt":
         return Scale.SHORT if "br" in lang.lower() else Scale.LONG
     return Scale.LONG if lang2 in _LONG_SCALE_LANGS else Scale.SHORT
@@ -220,7 +221,7 @@ def _pronounce_fraction_generic(fraction_word: str, lang: str) -> str:
         raise ZeroDivisionError(f"denominator is zero: {fraction_word}")
     negative = (n1 < 0) ^ (n2 < 0)
     n1, n2 = abs(n1), abs(n2)
-    lang2 = lang.lower().split("-")[0]
+    lang2 = _base_lang(lang)
 
     result = None
     if lang2 == "en":
@@ -259,10 +260,14 @@ def _pronounce_fraction_generic(fraction_word: str, lang: str) -> str:
 _ORDINAL_REVERSE_CACHE = {}
 
 
-def _is_ordinal_generic(input_str: str, lang: str):
-    """Fallback ordinal detection via reverse lookup over pronounce_ordinal."""
-    lang2 = lang.lower().split("-")[0]
-    if lang2 not in _ORDINAL_REVERSE_CACHE:
+def _ordinal_reverse_table(lang: str) -> dict:
+    """Spoken ordinal -> value for ``lang``, built from pronounce_ordinal.
+
+    A tag with a region or script subtag also knows the forms of its bare
+    language, so "fr-BE" reads "soixante-dixième" as well as the
+    "septantième" it speaks.
+    """
+    if lang not in _ORDINAL_REVERSE_CACHE:
         table = {}
         candidates = list(range(1, 101)) + \
             [n * 100 for n in range(2, 11)] + [1000, 1000000]
@@ -278,8 +283,17 @@ def _is_ordinal_generic(input_str: str, lang: str):
                 table.setdefault(word[:-1] + "o", n)
             elif word.endswith("o"):
                 table.setdefault(word[:-1] + "a", n)
-        _ORDINAL_REVERSE_CACHE[lang2] = table
-    return _ORDINAL_REVERSE_CACHE[lang2].get(input_str.lower().strip(), False)
+        base = _base_lang(lang)
+        if base != lang:
+            for word, n in _ordinal_reverse_table(base).items():
+                table.setdefault(word, n)
+        _ORDINAL_REVERSE_CACHE[lang] = table
+    return _ORDINAL_REVERSE_CACHE[lang]
+
+
+def _is_ordinal_generic(input_str: str, lang: str):
+    """Fallback ordinal detection via reverse lookup over pronounce_ordinal."""
+    return _ordinal_reverse_table(lang).get(input_str.lower().strip(), False)
 
 
 _WESTERN_DIGITS = "0123456789"
@@ -314,7 +328,7 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
     whenever the joined value happens to be larger ("عشرين ست مية" is 20 and 600,
     not 26 and 100).
     """
-    lang2 = lang.lower().split("-")[0]
+    lang2 = _base_lang(lang)
     connectors = _NUMBER_CONNECTORS.get("ar" if _is_ar(lang) else lang2, set())
     tokens = utterance.split()
     # ASCII plus Arabic comma, semicolon and question mark, so a number glued
@@ -526,48 +540,49 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
         NotImplementedError: If the specified language is not supported.
     """
     scale = _resolve_scale(lang, scale)
-    if lang.startswith("en"):
+    lang2 = _base_lang(lang)
+    if lang2 == "en":
         # English has its own converter, which reads compound ordinals
         # ("the twenty fifth" -> 25) and never mistakes a singular ordinal for a
         # fraction. The generic fallback did neither.
         return numbers_to_digits_en(utterance, short_scale=scale == Scale.SHORT)
-    if lang.startswith("ast"):
+    if lang2 == "ast":
         return AST.numbers_to_digits(utterance)
-    if lang.startswith("oc"):
+    if lang2 == "oc":
         return OC.numbers_to_digits(utterance, scale=scale)
-    if lang.startswith("an"):
+    if lang2 == "an":
         return AN.numbers_to_digits(utterance)
-    if lang.startswith("fy"):
+    if lang2 == "fy":
         return numbers_to_digits_fy(utterance)
-    if lang.startswith("gl"):
+    if lang2 == "gl":
         return numbers_to_digits_gl(utterance)
-    if lang.startswith("de"):
+    if lang2 == "de":
         return numbers_to_digits_de(utterance)
-    if lang.startswith("pt"):
+    if lang2 == "pt":
         return PT_PT.numbers_to_digits(utterance, scale=scale)
-    if lang.startswith("mwl"):
+    if lang2 == "mwl":
         return MWL.numbers_to_digits(utterance, scale=scale)
-    if lang.startswith("ro"):
+    if lang2 == "ro":
         return RO.numbers_to_digits(utterance, scale=scale)
-    if lang.startswith("bg"):
+    if lang2 == "bg":
         return numbers_to_digits_bg(utterance)
-    if lang.startswith("hr"):
+    if lang2 == "hr":
         return numbers_to_digits_hr(utterance)
-    if lang.startswith("ru"):
+    if lang2 == "ru":
         return numbers_to_digits_ru(utterance)
-    if lang.startswith("sk"):
+    if lang2 == "sk":
         return numbers_to_digits_sk(utterance)
-    if lang.startswith("id"):
+    if lang2 == "id":
         return numbers_to_digits_id(utterance)
-    if lang.startswith("ms"):
+    if lang2 == "ms":
         return numbers_to_digits_ms(utterance)
-    if lang.startswith("tr"):
+    if lang2 == "tr":
         return numbers_to_digits_tr(utterance)
-    if lang.startswith("uk"):
+    if lang2 == "uk":
         return numbers_to_digits_uk(utterance)
     if _is_ar(lang):
         return numbers_to_digits_ar(utterance, lang)
-    if lang.startswith("kab"):
+    if lang2 == "kab":
         return numbers_to_digits_kab(utterance)
     return _numbers_to_digits_generic(utterance, lang)
 
@@ -590,7 +605,7 @@ def _pronounce_complex(number: complex, lang: str, places: int,
     the "plus"/"minus"/"i" connectives are language-specific (English default).
     """
     plus_w, minus_w, i_w = _COMPLEX_CONNECTIVES.get(
-        lang.split("-")[0].split("_")[0], _COMPLEX_CONNECTIVES["en"])
+        _base_lang(lang), _COMPLEX_CONNECTIVES["en"])
 
     def _speak(value):
         # collapse an integer-valued float ("3.0" -> "three") and -0.0 -> 0
@@ -725,9 +740,15 @@ _SCIENTIFIC_WORDS = {
 }
 
 
+#: individual languages that the IANA Language Subtag Registry places inside a
+#: macrolanguage and that share the written standard of its module
+_MACROLANGUAGE_MEMBERS = {"azj": "az", "ekk": "et", "pes": "fa", "zsm": "ms"}
+
+
 def _base_lang(lang: str) -> str:
-    """Bare language code, so "pt-BR" and "pt" resolve to the same entry."""
-    return lang.lower().split("-")[0]
+    """Bare language code, so "pt-BR", "pt_BR" and "PT" resolve to "pt"."""
+    base = lang.lower().replace("_", "-").split("-")[0]
+    return _MACROLANGUAGE_MEMBERS.get(base, base)
 
 
 def _is_ar(lang: str) -> bool:
@@ -891,6 +912,7 @@ def pronounce_number(number: Union[int, float], lang: str,
     """
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
+    lang2 = _base_lang(lang)
     if isinstance(number, complex):
         return _pronounce_complex(number, lang, places, scale, digits, gender)
     if isinstance(number, Decimal) and not number.is_finite():
@@ -908,7 +930,7 @@ def pronounce_number(number: Union[int, float], lang: str,
     # convention"; an explicit value always wins.
     if digits is None:
         digits = _DEFAULT_DIGIT_PRONUNCIATION.get(
-            _base_lang(lang), DigitPronunciation.FULL_NUMBER)
+            lang2, DigitPronunciation.FULL_NUMBER)
 
     # Round to the spoken precision before dispatch so every backend speaks a
     # rounded value instead of a truncated one (see _round_for_speech).
@@ -918,6 +940,14 @@ def pronounce_number(number: Union[int, float], lang: str,
         # the whole number of that shortest repr, the value the caller wrote,
         # rather than its binary expansion or the exponent string itself.
         number = int(Decimal(repr(float(number))))
+    # a negative value below the rounding quantum keeps its minus word only
+    # when digits follow it: a reading that is the zero word alone is unsigned
+    if not ordinals and -1 < number < 0:
+        args = (places, short_scale, scientific, ordinals, digits, gender,
+                scale, case)
+        unsigned = _pronounce_number_dispatch(-number, lang, *args)
+        if unsigned == _pronounce_number_dispatch(0, lang, *args):
+            return unsigned
     try:
         spoken = _pronounce_number_dispatch(
             number, lang, places, short_scale, scientific, ordinals,
@@ -928,14 +958,14 @@ def pronounce_number(number: Union[int, float], lang: str,
         # contract; every other language falls back to a spoken scientific
         # reading rather than crashing. Ordinary-magnitude numbers keep their
         # original error so genuine bugs are not masked.
-        if not lang.startswith("kab") and abs(number) >= 10 ** 15:
+        if lang2 != "kab" and abs(number) >= 10 ** 15:
             return _pronounce_bignum_fallback(number, lang, places)
         raise
     # A backend that does not raise past its scale table returns padded or
     # unread output instead (see _is_spoken_reading). Only composed readings
     # of large numbers are checked: a digit-by-digit rendering repeats words
     # legitimately, and Kabyle's finite ceiling is a documented contract.
-    if abs(number) >= 10 ** 15 and not lang.startswith("kab") \
+    if abs(number) >= 10 ** 15 and lang2 != "kab" \
             and not scientific and (isinstance(number, int)
                                     or float(number).is_integer()):
         # padded scale words are never a reading, so always replace them
@@ -943,16 +973,17 @@ def pronounce_number(number: Union[int, float], lang: str,
             return _pronounce_bignum_fallback(number, lang, places)
         # a bare numeral is a legitimate fallback the TTS can read; only
         # improve on it where the scientific reading is fully localized
-        if _has_unread_digits(spoken) and _base_lang(lang) in _SCIENTIFIC_WORDS:
+        if _has_unread_digits(spoken) and lang2 in _SCIENTIFIC_WORDS:
             return _pronounce_bignum_fallback(number, lang, places)
     return spoken
 
 
 def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
                                ordinals, digits, gender, scale, case=None):
-    if lang.startswith("en"):
+    lang2 = _base_lang(lang)
+    if lang2 == "en":
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("az"):
+    if lang2 == "az":
         return pronounce_number_az(number, places, short_scale, scientific, ordinals)
     if _is_ar(lang):
         # a lect's default register applies to cardinals; an ordinal takes
@@ -962,91 +993,91 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
         return pronounce_number_ar(number, places, scientific, ordinals,
                                    case=case, lect=resolve_ar_lect(lang),
                                    gender=gender)
-    if lang.startswith("bg"):
+    if lang2 == "bg":
         return pronounce_number_bg(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("ca"):
+    if lang2 == "ca":
         return CA.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang.startswith("ast"):
+    if lang2 == "ast":
         return AST.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang.startswith("oc"):
+    if lang2 == "oc":
         return OC.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang.startswith("an"):
+    if lang2 == "an":
         return AN.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang.startswith("cs"):
+    if lang2 == "cs":
         return pronounce_number_cs(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
-    if lang.startswith("da"):
+    if lang2 == "da":
         return pronounce_number_da(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
-    if lang.startswith("de"):
+    if lang2 == "de":
         return pronounce_number_de(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
-    if lang.startswith("gl"):
+    if lang2 == "gl":
         return GL.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang.startswith("el"):
+    if lang2 == "el":
         return pronounce_number_el(number, places, scientific, ordinals)
-    if lang.startswith("es"):
+    if lang2 == "es":
         return ES.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang.startswith("eu"):
+    if lang2 == "eu":
         return pronounce_number_eu(number, places)
-    if lang.startswith("et"):
+    if lang2 == "et":
         return pronounce_number_et(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("fa"):
+    if lang2 == "fa":
         return pronounce_number_fa(number, places, scientific, ordinals)
-    if lang.startswith("fi"):
+    if lang2 == "fi":
         return pronounce_number_fi(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("fr"):
+    if lang2 == "fr":
         return FR.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang.startswith("he"):
+    if lang2 == "he":
         return pronounce_number_he(number, places, scientific, ordinals)
-    if lang.startswith("hr"):
+    if lang2 == "hr":
         return pronounce_number_hr(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("hu"):
+    if lang2 == "hu":
         return pronounce_number_hu(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("id"):
+    if lang2 == "id":
         return pronounce_number_id(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("ms"):
+    if lang2 == "ms":
         return pronounce_number_ms(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("tr"):
+    if lang2 == "tr":
         return pronounce_number_tr(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("it"):
+    if lang2 == "it":
         # NOT routed through IT: the engine spaces the tens ("venti cinque")
         # where Italian elides them ("venticinque"). Legacy path until the
         # engine handles elision, so `digits` stays unused here.
         return pronounce_number_it(number, places, short_scale, scientific)
-    if lang.startswith("kab"):
+    if lang2 == "kab":
         return pronounce_number_kab(number, places, ordinals, gender)
-    if lang.startswith("fy"):
+    if lang2 == "fy":
         return pronounce_number_fy(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("nn"):
+    if lang2 == "nn":
         return pronounce_number_nn(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("nb") or lang.startswith("no"):
+    if lang2 in ("nb", "no"):
         return pronounce_number_nb(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
-    if lang.startswith("nl"):
+    if lang2 == "nl":
         return pronounce_number_nl(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("pl"):
+    if lang2 == "pl":
         return pronounce_number_pl(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
-    if lang.startswith("pt"):
+    if lang2 == "pt":
         if "br" in lang.lower():
             return PT_BR.pronounce_number(number, places, scale, ordinals, digits, gender)
         return PT_PT.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang.startswith("mwl"):
+    if lang2 == "mwl":
         return MWL.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang.startswith("ro"):
+    if lang2 == "ro":
         return RO.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang.startswith("ru"):
+    if lang2 == "ru":
         return pronounce_number_ru(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
-    if lang.startswith("sk"):
+    if lang2 == "sk":
         return pronounce_number_sk(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("sl"):
+    if lang2 == "sl":
         return pronounce_number_sl(number, places, short_scale, scientific, ordinals)
-    if lang.startswith("sv"):
+    if lang2 == "sv":
         return pronounce_number_sv(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
-    if lang.startswith("uk"):
+    if lang2 == "uk":
         return pronounce_number_uk(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
     # fallback to unicode RBNF
@@ -1105,6 +1136,72 @@ _RBNF_WORD_FIXES = {
     },
 }
 
+#: words the CLDR data writes in the script of another language, with the
+#: word of the language. The wrong script never occurs in a correct reading,
+#: so each word is replaced wherever it occurs, also inside the fraction
+#: digits a rule set writes with no separator. Lao: the rule sets keep the
+#: Thai words for zero, minus, the decimal point, the scale words and the
+#: ordinal prefix
+_RBNF_SCRIPT_FIXES = {
+    "lo": {
+        "ศูนย์": "ສູນ", "ลบ": "ລົບ", "จุด": "ຈຸດ", "ร้อย": "ຮ້ອຍ",
+        "พัน": "ພັນ", "หมื่น": "ໝື່ນ", "แสน": "ແສນ", "ล้าน": "ລ້ານ",
+        "ที่": "ທີ່",
+    },
+}
+
+#: the rule set ``spellout-numbering`` reads through, for languages where the
+#: engine cannot use it for a fraction (``spellout-numbering`` has no "x.x"
+#: rule) and takes the shortest rule set name instead: the cy feminine set
+#: ("dwy") or the mt set of the forms before a noun ("tnax-il"), not the
+#: counting form. The fraction digits are read with this set in every gender;
+#: the whole part reads as the integer does for the gender
+_RBNF_COUNTING = {
+    "cy": "spellout-cardinal-masculine",
+    "mt": "spellout-cardinal-type-b-masculine",
+}
+
+#: the decimal-point word and the rule set of languages whose "x.x" rule reads
+#: the fraction as a numerator over a power of ten ("он екі бүтін жүзден
+#: жиырма бес", twelve and twenty-five hundredths); the engine reads that rule
+#: set digit by digit and gets "оннан нөл" for every digit. The rule set has
+#: words up to hundred billionths, so a longer fraction is rounded to that
+_RBNF_FRACTIONS = {
+    "kk": ("бүтін", "fractions"),
+    "ky": ("бүтүн", "z-spellout-fraction"),
+}
+
+
+#: characters the CLDR data writes in place of rule syntax, removed from every
+#: reading of the locale. The sr_Latn ordinal rules open with "‘" (U+2018)
+#: where sr has the ASCII apostrophe that makes the space after it part of the
+#: text, so "dvadeset‘ i prvi" is "dvadeset i prvi". The "‘" follows any
+#: hundreds word ("sto‘", "dvadesetsto‘", "hiljadusto‘"), so no word list
+#: covers it.
+_RBNF_CHARACTER_FIXES = {
+    "sr_Latn": str.maketrans("", "", "\u2018"),
+}
+
+
+#: the locales unicode_rbnf ships rules for: a bare language ("sr") or a
+#: language with a script or region subtag ("sr_Latn", "zh_Hant", "de_CH")
+_RBNF_LOCALES = frozenset(RbnfEngine.get_supported_languages())
+
+
+def _rbnf_locale(lang: str) -> str:
+    """The unicode_rbnf locale that reads ``lang``.
+
+    A script or region subtag selects its own rules where unicode_rbnf ships
+    them, in either separator and any letter case ("sr-Latn", "sr_latn"); any
+    other tag reads with the rules of its bare language.
+    """
+    base = _base_lang(lang)
+    for subtag in lang.replace("_", "-").split("-")[1:]:
+        locale = f"{base}_{subtag.title() if len(subtag) == 4 else subtag.upper()}"
+        if locale in _RBNF_LOCALES:
+            return locale
+    return base
+
 
 def _pronounce_rbnf(number, lang, ordinals, gender):
     """Speak ``number`` with the Unicode RBNF rule set for ``gender``.
@@ -1115,6 +1212,8 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     masculine cardinal also keeps it: the default ``spellout-numbering`` is the
     counting form, and the Maltese and Venetian masculine sets are the forms
     before a noun ("żewġ", "du") and not the bare number ("tnejn", "do").
+    Where the engine cannot read a fraction with ``spellout-numbering``,
+    ``_RBNF_COUNTING`` names the rule set it reads through.
 
     A negative cardinal with a fraction is read as its magnitude with the
     minus word of the same rule set, because the engine reads only the
@@ -1123,6 +1222,21 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     less the reading of 1, so it keeps the side and the spacing the rule set
     gives it. A language whose reading of -1 does not hold the reading of 1
     keeps the engine reading.
+
+    A positive fraction in a language of ``_RBNF_FRACTIONS`` is read as the
+    whole part, the decimal-point word, and the fraction digits as one number
+    after the word for their power of ten. That word is the reading of the
+    power of ten in the fraction rule set less the reading of 1. The fraction
+    is first rounded half up to the longest power of ten the rule set has a
+    word for; a fraction that rounds to zero reads as its whole part.
+
+    A positive fraction in a language of ``_RBNF_COUNTING`` is read as the
+    whole part for ``gender``, then the rest of the counting reading.
+
+    The engine splits a fraction from ``str(Decimal)``, which writes a value
+    below 1e-6 as "1E-7" and has no "." to split on. Such a value is read with
+    five zeros after the point, and the zero that the reading with four zeros
+    lacks is repeated for every further zero.
     """
     if (not ordinals and math.isfinite(number) and number < 0
             and number != int(number)):
@@ -1133,15 +1247,53 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
             return minus_one[:-len(one)] + magnitude
         if minus_one.startswith(one):
             return magnitude + minus_one[len(one):]
+    if (not ordinals and math.isfinite(number) and 0 < number < 1e-6
+            and _base_lang(lang) not in _RBNF_FRACTIONS):
+        zeros = -Decimal(str(number)).adjusted() - 1
+        significant = f"{Decimal(str(number)):f}".lstrip("0.")
+        longer = _pronounce_rbnf(Decimal("0.00000" + significant), lang,
+                                 False, gender)
+        shorter = _pronounce_rbnf(Decimal("0.0000" + significant), lang,
+                                  False, gender)
+        cut = len(commonprefix([longer, shorter]))
+        zero = longer[cut:cut + len(longer) - len(shorter)]
+        return longer[:cut] + zero * (zeros - 5) + longer[cut:]
     form = FormatPurpose.ORDINAL if ordinals else FormatPurpose.CARDINAL
-    base = lang.split("-")[0]
+    base = _base_lang(lang)
+    locale = _rbnf_locale(lang)
     try:
-        engine = RbnfEngine.for_language(base)
+        engine = RbnfEngine.for_language(locale)
+        if (base in _RBNF_FRACTIONS and not ordinals and math.isfinite(number)
+                and number > 0 and number != int(number)):
+            point, fraction_set = _RBNF_FRACTIONS[base]
+            one = _pronounce_rbnf(1, lang, False, gender)
+            denominators = {}
+            for value in engine.rulesets[fraction_set].numeric_rules:
+                reading = engine.format_number(value, ruleset_names=[fraction_set]).text
+                if reading.endswith(one):
+                    denominators[len(str(value)) - 1] = reading[:-len(one)]
+            rounded = Decimal(str(number)).quantize(
+                Decimal(10) ** -max(denominators), ROUND_HALF_UP).normalize()
+            whole, _, digits = f"{rounded:f}".partition(".")
+            if not digits:
+                return _pronounce_rbnf(int(whole), lang, False, gender)
+            if len(digits) in denominators:
+                return " ".join([_pronounce_rbnf(int(whole), lang, False, gender),
+                                 point, denominators[len(digits)]
+                                 + _pronounce_rbnf(int(digits), lang, False, gender)])
+        if (base in _RBNF_COUNTING and not ordinals and math.isfinite(number)
+                and number > 0 and number != int(number)):
+            counting = [_RBNF_COUNTING[base]]
+            whole = int(number)
+            text = engine.format_number(number, ruleset_names=counting).text
+            whole_text = engine.format_number(whole, ruleset_names=counting).text
+            if text.startswith(whole_text + " "):
+                return _pronounce_rbnf(whole, lang, False, gender) + text[len(whole_text):]
         ruleset = f"spellout-{form.name.lower()}-{_RBNF_GENDER.get(gender)}"
-        if ruleset in engine.rulesets and (base, ruleset) not in _RBNF_UNUSABLE \
+        if ruleset in engine.rulesets and (locale, ruleset) not in _RBNF_UNUSABLE \
                 and (ordinals or gender != GrammaticalGender.MASCULINE):
             text = engine.format_number(number, ruleset_names=[ruleset]).text
-            swap = _RBNF_WORD_SWAP_ONLY.get((base, ruleset))
+            swap = _RBNF_WORD_SWAP_ONLY.get((locale, ruleset))
             if swap is not None:
                 default = engine.format_number(number, form).text
                 pairs = list(zip(default.split(" "), text.split(" ")))
@@ -1152,7 +1304,10 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
             text = engine.format_number(number, form).text
     except Exception as err:
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
-    fixes = _RBNF_WORD_FIXES.get(base, {})
+    text = text.translate(_RBNF_CHARACTER_FIXES.get(locale, {}))
+    for wrong, right in _RBNF_SCRIPT_FIXES.get(base, {}).items():
+        text = text.replace(wrong, right)
+    fixes = _RBNF_WORD_FIXES.get(locale, {})
     return " ".join(fixes.get(word, word) for word in text.split(" "))
 
 
@@ -1170,22 +1325,23 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = N
     Raises:
         NotImplementedError: If the specified language is not supported.
     """
-    if lang.startswith("pt"):
+    lang2 = _base_lang(lang)
+    if lang2 == "pt":
         return PT_BR.pronounce_fraction(fraction_word, scale=scale) if "br" in lang.lower() \
             else PT_PT.pronounce_fraction(fraction_word, scale=scale)
-    elif lang.startswith("ast"):
+    elif lang2 == "ast":
         return AST.pronounce_fraction(fraction_word, scale=scale)
-    elif lang.startswith("ca"):
+    elif lang2 == "ca":
         return CA.pronounce_fraction(fraction_word, scale=scale)
-    elif lang.startswith("oc"):
+    elif lang2 == "oc":
         return OC.pronounce_fraction(fraction_word, scale=scale)
-    elif lang.startswith("an"):
+    elif lang2 == "an":
         return AN.pronounce_fraction(fraction_word, scale=scale)
-    elif lang.startswith("mwl"):
+    elif lang2 == "mwl":
         return MWL.pronounce_fraction(fraction_word, scale=scale)
-    elif lang.startswith("gl"):
+    elif lang2 == "gl":
         return pronounce_fraction_gl(fraction_word, scale=scale)
-    elif lang.startswith("ro"):
+    elif lang2 == "ro":
         return RO.pronounce_fraction(fraction_word, scale=scale)
     else:
         return _pronounce_fraction_generic(fraction_word, lang)
@@ -1217,74 +1373,75 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     """
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
-    if lang.startswith("pt"):
+    lang2 = _base_lang(lang)
+    if lang2 == "pt":
         return PT_BR.pronounce_ordinal(number, scale=scale, gender=gender) if "br" in lang.lower() \
             else PT_PT.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang.startswith("mwl"):
+    if lang2 == "mwl":
         return MWL.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang.startswith("ro"):
+    if lang2 == "ro":
         return RO.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang.startswith("ast"):
+    if lang2 == "ast":
         return AST.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang.startswith("ca"):
+    if lang2 == "ca":
         return CA.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang.startswith("oc"):
+    if lang2 == "oc":
         return OC.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang.startswith("an"):
+    if lang2 == "an":
         return AN.pronounce_ordinal(number, scale=scale, gender=gender)
     if _is_ar(lang):
         return pronounce_ordinal_ar(number, gender=gender, case=case)
-    if lang.startswith("da"):
+    if lang2 == "da":
         return pronounce_ordinal_da(number, gender)
-    if lang.startswith("de"):
+    if lang2 == "de":
         return pronounce_ordinal_de(number)
-    if lang.startswith("et"):
+    if lang2 == "et":
         return pronounce_ordinal_et(number)
-    if lang.startswith("fi"):
+    if lang2 == "fi":
         return pronounce_ordinal_fi(number)
-    if lang.startswith("hr"):
+    if lang2 == "hr":
         return pronounce_ordinal_hr(number)
-    if lang.startswith("el"):
+    if lang2 == "el":
         return pronounce_ordinal_el(number)
-    if lang.startswith("he"):
+    if lang2 == "he":
         return pronounce_ordinal_he(number)
-    if lang.startswith("hu"):
+    if lang2 == "hu":
         return pronounce_ordinal_hu(number)
-    if lang.startswith("id"):
+    if lang2 == "id":
         return pronounce_ordinal_id(number)
-    if lang.startswith("ms"):
+    if lang2 == "ms":
         return pronounce_ordinal_ms(number)
-    if lang.startswith("tr"):
+    if lang2 == "tr":
         return pronounce_ordinal_tr(number)
-    if lang.startswith("fy"):
+    if lang2 == "fy":
         return pronounce_ordinal_fy(number)
-    if lang.startswith("nn"):
+    if lang2 == "nn":
         return pronounce_ordinal_nn(number)
-    if lang.startswith("nb") or lang.startswith("no"):
+    if lang2 in ("nb", "no"):
         return pronounce_ordinal_nb(number)
-    if lang.startswith("nl"):
+    if lang2 == "nl":
         return pronounce_ordinal_nl(number)
-    if lang.startswith("sv"):
+    if lang2 == "sv":
         return pronounce_ordinal_sv(number)
-    if lang.startswith("gl"):
+    if lang2 == "gl":
         return pronounce_ordinal_gl(number, gender=gender, scale=scale)
-    if lang.startswith("cs"):
+    if lang2 == "cs":
         return pronounce_ordinal_cs(number, gender, short_scale=short_scale)
-    if lang.startswith("sk"):
+    if lang2 == "sk":
         return pronounce_ordinal_sk(number)
-    if lang.startswith("pl"):
+    if lang2 == "pl":
         return pronounce_ordinal_pl(number, gender)
-    if lang.startswith("uk"):
+    if lang2 == "uk":
         return pronounce_ordinal_uk(number, gender)
-    if lang.startswith("eu"):
+    if lang2 == "eu":
         return pronounce_ordinal_eu(number)
-    if lang.startswith("fa"):
+    if lang2 == "fa":
         return pronounce_ordinal_fa(number)
-    if lang.startswith("bg"):
+    if lang2 == "bg":
         return pronounce_number_bg(number, ordinals=True)
-    if lang.startswith("sl"):
+    if lang2 == "sl":
         return pronounce_number_sl(number, ordinals=True)
-    if lang.startswith("kab"):
+    if lang2 == "kab":
         return pronounce_ordinal_kab(number, gender)
     # fallback to unicode RBNF
     return _pronounce_rbnf(number, lang, True, gender)
@@ -1307,7 +1464,7 @@ _HYPHENATED_NUMERAL_LANGS = ("hu",)
 
 def _unglue_compound_numerals(text: str, lang: str) -> str:
     """Normalise "-"/"_" written between letters to a space."""
-    if lang.lower().split("-")[0] in _HYPHENATED_NUMERAL_LANGS:
+    if _base_lang(lang) in _HYPHENATED_NUMERAL_LANGS:
         return text
     return _COMPOUND_NUMERAL_JOIN.sub(" ", text)
 
@@ -1341,86 +1498,87 @@ def extract_number(text: str, lang: str,
     text = _unglue_compound_numerals(text, lang)
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
-    if lang.startswith("en"):
+    lang2 = _base_lang(lang)
+    if lang2 == "en":
         return extract_number_en(text, short_scale, ordinals)
-    if lang.startswith("az"):
+    if lang2 == "az":
         return extract_number_az(text, short_scale, ordinals)
     if _is_ar(lang):
         return extract_number_ar(text, ordinals, lect=resolve_ar_lect(lang))
-    if lang.startswith("bg"):
+    if lang2 == "bg":
         return extract_number_bg(text, short_scale, ordinals)
-    if lang.startswith("ca"):
+    if lang2 == "ca":
         return CA.extract_number(text, ordinals=ordinals, scale=scale)
-    if lang.startswith("cs"):
+    if lang2 == "cs":
         return extract_number_cs(text, short_scale, ordinals)
-    if lang.startswith("da"):
+    if lang2 == "da":
         return extract_number_da(text, short_scale, ordinals)
-    if lang.startswith("de"):
+    if lang2 == "de":
         return extract_number_de(text, short_scale, ordinals)
-    if lang.startswith("el"):
+    if lang2 == "el":
         return extract_number_el(text, ordinals)
-    if lang.startswith("es"):
+    if lang2 == "es":
         return extract_number_es(text, short_scale, ordinals)
-    if lang.startswith("gl"):
+    if lang2 == "gl":
         return extract_number_gl(text, short_scale, ordinals)
-    if lang.startswith("eu"):
+    if lang2 == "eu":
         return extract_number_eu(text, short_scale, ordinals)
-    if lang.startswith("et"):
+    if lang2 == "et":
         return extract_number_et(text, short_scale, ordinals)
-    if lang.startswith("fa"):
+    if lang2 == "fa":
         return extract_number_fa(text, ordinals)
-    if lang.startswith("fi"):
+    if lang2 == "fi":
         return extract_number_fi(text, short_scale, ordinals)
-    if lang.startswith("fr"):
+    if lang2 == "fr":
         return extract_number_fr(text, short_scale, ordinals)
-    if lang.startswith("id"):
+    if lang2 == "id":
         return extract_number_id(text, short_scale, ordinals)
-    if lang.startswith("it"):
+    if lang2 == "it":
         return extract_number_it(text, short_scale, ordinals)
-    if lang.startswith("ms"):
+    if lang2 == "ms":
         return extract_number_ms(text, short_scale, ordinals)
-    if lang.startswith("tr"):
+    if lang2 == "tr":
         return extract_number_tr(text, short_scale, ordinals)
-    if lang.startswith("kab"):
+    if lang2 == "kab":
         return extract_number_kab(text, short_scale, ordinals)
-    if lang.startswith("fy"):
+    if lang2 == "fy":
         return extract_number_fy(text, short_scale, ordinals)
-    if lang.startswith("nn"):
+    if lang2 == "nn":
         return extract_number_nn(text, short_scale, ordinals)
-    if lang.startswith("nb") or lang.startswith("no"):
+    if lang2 in ("nb", "no"):
         return extract_number_nb(text, short_scale, ordinals)
-    if lang.startswith("nl"):
+    if lang2 == "nl":
         return extract_number_nl(text, short_scale, ordinals)
-    if lang.startswith("pl"):
+    if lang2 == "pl":
         return extract_number_pl(text, short_scale, ordinals)
-    if lang.startswith("pt"):
+    if lang2 == "pt":
         return PT_BR.extract_number(text, scale=scale, ordinals=ordinals) if "br" in lang.lower() \
             else PT_PT.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang.startswith("mwl"):
+    if lang2 == "mwl":
         return MWL.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang.startswith("ro"):
+    if lang2 == "ro":
         return RO.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang.startswith("ast"):
+    if lang2 == "ast":
         return AST.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang.startswith("oc"):
+    if lang2 == "oc":
         return OC.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang.startswith("an"):
+    if lang2 == "an":
         return AN.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang.startswith("ru"):
+    if lang2 == "ru":
         return extract_number_ru(text, short_scale, ordinals)
-    if lang.startswith("sk"):
+    if lang2 == "sk":
         return extract_number_sk(text, short_scale, ordinals)
-    if lang.startswith("sv"):
+    if lang2 == "sv":
         return extract_number_sv(text, short_scale, ordinals)
-    if lang.startswith("uk"):
+    if lang2 == "uk":
         return extract_number_uk(text, short_scale, ordinals)
-    if lang.startswith("hr"):
+    if lang2 == "hr":
         return extract_number_hr(text, short_scale, ordinals)
-    if lang.startswith("he"):
+    if lang2 == "he":
         return extract_number_he(text, ordinals)
-    if lang.startswith("hu"):
+    if lang2 == "hu":
         return extract_number_hu(text, short_scale, ordinals)
-    if lang.startswith("sl"):
+    if lang2 == "sl":
         return extract_number_sl(text, short_scale, ordinals)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
@@ -1594,85 +1752,86 @@ def is_fractional(input_str: str, lang: str,
         return False
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
-    if lang.startswith("en"):
+    lang2 = _base_lang(lang)
+    if lang2 == "en":
         return is_fractional_en(input_str, short_scale)
-    if lang.startswith("az"):
+    if lang2 == "az":
         return is_fractional_az(input_str, short_scale)
     if _is_ar(lang):
         return is_fractional_ar(input_str, short_scale)
-    if lang.startswith("bg"):
+    if lang2 == "bg":
         return is_fractional_bg(input_str, short_scale)
-    if lang.startswith("ca"):
+    if lang2 == "ca":
         return CA.is_fractional(input_str)
-    if lang.startswith("cs"):
+    if lang2 == "cs":
         return is_fractional_cs(input_str, short_scale)
-    if lang.startswith("da"):
+    if lang2 == "da":
         return is_fractional_da(input_str, short_scale)
-    if lang.startswith("de"):
+    if lang2 == "de":
         return is_fractional_de(input_str, short_scale)
-    if lang.startswith("el"):
+    if lang2 == "el":
         return is_fractional_el(input_str, short_scale)
-    if lang.startswith("es"):
+    if lang2 == "es":
         return is_fractional_es(input_str, short_scale)
-    if lang.startswith("gl"):
+    if lang2 == "gl":
         return is_fractional_gl(input_str)
-    if lang.startswith("eu"):
+    if lang2 == "eu":
         return is_fractional_eu(input_str)
-    if lang.startswith("et"):
+    if lang2 == "et":
         return is_fractional_et(input_str, short_scale)
-    if lang.startswith("fi"):
+    if lang2 == "fi":
         return is_fractional_fi(input_str, short_scale)
-    if lang.startswith("fr"):
+    if lang2 == "fr":
         return is_fractional_fr(input_str)
-    if lang.startswith("id"):
+    if lang2 == "id":
         return is_fractional_id(input_str, short_scale)
-    if lang.startswith("it"):
+    if lang2 == "it":
         return is_fractional_it(input_str, short_scale)
-    if lang.startswith("ms"):
+    if lang2 == "ms":
         return is_fractional_ms(input_str, short_scale)
-    if lang.startswith("tr"):
+    if lang2 == "tr":
         return is_fractional_tr(input_str, short_scale)
-    if lang.startswith("kab"):
+    if lang2 == "kab":
         return is_fractional_kab(input_str, short_scale)
-    if lang.startswith("fy"):
+    if lang2 == "fy":
         return is_fractional_fy(input_str, short_scale)
-    if lang.startswith("nn"):
+    if lang2 == "nn":
         return is_fractional_nn(input_str, short_scale)
-    if lang.startswith("nb") or lang.startswith("no"):
+    if lang2 in ("nb", "no"):
         return is_fractional_nb(input_str, short_scale)
-    if lang.startswith("nl"):
+    if lang2 == "nl":
         return is_fractional_nl(input_str, short_scale)
-    if lang.startswith("pl"):
+    if lang2 == "pl":
         return is_fractional_pl(input_str, short_scale)
-    if lang.startswith("pt"):
+    if lang2 == "pt":
         return PT_PT.is_fractional(input_str)
-    if lang.startswith("mwl"):
+    if lang2 == "mwl":
         return MWL.is_fractional(input_str)
-    if lang.startswith("ro"):
+    if lang2 == "ro":
         return RO.is_fractional(input_str)
-    if lang.startswith("ast"):
+    if lang2 == "ast":
         return AST.is_fractional(input_str)
-    if lang.startswith("oc"):
+    if lang2 == "oc":
         return OC.is_fractional(input_str)
-    if lang.startswith("an"):
+    if lang2 == "an":
         return AN.is_fractional(input_str)
-    if lang.startswith("ru"):
+    if lang2 == "ru":
         return is_fractional_ru(input_str, short_scale)
-    if lang.startswith("sk"):
+    if lang2 == "sk":
         return is_fractional_sk(input_str, short_scale)
-    if lang.startswith("sv"):
+    if lang2 == "sv":
         return is_fractional_sv(input_str, short_scale)
-    if lang.startswith("fa"):
+    if lang2 == "fa":
         return is_fractional_fa(input_str, short_scale)
-    if lang.startswith("hr"):
+    if lang2 == "hr":
         return is_fractional_hr(input_str, short_scale)
-    if lang.startswith("he"):
+    if lang2 == "he":
         return is_fractional_he(input_str, short_scale)
-    if lang.startswith("hu"):
+    if lang2 == "hu":
         return is_fractional_hu(input_str, short_scale)
-    if lang.startswith("sl"):
+    if lang2 == "sl":
         return is_fractional_sl(input_str, short_scale)
-    if lang.startswith("uk"):
+    if lang2 == "uk":
         return is_fractional_uk(input_str, short_scale)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
@@ -1689,51 +1848,52 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         (bool) or (float): False if not an ordinal, otherwise the number
         corresponding to the ordinal
     """
-    if lang.startswith("pt"):
+    lang2 = _base_lang(lang)
+    if lang2 == "pt":
         return PT_PT.is_ordinal(input_str)
-    if lang.startswith("mwl"):
+    if lang2 == "mwl":
         return MWL.is_ordinal(input_str)
-    if lang.startswith("ro"):
+    if lang2 == "ro":
         return RO.is_ordinal(input_str)
-    if lang.startswith("ast"):
+    if lang2 == "ast":
         return AST.is_ordinal(input_str)
-    if lang.startswith("ca"):
+    if lang2 == "ca":
         return CA.is_ordinal(input_str)
-    if lang.startswith("oc"):
+    if lang2 == "oc":
         return OC.is_ordinal(input_str)
-    if lang.startswith("an"):
+    if lang2 == "an":
         return AN.is_ordinal(input_str)
-    if lang.startswith("en"):
+    if lang2 == "en":
         return is_ordinal_en(input_str)
     if _is_ar(lang):
         return is_ordinal_ar(input_str)
-    if lang.startswith("de"):
+    if lang2 == "de":
         val = is_ordinal_de(input_str)
         if isinstance(val, str) and val.endswith("."):
             return int(val[:-1])
         return val
-    if lang.startswith("da"):
+    if lang2 == "da":
         return is_ordinal_da(input_str)
-    if lang.startswith("gl"):
+    if lang2 == "gl":
         return is_ordinal_gl(input_str)
-    if lang.startswith("et"):
+    if lang2 == "et":
         return is_ordinal_et(input_str)
-    if lang.startswith("fi"):
+    if lang2 == "fi":
         return is_ordinal_fi(input_str)
-    if lang.startswith("el"):
+    if lang2 == "el":
         return is_ordinal_el(input_str)
-    if lang.startswith("he"):
+    if lang2 == "he":
         return is_ordinal_he(input_str)
-    if lang.startswith("eu"):
+    if lang2 == "eu":
         return is_ordinal_eu(input_str)
-    if lang.startswith("hu"):
+    if lang2 == "hu":
         return is_ordinal_hu(input_str)
-    if lang.startswith("nn"):
+    if lang2 == "nn":
         return is_ordinal_nn(input_str)
-    if lang.startswith("nb") or lang.startswith("no"):
+    if lang2 in ("nb", "no"):
         return is_ordinal_nb(input_str)
-    if lang.startswith("kab"):
+    if lang2 == "kab":
         return is_ordinal_kab(input_str)
-    if lang.startswith("sl"):
+    if lang2 == "sl":
         return is_ordinal_sl(input_str)
     return _is_ordinal_generic(input_str, lang)
