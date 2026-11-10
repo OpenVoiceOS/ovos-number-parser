@@ -18,7 +18,8 @@ import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, \
+    scientific_notation
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF pl spellout-cardinal-feminine and -neuter); a compound ending in
@@ -341,7 +342,7 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus nieskończoność"
     if scientific:
-        number = '%E' % num
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -416,7 +417,7 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n >= max(_SHORT_SCALE_PL.keys()):
-                return "nieskończoność"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -488,6 +489,10 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
 
         result += _short_scale(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "minus ") and num >= 1e6:
+        return pronounce_number_pl(-num if result else num, places,
+                                   short_scale, scientific=True)
     # deal with scientific notation unpronounceable as number
     if not result and "e" in str(num):
         return pronounce_number_pl(num, places, short_scale, scientific=True)

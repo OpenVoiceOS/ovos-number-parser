@@ -1,7 +1,7 @@
 import math
 from enum import IntEnum
 
-from ovos_number_parser.util import (convert_to_mixed_fraction)
+from ovos_number_parser.util import convert_to_mixed_fraction, scientific_notation
 
 _FRACTION_STRING_FA = {
     2: 'دوم',
@@ -427,7 +427,7 @@ def pronounce_number_fa(number, places=2, scientific=False,
     if scientific:
         if number == 0:
             return "صفر"
-        number = '%E' % num
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -440,6 +440,9 @@ def pronounce_number_fa(number, places=2, scientific=False,
         return '{}{}'.format(
             'منفی ' if float(n) < 0 else '',
             pronounce_number_fa(abs(float(n)), places, False, ordinals=False))
+    if abs(number) >= 1000 ** len(_FARSI_BIG):
+        # a magnitude with no spoken name reads scientifically
+        return pronounce_number_fa(number, places, scientific=True)
     if ordinals:
         return _to_ordinal(number)
     return _to_cardinal(number, places)

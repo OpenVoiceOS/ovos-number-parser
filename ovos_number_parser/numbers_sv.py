@@ -256,7 +256,7 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
                 result += ' ' + _NUM_POWERS_OF_TEN_SV[scale_level]
                 result += 'er' + _EXTRA_SPACE_SV  # MiljonER
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_sv(num, scale_level) + result
 

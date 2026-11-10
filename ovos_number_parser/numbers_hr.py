@@ -10,7 +10,7 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, scientific_notation
 
 _NUM_STRING_HR = {
     0: 'nula',
@@ -272,7 +272,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus beskonačnost"
     if scientific:
-        number = '%E' % num
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -322,7 +322,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
 
         def _scale_hr(n):
             if n > max(_SCALE_HR.keys()):
-                return "beskonačnost"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -386,6 +386,10 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
 
         result += _scale_hr(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "minus ") and num >= 1e6:
+        return pronounce_number_hr(-num if result else num, places,
+                                   short_scale, scientific=True)
     # deal with scientific notation unpronounceable as number
     if not result and "e" in str(num):
         return pronounce_number_hr(num, places, short_scale, scientific=True)

@@ -4,7 +4,7 @@ from collections import OrderedDict
 import re
 from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber,
-                                     GrammaticalGender)
+                                     GrammaticalGender, scientific_notation)
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF cs spellout-cardinal-feminine and -neuter). The masculine keeps
@@ -1098,7 +1098,7 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "záporné nekonečno"
     if scientific:
-        number = '%E' % num
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -1179,7 +1179,7 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n >= max(_SHORT_SCALE_CS.keys()):
-                return "nekonečno"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -1227,7 +1227,7 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
 
         def _long_scale(n):
             if n >= max(_LONG_SCALE_CS.keys()):
-                return "nekonečno"
+                return ""
             ordi = ordinals
             if int(n) != n:
                 ordi = False
@@ -1274,6 +1274,10 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "mínus ") and num >= 1e6:
+        return pronounce_number_cs(-num if result else num, places,
+                                   short_scale, scientific=True)
     # deal with scientific notation unpronounceable as number
     if not result and "e" in str(num):
         return pronounce_number_cs(num, places, short_scale, scientific=True)

@@ -2,7 +2,7 @@ from math import isfinite
 from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import (convert_to_mixed_fraction)
+from ovos_number_parser.util import convert_to_mixed_fraction, scientific_notation
 
 _NUM_STRING_SL = {
     0: 'nič',
@@ -223,7 +223,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus neskončno"
     if scientific:
-        number = '%E' % num
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -332,7 +332,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n >= max(_SHORT_SCALE_SL.keys()):
-                return "neskončno"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -384,7 +384,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
         def _long_scale(n):
             if n >= max(_LONG_SCALE_SL.keys()):
-                return "neskončno"
+                return ""
             ordi = ordinals
             if int(n) != n:
                 ordi = False
@@ -457,11 +457,16 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "minus ") and num >= 1e6:
+        return pronounce_number_sl(-num if result else num, places,
+                                   short_scale, scientific=True)
+
     if ordinals:
         result = result.replace(" ", "")
 
     # deal with scientific notation unpronounceable as number
-    if (not result or result == "neskončno") and "e" in str(num):
+    if not result and "e" in str(num):
         return pronounce_number_sl(num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:

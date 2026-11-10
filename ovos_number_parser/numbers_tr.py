@@ -27,7 +27,7 @@ import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, Token, ReplaceableNumber)
+                                     partition_list, is_numeric, Token, ReplaceableNumber, scientific_notation)
 
 _NUM_STRING_TR = {
     0: 'sıfır',
@@ -322,7 +322,7 @@ def pronounce_number_tr(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "eksi sonsuzluk"
     if scientific:
-        number = '%E' % num
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -376,7 +376,7 @@ def pronounce_number_tr(number, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n >= 999 * max(_SHORT_SCALE_TR.keys()):
-                return "sonsuzluk"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -427,6 +427,10 @@ def pronounce_number_tr(number, places=2, short_scale=True, scientific=False,
 
         result += _short_scale(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "eksi ") and num >= 1e6:
+        return pronounce_number_tr(-num if result else num, places,
+                                   short_scale, scientific=True)
     # deal with scientific notation unpronounceable as number
     if not result and "e" in str(num):
         return pronounce_number_tr(num, places, short_scale, scientific=True)

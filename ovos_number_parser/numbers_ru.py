@@ -661,8 +661,9 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
     # deal with a magnitude that has no spoken name: read it scientifically
     # (covers floats in "e" notation and very large ints alike) so a finite
     # value never returns an empty string.
-    if not result and abs(num) >= 1e6:
-        return pronounce_number_ru(num, places, short_scale, scientific=True)
+    if result in ("", "минус ") and num >= 1e6:
+        return pronounce_number_ru(-num if result else num, places,
+                                   short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
         if abs(num) < 1.0 and (result == "минус " or not result):

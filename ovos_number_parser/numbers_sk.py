@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 import re
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, Token, ReplaceableNumber)
+                                     partition_list, is_numeric, Token, ReplaceableNumber, scientific_notation)
 
 _NUM_STRING_SK = {
     0: 'nula',
@@ -794,7 +794,7 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "mínus nekonečno"
     if scientific:
-        number = '%E' % num
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -859,7 +859,7 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
 
         def _whole_number(n):
             if n >= max(_SCALE_SK.keys()) * 1000:
-                return "nekonečno"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -893,6 +893,10 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
 
         result += _whole_number(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "mínus ") and num >= 1e6:
+        return pronounce_number_sk(-num if result else num, places,
+                                   short_scale, scientific=True)
     # deal with scientific notation unpronounceable as number
     if not result and "e" in str(num):
         return pronounce_number_sk(num, places, short_scale, scientific=True)

@@ -706,6 +706,21 @@ _SCIENTIFIC_WORDS = {
     "ro": "ori zece la puterea",
     "da": "gange ti i",
     "sv": "gånger tio upphöjt till",
+    "an": "por diez elevau a",
+    "el": "επί δέκα στη δύναμη του",
+    "he": "כפול עשר בחזקת",
+    "id": "kali sepuluh pangkat",
+    # the connective each backend speaks under scientific=True
+    "az": "vurulsun on üstü",
+    "bg": "по десет на степен",
+    "cs": "krát deset na mocninu",
+    "fa": "ضرب در ده به توان",
+    "hr": "puta deset na",
+    "pl": "razy dziesięć do potęgi",
+    "sk": "krát desať na mocninu",
+    "sl": "krat deset na",
+    "tr": "çarpı on üzeri",
+    "uk": "на десять у ступені",
 }
 
 
@@ -894,6 +909,11 @@ def pronounce_number(number: Union[int, float], lang: str,
     # Round to the spoken precision before dispatch so every backend speaks a
     # rounded value instead of a truncated one (see _round_for_speech).
     number = _round_for_speech(number, places)
+    if isinstance(number, float) and abs(number) >= 1e16:
+        # Python writes a float this large in exponent form ("1e+22"). Read
+        # the whole number of that shortest repr, the value the caller wrote,
+        # rather than its binary expansion or the exponent string itself.
+        number = int(Decimal(repr(number)))
     try:
         spoken = _pronounce_number_dispatch(
             number, lang, places, short_scale, scientific, ordinals,

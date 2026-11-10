@@ -18,7 +18,7 @@ from collections import OrderedDict
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions, invert_dict, exact_int,
                                      is_numeric, tokenize, partition_list, Token, ReplaceableNumber,
-                                     GrammaticalGender)
+                                     GrammaticalGender, scientific_notation)
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF uk spellout-cardinal-feminine and -neuter); the scale words
@@ -463,7 +463,7 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "мінус нескінченність"
     if scientific:
-        number = '%E' % num
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -543,7 +543,7 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n > max(_SHORT_SCALE_UK.keys()):
-                return "нескінченність"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -615,7 +615,7 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
 
         def _long_scale(n):
             if n >= max(_LONG_SCALE_UK.keys()):
-                return "нескінченність"
+                return ""
             ordi = ordinals
             if int(n) != n:
                 ordi = False
@@ -672,6 +672,10 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "мінус ") and num >= 1e6:
+        return pronounce_number_uk(-num if result else num, places,
+                                   short_scale, scientific=True)
     # deal with scientific notation unpronounceable as number
     if not result and "e" in str(num):
         return pronounce_number_uk(num, places, short_scale, scientific=True)

@@ -58,10 +58,10 @@ class TestHugeFiniteIntegers(unittest.TestCase):
         self.assertNotIn("negative", out)
 
     def test_mantissa_pronounced_in_target_language(self):
-        # Czech has no entry in _SCIENTIFIC_WORDS, so the connective falls
-        # back to English while the mantissa and exponent stay Czech. This
-        # pins the documented fallback, not a claim of Czech coverage.
-        out = pronounce_number(2 ** 2000, "cs")
+        # Asturian has no entry in _SCIENTIFIC_WORDS, so the connective falls
+        # back to English while the mantissa and exponent stay Asturian. This
+        # pins the documented fallback, not a claim of Asturian coverage.
+        out = pronounce_number(10 ** 400, "ast")
         self.assertIsInstance(out, str)
         self.assertIn("times ten to the power of", out)
 

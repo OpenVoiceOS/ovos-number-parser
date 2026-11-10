@@ -385,7 +385,7 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
                     result += "e"  # MillionE
                 result += "n "  # MilliardeN, MillioneN
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_de(num,
                                          scale_level) + result  # + _EXTRA_SPACE_DA
