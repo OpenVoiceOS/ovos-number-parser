@@ -1,7 +1,7 @@
 from decimal import Decimal
-from math import floor, isfinite
+from math import floor
 
-from ovos_number_parser.util import (convert_to_mixed_fraction)
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
 _NUM_STRING_HU = {
     0: 'nulla',
     1: 'egy',
@@ -443,14 +443,11 @@ def extract_number_hu(text, short_scale=True, ordinals=False):
 
         # digits, including comma decimals
         cleaned = token.replace(',', '.')
-        try:
-            val = float(cleaned)
-            if isfinite(val):
-                if val == int(val) and '.' not in cleaned:
-                    val = int(val)
-                return -val if negative else val
-        except ValueError:
-            pass
+        if is_numeric(cleaned):
+            val = numeric_value(cleaned)
+            if val == int(val) and '.' not in cleaned:
+                val = int(val)
+            return -val if negative else val
 
         if ordinals:
             val = is_ordinal_hu(token)

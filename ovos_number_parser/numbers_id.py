@@ -23,8 +23,9 @@ take the ``ke-`` prefix ("kedua" = 2nd) with the irregular "pertama"
 import re
 from decimal import Decimal
 from dataclasses import dataclass, field
-from math import isfinite
 from typing import Dict, List, Optional, Union
+
+from ovos_number_parser.util import is_numeric, numeric_value
 
 _UNITS_COMMON = {
     "satu": 1, "dua": 2, "tiga": 3, "empat": 4, "lima": 5,
@@ -311,9 +312,10 @@ def _extract_number(text: str, lang: _LangDef,
         # digits (also "8,5")
         clean = tok.strip(".!?;:")
         if re.fullmatch(r"-?\d+(?:[.,]\d+)?", clean):
-            val = float(clean.replace(",", "."))
-            if not isfinite(val):
+            num = clean.replace(",", ".")
+            if not is_numeric(num):
                 return False
+            val = numeric_value(num)
             # "2 setengah" = 2.5
             if i + 1 < len(tokens) and tokens[i + 1] in fractions:
                 val += fractions[tokens[i + 1]]

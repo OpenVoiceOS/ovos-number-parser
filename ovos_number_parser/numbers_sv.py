@@ -14,10 +14,10 @@
 # limitations under the License.
 #
 from decimal import Decimal
-from math import floor, isfinite
+from math import floor
 
-from ovos_number_parser.util import (convert_to_mixed_fraction, is_numeric, look_for_fractions, Token,
-                                     GrammaticalGender)
+from ovos_number_parser.util import (convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions,
+                                     Token, GrammaticalGender)
 
 _NUM_STRING_SV = {
     0: 'noll',
@@ -533,18 +533,21 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
             expanded.append(str(v))
         else:
             expanded.append(w)
-    # merge lower-magnitude continuations ("2000 23" -> 2023)
+    # merge lower-magnitude continuations ("2000 23" -> 2023); a digit run
+    # that int() cannot read is no number and never merges
     scales = {100, 1000, 1000000, 1000000000, 1000000000000}
     merged = []
     for idx, w in enumerate(expanded):
-        if merged and w.isdecimal() and merged[-1].isdecimal():
+        if merged and w.isdecimal() and merged[-1].isdecimal() \
+                and is_numeric(w) and is_numeric(merged[-1]):
             prev, nxt = int(merged[-1]), int(w)
             if nxt in scales and prev < nxt:
                 # "två miljoner" -> 2 * 1000000
                 merged[-1] = str(prev * nxt)
                 continue
             follow = int(expanded[idx + 1]) if idx + 1 < len(expanded) \
-                and expanded[idx + 1].isdecimal() else None
+                and expanded[idx + 1].isdecimal() \
+                and is_numeric(expanded[idx + 1]) else None
             # a small value that a following scale word will multiply belongs
             # to that scale, not the preceding group ("en miljon ett tusen")
             if not (follow in scales and nxt < follow) \
@@ -558,6 +561,7 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     collapsed = []
     for w in merged:
         if collapsed and w.isdecimal() and collapsed[-1].isdecimal() \
+                and is_numeric(w) and is_numeric(collapsed[-1]) \
                 and _merge_values_sv(int(collapsed[-1]), int(w)):
             collapsed[-1] = str(int(collapsed[-1]) + int(w))
         else:
@@ -589,10 +593,8 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     count = 0
     while count < len(aWords):
         word = aWords[count]
-        if is_numeric(word) and isfinite(float(word)):
-            # an overflowing digit string ("9" * 400) or a non-finite token
-            # floats to inf; it carries no usable number, so it is skipped
-            val = int(word) if word.isdigit() else float(word)
+        if is_numeric(word):
+            val = numeric_value(word)
             if count + 1 < len(aWords):
                 valNext = is_fractional_sv(aWords[count + 1])
                 if valNext:
