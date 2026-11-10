@@ -13,6 +13,7 @@ References:
     * https://et.wikipedia.org/wiki/Arvs%C3%B5na
     * https://en.wiktionary.org/wiki/Appendix:Estonian_numbers
 """
+from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import convert_to_mixed_fraction
@@ -157,7 +158,7 @@ def pronounce_number_et(number, places=2, short_scale=True, scientific=False,
     if ordinals:
         return pronounce_ordinal_et(number)
     if abs(number) >= 10 ** 15:  # beyond the supported scale words
-        return str(number)
+        return f"{Decimal(str(number)):f}"
     if number < 0:
         return "miinus " + pronounce_number_et(abs(number), places)
     if number == int(number):
@@ -165,7 +166,7 @@ def pronounce_number_et(number, places=2, short_scale=True, scientific=False,
     result = _pronounce_int_et(floor(number))
     if places > 0:
         # decimals are read digit by digit after "koma"
-        fraction = str(round(number - floor(number), places))[2:]
+        fraction = f"{Decimal(str(round(number - floor(number), places))):f}"[2:]
         digits = [_NUM_STRING_ET[int(d)] for d in fraction[:places]]
         result += " koma " + " ".join(digits)
     return result

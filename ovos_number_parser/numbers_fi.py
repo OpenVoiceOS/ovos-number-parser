@@ -14,6 +14,7 @@ References:
     * https://fi.wikipedia.org/wiki/Numeraali
     * https://en.wiktionary.org/wiki/Appendix:Finnish_numbers
 """
+from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import convert_to_mixed_fraction
@@ -175,7 +176,7 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     if ordinals:
         return pronounce_ordinal_fi(number)
     if abs(number) >= 10 ** 15:  # beyond the supported scale words
-        return str(number)
+        return f"{Decimal(str(number)):f}"
     if number < 0:
         return "miinus " + pronounce_number_fi(abs(number), places)
     if number == int(number):
@@ -183,7 +184,7 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     result = _pronounce_int_fi(floor(number))
     if places > 0:
         # decimals are read digit by digit after "pilkku"
-        fraction = str(round(number - floor(number), places))[2:]
+        fraction = f"{Decimal(str(round(number - floor(number), places))):f}"[2:]
         digits = [_NUM_STRING_FI[int(d)] for d in fraction[:places]]
         result += " pilkku " + " ".join(digits)
     return result
