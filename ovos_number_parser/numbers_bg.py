@@ -430,8 +430,8 @@ def pronounce_number_bg(number, places=2, short_scale=True, scientific=False,
     whole_words = _int_bg(int(num))
     if whole_words is None:
         # a magnitude with no spoken name reads scientifically
-        return pronounce_number_bg(-num if result else num, places,
-                                   short_scale, scientific=True)
+        return result + pronounce_number_bg(
+            num, places, short_scale, scientific=True)
     result += " ".join(whole_words)
 
     # deal with fractional part

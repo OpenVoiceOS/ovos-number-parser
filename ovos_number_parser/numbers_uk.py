@@ -674,8 +674,8 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
 
     # a magnitude with no spoken name reads scientifically
     if result in ("", "мінус ") and num >= 1e6:
-        return pronounce_number_uk(-num if result else num, places,
-                                   short_scale, scientific=True)
+        return result + pronounce_number_uk(
+            num, places, short_scale, scientific=True)
     # deal with scientific notation unpronounceable as number
     if not result and "e" in str(num):
         return pronounce_number_uk(num, places, short_scale, scientific=True)

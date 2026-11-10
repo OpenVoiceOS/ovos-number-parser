@@ -459,8 +459,8 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
     # a magnitude with no spoken name reads scientifically
     if result in ("", "minus ") and num >= 1e6:
-        return pronounce_number_sl(-num if result else num, places,
-                                   short_scale, scientific=True)
+        return result + pronounce_number_sl(
+            num, places, short_scale, scientific=True)
 
     if ordinals:
         result = result.replace(" ", "")

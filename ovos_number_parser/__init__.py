@@ -717,11 +717,16 @@ _SCIENTIFIC_WORDS = {
     "fa": "ضرب در ده به توان",
     "hr": "puta deset na",
     "pl": "razy dziesięć do potęgi",
+    "ru": "на десять в степени",
     "sk": "krát desať na mocninu",
     "sl": "krat deset na",
     "tr": "çarpı on üzeri",
     "uk": "на десять у ступені",
 }
+
+#: Languages whose backend speaks the exponent of a scientific reading as an
+#: ordinal ("deset na trideseti"); the fallback reads it the same way.
+_ORDINAL_EXPONENT_LANGS = {"hr"}
 
 
 def _base_lang(lang: str) -> str:
@@ -813,16 +818,20 @@ def _pronounce_bignum_fallback(number: Union[int, float], lang: str,
     """
     digits = str(abs(int(number)))
     exponent = len(digits) - 1
-    tail = digits[1:1 + places].rstrip("0")
-    mantissa = float(digits[0] + ("." + tail if tail else ""))
+    mantissa = Decimal(f"{digits[0]}.{digits[1:]}").quantize(
+        Decimal(1).scaleb(-places), ROUND_HALF_UP)
+    if mantissa == 10:  # 9.9996 at 3 places carries into the next power
+        mantissa, exponent = Decimal(1), exponent + 1
+    mantissa = float(mantissa)
     # the sign rides on the mantissa so each language speaks its own minus
     # word ("menos dois...") instead of an English prefix
     if number < 0:
         mantissa = -mantissa
     mantissa_words = pronounce_number(mantissa, lang=lang, places=places)
-    exponent_words = pronounce_number(exponent, lang=lang)
-    connective = _SCIENTIFIC_WORDS.get(_base_lang(lang),
-                                       _SCIENTIFIC_WORDS["en"])
+    base = _base_lang(lang)
+    exponent_words = pronounce_number(
+        exponent, lang=lang, ordinals=base in _ORDINAL_EXPONENT_LANGS)
+    connective = _SCIENTIFIC_WORDS.get(base, _SCIENTIFIC_WORDS["en"])
     return f"{mantissa_words} {connective} {exponent_words}"
 
 
@@ -913,7 +922,7 @@ def pronounce_number(number: Union[int, float], lang: str,
         # Python writes a float this large in exponent form ("1e+22"). Read
         # the whole number of that shortest repr, the value the caller wrote,
         # rather than its binary expansion or the exponent string itself.
-        number = int(Decimal(repr(number)))
+        number = int(Decimal(repr(float(number))))
     try:
         spoken = _pronounce_number_dispatch(
             number, lang, places, short_scale, scientific, ordinals,

@@ -7,7 +7,8 @@ exponent plus a cited connective.
 """
 import unittest
 
-from ovos_number_parser import pronounce_number
+from ovos_number_parser import pronounce_number, _pronounce_bignum_fallback
+from ovos_number_parser.util import scientific_notation
 
 #: every native backend except kab, whose finite ceiling of 9999 is documented
 NATIVE = ["an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en",
@@ -18,6 +19,26 @@ NATIVE = ["an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en",
 #: backends whose named scales end below 10 ** 100; above that they read the
 #: value in their own scientific form
 SCIENTIFIC_BACKENDS = ["az", "bg", "fa", "hr", "sk", "sl", "tr", "uk"]
+
+#: backends with a scientific mode of their own, whose connective the
+#: dispatcher fallback reuses
+SCIENTIFIC_MODE = ["az", "bg", "cs", "fa", "hr", "pl", "ru", "sk", "sl",
+                   "tr", "uk"]
+
+
+def minus_word(lang):
+    """The minus word of the language's ordinary negative reading."""
+    return pronounce_number(-5, lang)[:-len(pronounce_number(5, lang))]
+
+
+class _ReprWrapper(float):
+    """A float whose repr is not a bare number while its str is, as numpy 2
+    writes "np.float64(1e+16)" and "1e+16"."""
+
+    __str__ = float.__repr__
+
+    def __repr__(self):
+        return f"np.float64({float.__repr__(self)})"
 
 
 class TestFloatReadsAsTheIntItWrites(unittest.TestCase):
@@ -32,6 +53,14 @@ class TestFloatReadsAsTheIntItWrites(unittest.TestCase):
                         self.assertEqual(
                             pronounce_number(sign * value, lang),
                             pronounce_number(sign * exact, lang))
+
+    def test_float_subclass_with_wrapped_repr(self):
+        for lang in ("en", "de", "fr"):
+            for value, exact in ((1e16, 10 ** 16), (-2.5e20, -25 * 10 ** 19)):
+                with self.subTest(lang=lang, value=value):
+                    self.assertEqual(
+                        pronounce_number(_ReprWrapper(value), lang),
+                        pronounce_number(exact, lang))
 
     def test_no_exponent_string(self):
         for lang in ("nb", "nn", "da", "de", "fy", "hu", "nl", "sv", "fr"):
@@ -58,14 +87,16 @@ class TestSignedHugeIntegers(unittest.TestCase):
     """A negative value reads as the minus word plus the positive reading."""
 
     def test_negative_is_minus_plus_positive(self):
-        for lang, value in (("en", 10 ** 400), ("ru", 10 ** 100),
-                            ("ru", 10 ** 400), ("cs", 10 ** 400),
+        # 111 * 10 ** 398 repeats a mantissa digit and takes the dispatcher
+        # fallback; 10 ** 400 reads in the backend
+        for lang, value in (("en", 10 ** 400), ("en", 111 * 10 ** 398),
+                            ("ru", 10 ** 100), ("ru", 10 ** 400),
+                            ("cs", 10 ** 400), ("cs", 111 * 10 ** 398),
                             ("pl", 10 ** 400)):
             with self.subTest(lang=lang, value=value):
-                positive = pronounce_number(value, lang)
-                negative = pronounce_number(-value, lang)
-                self.assertTrue(negative.endswith(positive), negative)
-                self.assertTrue(negative[:-len(positive)].strip(), negative)
+                self.assertEqual(
+                    pronounce_number(-value, lang),
+                    minus_word(lang) + pronounce_number(value, lang))
 
     def test_beyond_the_float_range_is_not_empty(self):
         for lang in ("cs", "pl"):
@@ -97,14 +128,29 @@ class TestNoInfinityOrZeroForAFiniteValue(unittest.TestCase):
                     pronounce_number(value, lang, scientific=True))
 
     def test_repeated_mantissa_digit(self):
-        # "нула нула" reads the mantissa digit by digit; it is not padding
-        value = 4007432372075044522000117569525566
-        for lang in ("bg", "fa", "sk"):
-            for sign in (1, -1):
-                with self.subTest(lang=lang, sign=sign):
+        # "нула нула" and "jedan jedan" read the mantissa digit by digit;
+        # they are not padding, and the reading keeps the backend's words
+        cases = [(lang, 111 * 10 ** 398) for lang in SCIENTIFIC_MODE]
+        # past the named scales of these four, inside those of the rest
+        cases += [(lang, 4007432372075044522000117569525566)
+                  for lang in ("bg", "fa", "hr", "sk")]
+        for lang, value in cases:
+            with self.subTest(lang=lang, value=value):
+                scientific = pronounce_number(value, lang, scientific=True)
+                self.assertEqual(pronounce_number(value, lang), scientific)
+                self.assertEqual(pronounce_number(-value, lang),
+                                 minus_word(lang) + scientific)
+
+    def test_fallback_speaks_the_backend_words(self):
+        # the dispatcher fallback replaces a backend reading it flags as
+        # padded, so both must say the same words for every value
+        for lang in SCIENTIFIC_MODE:
+            for value in (10 ** 30, 12 * 10 ** 29, 4 * 10 ** 33, 10 ** 100,
+                          128 * 10 ** 398):
+                with self.subTest(lang=lang, value=value):
                     self.assertEqual(
-                        pronounce_number(sign * value, lang),
-                        pronounce_number(sign * value, lang, scientific=True))
+                        _pronounce_bignum_fallback(value, lang, 3),
+                        pronounce_number(value, lang, scientific=True))
 
     def test_beyond_the_float_range(self):
         for lang in SCIENTIFIC_BACKENDS:
@@ -174,6 +220,27 @@ class TestFrenchLargeValues(unittest.TestCase):
                     pronounce_number(value, "fr"),
                     f"{pronounce_number(mantissa, 'fr')} fois dix puissance "
                     f"{pronounce_number(exponent, 'fr')}")
+
+
+class TestScientificNotation(unittest.TestCase):
+    """Beyond the float range the mantissa rounds, as '%E' does."""
+
+    def test_rounds_the_mantissa(self):
+        # 9.99999999...E+400 rounds up to 1.000000E+401;
+        # 1.234567890E+400 rounds to 1.234568E+400
+        for value, expected in ((10 ** 401 - 1, "1.000000E+401"),
+                                (1 - 10 ** 401, "-1.000000E+401"),
+                                (1234567890 * 10 ** 391, "1.234568E+400"),
+                                (10 ** 400, "1.000000E+400")):
+            with self.subTest(value=expected):
+                self.assertEqual(scientific_notation(value), expected)
+
+    def test_spoken_value_is_rounded(self):
+        for lang in ("cs", "pl", "en", "ru"):
+            with self.subTest(lang=lang):
+                self.assertEqual(pronounce_number(10 ** 401 - 1, lang),
+                                 pronounce_number(10 ** 401, lang))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -298,7 +298,7 @@ def scientific_notation(number: Union[int, float]) -> str:
     included.
 
     ``'%E'`` converts to float, which raises OverflowError for an int such as
-    10 ** 400; its mantissa and exponent are then read from the decimal digits.
+    10 ** 400; such an int is then formatted from its exact decimal value.
 
     Args:
         number (int or float): finite number to format
@@ -308,9 +308,7 @@ def scientific_notation(number: Union[int, float]) -> str:
     try:
         return '%E' % number
     except OverflowError:
-        digits = str(abs(number))
-        sign = "-" if number < 0 else ""
-        return f"{sign}{digits[0]}.{digits[1:7].ljust(6, '0')}E+{len(digits) - 1}"
+        return format(Decimal(number), '.6E')
 
 
 @dataclass

@@ -388,8 +388,8 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
 
     # a magnitude with no spoken name reads scientifically
     if result in ("", "minus ") and num >= 1e6:
-        return pronounce_number_hr(-num if result else num, places,
-                                   short_scale, scientific=True)
+        return result + pronounce_number_hr(
+            num, places, short_scale, scientific=True)
     # deal with scientific notation unpronounceable as number
     if not result and "e" in str(num):
         return pronounce_number_hr(num, places, short_scale, scientific=True)

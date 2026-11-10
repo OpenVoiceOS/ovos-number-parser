@@ -18,7 +18,8 @@ from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, \
+    scientific_notation
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF ru spellout-cardinal-feminine and -neuter); the scale words
@@ -453,15 +454,7 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
         num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
                                                rounding=ROUND_HALF_UP)) or 0.0
     if scientific:
-        try:
-            number = '%E' % num
-        except OverflowError:
-            # int larger than the float range: derive the mantissa and
-            # exponent from its digits so it still reads scientifically.
-            digits = str(abs(int(num)))
-            frac = digits[1:7].rstrip("0")
-            number = "%s%s%sE+%d" % ("-" if num < 0 else "", digits[0],
-                                     "." + frac if frac else "", len(digits) - 1)
+        number = scientific_notation(num)
         n, power = number.replace("+", "").split("E")
         power = int(power)
         if power != 0:
@@ -662,8 +655,8 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
     # (covers floats in "e" notation and very large ints alike) so a finite
     # value never returns an empty string.
     if result in ("", "минус ") and num >= 1e6:
-        return pronounce_number_ru(-num if result else num, places,
-                                   short_scale, scientific=True)
+        return result + pronounce_number_ru(
+            num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
         if abs(num) < 1.0 and (result == "минус " or not result):
