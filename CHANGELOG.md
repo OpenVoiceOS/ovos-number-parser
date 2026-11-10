@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.21a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.21a1) (2026-11-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.20a1...0.24.21a1)
+
+**Merged pull requests:**
+
+- fix: read very large magnitudes as numbers in every language [\#414](https://github.com/OpenVoiceOS/ovos-number-parser/pull/414) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.20a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.20a1) (2026-11-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.19a1...0.24.20a1)
@@ -379,10 +387,6 @@
 ## [0.21.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.21.0a1) (2026-09-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.20.4a1...0.21.0a1)
-
-**Merged pull requests:**
-
-- feat\(ar\): cardinals in the words a lect uses, keyed by its ISO 639-3 code [\#311](https://github.com/OpenVoiceOS/ovos-number-parser/pull/311) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.20.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.20.4a1) (2026-09-20)
 
