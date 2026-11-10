@@ -54,8 +54,8 @@ def _hu(whole, numerator, denominator):
 
 
 @pytest.mark.parametrize("value, places, numerator, denominator", [
-    (1e-07, 5, 0, "százezred"),
-    (1e-05, 3, 0, "ezred"),
+    (1e-07, 5, 1, "tízmilliomod"),
+    (1e-05, 3, 1, "százezred"),
     (1e-05, 6, 10, "milliomod"),
     (1e-07, 7, 1, "tízmilliomod"),
     (1e-05, 8, 1000, "százmilliomod"),
@@ -84,13 +84,12 @@ _ZERO_AT_NO_PLACES = ("az", "cs", "da", "hr", "it", "pl", "sk", "sl", "tr",
                       "uk")
 
 
-#: languages whose reading of a negative value below the rounding quantum
-#: is the zero word alone, with the places that give that reading
-_ZERO_ALONE = [(lang, 0) for lang in (
+#: languages whose reading of a negative value below one at places=0 is the
+#: zero word alone
+_ZERO_ALONE = (
     "ar", "az", "bg", "cs", "da", "de", "el", "et", "eu", "fa", "fi",
     "fy", "he", "hr", "hu", "id", "it", "ms", "nb", "nl", "nn", "pl", "sk",
-    "sl", "sv", "tr", "uk")] + [(lang, 3) for lang in (
-    "ar", "el", "eu", "fa", "he")]
+    "sl", "sv", "tr", "uk")
 
 
 @pytest.mark.parametrize("lang", _ZERO_AT_NO_PLACES)
@@ -99,12 +98,10 @@ def test_value_below_one_at_no_places_reads_zero(lang, value):
     assert pronounce_number(value, lang, places=0) == pronounce_number(0, lang)
 
 
-@pytest.mark.parametrize("lang, places, value", [
-    (lang, places, value) for lang, places in _ZERO_ALONE
-    for value in (-1e-05, -1e-07, -0.0004) + ((-0.4,) if places == 0 else ())])
-def test_negative_value_read_as_zero_has_no_minus_word(lang, places, value):
-    assert pronounce_number(value, lang, places=places) == \
-        pronounce_number(0, lang)
+@pytest.mark.parametrize("lang", _ZERO_ALONE)
+@pytest.mark.parametrize("value", [-1e-05, -1e-07, -0.0004, -0.4])
+def test_negative_value_read_as_zero_has_no_minus_word(lang, value):
+    assert pronounce_number(value, lang, places=0) == pronounce_number(0, lang)
 
 
 @pytest.mark.parametrize("lang", ("ar", "de", "en", "es", "hu", "af"))

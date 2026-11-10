@@ -18,7 +18,7 @@ import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions, \
-    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, scientific_notation
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, scientific_parts
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF pl spellout-cardinal-feminine and -neuter); a compound ending in
@@ -341,9 +341,7 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus nieskończoność"
     if scientific:
-        number = scientific_notation(num)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negatives of powers separately from the normal
@@ -430,7 +428,8 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
                 number = _sub_thousand(z, ordi, iteration=i)
 
                 if i:
-                    if i >= len(hundreds):
+                    if i >= len(hundreds) or \
+                            float(pow(1000, i)) not in _SHORT_SCALE_PL:
                         return ""
                     number += " "
                     if ordi:

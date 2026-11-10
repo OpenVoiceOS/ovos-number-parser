@@ -27,7 +27,7 @@ import re
 from collections import OrderedDict
 
 from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_notation)
+                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_parts)
 
 _NUM_STRING_TR = {
     0: 'sıfır',
@@ -322,9 +322,7 @@ def pronounce_number_tr(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "eksi sonsuzluk"
     if scientific:
-        number = scientific_notation(num)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             # This handles negatives of powers separately from the normal
             # handling since each call disables the scientific flag

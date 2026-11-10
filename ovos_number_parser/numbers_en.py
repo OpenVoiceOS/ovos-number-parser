@@ -20,7 +20,7 @@ from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_notation)
+                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_parts)
 
 _ARTICLES_EN = {'a', 'an', 'the'}
 
@@ -403,9 +403,7 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
         num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
                                                rounding=ROUND_HALF_UP)) or 0.0
     if scientific:
-        number = scientific_notation(num)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negatives of powers separately from the normal

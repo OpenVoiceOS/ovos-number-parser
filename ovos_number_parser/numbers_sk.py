@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 import re
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_notation)
+                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_parts)
 
 _NUM_STRING_SK = {
     0: 'nula',
@@ -791,9 +791,7 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "mínus nekonečno"
     if scientific:
-        number = scientific_notation(num)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 return '{}{} krát desať na {}{} mocninu'.format(

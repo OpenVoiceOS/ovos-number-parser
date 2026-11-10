@@ -146,7 +146,8 @@ class TestNoInfinityOrZeroForAFiniteValue(unittest.TestCase):
         # padded, so both must say the same words for every value
         for lang in SCIENTIFIC_MODE:
             for value in (10 ** 30, 12 * 10 ** 29, 4 * 10 ** 33, 10 ** 100,
-                          128 * 10 ** 398):
+                          128 * 10 ** 398, 12346 * 10 ** 396,
+                          99996 * 10 ** 396):
                 with self.subTest(lang=lang, value=value):
                     self.assertEqual(
                         _pronounce_bignum_fallback(value, lang, 3),
@@ -185,7 +186,7 @@ class TestLocalizedConnective(unittest.TestCase):
         for lang, connective in self.CONNECTIVE.items():
             for value, exponent in ((10 ** 25, 25), (10 ** 100, 100),
                                     (-10 ** 400, 400)):
-                mantissa = 1.0 if value > 0 else -1.0
+                mantissa = 1 if value > 0 else -1
                 with self.subTest(lang=lang, value=value):
                     self.assertEqual(
                         pronounce_number(value, lang),

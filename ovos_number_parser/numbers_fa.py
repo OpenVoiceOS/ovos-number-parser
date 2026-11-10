@@ -1,7 +1,7 @@
 import math
 from enum import IntEnum
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, scientific_notation
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, scientific_parts
 
 _FRACTION_STRING_FA = {
     2: 'دوم',
@@ -418,21 +418,20 @@ def pronounce_number_fa(number, places=2, scientific=False,
     if scientific:
         if number == 0:
             return "صفر"
-        number = scientific_notation(num)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             return '{}{} ضرب در ده به توان {}{}'.format(
                 'منفی ' if float(n) < 0 else '',
                 pronounce_number_fa(
-                    abs(float(n)), places, False, ordinals=False),
+                    abs(n), places, False, ordinals=False),
                 'منفی ' if power < 0 else '',
                 pronounce_number_fa(abs(power), places, False, ordinals=False))
         return '{}{}'.format(
             'منفی ' if float(n) < 0 else '',
-            pronounce_number_fa(abs(float(n)), places, False, ordinals=False))
-    if abs(number) >= 1000 ** len(_FARSI_BIG):
-        # a magnitude with no spoken name reads scientifically
+            pronounce_number_fa(abs(n), places, False, ordinals=False))
+    if abs(number) >= 1000 ** len(_FARSI_BIG) or places > 0 and \
+            0 < abs(number) < 10 ** (1 - 3 * len(_FARSI_FRAC_BIG)):
+        # a magnitude or a fraction with no spoken name reads scientifically
         return pronounce_number_fa(number, places, scientific=True)
     if ordinals:
         return _to_ordinal(number)

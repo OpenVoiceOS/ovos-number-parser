@@ -29,7 +29,7 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token, scientific_notation
+    invert_dict, ReplaceableNumber, partition_list, tokenize, Token, scientific_parts
 
 _NUM_STRING_BG = {
     0: 'нула',
@@ -409,9 +409,7 @@ def pronounce_number_bg(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "минус безкрайност"
     if scientific:
-        number = scientific_notation(num)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             return '{}{} по десет на степен {}{}'.format(
                 'минус ' if float(n) < 0 else '',

@@ -105,8 +105,10 @@ class TestBasqueLongScale(unittest.TestCase):
         self.assertIsInstance(pronounce_number(1e-9, lang="eu"), str)
         self.assertIsInstance(pronounce_number(6.022e23, lang="eu"), str)
         self.assertIsInstance(pronounce_number(-1e-12, lang="eu"), str)
-        # a value that rounds away at the requested places carries no koma tail
-        self.assertNotIn('koma', pronounce_number(1e-9, lang="eu"))
+        # a value below the requested places reads up to its first digit
+        self.assertEqual(pronounce_number(1e-9, lang="eu"),
+                         pronounce_number(1e-9, lang="eu", places=9))
+        self.assertIn('bat', pronounce_number(1e-9, lang="eu"))
 
 
 class TestBasqueOrdinals(unittest.TestCase):

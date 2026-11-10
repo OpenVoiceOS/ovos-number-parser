@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from math import floor
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
@@ -249,12 +249,12 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             whole_number_part = floor(number)
             if whole_number_part == 0:
                 result += _NUM_STRING_HU[0]
-            result += pronounce_whole_number_hu(whole_number_part)
+            result += pronounce_whole_number_hu(whole_number_part).strip('-')
             if places > 0:
                 places = min(places, len(_FRACTION_SUFFIXES_HU))
                 result += " egész "
-                numerator = round((Decimal(str(number)) - whole_number_part)
-                                  * 10 ** places)
+                numerator = int(((Decimal(str(number)) - whole_number_part)
+                                 * 10 ** places).to_integral_value(ROUND_HALF_UP))
                 fraction = pronounce_whole_number_hu(numerator).strip('-')
                 result += fraction.replace(_NUM_STRING_HU[2], 'két') \
                     or _NUM_STRING_HU[0]
