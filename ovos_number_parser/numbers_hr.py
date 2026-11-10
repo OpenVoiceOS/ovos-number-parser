@@ -282,7 +282,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
                     abs(float(n)), places, short_scale, False, ordinals=False),
                 'minus ' if power < 0 else '',
                 pronounce_number_hr(abs(power), places, short_scale, False,
-                                    ordinals=True))
+                                    ordinals=False))
 
     number_names = _NUM_STRING_HR.copy()
     number_names.update(_SCALE_HR)

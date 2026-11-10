@@ -192,6 +192,21 @@ class TestLocalizedConnective(unittest.TestCase):
                         f"{pronounce_number(mantissa, lang)} {connective} "
                         f"{pronounce_number(exponent, lang)}")
 
+    def test_croatian_cardinal_exponent(self):
+        # hr.wikipedia "Dan kad je Zemlja stala (2008.)": "tri puta deset na
+        # sedam metara u sekundi"; 111 * 10 ** 28 takes the dispatcher
+        # fallback, the other values the backend
+        for value, mantissa, exponent, kwargs in (
+                (10 ** 30, 1, 30, {}),
+                (111 * 10 ** 28, 1.11, 30, {}),
+                (-10 ** 400, -1, 400, {}),
+                (3 * 10 ** 7, 3, 7, {"scientific": True})):
+            with self.subTest(value=value, **kwargs):
+                self.assertEqual(
+                    pronounce_number(value, "hr", **kwargs),
+                    f"{pronounce_number(mantissa, 'hr')} puta deset na "
+                    f"{pronounce_number(exponent, 'hr')}")
+
     def test_greek_scientific_mode(self):
         self.assertEqual(
             pronounce_number(2e5, "el", scientific=True),

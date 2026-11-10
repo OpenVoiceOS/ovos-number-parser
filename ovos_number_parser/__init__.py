@@ -724,10 +724,6 @@ _SCIENTIFIC_WORDS = {
     "uk": "на десять у ступені",
 }
 
-#: Languages whose backend speaks the exponent of a scientific reading as an
-#: ordinal ("deset na trideseti"); the fallback reads it the same way.
-_ORDINAL_EXPONENT_LANGS = {"hr"}
-
 
 def _base_lang(lang: str) -> str:
     """Bare language code, so "pt-BR" and "pt" resolve to the same entry."""
@@ -828,10 +824,9 @@ def _pronounce_bignum_fallback(number: Union[int, float], lang: str,
     if number < 0:
         mantissa = -mantissa
     mantissa_words = pronounce_number(mantissa, lang=lang, places=places)
-    base = _base_lang(lang)
-    exponent_words = pronounce_number(
-        exponent, lang=lang, ordinals=base in _ORDINAL_EXPONENT_LANGS)
-    connective = _SCIENTIFIC_WORDS.get(base, _SCIENTIFIC_WORDS["en"])
+    exponent_words = pronounce_number(exponent, lang=lang)
+    connective = _SCIENTIFIC_WORDS.get(_base_lang(lang),
+                                       _SCIENTIFIC_WORDS["en"])
     return f"{mantissa_words} {connective} {exponent_words}"
 
 
