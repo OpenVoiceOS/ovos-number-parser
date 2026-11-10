@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
@@ -420,14 +421,8 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
     def pronounce_fractional_da(num, places):
         # fixed number of places even with trailing zeros
         result = ""
-        num = round(num, places)
-        place = 10
-        while places > 0:
-            # doesn't work with 1.0001 and places = 2: int(
-            # number*place) % 10 > 0 and places > 0:
-            result += " " + _NUM_STRING_DA[int(num * place) % 10]
-            place *= 10
-            places -= 1
+        for digit in f"{Decimal(str(num)):f}".split(".")[1][:places].ljust(places, "0"):
+            result += " " + _NUM_STRING_DA[int(digit)]
         return result
 
     def pronounce_whole_number_da(num, scale_level=0):
@@ -482,11 +477,10 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             return " ".join(head + [last])
         else:
             whole_number_part = floor(number)
-            fractional_part = number - whole_number_part
             result += pronounce_whole_number_da(whole_number_part)
             if places > 0:
                 result += " komma"
-                result += pronounce_fractional_da(fractional_part, places)
+                result += pronounce_fractional_da(number, places)
             return re.sub(r'\s+', ' ', result).strip()
 
 

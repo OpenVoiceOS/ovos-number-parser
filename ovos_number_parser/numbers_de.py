@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, ReplaceableNumber, Token,
@@ -344,16 +345,11 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
                                 places):  # fixed number of places even with
         # trailing zeros
         result = ""
-        num = round(num, places)
-        place = 10
-        while places > 0:  # doesn't work with 1.0001 and places = 2: int(
-            # number*place) % 10 > 0 and places > 0:
-            word = _NUM_STRING[int(num * place) % 10]
-            if int(num * place) % 10 == 1 and not word.endswith("s"):
+        for digit in f"{Decimal(str(num)):f}".split(".")[1][:places].ljust(places, "0"):
+            word = _NUM_STRING[int(digit)]
+            if digit == "1" and not word.endswith("s"):
                 word += "s"  # "1" is pronounced "eins" after the decimal point
             result += " " + word
-            place *= 10
-            places -= 1
         return result
 
     def pronounce_whole_number_de(num, scale_level=0):
@@ -408,12 +404,11 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
             return pronounce_whole_number_de(number).rstrip()
         else:
             whole_number_part = floor(number)
-            fractional_part = number - whole_number_part
             result += pronounce_whole_number_de(whole_number_part).rstrip() \
                 or _NUM_STRING[0]
             if places > 0:
                 result += " Komma"
-                result += pronounce_fractional_de(fractional_part, places)
+                result += pronounce_fractional_de(number, places)
             return result
 
 

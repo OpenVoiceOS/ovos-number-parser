@@ -23,6 +23,7 @@ Sources:
     - https://ordbokene.no (Språkrådet/UiB: Bokmålsordboka & Nynorskordboka;
       every pronounced form in this module is an attested entry)
 """
+from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
@@ -300,17 +301,12 @@ def _pronounce_number(number, t, places=2):
     if number == int(number):
         return _pronounce_whole_number(number, t).strip()
     whole_number_part = floor(number)
-    fractional_part = number - whole_number_part
     result += _pronounce_whole_number(whole_number_part, t).strip() or \
         t.num_string[0]
     if places > 0:
         result += " komma"
-        num = round(fractional_part, places)
-        place = 10
-        while places > 0:
-            result += " " + t.num_string[int(num * place) % 10]
-            place *= 10
-            places -= 1
+        for digit in f"{Decimal(str(number)):f}".split(".")[1][:places].ljust(places, "0"):
+            result += " " + t.num_string[int(digit)]
     return result
 
 
