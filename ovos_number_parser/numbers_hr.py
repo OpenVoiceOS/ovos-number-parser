@@ -9,7 +9,7 @@ Croatian uses the long scale (milijun = 1e6, milijarda = 1e9, bilijun = 1e12).
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token
 
 _NUM_STRING_HR = {
     0: 'nula',
@@ -147,19 +147,19 @@ _SUMS = {'dvadeset', '20', 'trideset', '30', 'četrdeset', '40', 'pedeset', '50'
 
 # declined forms of the scale words used when speaking multiples
 _SCALE_DECLENSIONS_HR = {
-    "tisuću": 1e3,
-    "tisuće": 1e3,
-    "milijuna": 1e6,
-    "milijardu": 1e9,
-    "milijarde": 1e9,
-    "milijardi": 1e9,
-    "bilijuna": 1e12,
-    "bilijarde": 1e15,
-    "bilijardi": 1e15,
-    "trilijuna": 1e18,
-    "trilijarde": 1e21,
-    "trilijardi": 1e21,
-    "kvadrilijuna": 1e24,
+    "tisuću": 10 ** 3,
+    "tisuće": 10 ** 3,
+    "milijuna": 10 ** 6,
+    "milijardu": 10 ** 9,
+    "milijarde": 10 ** 9,
+    "milijardi": 10 ** 9,
+    "bilijuna": 10 ** 12,
+    "bilijarde": 10 ** 15,
+    "bilijardi": 10 ** 15,
+    "trilijuna": 10 ** 18,
+    "trilijarde": 10 ** 21,
+    "trilijardi": 10 ** 21,
+    "kvadrilijuna": 10 ** 24,
 }
 
 _MULTIPLIES_HR = set(_SCALE_HR.values()) | set(_SCALE_DECLENSIONS_HR)
@@ -870,7 +870,8 @@ def _initialize_number_data(short_scale):
         multiplies, string_num_ordinal, string_num_scale
 
     """
-    string_num_scale_hr = invert_dict(_SCALE_HR)
+    string_num_scale_hr = {word: exact_int(value)
+                           for value, word in _SCALE_HR.items()}
     string_num_scale_hr.update(_SCALE_DECLENSIONS_HR)
     return _MULTIPLIES_HR, _STRING_SHORT_ORDINAL_HR, string_num_scale_hr
 

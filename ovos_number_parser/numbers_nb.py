@@ -761,8 +761,11 @@ def _extract_number(text, t, ordinals=False):
     numbers = _extract_numbers_with_text(tokenize(text), t)
     if not numbers:
         return False
+    number = numbers[0].value
+    if isinstance(number, int):
+        return number
     try:
-        number = float(numbers[0].value)
+        number = float(number)
     except (OverflowError, ValueError):
         return False
     if not isfinite(number):

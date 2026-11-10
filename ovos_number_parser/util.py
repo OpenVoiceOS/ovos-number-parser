@@ -196,6 +196,26 @@ def invert_dict(original: Dict[Any, Any]) -> Dict[Any, Any]:
     return {value: key for key, value in original.items()}
 
 
+def exact_int(value: Any) -> Any:
+    """
+    Return a whole float as the integer that its literal spells.
+
+    Scale tables write constants as ``1e24``, which is the float nearest to
+    10 ** 24 and not 10 ** 24 itself. ``repr`` keeps the written digits, so
+    ``exact_int(1e24) == 10 ** 24``. A value that is not a finite whole float
+    is returned unchanged.
+
+    Args:
+        value: a number from a scale table
+
+    Returns:
+        int for a finite whole float, else ``value`` unchanged
+    """
+    if isinstance(value, float) and math.isfinite(value) and value.is_integer():
+        return int(Decimal(repr(value)))
+    return value
+
+
 def is_numeric(input_str: str) -> bool:
     """
     Return True if the input string represents a valid number, otherwise False.

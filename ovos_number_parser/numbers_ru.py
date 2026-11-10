@@ -18,7 +18,7 @@ from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF ru spellout-cardinal-feminine and -neuter); the scale words
@@ -311,7 +311,7 @@ _DECIMAL_MARKER = {"целая", "целых", "точка", "запятая"}
 
 _STRING_NUM_RU = invert_dict(_NUM_STRING_RU)
 _STRING_NUM_RU.update({
-    "тысяч": 1e3,
+    "тысяч": 10 ** 3,
 })
 _STRING_NUM_RU.update(generate_plurals_ru(_STRING_NUM_RU))
 _STRING_NUM_RU.update({
@@ -1288,7 +1288,8 @@ def _initialize_number_data(short_scale):
         else _STRING_LONG_ORDINAL_RU
 
     string_num_scale_ru = _SHORT_SCALE_RU if short_scale else _LONG_SCALE_RU
-    string_num_scale_ru = invert_dict(string_num_scale_ru)
+    string_num_scale_ru = {word: exact_int(value)
+                           for value, word in string_num_scale_ru.items()}
     string_num_scale_ru.update(generate_plurals_ru(string_num_scale_ru))
     return multiplies, string_num_ordinal_ru, string_num_scale_ru
 

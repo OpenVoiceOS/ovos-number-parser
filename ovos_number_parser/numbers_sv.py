@@ -598,7 +598,7 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
         if is_numeric(word) and isfinite(float(word)):
             # an overflowing digit string ("9" * 400) or a non-finite token
             # floats to inf; it carries no usable number, so it is skipped
-            val = float(word)
+            val = int(word) if word.isdigit() else float(word)
             if count + 1 < len(aWords):
                 valNext = is_fractional_sv(aWords[count + 1])
                 if valNext:
@@ -687,9 +687,10 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
         break
 
     if val is not False and val is not None:
-        val = float(val)
-        if val.is_integer():
-            val = int(val)
+        if not isinstance(val, int):
+            val = float(val)
+            if val.is_integer():
+                val = int(val)
         if negative:
             val = -val
     return val or False

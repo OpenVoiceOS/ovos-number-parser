@@ -95,11 +95,11 @@ _VARIANT_NUM_BG = {
 
 # thousands and the international scale words with their count forms
 _SCALE_BG = OrderedDict([
-    (1e3, 'хиляда'),
-    (1e6, 'милион'),
-    (1e9, 'милиард'),
-    (1e12, 'трилион'),
-    (1e15, 'квадрилион'),
+    (10 ** 3, 'хиляда'),
+    (10 ** 6, 'милион'),
+    (10 ** 9, 'милиард'),
+    (10 ** 12, 'трилион'),
+    (10 ** 15, 'квадрилион'),
 ])
 
 _SCALE_PLURAL_BG = {

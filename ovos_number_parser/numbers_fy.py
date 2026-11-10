@@ -65,19 +65,19 @@ _LONG_SCALE_FY = OrderedDict([
     (100, 'hûndert'),
     (1000, 'tûzen'),
     (1000000, 'miljoen'),
-    (1e12, 'biljoen'),
-    (1e18, 'triljoen'),
+    (10 ** 12, 'biljoen'),
+    (10 ** 18, 'triljoen'),
 ])
 
 _SHORT_SCALE_FY = OrderedDict([
     (100, 'hûndert'),
     (1000, 'tûzen'),
     (1000000, 'miljoen'),
-    (1e9, 'miljard'),
-    (1e12, 'biljoen'),
-    (1e15, 'biljard'),
-    (1e18, 'triljoen'),
-    (1e21, 'triljard'),
+    (10 ** 9, 'miljard'),
+    (10 ** 12, 'biljoen'),
+    (10 ** 15, 'biljard'),
+    (10 ** 18, 'triljoen'),
+    (10 ** 21, 'triljard'),
 ])
 
 _ORDINAL_STRING_BASE_FY = {

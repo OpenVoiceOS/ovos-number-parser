@@ -25,7 +25,7 @@ number: "bir buçuk" = 1.5) and "çeyrek" (a quarter).
 import re
 from collections import OrderedDict
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
+from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber)
 
 _NUM_STRING_TR = {
@@ -904,7 +904,8 @@ def _initialize_number_data_tr(short_scale, speech=True):
         else _STRING_LONG_ORDINAL_TR
 
     string_num_scale_tr = _SHORT_SCALE_TR if short_scale else _LONG_SCALE_TR
-    string_num_scale_tr = invert_dict(string_num_scale_tr)
+    string_num_scale_tr = {word: exact_int(value)
+                           for value, word in string_num_scale_tr.items()}
 
     return multiplies, string_num_ordinal_tr, string_num_scale_tr
 

@@ -19,7 +19,7 @@ import re
 from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
+from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
                                      partition_list, is_numeric, Token, ReplaceableNumber)
 
 _ARTICLES_EN = {'a', 'an', 'the'}
@@ -1213,14 +1213,15 @@ def _initialize_number_data_en(short_scale, speech=True):
         else _STRING_LONG_ORDINAL_EN
 
     string_num_scale_en = _SHORT_SCALE_EN if short_scale else _LONG_SCALE_EN
-    string_num_scale_en = invert_dict(string_num_scale_en)
+    string_num_scale_en = {word: exact_int(value)
+                           for value, word in string_num_scale_en.items()}
     string_num_scale_en.update(_generate_plurals_en(string_num_scale_en))
 
     # "googol" is a named power of ten (10^100), not part of the -illion series;
     # accept it as a scale word so "one googol" reads as 1e100. "googolplex"
     # (10^(10^100)) overflows a float and is intentionally not recognised.
     multiplies = multiplies | {"googol"}
-    string_num_scale_en["googol"] = 1e100
+    string_num_scale_en["googol"] = 10 ** 100
 
     if speech:
         string_num_scale_en.update(_SPOKEN_EXTRA_NUM_EN)
