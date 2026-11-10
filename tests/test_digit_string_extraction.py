@@ -43,6 +43,12 @@ class TestDigitStringsExtractExactly(unittest.TestCase):
                     self.assertEqual(numbers_to_digits(text, lang), text)
 
 
+class TestDigitStringsBeyondFloatRange(unittest.TestCase):
+    def test_danish_signed_run_beyond_float_range(self):
+        self.assertEqual(extract_number("+" + "9" * 400, "da"),
+                         10 ** 400 - 1)
+
+
 class TestDigitStringsBeyondIntLimit(unittest.TestCase):
     """int() refuses a digit string longer than sys.get_int_max_str_digits()
     (4300 by default), and str() refuses to write such an int back. The
@@ -56,6 +62,9 @@ class TestDigitStringsBeyondIntLimit(unittest.TestCase):
                 self.assertEqual(extract_number(text, lang),
                                  extract_number("zzz", lang))
                 self.assertEqual(numbers_to_digits(text, lang), text)
+
+    def test_number_before_an_unreadable_run(self):
+        self.assertEqual(extract_number("12 " + "9" * 5000, "sv"), 12)
 
     def test_raised_limit_reads_exactly(self):
         limit = sys.get_int_max_str_digits()
