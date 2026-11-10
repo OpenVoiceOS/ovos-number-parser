@@ -133,7 +133,13 @@ def _rbnf_small(lang, digits):
     return zero + reading[len(one):]
 
 
-@pytest.mark.parametrize("lang", FALLBACK_LANGS)
+#: the fallback languages whose decimals the parser reads with its own rules,
+#: tested in test_rbnf_decimal_words, not as the engine reads them
+_OWN_DECIMAL_RULES = ("cy", "kk", "ky", "lo", "mt")
+
+
+@pytest.mark.parametrize(
+    "lang", [lang for lang in FALLBACK_LANGS if lang not in _OWN_DECIMAL_RULES])
 @pytest.mark.parametrize("value, digits", [
     (1e-07, "0000001"),
     (1.5e-07, "00000015"),

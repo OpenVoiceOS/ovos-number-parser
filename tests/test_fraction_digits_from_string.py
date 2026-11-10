@@ -50,8 +50,4 @@ def test_neighbouring_decimals_read_differently(lang, low, high):
 def test_reading_is_whole_part_then_each_digit(lang, value, places, digits):
     whole = int(value.split(".")[0])
     expected = pronounce_number(whole, lang) + " " + _tail(lang, digits)
-    if whole == 0 and lang == "da":
-        # Danish speaks no zero before the separator ("komma fem nul nul"
-        # for 0.5, as test_number_parser_da pins)
-        expected = _tail(lang, digits)
     assert pronounce_number(float(value), lang, places=places) == expected
