@@ -162,6 +162,10 @@ _FR = NumberVocabulary(
 
     DECIMAL_MARKER=["virgule"],
     NEGATIVE_SIGN=["moins"],
+    NEGATIVE_IDIOMS=[("au", "moins"), ("du", "moins"), ("à", "moins", "que"),
+                     ("plus", "ou", "moins"),
+                     # clock time: "neuf heures moins le quart"
+                     ("heure", "moins"), ("heures", "moins")],
     UNITS={
         0: 'zéro',
         1: 'un',

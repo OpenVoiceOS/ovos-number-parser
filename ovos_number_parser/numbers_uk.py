@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import sys
 from decimal import Decimal
 import re
 from collections import OrderedDict
@@ -970,6 +971,7 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
     next_val = None
     negative = False
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -998,6 +1000,25 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
             if word not in _STRING_NUM_UK:
                 word = _text_uk_inflection_normalize(word, 1)
 
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts; any other fraction
+        # is a number of its own ("3.5 1/2" is 3.5, then 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 and val:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                val = val - fraction if val < 0 else val + fraction
+                number_words.append(token)
+            break
+
         if word not in string_num_scale and \
                 word not in _STRING_NUM_UK and \
                 word not in _SUMS and \
@@ -1023,6 +1044,7 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
             number_words = [token]
         else:
             number_words.append(token)
+        number_end = idx
         # is this word already a number ?
         if is_numeric(word):
             val = numeric_value(word)

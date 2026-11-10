@@ -8,7 +8,8 @@ the input under test.
 import unittest
 from fractions import Fraction
 
-from ovos_number_parser import extract_number, numbers_to_digits
+from ovos_number_parser import (extract_number, extract_number_spans,
+                                numbers_to_digits)
 
 LANGS = ["an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en",
          "es", "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu",
@@ -38,18 +39,106 @@ class TestDigitFractionNeverRaises(unittest.TestCase):
                     extract_number(text, lang)
                     numbers_to_digits(text, lang)
 
-    def test_slavic_fraction_reads_as_its_decimal(self):
-        # a digit fraction after a number reads as the decimal it equals
-        # does: "5 1/2" like "5 0.5"
-        for lang in SLAVIC:
+
+#: per language: the minus word, the words for 20, for 100 + 20 and for 200
+MIXED = {"bg": ("минус", "двадесет", "сто двадесет", "двеста"),
+         "cs": ("minus", "dvacet", "sto dvacet", "dvě stě"),
+         "hr": ("minus", "dvadeset", "sto dvadeset", "dvjesto"),
+         "pl": ("minus", "dwadzieścia", "sto dwadzieścia", "dwieście"),
+         "ru": ("минус", "двадцать", "сто двадцать", "двести"),
+         "sk": ("mínus", "dvadsať", "sto dvadsať", "dvesto"),
+         "uk": ("мінус", "двадцять", "сто двадцять", "двісті"),
+         "en": ("minus", "twenty", "one hundred twenty", "two hundred"),
+         "nl": ("min", "twintig", "honderdtwintig", "tweehonderd"),
+         "fy": ("min", "tweintich", "hûnderttweintich", "twahûndert")}
+
+
+class TestDoubleMinusNeverRaises(unittest.TestCase):
+    """A token with two leading hyphens ("--3") carries no sign: one hyphen
+    is the minus sign, and "--3" is no digit string."""
+
+    def test_double_minus(self):
+        for lang in LANGS:
+            for text in ("--3", "--3 1/2", "minus --3", "--3/2", "x --3/2 y"):
+                with self.subTest(lang=lang, text=text):
+                    extract_number(text, lang)
+                    numbers_to_digits(text, lang)
+                    extract_number_spans(text, lang)
+
+    def test_double_minus_is_no_number(self):
+        self.assertIs(extract_number("--3", "da"), False)
+        self.assertIs(extract_number("minus --3", "da"), False)
+        for lang in ("id", "ms"):
             with self.subTest(lang=lang):
-                self.assertEqual(extract_number("5 1/2", lang), Fraction(1, 2))
-                self.assertEqual(extract_number("5 1/2", lang),
-                                 extract_number("5 0.5", lang))
-                self.assertEqual(numbers_to_digits("5 1/2", lang), "5 0.5")
+                self.assertIs(extract_number("--3/2", lang), False)
+                self.assertEqual(extract_number("-3/2", lang), Fraction(-3, 2))
 
 
 class TestMixedNumber(unittest.TestCase):
+    """A whole number and a proper digit fraction after it are one mixed
+    number: "5 1/2" is 5 + 1/2, and "-5 1/2" is -(5 + 1/2)."""
+
+    def test_digit_whole_part(self):
+        for lang in MIXED:
+            minus = MIXED[lang][0]
+            for whole in (5, 20, 120, 300):
+                mixed = Fraction(2 * whole + 1, 2)
+                with self.subTest(lang=lang, whole=whole):
+                    self.assertEqual(extract_number(f"{whole} 1/2", lang), mixed)
+                    self.assertEqual(extract_number(f"-{whole} 1/2", lang), -mixed)
+                    self.assertEqual(extract_number(f"{minus} {whole} 1/2", lang),
+                                     -mixed)
+                    self.assertEqual(extract_number(f"{whole} 3/4", lang),
+                                     whole + Fraction(3, 4))
+
+    def test_spoken_whole_part(self):
+        for lang, (minus, twenty, hundred_twenty, two_hundred) in MIXED.items():
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number(twenty + " 1/2", lang),
+                                 Fraction(41, 2))
+                self.assertEqual(extract_number(f"{minus} {twenty} 1/2", lang),
+                                 Fraction(-41, 2))
+                self.assertEqual(extract_number(hundred_twenty + " 1/2", lang),
+                                 Fraction(241, 2))
+                self.assertEqual(extract_number(two_hundred + " 1/2", lang),
+                                 Fraction(401, 2))
+
+    def test_digits_written_once(self):
+        # the mixed number is one value: it is written once, whole part
+        # included
+        for lang, (minus, twenty, _, two_hundred) in MIXED.items():
+            with self.subTest(lang=lang):
+                self.assertEqual(numbers_to_digits("5 1/2", lang), "5.5")
+                self.assertEqual(numbers_to_digits("x 20 1/2 y", lang), "x 20.5 y")
+                self.assertEqual(numbers_to_digits("x 120 1/2 y", lang), "x 120.5 y")
+                self.assertEqual(numbers_to_digits("-5 1/2", lang), "-5.5")
+                self.assertEqual(numbers_to_digits(twenty + " 1/2", lang), "20.5")
+                self.assertEqual(numbers_to_digits(two_hundred + " 1/2", lang),
+                                 "200.5")
+        self.assertEqual(numbers_to_digits("у меня 20 1/2 литра", "ru"),
+                         "у меня 20.5 литра")
+
+    def test_other_fraction_after_a_number_is_a_second_number(self):
+        # only a whole number and a proper fraction form a mixed number: a
+        # fraction after a decimal, or an improper fraction, starts a second
+        # number, and the first keeps its sign
+        for lang, (minus, *_) in MIXED.items():
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number(f"{minus} 3.5 1/2", lang),
+                                 Fraction(-7, 2))
+                self.assertEqual(extract_number("5 3/2", lang), 5)
+                self.assertEqual(numbers_to_digits("x 3.5 1/2 y", lang),
+                                 "x 3.5 0.5 y")
+                self.assertEqual(numbers_to_digits("x 5 3/2 y", lang),
+                                 "x 5 1.5 y")
+
+    def test_mixed_whole_part_past_float_range(self):
+        big = "9" * 400
+        for lang in MIXED:
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number(big + " 1/2", lang),
+                                 extract_number("zzz", lang))
+
     def test_sign_covers_the_whole_mixed_number(self):
         # -5 1/2 is -(5 + 1/2)
         for lang in ("da", "de", "nb", "nn"):
@@ -94,6 +183,28 @@ class TestValuePastIntStringLimit(unittest.TestCase):
                                  (10 ** 4290 - 1) * 10 ** 6)
 
 
+#: per language: the word for 3 and phrases where the minus word is part
+#: of an idiom ("pelo menos" = at least), with a slot for the number
+IDIOMS = {
+    "pt": ("três", ["pelo menos {} dias", "ao menos {} dias",
+                    "a menos que tenhas {} dias", "mais ou menos {} dias"]),
+    "es": ("tres", ["al menos {} días", "por lo menos {} días",
+                    "a lo menos {} días", "a menos que tengas {} días",
+                    "más o menos {} días"]),
+    "fr": ("trois", ["au moins {} jours", "du moins {} jours",
+                     "à moins que tu aies {} jours", "à moins de {} jours",
+                     "plus ou moins {} jours", "{} heures moins dix"]),
+    "it": ("tre", ["più o meno {} ore", "a meno che tu abbia {} ore",
+                   "a meno di {} ore", "sono le {} meno dieci"]),
+    "ca": ("tres", ["al menys {} dies", "a menys que tinguis {} dies",
+                    "més o menys {} dies", "ni més ni menys {} dies"]),
+    "gl": ("tres", ["polo menos {} días", "ao menos {} días",
+                    "a menos que teñas {} días", "máis ou menos {} días"]),
+    "ast": ("tres", ["más o menos {} díes"]),
+    "oc": ("tres", ["mai o mens {} jorns"]),
+}
+
+
 class TestRomanceSigns(unittest.TestCase):
     def test_minus_word_before_digits(self):
         for lang, minus in ROMANCE_MINUS.items():
@@ -108,6 +219,52 @@ class TestRomanceSigns(unittest.TestCase):
         # "menos de 3" is "fewer than 3", not -3
         self.assertEqual(extract_number("menos de 3", "pt"), 3)
 
+    def test_minus_word_in_an_idiom_signs_nothing(self):
+        for lang, (three, phrases) in IDIOMS.items():
+            for phrase in phrases:
+                for number in ("3", three):
+                    text = phrase.format(number)
+                    with self.subTest(lang=lang, text=text):
+                        self.assertEqual(extract_number(text, lang), 3)
+        self.assertEqual(extract_number("une heure moins dix", "fr"), 1)
+
+    def test_idiom_keeps_the_minus_word_in_digits(self):
+        self.assertEqual(numbers_to_digits("pelo menos três dias", "pt"),
+                         "pelo menos 3 dias")
+        self.assertEqual(numbers_to_digits("mais ou menos três horas", "pt"),
+                         "mais ou menos 3 horas")
+        self.assertEqual(numbers_to_digits("polo menos tres días", "gl"),
+                         "polo menos 3 días")
+
+    def test_minus_word_before_a_number_still_signs(self):
+        for lang, (three, _) in IDIOMS.items():
+            minus = ROMANCE_MINUS[lang]
+            for number in ("3", three):
+                with self.subTest(lang=lang, number=number):
+                    self.assertEqual(extract_number(f"{minus} {number}", lang), -3)
+        for lang, text in (("pt", "a temperatura é menos três graus"),
+                           ("pt", "desceu a menos três graus"),
+                           ("pt", "desceu a menos 3 graus"),
+                           ("es", "la temperatura es de menos tres grados"),
+                           ("fr", "il fait moins trois degrés"),
+                           ("fr", "descendue à moins trois degrés"),
+                           ("it", "fuori ci sono meno tre gradi"),
+                           ("ca", "fa menys tres graus")):
+            with self.subTest(lang=lang, text=text):
+                self.assertEqual(extract_number(text, lang), -3)
+        self.assertEqual(numbers_to_digits("menos três", "pt"), "-3")
+        self.assertEqual(numbers_to_digits("a temperatura é menos três graus", "pt"),
+                         "a temperatura é -3 graus")
+
+    def test_minus_word_after_a_number_signs_nothing(self):
+        # between two numbers the word subtracts: the first number is read
+        for lang, text in (("pt", "três menos dois"), ("es", "tres menos dos"),
+                           ("fr", "trois moins deux"), ("it", "tre meno due"),
+                           ("pt", "3 menos 2")):
+            with self.subTest(lang=lang, text=text):
+                self.assertEqual(extract_number(text, lang), 3)
+        self.assertEqual(numbers_to_digits("três menos dois", "pt"), "3 menos 2")
+
     def test_leading_decimal_separator(self):
         for lang in ROMANCE_MINUS:
             with self.subTest(lang=lang):
@@ -116,7 +273,7 @@ class TestRomanceSigns(unittest.TestCase):
                 self.assertEqual(extract_number("-,5", lang), Fraction(-1, 2))
 
 
-class TestDanishNorwegianSignedPart(unittest.TestCase):
+class TestNordicSignedPart(unittest.TestCase):
     """A sign after a summed part opens the next number, as English reads
     "five and minus three" as 5."""
 
@@ -127,6 +284,23 @@ class TestDanishNorwegianSignedPart(unittest.TestCase):
                 self.assertEqual(extract_number("5 og -3", lang), 5)
                 self.assertEqual(extract_number("fem og minus tre", lang), 5)
                 self.assertEqual(numbers_to_digits("5 og -3", lang), "5 og -3")
+
+    def test_signed_part_after_an_article_only_part(self):
+        # "en" alone is the number 1, as English reads "one and minus three"
+        # as 1
+        self.assertEqual(extract_number("one and minus three", "en"), 1)
+        for lang, one in (("da", "en"), ("da", "et"), ("nb", "en"),
+                          ("nb", "ett"), ("nn", "ein"), ("nn", "eitt")):
+            with self.subTest(lang=lang, one=one):
+                self.assertEqual(extract_number(f"{one} og -3", lang), 1)
+                self.assertEqual(extract_number(f"{one} og minus tre", lang), 1)
+
+    def test_swedish_signed_part_is_a_new_number(self):
+        for text in ("5 och -3", "fem och -3", "5 och minus 3"):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "sv"), 5)
+        self.assertEqual(extract_number("en och -3", "sv"), 1)
+        self.assertEqual(extract_number("5 och 3", "sv"), 8)
 
     def test_leading_sign_still_covers_the_number(self):
         for lang in ("da", "nb"):

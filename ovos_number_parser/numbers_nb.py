@@ -626,8 +626,11 @@ def _extract_real_number_with_text(tokens, t):
                 else:
                     val = sum(to_sum)
 
-            if number_words and (not all([w in t.articles | t.negatives
-                                          | t.connectors for w in words_only])
+            # a signed part ends the number even after an article-only
+            # part: "en og -3" is 1, then -3
+            if number_words and (opens_signed
+                                 or not all([w in t.articles | t.negatives
+                                             | t.connectors for w in words_only])
                                  or str(val) == number_words[-1].word):
                 break
             else:
@@ -670,7 +673,10 @@ def _extract_real_number_with_text(tokens, t):
             if _prev_val is not None and prev_word not in t.articles and \
                     word not in t.string_fraction:  # compound fraction word
                 # the sign covers the whole mixed number: -5 1/2 is -(5 + 1/2)
-                _val = _prev_val - _fraction_val if _prev_val < 0 else _prev_val + _fraction_val
+                if _prev_val < 0 and _prev_val == int(_prev_val):
+                    _val = _prev_val - _fraction_val
+                else:
+                    _val = _prev_val + _fraction_val
                 if prev_word not in t.connectors and \
                         tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])

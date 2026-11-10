@@ -706,8 +706,11 @@ def _extract_real_number_with_text_da(tokens, short_scale):
                 val = -magnitude if to_sum[0] < 0 or any(
                     t.word in _NEGATIVES for t in number_words) else magnitude
 
-            if number_words and (not all([w in _ARTICLES | _NEGATIVES
-                                          | _NUMBER_CONNECTORS for w in words_only])
+            # a signed part ends the number even after an article-only
+            # part: "en og -3" is 1, then -3
+            if number_words and (opens_signed
+                                 or not all([w in _ARTICLES | _NEGATIVES
+                                             | _NUMBER_CONNECTORS for w in words_only])
                                  or str(val) == number_words[-1].word):
                 break
             else:
@@ -756,7 +759,10 @@ def _extract_real_number_with_text_da(tokens, short_scale):
             if _prev_val is not None and prev_word not in _ARTICLES and \
                     word not in _STRING_FRACTION_DA:  # sammensat brøk
                 # the sign covers the whole mixed number: -5 1/2 is -(5 + 1/2)
-                _val = _prev_val - _fraction_val if _prev_val < 0 else _prev_val + _fraction_val
+                if _prev_val < 0 and _prev_val == int(_prev_val):
+                    _val = _prev_val - _fraction_val
+                else:
+                    _val = _prev_val + _fraction_val
                 if prev_word not in _NUMBER_CONNECTORS and tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])
             elif _prev_val is not None:
@@ -985,8 +991,9 @@ def _fold_scale_groups_da(text):
             # multiplier, a fraction or a non-number ends it. Guard the digit
             # test against overflow: a several-hundred-digit token is a number
             # but nowhere near a foldable addend, so reject it before float().
-            if w.lstrip('-').isdecimal():
-                val = int(w) if len(w.lstrip('-')) < 4 else None
+            digits = w.removeprefix('-')
+            if digits.isdecimal():
+                val = int(w) if len(digits) < 4 else None
             else:
                 val = is_number_da(w)
             if isinstance(val, (int, float)) and val is not True \

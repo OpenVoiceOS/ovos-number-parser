@@ -438,6 +438,7 @@ _IT = NumberVocabulary(
 
     DECIMAL_MARKER=["virgola", "punto"],
     NEGATIVE_SIGN=["meno"],
+    NEGATIVE_IDIOMS=[("più", "o", "meno"), ("a", "meno", "che")],
     UNITS=_UNITS_IT,
     TENS=_TENS_IT,
     HUNDREDS={},                       # the hundreds multiply the units instead

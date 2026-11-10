@@ -141,6 +141,8 @@ _CA = NumberVocabulary(
 
     DECIMAL_MARKER=["coma", "amb", "punt", ".", ","],
     NEGATIVE_SIGN=["menys"],
+    NEGATIVE_IDIOMS=[("al", "menys"), ("a", "menys", "que"), ("més", "o", "menys"),
+                     ("ni", "més", "ni", "menys")],
     UNITS={
         0: 'zero',
         1: 'un',

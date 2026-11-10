@@ -444,6 +444,9 @@ class NumberVocabulary:
     #: "și" ("douăzeci și unu" = 21). Listed here so the descending-joiner rule
     #: skips them.
     MULTIPLICATIVE_JOIN_WORD: List[str] = field(default_factory=list)
+    #: fixed phrases that hold a NEGATIVE_SIGN word without a sign meaning
+    #: ("pelo menos" = at least): the minus word in them never signs a number
+    NEGATIVE_IDIOMS: List[Tuple[str, ...]] = field(default_factory=list)
 
     SCALE_ONE: Dict[int, str] = field(default_factory=dict)
 
@@ -575,6 +578,31 @@ class RomanceNumberExtractor:
 
         return False
 
+    def _signs(self, tokens: List[str], idx: int, numbers_map: Dict[str, Any]) -> bool:
+        """
+        Tell if the NEGATIVE_SIGN word at tokens[idx] signs the number after it.
+
+        The word signs a number only as a prefix: a number must follow it, no
+        number may come before it ("tres menos dos" is a subtraction), and it
+        must not be part of a NEGATIVE_IDIOMS phrase ("pelo menos tres").
+        """
+        def is_number(tok: str) -> bool:
+            digits = tok.rstrip(".,!?;:").replace(",", ".").removeprefix("-")
+            return tok in numbers_map or self.is_fractional(tok) is not False \
+                or digits.replace(".", "", 1).isdecimal()
+
+        if idx + 1 >= len(tokens) or not is_number(tokens[idx + 1]):
+            return False
+        if idx and is_number(tokens[idx - 1]):
+            return False
+        for idiom in self.vocab.NEGATIVE_IDIOMS:
+            for k, word in enumerate(idiom):
+                start = idx - k
+                if word == tokens[idx] and start >= 0 \
+                        and tuple(tokens[start:start + len(idiom)]) == idiom:
+                    return False
+        return True
+
     def extract_number(self,
                        text: str,
                        ordinals: bool = False,
@@ -620,7 +648,8 @@ class RomanceNumberExtractor:
                 if not is_numeric(t):
                     continue
                 val = numeric_value(t)
-                if idx and tokens[idx - 1] in self.vocab.NEGATIVE_SIGN:
+                if idx and tokens[idx - 1] in self.vocab.NEGATIVE_SIGN \
+                        and self._signs(tokens, idx - 1, numbers_map):
                     # the minus word signs digits as it signs number words
                     val = -val
                 return int(val) if val == int(val) else val
@@ -641,7 +670,13 @@ class RomanceNumberExtractor:
         while i < len(tokens):
             token = tokens[i]
             if token in self.vocab.NEGATIVE_SIGN:
-                is_negative = True
+                if self._signs(tokens, i, numbers_map):
+                    if saw_number:
+                        # a signed number after a number is a second number
+                        break
+                    is_negative = True
+                elif saw_number:
+                    break
                 i += 1
                 continue
 
@@ -787,9 +822,9 @@ class RomanceNumberExtractor:
             w = words[idx]
             if w in numbers_map or w in self.vocab.JOIN_WORD:
                 return True
-            # a negative sign or decimal marker only extends a span if it is
-            # immediately followed by a number word ("menos vinte", "tres coma catorze")
-            if w in self.vocab.NEGATIVE_SIGN or w in self.vocab.DECIMAL_MARKER:
+            # a decimal marker only extends a span if it is immediately
+            # followed by a number word ("tres coma catorze")
+            if w in self.vocab.DECIMAL_MARKER:
                 return next_word(idx) in numbers_map
             return False
 
@@ -797,8 +832,10 @@ class RomanceNumberExtractor:
             w = words[idx]
             if w in numbers_map:
                 return True
+            # a sign word opens a span before a number word ("menos vinte")
             if w in self.vocab.NEGATIVE_SIGN:
-                return next_word(idx) in numbers_map
+                return next_word(idx) in numbers_map \
+                    and self._signs(words, idx, numbers_map)
             return False
 
         while i < len(words):
@@ -807,6 +844,9 @@ class RomanceNumberExtractor:
                 # Start a new span
                 number_span_words = []
                 j = i
+                if words[i] in self.vocab.NEGATIVE_SIGN:
+                    number_span_words.append(words[i])
+                    j += 1
                 while j < len(words) and continues_span(j):
                     if words[j] in self.vocab.JOIN_WORD and number_span_words \
                             and words[j] not in self.vocab.MULTIPLICATIVE_JOIN_WORD:

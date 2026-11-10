@@ -517,14 +517,9 @@ def _numbers_to_digits_generic(utterance: str, lang: str,
         else:
             span = " ".join(_clean(t) for t in tokens[i:j + 1])
             val = extract_number(span, lang)
-            if val is False or val is None:
-                # no number, as for a value past the integer string
-                # conversion limit: the words stay as written
-                out.extend(tokens[i:j + 1])
-            else:
-                if isinstance(val, float) and val.is_integer():
-                    val = int(val)
-                out.append(f"{val}{trail}")
+            if isinstance(val, float) and val.is_integer():
+                val = int(val)
+            out.append(f"{val}{trail}")
         i = j + 1
     return " ".join(out)
 

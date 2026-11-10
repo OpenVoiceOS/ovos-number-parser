@@ -6,6 +6,7 @@ the count: "tisuću" (1000), "dvije tisuće" (2000), "pet tisuća" (5000),
 "milijun" / "dva milijuna", "milijarda" / "dvije milijarde" / "pet milijardi".
 Croatian uses the long scale (milijun = 1e6, milijarda = 1e9, bilijun = 1e12).
 """
+import sys
 from decimal import Decimal
 from collections import OrderedDict
 
@@ -694,6 +695,7 @@ def _extract_whole_number_with_text_hr(tokens, short_scale, ordinals):
     next_val = None
     negative = False
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -718,6 +720,25 @@ def _extract_whole_number_with_text_hr(tokens, short_scale, ordinals):
         # Normalize Croatian gender inflection (jedan, jedna, jedno, ...)
         if not ordinals:
             word = _text_hr_inflection_normalize(word)
+
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts; any other fraction
+        # is a number of its own ("3.5 1/2" is 3.5, then 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 and val:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                val = val - fraction if val < 0 else val + fraction
+                number_words.append(token)
+            break
 
         if word not in string_num_scale and \
                 word not in _STRING_NUM_HR and \
@@ -744,6 +765,7 @@ def _extract_whole_number_with_text_hr(tokens, short_scale, ordinals):
         else:
             number_words.append(token)
 
+        number_end = idx
         # is this word already a number ?
         if is_numeric(word):
             val = numeric_value(word)

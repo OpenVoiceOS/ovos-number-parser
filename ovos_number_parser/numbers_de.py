@@ -667,7 +667,10 @@ def _extract_real_number_with_text_de(tokens, short_scale):
             if _prev_val is not None and prev_word != "eine" and \
                     word not in _STRING_FRACTION:  # zusammengesetzter Bruch
                 # the sign covers the whole mixed number: -5 1/2 is -(5 + 1/2)
-                _val = _prev_val - _fraction_val if _prev_val < 0 else _prev_val + _fraction_val
+                if _prev_val < 0 and _prev_val == int(_prev_val):
+                    _val = _prev_val - _fraction_val
+                else:
+                    _val = _prev_val + _fraction_val
                 if prev_word not in _NUMBER_CONNECTORS and tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])
             elif _prev_val is not None:
