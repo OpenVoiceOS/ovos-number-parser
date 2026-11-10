@@ -87,7 +87,7 @@ _ZERO_AT_NO_PLACES = ("az", "cs", "da", "hr", "it", "pl", "sk", "sl", "tr",
 #: languages whose reading of a negative value below the rounding quantum
 #: is the zero word alone, with the places that give that reading
 _ZERO_ALONE = [(lang, 0) for lang in (
-    "ar", "az", "bg", "cs", "da", "de", "el", "et", "eu", "fa", "fi", "fil",
+    "ar", "az", "bg", "cs", "da", "de", "el", "et", "eu", "fa", "fi",
     "fy", "he", "hr", "hu", "id", "it", "ms", "nb", "nl", "nn", "pl", "sk",
     "sl", "sv", "tr", "uk")] + [(lang, 3) for lang in (
     "ar", "el", "eu", "fa", "he")]
