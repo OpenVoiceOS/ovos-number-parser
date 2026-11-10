@@ -9,6 +9,7 @@ import os
 import struct
 import subprocess
 import sys
+import timeit
 from decimal import Decimal
 from fractions import Fraction
 from numbers import Real
@@ -49,6 +50,13 @@ def _reading(function, number, lang, **kwargs):
         return function(number, lang, **kwargs)
     except Exception as err:
         return type(err)
+
+
+def _per_call(function, *args):
+    """Seconds per call, the best of five runs of 200 calls, so a busy
+    machine slows both sides of a comparison alike."""
+    timer = timeit.Timer(lambda: function(*args))
+    return min(timer.repeat(repeat=5, number=200)) / 200
 
 
 def _scientific(mantissa, exponent, lang):
@@ -210,3 +218,51 @@ def test_fraction_reads_its_rounded_digits(lang):
         assert _reading(pronounce_number, fraction, lang) == \
             _reading(pronounce_number, float(fraction), lang), \
             (lang, fraction)
+
+
+@pytest.mark.parametrize("function, decimal, same, lang", [
+    (pronounce_number, Decimal("1.5"), 1.5, "en"),
+    (pronounce_number, Decimal("12"), 12, "en"),
+    (pronounce_ordinal, Decimal("3"), 3, "pt-PT"),
+])
+def test_decimal_costs_about_what_the_float_costs(function, decimal, same,
+                                                  lang):
+    # the check for a magnitude past 4300 digits must not convert the
+    # 4301-digit bound for every Decimal
+    assert _per_call(function, decimal, lang) < \
+        4 * _per_call(function, same, lang)
+
+
+ORDINAL_LANGS = ["ca", "da", "de", "en", "fr", "he", "hu", "pt-PT", "ro",
+                 "tr"]
+
+
+@pytest.mark.parametrize("lang", ORDINAL_LANGS)
+def test_ordinal_past_the_float_range(lang):
+    # no float holds these values: each one rounds half away from zero to
+    # the int with the same digits
+    for number, whole in (
+            (Fraction(2 * 10 ** 400 + 1, 2), 10 ** 400 + 1),
+            (Fraction(-(2 * 10 ** 400 + 1), 2), -(10 ** 400 + 1)),
+            (Decimal("1" * 400 + ".5"), int("1" * 399 + "2")),
+            (Decimal("1" * 400 + ".25"), int("1" * 400))):
+        reading = _reading(pronounce_ordinal, number, lang)
+        assert reading == _reading(pronounce_ordinal, whole, lang), \
+            (lang, number)
+        assert not isinstance(reading, str) or "inf" not in reading
+
+
+@pytest.mark.parametrize("lang", ORDINAL_LANGS)
+def test_ordinal_past_the_string_limit(lang):
+    for number in (Decimal("1" * 5000 + ".5"), Decimal("1E+4300"),
+                   -Decimal(10) ** 999999):
+        with pytest.raises(ValueError):
+            pronounce_ordinal(number, lang)
+
+
+def test_unsupported_language_raises_before_the_size():
+    for lang in ("br", "xx"):
+        with pytest.raises(NotImplementedError):
+            pronounce_ordinal(3, lang)
+        with pytest.raises(NotImplementedError):
+            pronounce_ordinal(Decimal("1E+4300"), lang)

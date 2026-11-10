@@ -1,5 +1,6 @@
 import math
 import re
+import sys
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from fractions import Fraction
@@ -636,6 +637,20 @@ def _pronounce_complex(number: complex, lang: str, places: int,
 _READ_LIMIT = 10 ** 4300
 
 
+def _past_read_limit(number) -> bool:
+    """
+    Whether an int, Decimal or Fraction has more than 4300 integer digits.
+
+    A Decimal is judged by the exponent of its leading digit: comparing it
+    with the int ``_READ_LIMIT`` converts that 4301-digit int on every call.
+    """
+    if isinstance(number, Decimal):
+        return number.is_finite() and bool(number) \
+            and number.adjusted() >= 4300
+    return isinstance(number, (int, Fraction)) \
+        and not -_READ_LIMIT < number < _READ_LIMIT
+
+
 def _from_other_real(number):
     """
     A ``numbers.Real`` that is not an int, float, Decimal or Fraction (numpy
@@ -930,7 +945,8 @@ def pronounce_number(number: Union[int, float], lang: str,
             (numpy float32) reads as the float its ``str()`` writes, and a
             ``fractions.Fraction`` is rounded from its exact value. A number
             with more than 4300 integer digits reads in the scientific form
-            in every language.
+            in every language except Kabyle, which raises OverflowError past
+            its ceiling of 9999, and ValueError for a negative number.
         lang (str): BCP-47 language code specifying the language for pronunciation.
         places (int, optional): Number of decimal places to include (default is 3).
             The fractional part is rounded to this precision half away from zero
@@ -995,8 +1011,7 @@ def pronounce_number(number: Union[int, float], lang: str,
         digits = _DEFAULT_DIGIT_PRONUNCIATION.get(
             lang2, DigitPronunciation.FULL_NUMBER)
 
-    if isinstance(number, (int, Decimal, Fraction)) \
-            and not -_READ_LIMIT < number < _READ_LIMIT:
+    if _past_read_limit(number):
         if lang2 != "kab":
             return _pronounce_bignum_fallback(number, lang, places)
         # Kabyle reads up to 9999, and its backend raises for any int this
@@ -1428,9 +1443,10 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     Parameters:
         number (int or float): The number to convert to its ordinal spoken equivalent.
             A ``decimal.Decimal`` or ``fractions.Fraction`` reads as its int
-            when it is integral and as its float otherwise; any other
-            ``numbers.Real`` (numpy float32) as the number its ``str()`` writes.
-            An integral Decimal of more than 4300 digits raises ValueError.
+            when it is integral and as its float otherwise; one past the
+            float range is rounded half away from zero to its int. Any other
+            ``numbers.Real`` (numpy float32) reads as the number its ``str()``
+            writes.
         lang (str): BCP-47 language code specifying the language for pronunciation.
         short_scale (bool, optional): Whether to use the short (True) or long (False) scale for large numbers. Defaults to True.
         gender (GrammaticalGender, optional): Grammatical gender to use for languages that require it. Defaults to masculine.
@@ -1444,19 +1460,29 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
       
     Raises:
         NotImplementedError: If the language is not supported.
+        ValueError: If ``number`` is a Decimal of more than 4300 integer
+            digits, which no int conversion reaches in reasonable time.
     """
     number = _from_other_real(number)
-    if isinstance(number, Fraction):
-        number = number.numerator if number.denominator == 1 else float(number)
-    elif isinstance(number, Decimal):
-        if not number.is_finite() or number != number.to_integral_value():
-            number = float(number)
-        elif -_READ_LIMIT < number < _READ_LIMIT:
-            number = int(number)
+    if isinstance(number, Decimal) and _past_read_limit(number):
+        # a language with no ordinals raises NotImplementedError first;
+        # converting this Decimal to an int alone would take minutes
+        pronounce_ordinal(1, lang, short_scale, gender, scale, case)
+        raise ValueError("no ordinal reading for a Decimal of more "
+                         "than 4300 digits")
+    if isinstance(number, Decimal) and not number.is_finite():
+        number = float(number)
+    elif isinstance(number, (Decimal, Fraction)):
+        exact = Fraction(number)
+        if exact.denominator == 1:
+            number = exact.numerator
+        elif abs(exact) <= sys.float_info.max:
+            number = float(exact)
         else:
-            # converting it to an int alone would take minutes
-            raise ValueError("no ordinal reading for a Decimal of more "
-                             "than 4300 digits")
+            # no float holds it: round half away from zero to its int
+            whole = (2 * abs(exact.numerator) + exact.denominator) \
+                // (2 * exact.denominator)
+            number = whole if exact > 0 else -whole
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
     lang2 = _base_lang(lang)
