@@ -8,8 +8,7 @@ spellings, and unaccented input: matching is done on text with the Greek
 tonos and diaeresis stripped and the final sigma folded.
 """
 
-from math import isfinite
-from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
 
 # tonos/diaeresis stripping + final sigma folding, applied after casefold
 _NORM_TABLE = {ord(a): b for a, b in zip("άέήίόύώϊϋΐΰς", "αεηιουωιυιυσ")}
@@ -351,15 +350,6 @@ def _build_ordinal_lookup():
  _ORD_SCALES_LOOKUP) = _build_ordinal_lookup()
 
 
-def _is_number(s):
-    try:
-        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
-        # string) carries no usable number and must not be treated as one
-        return isfinite(float(s))
-    except ValueError:
-        return False
-
-
 def _tokenize_el(text):
     """Normalize (casefold, strip accents) and split into clean tokens."""
     tokens = []
@@ -430,11 +420,11 @@ def _parse_number_span(tokens, i):
                 tokens[j + 1] in _FRACTIONS_LOOKUP:
             j += 1
             continue
-        if _is_number(tok):
+        if is_numeric(tok):
             if started:
                 break
-            value = float(tok)
-            if value.is_integer():
+            value = numeric_value(tok)
+            if value == int(value):
                 value = int(value)
             return value, j + 1
         if tok in _HUNDREDS_LOOKUP and last_rank > 3:

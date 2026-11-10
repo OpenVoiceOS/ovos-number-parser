@@ -68,7 +68,7 @@ class TestHyphenatedCompounds(unittest.TestCase):
                          "the 25")
 
     def test_minus_sign_and_ranges_survive(self):
-        self.assertEqual(numbers_to_digits_en("-5"), "-5.0")
+        self.assertEqual(numbers_to_digits_en("-5"), "-5")
         self.assertEqual(numbers_to_digits_en("10-15 people"), "10-15 people")
 
 

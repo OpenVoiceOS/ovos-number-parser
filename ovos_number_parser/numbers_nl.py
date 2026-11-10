@@ -18,7 +18,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, Token, \
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions, Token, \
     ReplaceableNumber, tokenize, partition_list, invert_dict
 
 _ARTICLES_NL = {'de', 'het'}
@@ -800,10 +800,7 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
 
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?

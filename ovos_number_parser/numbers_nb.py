@@ -28,7 +28,7 @@ from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
                                      ReplaceableNumber, Token, look_for_fractions,
-                                     GrammaticalGender)
+                                     GrammaticalGender, numeric_value)
 
 # indefinite articles are homographs of "one"
 _ARTICLES_NB = {'en', 'ei', 'et', 'ett'}
@@ -366,7 +366,7 @@ def _is_numeric(input_str):
     if input_str.endswith('.'):
         return False
     try:
-        float(input_str)
+        numeric_value(input_str)
         return True
     except ValueError:
         return False
@@ -374,7 +374,7 @@ def _is_numeric(input_str):
 
 def _is_number(word, t):
     if _is_numeric(word):
-        return int(word) if word.isdigit() else float(word)
+        return numeric_value(word)
     if word in t.string_num:
         return t.string_num[word]
     if word in t.scale:
@@ -466,7 +466,7 @@ def _expand_compound_numbers(text, t):
             expanded.append(w)
 
     def _int_value(w):
-        if w.isdecimal():
+        if w.isdecimal() and _is_numeric(w):
             return int(w)
         if w in t.string_num:
             return t.string_num[w]
