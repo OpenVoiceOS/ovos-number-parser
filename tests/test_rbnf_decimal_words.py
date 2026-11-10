@@ -6,15 +6,20 @@ language:
 
 - da says the zero before the decimal word: "nul komma fem" (0.5)
 - kk and ky read the fraction as a numerator after the word for its power of
-  ten: "нөл бүтін оннан бес" (0.5), "он екі бүтін жүзден жиырма бес" (12.25)
+  ten: "нөл бүтін оннан бес" (0.5), "он екі бүтін жүзден жиырма бес" (12.25).
+  The CLDR rule sets have words up to hundred billionths ("жүз миллиардтан",
+  "жүз миллиарддан"), so a longer fraction is rounded half up to 11 digits
 - mt reads the digits in the absolute form used for counting ("tnejn",
   "ħamsa"), not the attributive form used before a noun ("żewġ", "ħames")
 - cy reads the digits in the counting form ("dau", "tri"), not the forms used
   only before a feminine noun ("dwy", "tair")
+- in mt and cy the whole part reads as the integer does for the gender, and
+  the digits after the point read in the counting form for every gender
 - lo uses the Lao words for zero, minus and the decimal point, not the Thai
   words the CLDR data holds
 """
 import unittest
+from decimal import ROUND_HALF_UP, Decimal
 
 from unicode_rbnf import RbnfEngine
 
@@ -68,6 +73,33 @@ class TestFractionAsNumerator(unittest.TestCase):
                     self.assertEqual(reading, spoken)
                     self.assertNotIn(f"{tenths} {_say(0, lang)}", reading)
 
+    #: the word for hundred billionths, the longest power of ten the CLDR
+    #: fraction rule set has a word for
+    HUNDRED_BILLIONTHS = {"kk": "жүз миллиардтан", "ky": "жүз миллиарддан"}
+
+    def test_fraction_longer_than_eleven_digits_is_rounded_to_eleven(self):
+        third = (Decimal(1) / Decimal(3)).quantize(Decimal("1e-11"), ROUND_HALF_UP)
+        numerator = int(third.scaleb(11))
+        self.assertEqual(numerator, 33333333333)
+        for lang, (point, _, _) in self.WORDS.items():
+            words = self.HUNDRED_BILLIONTHS[lang]
+            third_reading = f"{_say(0, lang)} {point} {words} {_say(numerator, lang)}"
+            for places in (12, 13):
+                with self.subTest(lang=lang, number="1/3", places=places):
+                    self.assertEqual(pronounce_number(1 / 3, lang, places=places),
+                                     third_reading)
+            with self.subTest(lang=lang, number=0.999999999999):
+                self.assertEqual(pronounce_number(0.999999999999, lang, places=12),
+                                 _say(1, lang))
+
+    def test_fraction_below_eleven_digits_reads_as_its_whole_part(self):
+        cases = ((0.1 + 0.2 - 0.3, 3), (2e-14, 3), (3 + 4e-13, 13))
+        for lang in self.WORDS:
+            for number, places in cases:
+                with self.subTest(lang=lang, number=number, places=places):
+                    self.assertEqual(pronounce_number(number, lang, places=places),
+                                     _say(int(number), lang))
+
 
 class TestCountingFormDigits(unittest.TestCase):
     #: the decimal-point word and the attributive or feminine forms that a
@@ -90,18 +122,25 @@ class TestCountingFormDigits(unittest.TestCase):
                     self.assertEqual(reading, spoken)
                     self.assertFalse(wrong & set(reading.split()), reading)
 
-    def test_maltese_feminine_decimal_takes_the_counting_form(self):
-        self.assertEqual(pronounce_number(12.25, "mt", gender=F),
-                         pronounce_number(12.25, "mt"))
-
-    def test_welsh_feminine_keeps_the_feminine_rule_set(self):
-        engine = RbnfEngine.for_language("cy")
-        for number in (12.25, 2, 0.5):
-            with self.subTest(number=number):
-                self.assertEqual(
-                    pronounce_number(number, "cy", gender=F),
-                    engine.format_number(
-                        number, ruleset_names=["spellout-cardinal-feminine"]).text)
+    def test_whole_part_follows_gender_and_digits_count(self):
+        cases = {
+            "mt": {1.1: (1, (1,)), 1.5: (1, (5,)), 21.1: (21, (1,)),
+                   12.25: (12, (2, 5))},
+            "cy": {12.25: (12, (2, 5)), 2.2: (2, (2,)), 21.1: (21, (1,))},
+        }
+        for lang, values in cases.items():
+            point, wrong = self.WORDS[lang]
+            for gender in (GrammaticalGender.MASCULINE, F):
+                for number, (whole, digits) in values.items():
+                    with self.subTest(lang=lang, gender=gender.name, number=number):
+                        reading = pronounce_number(number, lang, gender=gender)
+                        expected = " ".join(
+                            [pronounce_number(whole, lang, gender=gender), point]
+                            + [_say(d, lang) for d in digits])
+                        self.assertEqual(reading, expected)
+                        after_point = reading.split(f" {point} ")[1].split()
+                        self.assertFalse(wrong & set(after_point), reading)
+                        self.assertNotIn("waħda", after_point)
 
 
 class TestLaoWords(unittest.TestCase):
