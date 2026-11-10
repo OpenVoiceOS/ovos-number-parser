@@ -7,10 +7,12 @@ set on the side the rule set puts it. The minus word is the engine's reading
 of -1 less its reading of 1, both read straight from ``unicode_rbnf``.
 """
 import unittest
+from decimal import Decimal
 
 from unicode_rbnf import FormatPurpose, RbnfEngine
 
-from ovos_number_parser import pronounce_number, pronounce_ordinal
+from ovos_number_parser import (_pronounce_rbnf, pronounce_number,
+                                pronounce_ordinal)
 from ovos_number_parser.util import GrammaticalGender
 
 F = GrammaticalGender.FEMININE
@@ -108,6 +110,13 @@ class TestRbnfNegativeDecimal(unittest.TestCase):
             with self.subTest(number=number):
                 with self.assertRaises(NotImplementedError):
                     pronounce_number(number, "zu")
+
+    def test_non_finite_values_keep_the_engine_error(self):
+        for number in (Decimal("NaN"), Decimal("-Infinity")):
+            with self.subTest(number=number):
+                with self.assertRaises(NotImplementedError):
+                    _pronounce_rbnf(number, "af", False,
+                                    GrammaticalGender.MASCULINE)
 
 
 if __name__ == "__main__":

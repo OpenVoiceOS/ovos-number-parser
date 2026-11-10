@@ -1080,7 +1080,8 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     gives it. A language whose reading of -1 does not hold the reading of 1
     keeps the engine reading.
     """
-    if not ordinals and number < 0 and number != int(number):
+    if (not ordinals and math.isfinite(number) and number < 0
+            and number != int(number)):
         minus_one = _pronounce_rbnf(-1, lang, False, gender)
         one = _pronounce_rbnf(1, lang, False, gender)
         magnitude = _pronounce_rbnf(-number, lang, False, gender)
