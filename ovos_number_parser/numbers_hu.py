@@ -1,7 +1,8 @@
 from decimal import Decimal, ROUND_HALF_UP
 from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
+    scientific_parts
 _NUM_STRING_HU = {
     0: 'nulla',
     1: 'egy',
@@ -140,6 +141,33 @@ _FRACTION_SUFFIXES_HU = ['tized', 'század'] + [
                   'billiárdod', 'trilliomod', 'trilliárdod')
     for prefix in ('', 'tíz', 'száz')] + ['kvadrilliomod']
 
+#: the multiplicative adverb of each digit, the "-szor" form that reads
+#: "times" (Wiktionary "Module:number list/data/hu")
+_ADVERBIAL_HU = {1: 'egyszer', 2: 'kétszer', 3: 'háromszor', 4: 'négyszer',
+                 5: 'ötször', 6: 'hatszor', 7: 'hétszer', 8: 'nyolcszor',
+                 9: 'kilencszer'}
+
+
+def pronounce_scientific_hu(mantissa, exponent):
+    """
+    Read a one-digit mantissa times a negative power of ten
+
+    The power reads as "a a b-ediken": the base, the article and the
+    exponent ordinal in the superessive, which takes "-on" after "-adik" and
+    "-odik" and "-en" after "-edik" and "-ödik".
+
+    Args:
+        mantissa (int): a digit from 1 to 9, with its sign
+        exponent (int): a negative power of ten
+    Returns:
+        (str): the reading, e.g. "hétszer tíz a mínusz harmincadikon" for
+            7 and -30
+    """
+    ordinal = pronounce_ordinal_hu(-exponent)
+    ordinal += 'on' if ordinal.endswith(('adik', 'odik')) else 'en'
+    sign = 'mínusz ' if mantissa < 0 else ''
+    return f"{sign}{_ADVERBIAL_HU[abs(mantissa)]} tíz a mínusz {ordinal}"
+
 
 def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
@@ -250,6 +278,10 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             if whole_number_part == 0:
                 result += _NUM_STRING_HU[0]
             result += pronounce_whole_number_hu(whole_number_part).strip('-')
+            if places > len(_FRACTION_SUFFIXES_HU) and \
+                    number < 10 ** -len(_FRACTION_SUFFIXES_HU):
+                # finer than the smallest denominator
+                return pronounce_scientific_hu(*scientific_parts(number, 0))
             if places > 0:
                 places = min(places, len(_FRACTION_SUFFIXES_HU))
                 result += " egész "

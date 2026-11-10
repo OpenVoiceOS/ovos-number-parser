@@ -335,18 +335,18 @@ def scientific_notation(number: Union[int, float]) -> str:
         return format(Decimal(number), '.6E')
 
 
-def scientific_parts(number: Union[int, float],
+def scientific_parts(number: Union[int, float, Decimal],
                      places: int) -> Tuple[Union[int, float], int]:
     """
     Mantissa and exponent of ``number`` in scientific notation, with the
     mantissa rounded half away from zero to ``places`` decimals.
 
     The mantissa is rounded from the decimal digits of ``number``, so an int
-    beyond the float range rounds exactly. A mantissa that rounds to ten
-    carries into the exponent: 9.9996 at 3 places is 1 and exponent 1.
+    or a Decimal beyond the float range rounds exactly. A mantissa that rounds
+    to ten carries into the exponent: 9.9996 at 3 places is 1 and exponent 1.
 
     Args:
-        number (int or float): finite number to split
+        number (int, float or Decimal): finite number to split
         places (int): decimals of the mantissa
     Returns:
         (tuple): the signed mantissa (an int when it has no fraction) and the
