@@ -94,3 +94,23 @@ def test_infinite_decimal_reads_as_float_infinity(lang):
         pronounce_number(float("inf"), lang)
     assert pronounce_number(Decimal("-Infinity"), lang) == \
         pronounce_number(float("-inf"), lang)
+
+
+@pytest.mark.parametrize("lang", ["en", "pt-PT", "es", "de", "fr", "da"])
+def test_decimal_beyond_float_range_reads_as_rounded_int(lang):
+    huge = Decimal("1" + "0" * 400 + ".5")
+    assert pronounce_number(huge, lang) == pronounce_number(10 ** 400 + 1, lang)
+
+
+@pytest.mark.parametrize("lang", ["en", "pt-PT", "de", "ar"])
+def test_integral_decimal_with_fraction_digits_beyond_float(lang):
+    assert pronounce_number(Decimal("12345678901234567890.0"), lang) == \
+        pronounce_number(12345678901234567890, lang)
+
+
+@pytest.mark.parametrize("lang", ["en", "pt-PT", "de", "ar"])
+def test_decimal_rounds_from_its_own_digits(lang):
+    # the nearest float of 2.67499999999999999999 is 2.675, which rounds up
+    assert pronounce_number(Decimal("2.67499999999999999999"), lang,
+                            places=2) == \
+        pronounce_number(Decimal("2.67"), lang, places=2)

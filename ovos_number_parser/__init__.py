@@ -647,6 +647,9 @@ def _round_for_speech(number: Union[int, float, Decimal],
                 number.as_tuple().exponent >= 0 or float(number) != number):
             return int(number)
         exact, number = number, float(number)
+        if not math.isfinite(number):
+            # beyond the float range: the fraction is far below what is read
+            return int(exact.to_integral_value(rounding=ROUND_HALF_UP))
     elif isinstance(number, float) and math.isfinite(number):
         exact = Decimal(str(number))
     else:
