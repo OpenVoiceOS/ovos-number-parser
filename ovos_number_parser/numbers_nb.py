@@ -23,12 +23,15 @@ Sources:
     - https://ordbokene.no (Språkrådet/UiB: Bokmålsordboka & Nynorskordboka;
       every pronounced form in this module is an attested entry)
 """
+import sys
+from fractions import Fraction
 from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
                                      ReplaceableNumber, Token, look_for_fractions,
-                                     GrammaticalGender, numeric_value, exact_sum)
+                                     GrammaticalGender, numeric_value, exact_sum,
+                                     fits_str_limit)
 
 # indefinite articles are homographs of "one"
 _ARTICLES_NB = {'en', 'ei', 'et', 'ett'}
@@ -518,7 +521,7 @@ def _expand_compound_numbers(text, t):
                 break
             span_len = j - i + 1
             j += 1
-        if span_len > 1:
+        if span_len > 1 and fits_str_limit(total + current):
             out.append(str(total + current))
             i += span_len
         else:
@@ -604,6 +607,11 @@ def _og_joins(tokens, idx, to_sum, t):
                else sum(to_sum))
     after = [tok.word for tok in tokens[idx + 1:idx + 3]]
     right = _is_number(after[0], t) if after else None
+    if after and after[0] in t.negatives:
+        # a signed number after "og" is a number of its own ("fem og minus
+        # tre")
+        return "apart" if len(after) > 1 and \
+            _is_number(after[1], t) is not None else None
     if after and (_is_fractional(after[0], t) or len(after) > 1 and (
             after[0] in t.articles or right is not None)
             and _is_fractional(after[1], t)):
@@ -628,6 +636,10 @@ def _extract_real_number_with_text(tokens, t):
         _prev_val = _current_val
         _current_val = None
         word = token.word
+        # a sign after a summed part opens the next number: "5 og -3" is 5,
+        # then -3
+        opens_signed = bool(to_sum) and (
+            word in t.negatives or word.startswith("-") and _is_numeric(word))
 
         if word in t.connectors and not number_words:
             continue
@@ -638,7 +650,7 @@ def _extract_real_number_with_text(tokens, t):
             number_words.append(token)
             break
         _mixed = _mixed or joins == "fraction"
-        if word in (t.negatives | t.comma) or joins:
+        if (word in (t.negatives | t.comma) or joins) and not opens_signed:
             number_words.append(token)
             if word in t.comma:
                 _comma = token
@@ -648,7 +660,7 @@ def _extract_real_number_with_text(tokens, t):
         prev_word = tokens[idx - 1].word if idx > 0 else ""
         next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
 
-        if word in t.connectors or word not in t.string_num and \
+        if opens_signed or word in t.connectors or word not in t.string_num and \
                 word not in t.scale and \
                 not _is_numeric(word) and \
                 not _is_fractional(word, t):
@@ -673,8 +685,11 @@ def _extract_real_number_with_text(tokens, t):
                 and tokens[first - 1].word in t.connectors \
                 and (tokens[first - 2].word == _PLACEHOLDER
                      or _is_number(tokens[first - 2].word, t) is not None)
-            if number_words and (not all([w in t.articles | t.negatives
-                                          | t.connectors for w in words_only])
+            # a signed part ends the number even after an article-only
+            # part: "en og -3" is 1, then -3
+            if number_words and (opens_signed
+                                 or not all([w in t.articles | t.negatives
+                                             | t.connectors for w in words_only])
                                  or count_after_og
                                  or str(val) == number_words[-1].word):
                 # "og" before a word that is no number stays text
@@ -724,12 +739,37 @@ def _extract_real_number_with_text(tokens, t):
         # is 2/3
         _plural_of = word[:-len(t.fraction_plural_suffix)] \
             if word.endswith(t.fraction_plural_suffix) else None
+        if _fraction_val and _prev_val is not None \
+                and abs(_prev_val) > sys.float_info.max:
+            # a whole part past the float range takes no fraction: like the
+            # digit string "999...9.5", the mixed number is no number
+            number_words.clear()
+            to_sum.clear()
+            val = _val = _current_val = None
+            continue
         if _fraction_val:
             if _prev_val is not None and prev_word not in t.articles and \
                     word not in t.string_fraction and \
                     _plural_of not in t.string_fraction:
                 # compound fraction word
-                _val = _prev_val + _fraction_val
+                if _prev_val == int(_prev_val) and 0 < _fraction_val < 1:
+                    whole = abs(int(_prev_val))
+                    mixed = float(whole + Fraction(_fraction_val))
+                    if not whole < mixed < whole + 1:
+                        # from 2**52 on no float keeps both parts: the whole
+                        # number keeps its digits and the fraction is a
+                        # number of its own ("9007199254740993 1/2")
+                        val = _prev_val
+                        if any(tok.word in t.negatives for tok in number_words):
+                            val = -abs(val)
+                        number_words.pop(-1)
+                        break
+                    # the sign covers the whole mixed number: -5 1/2 is
+                    # -(5 + 1/2), and -0 1/2 is -0.5
+                    negative_whole = _prev_val < 0 or prev_word.startswith("-")
+                    _val = -mixed if negative_whole else mixed
+                else:
+                    _val = _prev_val + _fraction_val
                 if prev_word not in t.connectors and \
                         tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])
@@ -864,6 +904,8 @@ def _numbers_to_digits(text, t, ordinals=False, fractions=True):
     numbers_to_replace = _extract_numbers_with_text(tokens, t, ordinals,
                                                     fractions)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:

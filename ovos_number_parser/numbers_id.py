@@ -351,7 +351,7 @@ def _extract_number(text: str, lang: _LangDef,
                 return int(Decimal(num).to_integral_value(ROUND_HALF_UP))
             return int(val) if val == int(val) else val
         pieces = clean.split("/")
-        if len(pieces) == 2 and all(p.lstrip("-").isdecimal() for p in pieces) \
+        if len(pieces) == 2 and all(p.removeprefix("-").isdecimal() for p in pieces) \
                 and float(pieces[1]) != 0:
             return float(pieces[0]) / float(pieces[1])
 

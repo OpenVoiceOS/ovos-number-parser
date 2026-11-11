@@ -106,7 +106,7 @@ from ovos_number_parser.numbers_pl import nice_number_pl
 from ovos_number_parser.numbers_ru import nice_number_ru
 from ovos_number_parser.numbers_sv import nice_number_sv
 from ovos_number_parser.numbers_uk import nice_number_uk
-from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation
+from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation, fits_str_limit
 
 
 # --- canonical short/long scale convention per language --------------------
@@ -1631,6 +1631,15 @@ def extract_number(text: str, lang: str,
         (int, float or False): The number extracted or False if the input
                                text contains no numbers
     """
+    value = _extract_number(text, lang, short_scale, ordinals, scale)
+    # an integer that str() cannot write is no number, as a digit string
+    # longer than the integer string conversion limit is none
+    return value if fits_str_limit(value) else False
+
+
+def _extract_number(text: str, lang: str, short_scale: Optional[bool],
+                    ordinals: bool, scale: Optional[Scale]) -> Union[int, float, bool]:
+    """The number ``extract_number`` reads, before the integer size check."""
     if not isinstance(text, str):
         # non-string input carries no number to extract
         return False

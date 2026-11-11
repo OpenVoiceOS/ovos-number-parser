@@ -14,13 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import sys
+from fractions import Fraction
 import math
 import re
 from collections import OrderedDict
 from decimal import Decimal, ROUND_HALF_UP
 
 from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_notation)
+                                     partition_list, is_numeric, numeric_value, fits_str_limit, Token, ReplaceableNumber, scientific_notation)
 
 _ARTICLES_EN = {'a', 'an', 'the'}
 
@@ -679,6 +681,8 @@ def numbers_to_digits_en(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_en(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -1000,6 +1004,7 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
     next_val = None
     negative = False
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -1039,6 +1044,36 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
                 tokens[idx + 1] = Token("", idx)
                 next_word = ""
 
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts ("-0 1/2" = -0.5);
+        # any other fraction is a number of its own ("3.5 1/2" is 3.5, then
+        # 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 \
+                and val is not False and val is not None:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                whole = abs(int(val))
+                mixed = float(whole + Fraction(float(a_pieces[0]))
+                              / Fraction(float(a_pieces[1])))
+                # the float must keep both parts: from 2**52 on it cannot, so
+                # the whole number keeps its digits and the fraction is a
+                # number of its own ("9007199254740993 1/2")
+                if whole < mixed < whole + 1:
+                    negative_whole = val < 0 or \
+                        tokens[idx - 1].word.startswith("-")
+                    val = -mixed if negative_whole else mixed
+                    number_words.append(token)
+            break
+
         # TODO replaces the wall of "and" and "or" with all() or any() as
         #  appropriate, the whole codebase should be checked for this pattern
         if word not in string_num_scale and \
@@ -1075,6 +1110,7 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
         else:
             number_words.append(token)
 
+        number_end = idx
         # is this word already a number ?
         if is_numeric(word):
             val = numeric_value(word)
@@ -1146,6 +1182,9 @@ def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
             aPieces = word.split('/')
             if look_for_fractions(aPieces):
                 val = float(aPieces[0]) / float(aPieces[1])
+                if not val:
+                    # a zero fraction is the number 0 ("0/2" reads as 0)
+                    val = 0
                 current_val = val
 
         else:

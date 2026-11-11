@@ -92,6 +92,8 @@ _PT_PT = NumberVocabulary(
 
     DECIMAL_MARKER=["vírgula", "virgula", "ponto", ".", ","],
     NEGATIVE_SIGN=["menos"],
+    NEGATIVE_IDIOMS=[("pelo", "menos"), ("ao", "menos"), ("a", "menos", "que"),
+                     ("mais", "ou", "menos")],
     UNITS={
         0: 'zero',
         1: 'um',
@@ -307,6 +309,7 @@ _PT_BR = NumberVocabulary(
     JOINER_ON_THOUSANDS=True,  # "mil e duzentos", "mil e cem"
     DECIMAL_MARKER=_PT_PT.DECIMAL_MARKER,
     NEGATIVE_SIGN=_PT_PT.NEGATIVE_SIGN,
+    NEGATIVE_IDIOMS=_PT_PT.NEGATIVE_IDIOMS,
     UNITS=_PT_PT.UNITS,
     TENS={
         **_PT_PT.TENS,

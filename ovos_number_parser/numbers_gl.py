@@ -71,6 +71,8 @@ _GL = NumberVocabulary(
 
     DECIMAL_MARKER=["coma", "punto", ".", ","],
     NEGATIVE_SIGN=["menos"],
+    NEGATIVE_IDIOMS=[("polo", "menos"), ("ao", "menos"), ("a", "menos", "que"),
+                     ("máis", "ou", "menos")],
     UNITS={
         0: 'cero',
         1: 'un',
