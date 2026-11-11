@@ -69,7 +69,7 @@ from ovos_number_parser.numbers_oc import OC
 from ovos_number_parser.numbers_nb import (nice_number_nb, pronounce_number_nb,
                                            pronounce_ordinal_nb, is_ordinal_nb,
                                            is_fractional_nb, extract_number_nb,
-                                           numbers_to_digits_nb)
+                                           numbers_to_digits_nb, _opens_pair)
 from ovos_number_parser.numbers_nn import (nice_number_nn, pronounce_number_nn,
                                            pronounce_ordinal_nn, is_ordinal_nn,
                                            is_fractional_nn, extract_number_nn,
@@ -562,7 +562,7 @@ def _keep_digit_strings(original: str, converted: str, lang: str,
     Only number words become digits: "Version 2.0" and "10.000 Euro" stay as
     written. A rewritten stretch is restored when it held digit strings and
     no number word, and the rewrite added no sign ("5 og 20" stays, "minus 5"
-    becomes "-5").
+    becomes "-5", "5 tusen," becomes "5000,", "2 point 5" becomes "2.5").
     """
     old, new = original.split(), converted.split()
     out = []
@@ -576,12 +576,20 @@ def _keep_digit_strings(original: str, converted: str, lang: str,
         if op == "replace" and digits and \
                 all(_DIGIT_VALUE.fullmatch(v) for v in values) and \
                 (float(values[0]) < 0) == digits[0].startswith("-") and \
-                all(w in digits or _numeric_value(w, lang, None, True, scale) is None
-                    for w in before):
+                not any(w not in digits and _is_number_word(w, lang, scale)
+                        for w in before):
             out += before
         else:
             out += after
     return " ".join(out)
+
+
+def _is_number_word(word: str, lang: str, scale: Optional[Scale]) -> bool:
+    """Whether a word reads as a number, or joins two digits into one
+    decimal ("point" in "2 point 5")."""
+    word = word.strip(_SPAN_PUNCTUATION)
+    return _numeric_value(word, lang, None, True, scale) is not None or \
+        _numeric_value(f"2 {word} 5", lang, None, False, scale) == 2.5
 
 
 def _number_words_to_digits(utterance: str, lang: str,
@@ -1897,6 +1905,17 @@ def _numeric_value(fragment: str, lang: str, short_scale: Optional[bool],
     return value
 
 
+def _span_context(before: str, lang: str) -> str:
+    """The words a span must be read with, given the text before it.
+
+    Norwegian "og" keeps two numbers apart after "mellom" ("mellom fem og
+    tjue personer"), and a span alone does not show that word.
+    """
+    if _base_lang(lang) in ("nb", "nn", "no") and _opens_pair(before.split()):
+        return "mellom "
+    return ""
+
+
 def _reads_as_one_number(fragment: str, lang: str,
                          scale: Optional[Scale]) -> bool:
     """Whether a fragment spells a single number rather than several.
@@ -1970,8 +1989,9 @@ def extract_number_spans(text: str, lang: str,
     index = 0
     while index < len(words):
         start = words[index][0]
-        value = _numeric_value(text[start:words[index][1]], lang, short_scale,
-                               ordinals, scale)
+        context = _span_context(text[:start], lang)
+        value = _numeric_value(context + text[start:words[index][1]], lang,
+                               short_scale, ordinals, scale)
         if value is None:
             index += 1
             continue
@@ -1982,8 +2002,8 @@ def extract_number_spans(text: str, lang: str,
         while cursor + 1 < len(words) and \
                 not text[words[cursor][1]:words[cursor + 1][0]].strip():
             nxt = words[cursor + 1]
-            grown = _numeric_value(text[start:nxt[1]], lang, short_scale,
-                                   ordinals, scale)
+            grown = _numeric_value(context + text[start:nxt[1]], lang,
+                                   short_scale, ordinals, scale)
             word = _numeric_value(text[nxt[0]:nxt[1]], lang, short_scale,
                                   ordinals, scale)
             suffix = _numeric_value(text[words[index + 1][0]:nxt[1]], lang,
@@ -2009,8 +2029,8 @@ def extract_number_spans(text: str, lang: str,
                         after is None or text[nxt[1]:after[0]].strip():
                     break
                 whole = text[start:after[1]]
-                longer = _numeric_value(whole, lang, short_scale, ordinals,
-                                        scale)
+                longer = _numeric_value(context + whole, lang, short_scale,
+                                        ordinals, scale)
                 if longer is None or longer == value:
                     break
                 if _is_ar(lang):
