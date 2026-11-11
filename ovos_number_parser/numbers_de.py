@@ -640,8 +640,12 @@ def _extract_real_number_with_text_de(tokens, short_scale):
 
         prev_word = tokens[idx - 1].word if idx > 0 else ""
         next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
+        # a fraction after the digits of a decimal is a number of its own:
+        # "drei Komma fünf ein halb" is 3.5, then 1/2
+        ends_decimal = bool(_comma) and idx - 1 > _comma.index and (
+            bool(is_fractional_de(word)) or bool(is_fractional_de(next_word)))
 
-        if word not in _STRING_LONG_SCALE and \
+        if ends_decimal or word not in _STRING_LONG_SCALE and \
                 word not in _STRING_NUM and \
                 word not in _MULTIPLIER and \
                 not is_numeric_de(word) and \

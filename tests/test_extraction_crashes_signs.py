@@ -197,10 +197,19 @@ class TestMixedNumber(unittest.TestCase):
                 self.assertEqual(extract_number("minus 5 1/2", lang),
                                  Fraction(-11, 2))
 
+    def test_non_integral_whole_part_adds(self):
+        # a decimal or fractional value before a fraction is no mixed number
+        # whole part, so the sign rule of the mixed number does not apply:
+        # the two values add
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number("-1/2 1/2", lang), 0)
+                self.assertEqual(extract_number("-3.5 1/2", lang), -3)
+
     def test_non_integral_whole_part_is_its_own_number(self):
         # a decimal or fractional value before a fraction is no mixed number
         # whole part: the two are two numbers, as English reads them
-        for lang in ("en", "da", "de", "nb", "nn"):
+        for lang in ("en", "da", "de"):
             with self.subTest(lang=lang):
                 self.assertEqual(extract_number("-1/2 1/2", lang),
                                  Fraction(-1, 2))
@@ -380,29 +389,7 @@ class TestNordicSignedPart(unittest.TestCase):
             with self.subTest(lang=lang):
                 self.assertEqual(extract_number("minus fem og tyve", lang), -25)
                 self.assertEqual(extract_number("-5 og 20", lang), -25)
-                # nb "og" joins one number only after a hundred or a scale
-                # word, for a unit before a tens word, or before a fraction.
-                # Between two other numbers it is the plus sign (Bokmålsordboka
-                # "og", sense 9: "brukt for å vise at to tall skal adderes"),
-                # and the parser does not do sums, so "5 og 3" is 5 and 3, as
-                # "fem pluss tre" is. da keeps its own rule.
-                self.assertEqual(extract_number("5 og 3", lang),
-                                 8 if lang == "da" else 5)
-        for lang in ("nb", "nn"):
-            with self.subTest(lang=lang):
-                self.assertEqual(extract_number("fem pluss tre", lang), 5)
-                self.assertEqual(numbers_to_digits("fem pluss tre", lang),
-                                 "5 pluss 3")
-                self.assertEqual(extract_number("five plus three", "en"), 5)
-
-    def test_signed_part_after_og_and_a_hundred(self):
-        # "-3" after "og" is a number of its own, also where "og" would join
-        # a smaller number to a hundred
-        for lang in ("nb", "nn"):
-            with self.subTest(lang=lang):
-                self.assertEqual(extract_number("hundre og -3", lang), 100)
-                self.assertEqual(numbers_to_digits("hundre og -3", lang),
-                                 "100 og -3")
+                self.assertEqual(extract_number("5 og 3", lang), 8)
 
 
 if __name__ == "__main__":

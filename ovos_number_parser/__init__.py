@@ -69,7 +69,7 @@ from ovos_number_parser.numbers_oc import OC
 from ovos_number_parser.numbers_nb import (nice_number_nb, pronounce_number_nb,
                                            pronounce_ordinal_nb, is_ordinal_nb,
                                            is_fractional_nb, extract_number_nb,
-                                           numbers_to_digits_nb, _opens_pair)
+                                           numbers_to_digits_nb)
 from ovos_number_parser.numbers_nn import (nice_number_nn, pronounce_number_nn,
                                            pronounce_ordinal_nn, is_ordinal_nn,
                                            is_fractional_nn, extract_number_nn,
@@ -545,9 +545,11 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
     Raises:
         NotImplementedError: If the specified language is not supported.
     """
-    return _keep_digit_strings(utterance,
-                               _number_words_to_digits(utterance, lang, scale),
-                               lang, scale)
+    converted = _number_words_to_digits(utterance, lang, scale)
+    if _base_lang(lang) in ("nb", "nn", "no"):
+        # nb and nn keep the output of their converter
+        return converted
+    return _keep_digit_strings(utterance, converted, lang, scale)
 
 
 #: a number already written in digits, with the punctuation that may follow it
@@ -614,10 +616,6 @@ def _number_words_to_digits(utterance: str, lang: str,
         return numbers_to_digits_gl(utterance)
     if lang2 == "de":
         return numbers_to_digits_de(utterance)
-    if lang2 == "nn":
-        return numbers_to_digits_nn(utterance)
-    if lang2 in ("nb", "no"):
-        return numbers_to_digits_nb(utterance)
     if lang2 == "pt":
         return PT_PT.numbers_to_digits(utterance, scale=scale)
     if lang2 == "mwl":
@@ -1905,17 +1903,6 @@ def _numeric_value(fragment: str, lang: str, short_scale: Optional[bool],
     return value
 
 
-def _span_context(before: str, lang: str) -> str:
-    """The words a span must be read with, given the text before it.
-
-    Norwegian "og" keeps two numbers apart after "mellom" ("mellom fem og
-    tjue personer"), and a span alone does not show that word.
-    """
-    if _base_lang(lang) in ("nb", "nn", "no") and _opens_pair(before.split()):
-        return "mellom "
-    return ""
-
-
 def _reads_as_one_number(fragment: str, lang: str,
                          scale: Optional[Scale]) -> bool:
     """Whether a fragment spells a single number rather than several.
@@ -1989,9 +1976,8 @@ def extract_number_spans(text: str, lang: str,
     index = 0
     while index < len(words):
         start = words[index][0]
-        context = _span_context(text[:start], lang)
-        value = _numeric_value(context + text[start:words[index][1]], lang,
-                               short_scale, ordinals, scale)
+        value = _numeric_value(text[start:words[index][1]], lang, short_scale,
+                               ordinals, scale)
         if value is None:
             index += 1
             continue
@@ -2002,8 +1988,8 @@ def extract_number_spans(text: str, lang: str,
         while cursor + 1 < len(words) and \
                 not text[words[cursor][1]:words[cursor + 1][0]].strip():
             nxt = words[cursor + 1]
-            grown = _numeric_value(context + text[start:nxt[1]], lang,
-                                   short_scale, ordinals, scale)
+            grown = _numeric_value(text[start:nxt[1]], lang, short_scale,
+                                   ordinals, scale)
             word = _numeric_value(text[nxt[0]:nxt[1]], lang, short_scale,
                                   ordinals, scale)
             suffix = _numeric_value(text[words[index + 1][0]:nxt[1]], lang,
@@ -2017,11 +2003,10 @@ def extract_number_spans(text: str, lang: str,
             elif connector_used or word is not None:
                 # in a span that holds a connector, a number word that
                 # leaves the value unchanged may open the rest of a mixed
-                # number: "tre og en halv" is 3 + 0.5 and "sju og femti tre
-                # fjerdedeler" is 57 + 3/4. The whole stretch must convert
-                # to one number, so "en gang en million" ("en gang 1000000")
-                # stays two numbers. Arabic writes its "و" onto the next
-                # word ("سبعة وخمسة مئة").
+                # number: "two and three quarters" is 2 + 3/4. The whole
+                # stretch must convert to one number, so "two hundred and one
+                # one third" ("201 0.333…") stays two numbers. Arabic
+                # writes its "و" onto the next word ("سبعة وخمسة مئة").
                 after = words[cursor + 2] if cursor + 2 < len(words) else None
                 glued_and = _is_ar(lang) and text.startswith("و", nxt[0])
                 if not (connector_used or crossed_connector or glued_and) or \
@@ -2029,8 +2014,8 @@ def extract_number_spans(text: str, lang: str,
                         after is None or text[nxt[1]:after[0]].strip():
                     break
                 whole = text[start:after[1]]
-                longer = _numeric_value(context + whole, lang, short_scale,
-                                        ordinals, scale)
+                longer = _numeric_value(whole, lang, short_scale, ordinals,
+                                        scale)
                 if longer is None or longer == value:
                     break
                 if _is_ar(lang):

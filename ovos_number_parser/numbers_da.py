@@ -688,8 +688,12 @@ def _extract_real_number_with_text_da(tokens, short_scale):
 
         prev_word = tokens[idx - 1].word if idx > 0 else ""
         next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
+        # a fraction after the digits of a decimal is a number of its own:
+        # "tre komma fem en halv" is 3.5, then 1/2
+        ends_decimal = bool(_comma) and idx - 1 > _comma.index and (
+            bool(is_fractional_da(word)) or bool(is_fractional_da(next_word)))
 
-        if opens_signed or word not in _STRING_LONG_SCALE and \
+        if opens_signed or ends_decimal or word not in _STRING_LONG_SCALE and \
                 word not in _DA_NUMBERS and \
                 word not in _MULTIPLIER and \
                 not is_numeric_da(word) and \
