@@ -148,30 +148,21 @@ _ADVERBIAL_HU = {1: 'egyszer', 2: 'kétszer', 3: 'háromszor', 4: 'négyszer',
                  9: 'kilencszer'}
 
 
-def _multiplicative_hu(word):
-    """
-    ``word`` with the multiplicative suffix, which follows its last vowel:
-    "-szor" after a back vowel, "-ször" after a front rounded one and
-    "-szer" otherwise ("tizedszor" is wrong, "tizedszer" is right).
-    """
-    vowel = [char for char in word if char in 'aáeéiíoóöőuúüű'][-1]
-    if vowel in 'aáoóuú':
-        return word + 'szor'
-    if vowel in 'öőüű':
-        return word + 'ször'
-    return word + 'szer'
-
-
 def pronounce_scientific_hu(mantissa, exponent):
     """
     Read a mantissa times a negative power of ten
 
-    The mantissa reads as a multiplicative adverb: a digit takes its own
-    adverb and a mantissa with decimals adds the suffix to its fraction word
-    ("egy egész öt tizedszer"). The power reads as "tíz a b-ediken": the
-    base, the article and the exponent ordinal in the superessive, which
-    takes "-on" after "-adik" and "-odik" and "-en" after "-edik" and
-    "-ödik".
+    The mantissa reads as the multiplicative adverb of a whole number: its
+    digits move into a whole number and the exponent shifts with them, so
+    1.5 and -25 read as fifteen times ten to the minus twenty-sixth. The
+    suffix "-szor" goes on a cardinal numeral (Wiktionary "-szor"); on a
+    fraction word such as "tized" it reads "for the tenth time". The adverb
+    of a compound replaces its last unit word with that unit's adverb
+    ("tizenkétszer", Wiktionary "Module:number list/data/hu").
+
+    The power reads as "tíz a b-ediken": the base, the article and the
+    exponent ordinal in the superessive, which takes "-on" after "-adik"
+    and "-odik" and "-en" after "-edik" and "-ödik".
 
     Args:
         mantissa (int or float): from 1 to below 10, with its sign
@@ -180,15 +171,16 @@ def pronounce_scientific_hu(mantissa, exponent):
         (str): the reading, e.g. "hétszer tíz a mínusz harmincadikon" for
             7 and -30
     """
+    digits = Decimal(str(abs(mantissa))).normalize()
+    shift = digits.as_tuple().exponent
+    whole = int(digits.scaleb(-shift))
+    exponent += shift
     ordinal = pronounce_ordinal_hu(-exponent)
     ordinal += 'on' if ordinal.endswith(('adik', 'odik')) else 'en'
     sign = 'mínusz ' if mantissa < 0 else ''
-    digits = Decimal(str(abs(mantissa))).normalize()
-    if digits == digits.to_integral_value():
-        times = _ADVERBIAL_HU[int(digits)]
-    else:
-        words = pronounce_number_hu(digits, -digits.as_tuple().exponent)
-        times = _multiplicative_hu(words)
+    words = pronounce_number_hu(whole)
+    times = words[:-len(_NUM_STRING_HU[whole % 10])] + \
+        _ADVERBIAL_HU[whole % 10]
     return f"{sign}{times} tíz a mínusz {ordinal}"
 
 
@@ -304,10 +296,11 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             if places > len(_FRACTION_SUFFIXES_HU) and \
                     number < 10 ** -len(_FRACTION_SUFFIXES_HU):
                 # finer than the smallest denominator: the mantissa keeps
-                # the digits ``places`` reads, as many as the table holds
+                # the digits ``places`` reads, as many as a whole number
+                # below 10 ** 24 holds
                 kept = places + Decimal(str(number)).adjusted()
                 return pronounce_scientific_hu(*scientific_parts(
-                    number, min(max(kept, 0), len(_FRACTION_SUFFIXES_HU))))
+                    number, min(max(kept, 0), len(_FRACTION_SUFFIXES_HU) - 1)))
             if places > 0:
                 places = min(places, len(_FRACTION_SUFFIXES_HU))
                 result += " egész "

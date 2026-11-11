@@ -427,22 +427,22 @@ def test_scientific_value_below_the_float_range_reads_its_digit(
         _scientific_form(lang, mantissa, exponent)
 
 
-@pytest.mark.parametrize("value, places, mantissa, mantissa_places, exponent", [
-    (1.5e-25, 30, 1.5, 1, "huszonötödiken"),
-    (Decimal("1.5E-25"), 30, 1.5, 1, "huszonötödiken"),
-    (Fraction(3, 2 * 10 ** 25), 30, 1.5, 1, "huszonötödiken"),
-    (-1.25e-30, 40, -1.25, 2, "harmincadikon"),
-    (2.25e-30, 31, 2.3, 1, "harmincadikon"),
+@pytest.mark.parametrize("value, places, expected", [
+    # the mantissa digits read as a whole number and the exponent shifts:
+    # 1.5e-25 is fifteen times ten to the minus twenty-sixth. Adverbs and
+    # ordinals: Wiktionary "Module:number list/data/hu" ("tizenötször",
+    # "tizenkétszer", "huszonháromszor", "huszonhatodik", "harmincegyedik")
+    (1.5e-25, 30, "tizenötször tíz a mínusz huszonhatodikon"),
+    (Decimal("1.5E-25"), 30, "tizenötször tíz a mínusz huszonhatodikon"),
+    (Fraction(3, 2 * 10 ** 25), 30,
+     "tizenötször tíz a mínusz huszonhatodikon"),
+    (-1.2e-30, 40, "mínusz tizenkétszer tíz a mínusz harmincegyediken"),
+    # 2.25e-30 at 31 places rounds to 2.3e-30
+    (2.25e-30, 31, "huszonháromszor tíz a mínusz harmincegyediken"),
 ])
 def test_hu_value_finer_than_its_denominators_keeps_its_mantissa(
-        value, places, mantissa, mantissa_places, exponent):
-    # the multiplicative suffix follows the last vowel: "tizedszer",
-    # "századszor" (Wiktionary "-szor")
-    words = pronounce_number(abs(mantissa), "hu", places=mantissa_places)
-    suffix = "szor" if words.endswith("század") else "szer"
-    sign = "mínusz " if mantissa < 0 else ""
-    assert pronounce_number(value, "hu", places=places) == \
-        f"{sign}{words}{suffix} tíz a mínusz {exponent}"
+        value, places, expected):
+    assert pronounce_number(value, "hu", places=places) == expected
 
 
 def test_hu_direct_call_finer_than_its_denominators_keeps_its_mantissa():
