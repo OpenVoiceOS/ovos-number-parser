@@ -419,6 +419,11 @@ class NumberVocabulary:
     # ends in 00 or in 20-99 ("douăzeci DE mii", "o sută DE milioane")
     SCALE_LINKER: str = ""
 
+    # a count of the largest scale word from this value up has no reading in
+    # words: it would stack scale words past the compounds the language uses
+    # ("trilioane de trilioane"). None reads every count.
+    MAX_SCALE_COUNT: Optional[int] = None
+
     # extraction: the word for 100 multiplies the preceding units
     # ("două sute" = 200) instead of being added to them
     MULTIPLY_HUNDREDS: bool = False
@@ -880,7 +885,8 @@ class RomanceNumberExtractor:
                          digits: DigitPronunciation = DigitPronunciation.FULL_NUMBER,
                          gender: GrammaticalGender = GrammaticalGender.MASCULINE,
                          _force_hundreds_join: bool = False,
-                         _under_higher_scale: bool = False
+                         _under_higher_scale: bool = False,
+                         _fraction_digits: bool = False
                          ) -> str:
         """
         Return the full pronunciation of a number, supporting cardinal and ordinal forms, decimals, large scales, grammatical gender, and both Brazilian and European Portuguese variants.
@@ -959,7 +965,8 @@ class RomanceNumberExtractor:
                             if after_last_digit >= 5:
                                 last_digit += 1
                             decimal_part_str = decimal_part_str[:places - 1] + str(last_digit)
-                        decimal_pronunciation_parts.append(self.pronounce_number(int(decimal_part_str), gender=gender))
+                        decimal_pronunciation_parts.append(self.pronounce_number(
+                            int(decimal_part_str), gender=gender, _fraction_digits=True))
                 else:
                     for digit in decimal_part_str:
                         decimal_pronunciation_parts.append(self.pronounce_number(int(digit), gender=gender))
@@ -986,6 +993,10 @@ class RomanceNumberExtractor:
 
         count = n // scale_val[0]
         remainder = n % scale_val[0]
+        # the digits after the decimal marker keep their reading in words
+        if self.vocab.MAX_SCALE_COUNT and count >= self.vocab.MAX_SCALE_COUNT \
+                and not _fraction_digits:
+            raise OverflowError(f"no scale word for {n}")
 
         # Pronounce the 'count' part of the number
         is_singular = count == 1 or scale_val[0] in self.vocab.NO_PLURAL
@@ -1001,7 +1012,8 @@ class RomanceNumberExtractor:
                                                         GrammaticalGender.MASCULINE)
             count_pronunciation = self.pronounce_number(count, places, scale,
                                                         gender=count_gender,
-                                                        _under_higher_scale=True)
+                                                        _under_higher_scale=True,
+                                                        _fraction_digits=_fraction_digits)
             # counts ending in 00 or 20-99 link to the scale word
             # ("douăzeci de mii")
             if self.vocab.SCALE_LINKER and (count % 100 == 0 or count % 100 >= 20):
@@ -1019,7 +1031,8 @@ class RomanceNumberExtractor:
             and self.vocab.JOINER_ON_SCALE_REMAINDER
         remainder_str = self.pronounce_number(remainder, places, scale,
                                               _force_hundreds_join=remainder_force,
-                                              _under_higher_scale=nested_under_higher)
+                                              _under_higher_scale=nested_under_higher,
+                                              _fraction_digits=_fraction_digits)
         # Conjunction logic: add JOIN_WORD if the remainder is the last group and is
         # less than 100 or a multiple of 100.
         join_word = self.vocab.JOIN_WORD[0] if len(self.vocab.JOIN_WORD) else ""

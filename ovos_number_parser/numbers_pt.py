@@ -76,6 +76,7 @@ _PT_PT = NumberVocabulary(
 
     DEFAULT_SCALE=Scale.LONG,
     DIGIT_GROUP_MARK=".",
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
@@ -285,6 +286,7 @@ _PT_BR = NumberVocabulary(
     pluralize=pluralize_pt,  # use for plural forms
     DEFAULT_SCALE=Scale.SHORT,
     DIGIT_GROUP_MARK=".",
+    MAX_SCALE_COUNT=10 ** 6,
     DIVIDED_BY_ZERO=_PT_PT.DIVIDED_BY_ZERO,
     DENOMINATOR_PARTICLE=_PT_PT.DENOMINATOR_PARTICLE,
     HUNDRED_PARTICLE=_PT_PT.HUNDRED_PARTICLE,

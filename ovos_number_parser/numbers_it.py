@@ -221,46 +221,24 @@ _FRACTION_STRING_IT = {
     20: 'ventesim'
 }
 
-# fonte: http://tulengua.es/numeros-texto/default.aspx
+#: Italian long scale: every power of a thousand from a million to 10 ** 39
+#: has a name, the -iardo word being a thousand times the -ione word before it
 _LONG_SCALE_IT = collections.OrderedDict([
     (100, 'cento'),
     (1000, 'mila'),
-    (1000000, 'milioni'),
-    (1e9, "miliardi"),
-    (1e12, "bilioni"),
-    (1e18, 'trilioni'),
-    (1e24, "quadrilioni"),
-    (1e30, "quintilioni"),
-    (1e36, "sestilioni"),
-    (1e42, "settilioni"),
-    (1e48, "ottillioni"),
-    (1e54, "nonillioni"),
-    (1e60, "decemillioni"),
-    (1e66, "undicilione"),
-    (1e72, "dodicilione"),
-    (1e78, "tredicilione"),
-    (1e84, "quattordicilione"),
-    (1e90, "quindicilione"),
-    (1e96, "sedicilione"),
-    (1e102, "diciasettilione"),
-    (1e108, "diciottilione"),
-    (1e114, "dicianovilione"),
-    (1e120, "vintilione"),
-    (1e306, "unquinquagintilione"),
-    (1e312, "duoquinquagintilione"),
-    (1e336, "sesquinquagintilione"),
-    (1e366, "unsexagintilione")
+    (10 ** 6, 'milioni'),
+    (10 ** 9, 'miliardi'),
+    (10 ** 12, 'bilioni'),
+    (10 ** 15, 'biliardi'),
+    (10 ** 18, 'trilioni'),
+    (10 ** 21, 'triliardi'),
+    (10 ** 24, 'quadrilioni'),
+    (10 ** 27, 'quadriliardi'),
+    (10 ** 30, 'quintilioni'),
+    (10 ** 33, 'quintiliardi'),
+    (10 ** 36, 'sistilioni'),
+    (10 ** 39, 'sistiliardi'),
 ])
-
-#: singular form of the large scale words, used when the count is exactly one
-#: ("un milione", "un miliardo"). The scale tables hold the plurals; most go
-#: -i -> -e, but miliardi -> miliardo is irregular.
-_LONG_SCALE_SINGULAR_IT = {
-    'milioni': 'milione',
-    'miliardi': 'miliardo',
-    'bilioni': 'bilione',
-    'triliardi': 'triliardo',
-}
 
 _SHORT_SCALE_IT = collections.OrderedDict([
     (100, 'cento'),
@@ -453,8 +431,12 @@ _IT = NumberVocabulary(
                  10 ** 12: 'bilione', 10 ** 15: 'biliardo', 10 ** 18: 'trilione',
                  10 ** 21: 'triliardo', 10 ** 24: 'quadrilione'},
     LONG_SCALE={1000: 'mille', 10 ** 6: 'milione', 10 ** 9: 'miliardo',
-                10 ** 12: 'bilione', 10 ** 18: 'trilione', 10 ** 24: 'quadrilione',
-                10 ** 30: 'quintilione', 10 ** 36: 'sestilione'},
+                10 ** 12: 'bilione', 10 ** 15: 'biliardo',
+                10 ** 18: 'trilione', 10 ** 21: 'triliardo',
+                10 ** 24: 'quadrilione', 10 ** 27: 'quadriliardo',
+                10 ** 30: 'quintilione', 10 ** 33: 'quintiliardo',
+                10 ** 36: 'sistilione', 10 ** 39: 'sistiliardo',
+                10 ** 60: 'decilione'},
 
     GENDERED_SPELLINGS={GrammaticalGender.FEMININE: {1: 'una'}},
     DIGIT_SPELLINGS={},
@@ -689,17 +671,16 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
         number_names = _NUM_STRING_IT.copy()
         number_names.update(_SHORT_SCALE_IT)
     else:
+        # a round million or more is read by _long_scale ("un bilione")
         number_names = _NUM_STRING_IT.copy()
-        number_names.update(_LONG_SCALE_IT)
+        number_names.update({n: word for n, word in _LONG_SCALE_IT.items()
+                             if n < 1000000})
 
     digits = [number_names[n] for n in range(0, 20)]
 
     tens = [number_names[n] for n in range(10, 100, 10)]
 
-    if short_scale:
-        hundreds = [_SHORT_SCALE_IT[n] for n in _SHORT_SCALE_IT.keys()]
-    else:
-        hundreds = [_LONG_SCALE_IT[n] for n in _LONG_SCALE_IT.keys()]
+    hundreds = [_SHORT_SCALE_IT[n] for n in _SHORT_SCALE_IT.keys()]
 
     # deal with negatives
     result = ""
@@ -775,28 +756,25 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
             return res
 
         def _long_scale(n):
-            if n >= max(_LONG_SCALE_IT.keys()):
-                return "numero davvero enorme"
             n = int(n)
             assert 0 <= n
-            res = []
-            for i, z in enumerate(_split_by(n, 1000000)):
+            high, low = divmod(n, 1000000)
+            # the sub-million group is one fused word
+            res = [pronounce_number_it(low, places, True, scientific)] \
+                if low else []
+            for i, z in enumerate(_split_by(high, 1000), start=2):
                 if not z:
                     continue
-                if not i:
-                    # the sub-million group is one fused word
-                    number = pronounce_number_it(z, places, True, scientific)
-                    res.append(number)
-                    continue
+                plural = _LONG_SCALE_IT.get(1000 ** i)
+                if plural is None:
+                    return ""
                 # milione/miliardo are separate words, unlike the fused "mila":
                 # "un milione", "due milioni", "un miliardo" (Crusca allows the
-                # spaced form for these large scale words). The plural table
-                # holds "milioni"/"miliardi"; 1 takes the apocopated "un" and
-                # the singular.
-                plural = hundreds[i + 1]
-                singular = _LONG_SCALE_SINGULAR_IT.get(
-                    plural, plural[:-1] + "e")
+                # spaced form for these large scale words). The table holds
+                # the plurals; 1 takes the apocopated "un" and the singular.
                 if z == 1:
+                    singular = plural[:-1] + ("o" if plural.endswith("di")
+                                              else "e")
                     number = "un " + singular
                 else:
                     count = pronounce_number_it(z, places, True, scientific)
@@ -808,7 +786,12 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
         if short_scale:
             result += _short_scale(num)
         else:
-            result += _long_scale(num)
+            spoken = _long_scale(num)
+            # a magnitude with no spoken name reads scientifically
+            if not spoken and num >= 1000000:
+                return result + pronounce_number_it(num, places, short_scale,
+                                                    scientific=True)
+            result += spoken
 
     # normalizza unità misura singole e 'ragionevoli' ed ad inizio stringa
     if result == 'mila':

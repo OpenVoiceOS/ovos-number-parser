@@ -42,7 +42,8 @@ from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa
     pronounce_ordinal_fa
 from ovos_number_parser.numbers_fi import pronounce_number_fi, pronounce_ordinal_fi, extract_number_fi, \
     is_fractional_fi, is_ordinal_fi, nice_number_fi
-from ovos_number_parser.numbers_fr import (extract_number_fr, is_fractional_fr, FR)
+from ovos_number_parser.numbers_fr import (extract_number_fr, is_fractional_fr, FR,
+                                             FR_BE, FR_CH)
 from ovos_number_parser.numbers_fy import numbers_to_digits_fy, pronounce_number_fy, pronounce_ordinal_fy, \
     extract_number_fy, is_fractional_fy, nice_number_fy
 from ovos_number_parser.numbers_gl import GL, pronounce_number_gl, extract_number_gl, is_fractional_gl, \
@@ -1045,24 +1046,30 @@ def pronounce_number(number: Union[int, float], lang: str,
         spoken = _pronounce_number_dispatch(
             number, lang, places, short_scale, scientific, ordinals,
             digits, gender, scale, case)
-    except (IndexError, KeyError, OverflowError):
+    except (IndexError, KeyError, OverflowError) as error:
         # A finite number overflowed a language's named-scale table. Kabyle
         # has a documented finite ceiling (raises above 9999), so keep that
         # contract; every other language falls back to a spoken scientific
-        # reading rather than crashing. Ordinary-magnitude numbers keep their
-        # original error so genuine bugs are not masked.
-        if lang2 != "kab" and abs(number) >= 10 ** 15:
+        # reading rather than crashing. An index or key error on an
+        # ordinary-magnitude number keeps its original error so genuine bugs
+        # are not masked. An OverflowError from 10 ** 12 up is a whole part
+        # past the largest scale compound (a million millions at the
+        # smallest), read scientifically where the connective is localized.
+        if lang2 != "kab" and (
+                abs(number) >= 10 ** 15
+                or (isinstance(error, OverflowError)
+                    and abs(number) >= 10 ** 12
+                    and lang2 in _SCIENTIFIC_WORDS)):
             return _pronounce_bignum_fallback(number, lang, places)
         raise
     # A backend that does not raise past its scale table returns padded or
     # unread output instead (see _is_spoken_reading). Only composed readings
     # of large numbers are checked: a digit-by-digit rendering repeats words
     # legitimately, and Kabyle's finite ceiling is a documented contract.
-    if abs(number) >= 10 ** 15 and lang2 != "kab" \
-            and not scientific and (isinstance(number, int)
-                                    or float(number).is_integer()):
+    if abs(number) >= 10 ** 15 and lang2 != "kab" and not scientific:
         # padded scale words are never a reading, so always replace them
-        if _has_padded_scale_words(spoken):
+        if (isinstance(number, int) or float(number).is_integer()) \
+                and _has_padded_scale_words(spoken):
             return _pronounce_bignum_fallback(number, lang, places)
         # a bare numeral is a legitimate fallback the TTS can read; only
         # improve on it where the scientific reading is fully localized
@@ -1120,7 +1127,9 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang2 == "fi":
         return pronounce_number_fi(number, places, short_scale, scientific, ordinals)
     if lang2 == "fr":
-        return FR.pronounce_number(number, places, scale, ordinals, digits, gender)
+        engine = {"fr_BE": FR_BE, "fr_CH": FR_CH}.get(_rbnf_locale(lang), FR)
+        return engine.pronounce_number(number, places, scale, ordinals,
+                                       digits, gender)
     if lang2 == "he":
         return pronounce_number_he(number, places, scientific, ordinals)
     if lang2 == "hr":
