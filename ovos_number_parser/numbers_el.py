@@ -8,7 +8,8 @@ spellings, and unaccented input: matching is done on text with the Greek
 tonos and diaeresis stripped and the final sigma folded.
 """
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
+    scientific_parts
 
 # tonos/diaeresis stripping + final sigma folding, applied after casefold
 _NORM_TABLE = {ord(a): b for a, b in zip("άέήίόύώϊϋΐΰς", "αεηιουωιυιυσ")}
@@ -163,13 +164,12 @@ def pronounce_number_el(number, places=2, scientific=False, ordinals=False):
     if scientific:
         if number == 0:
             return _ONES_EL[0]
-        n, power = ('%E' % number).replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(number, places)
         if power != 0:
-            mantissa = pronounce_number_el(abs(float(n)), places)
+            mantissa = pronounce_number_el(abs(n), places)
             exponent = pronounce_number_el(abs(power), places)
             return "{}{} επί δέκα στη δύναμη του {}{}".format(
-                _MINUS_EL + " " if float(n) < 0 else "", mantissa,
+                _MINUS_EL + " " if n < 0 else "", mantissa,
                 _MINUS_EL + " " if power < 0 else "", exponent)
     if ordinals:
         return pronounce_ordinal_el(number)

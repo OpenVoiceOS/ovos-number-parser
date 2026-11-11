@@ -1,7 +1,8 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
+    scientific_parts
 _NUM_STRING_HU = {
     0: 'nulla',
     1: 'egy',
@@ -140,6 +141,48 @@ _FRACTION_SUFFIXES_HU = ['tized', 'század'] + [
                   'billiárdod', 'trilliomod', 'trilliárdod')
     for prefix in ('', 'tíz', 'száz')] + ['kvadrilliomod']
 
+#: the multiplicative adverb of each digit, the "-szor" form that reads
+#: "times" (Wiktionary "Module:number list/data/hu")
+_ADVERBIAL_HU = {1: 'egyszer', 2: 'kétszer', 3: 'háromszor', 4: 'négyszer',
+                 5: 'ötször', 6: 'hatszor', 7: 'hétszer', 8: 'nyolcszor',
+                 9: 'kilencszer'}
+
+
+def pronounce_scientific_hu(mantissa, exponent):
+    """
+    Read a mantissa times a negative power of ten
+
+    The mantissa reads as the multiplicative adverb of a whole number: its
+    digits move into a whole number and the exponent shifts with them, so
+    1.5 and -25 read as fifteen times ten to the minus twenty-sixth. The
+    suffix "-szor" goes on a cardinal numeral (Wiktionary "-szor"); on a
+    fraction word such as "tized" it reads "for the tenth time". The adverb
+    of a compound replaces its last unit word with that unit's adverb
+    ("tizenkétszer", Wiktionary "Module:number list/data/hu").
+
+    The power reads as "tíz a b-ediken": the base, the article and the
+    exponent ordinal in the superessive, which takes "-on" after "-adik"
+    and "-odik" and "-en" after "-edik" and "-ödik".
+
+    Args:
+        mantissa (int or float): from 1 to below 10, with its sign
+        exponent (int): a negative power of ten
+    Returns:
+        (str): the reading, e.g. "hétszer tíz a mínusz harmincadikon" for
+            7 and -30
+    """
+    digits = Decimal(str(abs(mantissa))).normalize()
+    shift = digits.as_tuple().exponent
+    whole = int(digits.scaleb(-shift))
+    exponent += shift
+    ordinal = pronounce_ordinal_hu(-exponent)
+    ordinal += 'on' if ordinal.endswith(('adik', 'odik')) else 'en'
+    sign = 'mínusz ' if mantissa < 0 else ''
+    words = pronounce_number_hu(whole)
+    times = words[:-len(_NUM_STRING_HU[whole % 10])] + \
+        _ADVERBIAL_HU[whole % 10]
+    return f"{sign}{times} tíz a mínusz {ordinal}"
+
 
 def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
@@ -249,12 +292,20 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             whole_number_part = floor(number)
             if whole_number_part == 0:
                 result += _NUM_STRING_HU[0]
-            result += pronounce_whole_number_hu(whole_number_part)
+            result += pronounce_whole_number_hu(whole_number_part).strip('-')
+            if places > len(_FRACTION_SUFFIXES_HU) and \
+                    number < 10 ** -len(_FRACTION_SUFFIXES_HU):
+                # finer than the smallest denominator: the mantissa keeps
+                # the digits ``places`` reads, as many as a whole number
+                # below 10 ** 24 holds
+                kept = places + Decimal(str(number)).adjusted()
+                return pronounce_scientific_hu(*scientific_parts(
+                    number, min(max(kept, 0), len(_FRACTION_SUFFIXES_HU) - 1)))
             if places > 0:
                 places = min(places, len(_FRACTION_SUFFIXES_HU))
                 result += " egész "
-                numerator = round((Decimal(str(number)) - whole_number_part)
-                                  * 10 ** places)
+                numerator = int(((Decimal(str(number)) - whole_number_part)
+                                 * 10 ** places).to_integral_value(ROUND_HALF_UP))
                 fraction = pronounce_whole_number_hu(numerator).strip('-')
                 result += fraction.replace(_NUM_STRING_HU[2], 'két') \
                     or _NUM_STRING_HU[0]

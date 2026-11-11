@@ -8,7 +8,8 @@ value times two (``מאתיים`` = 200, ``אלפיים`` = 2000). Niqqud (vowel
 points and cantillation marks) is stripped before matching.
 """
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
+    scientific_parts
 
 # niqqud and cantillation marks are stripped so vocalized text matches
 _NORM_TABLE = {c: None for c in range(0x0591, 0x05C8)}
@@ -186,15 +187,14 @@ def pronounce_number_he(number, places=2, scientific=False, ordinals=False,
     if scientific:
         if number == 0:
             return _ONES_HE[0]
-        n, power = ('%E' % number).replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(number, places)
         if power != 0:
-            mantissa = pronounce_number_he(abs(float(n)), places,
+            mantissa = pronounce_number_he(abs(n), places,
                                            feminine=feminine)
             exponent = pronounce_number_he(abs(power), places,
                                            feminine=feminine)
             return "{}{} כפול עשר בחזקת {}{}".format(
-                _MINUS_HE + " " if float(n) < 0 else "", mantissa,
+                _MINUS_HE + " " if n < 0 else "", mantissa,
                 _MINUS_HE + " " if power < 0 else "", exponent)
     if ordinals:
         return pronounce_ordinal_he(number)

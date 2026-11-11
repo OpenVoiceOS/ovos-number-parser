@@ -25,7 +25,7 @@ from decimal import Decimal
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union
 
-from ovos_number_parser.util import is_numeric, numeric_value
+from ovos_number_parser.util import is_numeric, numeric_value, scientific_parts
 
 _UNITS_COMMON = {
     "satu": 1, "dua": 2, "tiga": 3, "empat": 4, "lima": 5,
@@ -146,12 +146,11 @@ def _pronounce_number(number: Union[int, float], lang: _LangDef,
     if number == float("-inf"):
         return "minus tak terhingga"
     if scientific:
-        n, power = ('%E' % number).replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(number, places)
         if power != 0:
             return '{}{} kali sepuluh pangkat {}{}'.format(
-                'minus ' if float(n) < 0 else '',
-                _pronounce_number(abs(float(n)), lang, places),
+                'minus ' if n < 0 else '',
+                _pronounce_number(abs(n), lang, places),
                 'minus ' if power < 0 else '',
                 _pronounce_number(abs(power), lang, places))
 

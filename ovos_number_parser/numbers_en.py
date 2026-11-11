@@ -19,10 +19,11 @@ from fractions import Fraction
 import math
 import re
 from collections import OrderedDict
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, numeric_value, fits_str_limit, Token, ReplaceableNumber, scientific_notation)
+                                     partition_list, is_numeric, numeric_value, fits_str_limit, Token, ReplaceableNumber, scientific_parts,
+                                     round_half_up)
 
 _ARTICLES_EN = {'a', 'an', 'the'}
 
@@ -402,12 +403,9 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
     # and collapses a value that rounds to zero to a plain "zero".
     if not scientific and isinstance(num, float) and math.isfinite(num) \
             and num != int(num):
-        num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
-                                               rounding=ROUND_HALF_UP)) or 0.0
+        num = float(round_half_up(Decimal(str(num)), places)) or 0.0
     if scientific:
-        number = scientific_notation(num)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negatives of powers separately from the normal
@@ -610,8 +608,9 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
     # (covers floats in "e" notation and very large ints alike) so a finite
     # value never returns an empty string.
     if result in ("", "minus ") and num >= 1e6:
-        return result + pronounce_number_en(
-            num, places, short_scale, scientific=True)
+        # the scientific reading speaks its own sign word
+        return pronounce_number_en(
+            -num if result else num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
         if abs(num) < 1.0 and (result == "minus " or not result):
