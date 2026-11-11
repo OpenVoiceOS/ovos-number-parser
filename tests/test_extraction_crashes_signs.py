@@ -159,6 +159,10 @@ class TestMixedNumber(unittest.TestCase):
                 value = extract_number(f"{whole} 1/2", lang)
                 self.assertIsInstance(value, int)
                 self.assertEqual(value, whole)
+                minus = MIXED[lang][0] if lang in MIXED else "minus"
+                self.assertEqual(extract_number(f"{minus} {whole} 1/2", lang),
+                                 -whole)
+                self.assertEqual(extract_number(f"-{whole} 1/2", lang), -whole)
                 self.assertEqual(numbers_to_digits(f"{whole} 1/2", lang),
                                  f"{whole} 0.5")
                 self.assertEqual(numbers_to_digits(f"{10 ** 19 + 1} 1/2", lang),

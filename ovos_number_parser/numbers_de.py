@@ -675,6 +675,8 @@ def _extract_real_number_with_text_de(tokens, short_scale):
                         # number keeps its digits and the fraction is a
                         # number of its own ("9007199254740993 1/2")
                         val = _prev_val
+                        if any(t.word in _NEGATIVES for t in number_words):
+                            val = -abs(val)
                         number_words.pop(-1)
                         break
                     # the sign covers the whole mixed number: -5 1/2 is
