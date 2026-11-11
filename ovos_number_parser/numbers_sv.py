@@ -593,6 +593,11 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     count = 0
     while count < len(aWords):
         word = aWords[count]
+        if and_pass and word.startswith("-"):
+            # a signed part after "och" opens the next number: "5 och -3"
+            # is 5, then -3
+            val = valPreAnd
+            break
         if is_numeric(word):
             val = numeric_value(word)
             if count + 1 < len(aWords):

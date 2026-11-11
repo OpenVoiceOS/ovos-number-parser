@@ -1,9 +1,11 @@
+import sys
+from fractions import Fraction
 from collections import OrderedDict
 from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, ReplaceableNumber, Token,
-                                     look_for_fractions, GrammaticalGender, numeric_value)
+                                     look_for_fractions, GrammaticalGender, numeric_value, fits_str_limit)
 
 #: the final 1 of a whole number before a feminine or neuter noun (ICU RBNF de
 #: spellout-cardinal-feminine and -neuter: "eine", "einhunderteine", "ein").
@@ -460,6 +462,8 @@ def numbers_to_digits_de(text, short_scale=False,
     numbers_to_replace = \
         _extract_numbers_with_text_de(tokens, short_scale, ordinals, fractions)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -652,10 +656,35 @@ def _extract_real_number_with_text_de(tokens, short_scale):
 
         # fraction handling
         _fraction_val = is_fractional_de(word, short_scale=short_scale)
+        if _fraction_val and _prev_val is not None \
+                and abs(_prev_val) > sys.float_info.max:
+            # a whole part past the float range takes no fraction: like the
+            # digit string "999...9.5", the mixed number is no number
+            number_words.clear()
+            to_sum.clear()
+            val = _val = _current_val = None
+            continue
         if _fraction_val:
             if _prev_val is not None and prev_word != "eine" and \
                     word not in _STRING_FRACTION:  # zusammengesetzter Bruch
-                _val = _prev_val + _fraction_val
+                if _prev_val == int(_prev_val) and 0 < _fraction_val < 1:
+                    whole = abs(int(_prev_val))
+                    mixed = float(whole + Fraction(_fraction_val))
+                    if not whole < mixed < whole + 1:
+                        # from 2**52 on no float keeps both parts: the whole
+                        # number keeps its digits and the fraction is a
+                        # number of its own ("9007199254740993 1/2")
+                        val = _prev_val
+                        if any(t.word in _NEGATIVES for t in number_words):
+                            val = -abs(val)
+                        number_words.pop(-1)
+                        break
+                    # the sign covers the whole mixed number: -5 1/2 is
+                    # -(5 + 1/2), and -0 1/2 is -0.5
+                    negative_whole = _prev_val < 0 or prev_word.startswith("-")
+                    _val = -mixed if negative_whole else mixed
+                else:
+                    _val = _prev_val + _fraction_val
                 if prev_word not in _NUMBER_CONNECTORS and tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])
             elif _prev_val is not None:

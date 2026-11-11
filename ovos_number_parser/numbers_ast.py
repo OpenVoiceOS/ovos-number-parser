@@ -57,6 +57,7 @@ _AST = NumberVocabulary(
 
     DECIMAL_MARKER=["punto", "coma", ".", ","],
     NEGATIVE_SIGN=["menos"],
+    NEGATIVE_IDIOMS=[("más", "o", "menos")],
     UNITS={
         0: 'cero',
         1: 'un',
