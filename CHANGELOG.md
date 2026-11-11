@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.25a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.25a1) (2026-11-11)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.24a1...0.24.25a1)
+
+**Merged pull requests:**
+
+- fix: read every value the same way in every language [\#426](https://github.com/OpenVoiceOS/ovos-number-parser/pull/426) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.24a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.24a1) (2026-11-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.23a1...0.24.24a1)
@@ -380,10 +388,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.0a1...0.22.1a1)
 
-**Closed issues:**
-
-- Arabic: the hundreds spelling ماية is not recognised \(اربعماية الاف reads 1000\) [\#319](https://github.com/OpenVoiceOS/ovos-number-parser/issues/319)
-
 **Merged pull requests:**
 
 - fix\(ar\): accept the hundreds spelling ماية [\#321](https://github.com/OpenVoiceOS/ovos-number-parser/pull/321) ([JarbasAl](https://github.com/JarbasAl))
@@ -391,10 +395,6 @@
 ## [0.22.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.0a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.21.1a1...0.22.0a1)
-
-**Merged pull requests:**
-
-- feat\(ar\): gender and case for Arabic cardinals and ordinals [\#320](https://github.com/OpenVoiceOS/ovos-number-parser/pull/320) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.21.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.21.1a1) (2026-09-21)
 
