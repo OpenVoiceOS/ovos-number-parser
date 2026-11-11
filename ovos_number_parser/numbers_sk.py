@@ -157,6 +157,12 @@ _SCALE_DECLENSIONS_SK = {
     "biliónov": 10 ** 12,
     "biliardy": 10 ** 15,
     "biliárd": 10 ** 15,
+    "trilióny": 10 ** 18,
+    "triliónov": 10 ** 18,
+    "triliardy": 10 ** 21,
+    "triliárd": 10 ** 21,
+    "kvadrilióny": 10 ** 24,
+    "kvadriliónov": 10 ** 24,
 }
 _SCALE_DECLENSIONS_SK.update(
     {word: n * 100 for n, word in _HUNDREDS_SK.items() if n > 1})

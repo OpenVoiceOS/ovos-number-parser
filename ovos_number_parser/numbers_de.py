@@ -1,3 +1,4 @@
+import re
 import sys
 from fractions import Fraction
 from collections import OrderedDict
@@ -5,7 +6,8 @@ from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, ReplaceableNumber, Token,
-                                     look_for_fractions, GrammaticalGender, numeric_value, fits_str_limit)
+                                     look_for_fractions, GrammaticalGender, numeric_value, exact_sum,
+                                     fits_str_limit)
 
 #: the final 1 of a whole number before a feminine or neuter noun (ICU RBNF de
 #: spellout-cardinal-feminine and -neuter: "eine", "einhunderteine", "ein").
@@ -17,6 +19,12 @@ _GENDERED_ONE_DE = {
 }
 
 _ARTICLES = {'der', 'das', 'die', 'dem', 'den'}
+
+#: German groups the digits of a whole number by threes with ".", and marks
+#: the decimal with "," (CLDR de): "12.000" is 12000, "12.000,5" is 12000.5
+_DIGIT_GROUP_MARK_DE = "."
+_GROUPED_DIGITS_DE = re.compile(
+    rf"-?[1-9]\d{{0,2}}(?:{re.escape(_DIGIT_GROUP_MARK_DE)}\d{{3}})+(?:,\d+)?")
 
 # _SPOKEN_NUMBER
 _NUM_STRING = {
@@ -457,23 +465,52 @@ def numbers_to_digits_de(text, short_scale=False,
         str
         The original text, with numbers subbed in where appropriate.
     """
-    text = _expand_compound_numbers_de(text)
-    tokens = tokenize(text)
-    numbers_to_replace = \
-        _extract_numbers_with_text_de(tokens, short_scale, ordinals, fractions)
+    tokens = tokenize(_expand_compound_numbers_de(text))
+    # the nouns "Millionen", "Viertel" and "Komma" are capitalised; a scale
+    # or fraction noun reads as a number only after a count ("zwölf
+    # Millionen", "Drei Viertel", "ein halbes Viertel", not "Millionen
+    # Menschen", "im Viertel"), and "Komma" only between two numbers
+    lowered = []
+    for idx, token in enumerate(tokens):
+        word = token.word.lower()
+        prev = lowered[-1] if lowered else None
+        after_number = prev is not None and (
+            is_number_de(prev.word.lower()) is not None
+            or bool(is_fractional_de(prev.word.lower())))
+        if after_number and (
+                _STRING_LONG_SCALE.get(word, 0) >= 10 ** 6
+                or word in _STRING_FRACTION
+                or word in _COMMA and idx + 1 < len(tokens)
+                and is_number_de(tokens[idx + 1].word.lower()) is not None):
+            token = Token(word, token.index)
+            lowered[-1] = Token(prev.word.lower(), prev.index)
+        lowered.append(token)
+    # a capitalised fraction noun left without a count is the noun
+    # ("im Viertel", "das erste Viertel")
+    numbers_to_replace = [
+        number for number in _extract_numbers_with_text_de(
+            lowered, short_scale, ordinals, fractions)
+        if not any(token.word[:1].isupper()
+                   and token.word.lower() in _STRING_FRACTION
+                   for token in number.tokens)]
     numbers_to_replace.sort(key=lambda number: number.start_index)
     # a number that str() cannot write stays as written
     numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
-    for token in tokens:
+    for token, low in zip(tokens, lowered):
         if not numbers_to_replace or \
                 token.index < numbers_to_replace[0].start_index:
-            results.append(token.word)
+            # the extractor rewrites some tokens, "13.30 Uhr" to "13:30 Uhr"
+            results.append(token.word if low.word == token.word.lower()
+                           else low.word)
         else:
             if numbers_to_replace and \
                     token.index == numbers_to_replace[0].start_index:
-                results.append(str(numbers_to_replace[0].value))
+                value = numbers_to_replace[0].value
+                if isinstance(value, float) and value.is_integer():
+                    value = int(value)
+                results.append(str(value))
             if numbers_to_replace and \
                     token.index == numbers_to_replace[0].end_index:
                 numbers_to_replace.pop(0)
@@ -603,8 +640,12 @@ def _extract_real_number_with_text_de(tokens, short_scale):
 
         prev_word = tokens[idx - 1].word if idx > 0 else ""
         next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
+        # a fraction after the digits of a decimal is a number of its own:
+        # "drei Komma fünf ein halb" is 3.5, then 1/2
+        ends_decimal = bool(_comma) and idx - 1 > _comma.index and (
+            bool(is_fractional_de(word)) or bool(is_fractional_de(next_word)))
 
-        if word not in _STRING_LONG_SCALE and \
+        if ends_decimal or word not in _STRING_LONG_SCALE and \
                 word not in _STRING_NUM and \
                 word not in _MULTIPLIER and \
                 not is_numeric_de(word) and \
@@ -613,7 +654,11 @@ def _extract_real_number_with_text_de(tokens, short_scale):
             if _val is not None:
                 to_sum.append(_val)
             if to_sum:
-                if to_sum[0] < 0:
+                if _comma and len(to_sum) > 1:
+                    # spoken decimal digits add without float error
+                    val = -exact_sum([-to_sum[0]] + to_sum[1:]) \
+                        if to_sum[0] < 0 else exact_sum(to_sum)
+                elif to_sum[0] < 0:
                     val = to_sum[0] - sum(to_sum[1:])
                 else:
                     val = sum(to_sum)
@@ -644,6 +689,13 @@ def _extract_real_number_with_text_de(tokens, short_scale):
         # is this word already a number or a word of a number?
         _val = _current_val = is_number_de(word)
 
+        # a hundreds word after a scale word takes the smaller number that
+        # follows it ("zwölf Millionen dreihundert fünfundvierzig")
+        if to_sum and not _comma and _current_val is not None \
+                and word not in _MULTIPLIER and prev_word in _STRING_NUM \
+                and _prev_val in range(100, 1000, 100) and _current_val < 100:
+            _val = _current_val = _prev_val + _current_val
+
         # is this a negative number?
         if _current_val is not None and prev_word in _NEGATIVES:
             _val = 0 - _current_val
@@ -667,6 +719,14 @@ def _extract_real_number_with_text_de(tokens, short_scale):
         if _fraction_val:
             if _prev_val is not None and prev_word != "eine" and \
                     word not in _STRING_FRACTION:  # zusammengesetzter Bruch
+                if _prev_val != int(_prev_val):
+                    # a decimal is no whole part of a mixed number: "3.5 1/2"
+                    # is 3.5, then 1/2
+                    val = _prev_val
+                    if any(t.word in _NEGATIVES for t in number_words):
+                        val = -abs(val)
+                    number_words.pop(-1)
+                    break
                 if _prev_val == int(_prev_val) and 0 < _fraction_val < 1:
                     whole = abs(int(_prev_val))
                     mixed = float(whole + Fraction(_fraction_val))
@@ -725,7 +785,21 @@ def _extract_real_number_with_text_de(tokens, short_scale):
                 _val = _prev_val = None
                 continue
 
-                # spoken decimals
+        # a scale word after the decimal digits multiplies the whole
+        # decimal: "zwei Komma fünf Millionen" is 2500000
+        if _comma and word in _MULTIPLIER and _current_val is not None \
+                and _current_val >= 1000 and len(to_sum) > 1 \
+                and prev_word not in _COMMA:
+            digits = [Decimal(repr(v)) for v in to_sum]
+            decimal = digits[0] - sum(digits[1:]) if to_sum[0] < 0 \
+                else sum(digits)
+            value = decimal * _current_val
+            to_sum[:] = [int(value) if value == value.to_integral_value()
+                         else float(value)]
+            _comma = False
+            _val = _current_val = None
+
+        # spoken decimals
         if _current_val is not None and _comma:
             # to_sum = [ 1, 0.2, 0.04,...]
             to_sum.append(_current_val if _current_val >= 10 else (
@@ -739,7 +813,10 @@ def _extract_real_number_with_text_de(tokens, short_scale):
 
         if not next_word and number_words:
             _negative = any(t.word.lower() in _NEGATIVES for t in number_words)
-            if to_sum and to_sum[0] < 0:
+            if _comma and len(to_sum) > 1:
+                val = -exact_sum([-to_sum[0]] + to_sum[1:]) \
+                    if to_sum[0] < 0 else exact_sum(to_sum)
+            elif to_sum and to_sum[0] < 0:
                 # negated number: components extend the magnitude
                 val = to_sum[0] - sum(to_sum[1:])
             else:
@@ -827,9 +904,15 @@ def _get_ordinal_index(input_str: str, type_: type = str):
     return type_(ord.replace(".", "")) if ord else ord
 
 
+def _ungroup_digits_de(word: str) -> str:
+    if _GROUPED_DIGITS_DE.fullmatch(word):
+        return word.replace(_DIGIT_GROUP_MARK_DE, "").replace(",", ".")
+    return word
+
+
 def is_number_de(word: str):
     if is_numeric_de(word):
-        return numeric_value(word)
+        return numeric_value(_ungroup_digits_de(word))
     elif word in _STRING_NUM:
         return _STRING_NUM.get(word)
     elif word in _STRING_LONG_SCALE:
@@ -851,7 +934,7 @@ def is_numeric_de(input_str):
     if input_str.endswith('.'):
         return False
     try:
-        numeric_value(input_str)
+        numeric_value(_ungroup_digits_de(input_str))
         return True
     except ValueError:
         return False

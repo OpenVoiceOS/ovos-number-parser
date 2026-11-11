@@ -49,6 +49,7 @@ _AST = NumberVocabulary(
 
     NUMBER_OVERFLOW="número exageradamente grande",
     DEFAULT_SCALE=Scale.LONG,
+    DIGIT_GROUP_MARK=".",
     JOIN_WORD=["y"],
 
     JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e um"

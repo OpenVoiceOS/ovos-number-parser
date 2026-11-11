@@ -216,6 +216,24 @@ def exact_int(value: Any) -> Any:
     return value
 
 
+def exact_sum(values: List[Union[int, float]]) -> float:
+    """
+    Add numbers as the decimals their literals spell.
+
+    Spoken decimal digits are summed one place at a time ("eins Komma eins
+    vier" is 1 + 0.1 + 0.04), and float addition gives 1.1400000000000001.
+    ``repr`` keeps the written digits of each part, so the sum is exact
+    before it becomes a float.
+
+    Args:
+        values: the parts of one number
+
+    Returns:
+        float nearest to the exact sum
+    """
+    return float(sum(Decimal(repr(value)) for value in values))
+
+
 def is_numeric(input_str: str) -> bool:
     """
     Return True if the input string represents a valid number, otherwise False.
@@ -481,6 +499,11 @@ class NumberVocabulary:
     # ("două sute" = 200) instead of being added to them
     MULTIPLY_HUNDREDS: bool = False
 
+    # extraction: the mark that groups the thousands of a digit string whose
+    # decimal mark is the comma ("12.000" = 12000, "1.234,5" = 1234.5).
+    # Empty when no such mark is set, and "12.000" reads as 12.0
+    DIGIT_GROUP_MARK: str = ""
+
     # extraction: a fraction noun always multiplies the preceding cardinal
     # ("un quarto" = 1/4, "tre quarti" = 3/4) instead of adding to it, even in
     # its singular form. Languages that also say "e mezzo" ("two and a half")
@@ -693,9 +716,15 @@ class RomanceNumberExtractor:
         tokens = clean_text.split()
 
         # a digit token wins if it appears before any spoken number word
+        group = self.vocab.DIGIT_GROUP_MARK
+        # a group number never starts with 0 ("0.500" is a decimal)
+        grouped = re.compile(rf"-?[1-9]\d{{0,2}}(?:{re.escape(group)}\d{{3}})+(?:,\d+)?")
         for idx, tok in enumerate(tokens):
             # a leading decimal separator belongs to the number (".5")
-            t = tok.rstrip(".,!?;:").lstrip("!?;:").replace(",", ".")
+            t = tok.rstrip(".,!?;:").lstrip("!?;:")
+            if group and grouped.fullmatch(t):
+                t = t.replace(group, "")
+            t = t.replace(",", ".")
             if t and t.lstrip("-").replace(".", "", 1).isdecimal():
                 # an out-of-range token (a 400-digit decimal, or a digit
                 # string longer than int() reads) carries no usable number,
@@ -706,8 +735,14 @@ class RomanceNumberExtractor:
                 if idx and tokens[idx - 1] in self.vocab.NEGATIVE_SIGN \
                         and self._signs(tokens, idx - 1, numbers_map):
                     # the minus word signs digits as it signs number words
-                    val = -val
-                return int(val) if val == int(val) else val
+                    sign = -1
+                else:
+                    sign = 1
+                if val == int(val):
+                    # a whole float rounds the digit string; above 2 ** 53
+                    # it also drops digits of the whole part
+                    return sign * int(Decimal(t).to_integral_value(ROUND_HALF_UP))
+                return sign * val
             if tok in numbers_map or tok in ordinals_map or tok in scales_map:
                 break
 
@@ -718,6 +753,7 @@ class RomanceNumberExtractor:
 
         result = 0
         current = 0
+        largest_scale = 0
         saw_number = False
         is_negative = False
 
@@ -760,10 +796,17 @@ class RomanceNumberExtractor:
                         # thousand-level: keep accumulating so a bigger scale
                         # (e.g. milhão) can still multiply the whole group
                         current = (current or 1) * 1000
+                    elif val > largest_scale:
+                        # a scale word above every scale before it
+                        # multiplies the whole number so far ("dotze milions
+                        # bilions" = 12 * 10 ** 6 * 10 ** 12)
+                        result = (result + current or 1) * val
+                        current = 0
                     else:
                         current = (current or 1) * val
                         result += current
                         current = 0
+                    largest_scale = max(largest_scale, val)
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
                     # ("două sute" = 200, "dos cents" = 200), leaving higher
@@ -864,11 +907,21 @@ class RomanceNumberExtractor:
             str: The input text with written numbers replaced by their digit representations.
         """
         scale = scale or self.vocab.DEFAULT_SCALE
+        numbers_map = self.vocab.get_number_strings(scale)
+        # a hyphen chain of number words around a joiner is one spoken
+        # number ("vinte-e-dois"); without a joiner it is a range
+        # ("doi-trei"), and other hyphenated words keep their hyphens
+        joiners = set(self.vocab.JOIN_WORD) - set(self.vocab.MULTIPLICATIVE_JOIN_WORD)
+        utterance = re.sub(
+            r"[^\W\d_]+(?:-[^\W\d_]+)+",
+            lambda m: m.group().replace("-", " ") if all(
+                w in numbers_map or w in joiners
+                for w in m.group().split("-"))
+            and joiners & set(m.group().split("-")) else m.group(),
+            utterance)
         words = word_tokenize(utterance)
         output = []
         i = 0
-
-        numbers_map = self.vocab.get_number_strings(scale)
 
         def next_word(idx):
             return words[idx + 1] if idx + 1 < len(words) else None

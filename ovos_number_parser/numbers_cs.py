@@ -312,6 +312,15 @@ _LONG_SCALE_PLURALS_CS = {
                  else (name[:-1] + "y", name[:-1]))
 }
 
+# "milion" and "miliarda" are 10**6 and 10**9 in both scales
+_SHARED_SCALE_WORDS_CS = {
+    form: value
+    for form, value in [(word, exact_int(value))
+                        for value, word in _LONG_SCALE_CS.items()]
+    + list(_LONG_SCALE_PLURALS_CS.items())
+    if value in (10 ** 6, 10 ** 9)
+}
+
 _MULTIPLIES_LONG_SCALE_CS = set(_LONG_SCALE_CS.values()) | \
                             generate_plurals_cs(_LONG_SCALE_CS.values()) | \
                             set(_SCALE_DECLENSIONS_CS) | \
@@ -319,7 +328,8 @@ _MULTIPLIES_LONG_SCALE_CS = set(_LONG_SCALE_CS.values()) | \
 
 _MULTIPLIES_SHORT_SCALE_CS = set(_SHORT_SCALE_CS.values()) | \
                              generate_plurals_cs(_SHORT_SCALE_CS.values()) | \
-                             set(_SCALE_DECLENSIONS_CS)
+                             set(_SCALE_DECLENSIONS_CS) | \
+                             set(_SHARED_SCALE_WORDS_CS)
 
 # split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
 _FRACTION_MARKER = {"a"}
@@ -646,8 +656,7 @@ def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
         #        next_word = ""
 
         # Normalize Czech inflection of numbers(jedna,jeden,jedno,...)
-        if not ordinals:
-            word = _text_cs_inflection_normalize(word, 1)
+        word = _text_cs_inflection_normalize(word, 1)
 
         # a digit fraction right after a number ends that number. A proper
         # fraction after a whole number completes it as a mixed number
@@ -908,8 +917,8 @@ def _initialize_number_data(short_scale):
                            for value, word in string_num_scale_cs.items()}
     string_num_scale_cs.update(_SCALE_DECLENSIONS_CS)
     string_num_scale_cs.update(generate_plurals_cs(string_num_scale_cs))
-    if not short_scale:
-        string_num_scale_cs.update(_LONG_SCALE_PLURALS_CS)
+    string_num_scale_cs.update(_SHARED_SCALE_WORDS_CS if short_scale
+                               else _LONG_SCALE_PLURALS_CS)
     return multiplies, string_num_ordinal_cs, string_num_scale_cs
 
 

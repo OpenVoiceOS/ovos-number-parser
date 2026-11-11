@@ -1,3 +1,4 @@
+import difflib
 import math
 import re
 import sys
@@ -15,7 +16,7 @@ from unicode_rbnf import RbnfEngine, FormatPurpose
 from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_an import AN
 from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, \
-    numbers_to_digits_ar, \
+    extract_numbers_ar, numbers_to_digits_ar, \
     is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang, resolve_ar_lect
 from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
 from ovos_number_parser.numbers_bg import numbers_to_digits_bg, pronounce_number_bg, extract_number_bg, \
@@ -544,6 +545,58 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
     Raises:
         NotImplementedError: If the specified language is not supported.
     """
+    converted = _number_words_to_digits(utterance, lang, scale)
+    if _base_lang(lang) in ("nb", "nn", "no"):
+        # nb and nn keep the output of their converter
+        return converted
+    return _keep_digit_strings(utterance, converted, lang, scale)
+
+
+#: a number already written in digits, with the punctuation that may follow it
+_DIGIT_STRING = re.compile(r"[-+]?(?:[0-9][0-9.,]*|[.,][0-9]+)(?:[eE][-+]?[0-9]+)?[.,!?;:]*")
+_DIGIT_VALUE = re.compile(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
+
+
+def _keep_digit_strings(original: str, converted: str, lang: str,
+                        scale: Optional[Scale]) -> str:
+    """Put back the digit strings that a converter rewrote.
+
+    Only number words become digits: "Version 2.0" and "10.000 Euro" stay as
+    written. A rewritten stretch is restored when it held digit strings and
+    no number word, and the rewrite added no sign ("5 og 20" stays, "minus 5"
+    becomes "-5", "5 tusen," becomes "5000,", "2 point 5" becomes "2.5").
+    """
+    old, new = original.split(), converted.split()
+    out = []
+    matcher = difflib.SequenceMatcher(
+        a=[w.casefold() for w in old], b=[w.casefold() for w in new],
+        autojunk=False)
+    for op, i1, i2, j1, j2 in matcher.get_opcodes():
+        before, after = old[i1:i2], new[j1:j2]
+        digits = [w for w in before if _DIGIT_STRING.fullmatch(w)]
+        values = [w.rstrip(".,!?;:") for w in after]
+        if op == "replace" and digits and \
+                all(_DIGIT_VALUE.fullmatch(v) for v in values) and \
+                (float(values[0]) < 0) == digits[0].startswith("-") and \
+                not any(w not in digits and _is_number_word(w, lang, scale)
+                        for w in before):
+            out += before
+        else:
+            out += after
+    return " ".join(out)
+
+
+def _is_number_word(word: str, lang: str, scale: Optional[Scale]) -> bool:
+    """Whether a word reads as a number, or joins two digits into one
+    decimal ("point" in "2 point 5")."""
+    word = word.strip(_SPAN_PUNCTUATION)
+    return _numeric_value(word, lang, None, True, scale) is not None or \
+        _numeric_value(f"2 {word} 5", lang, None, False, scale) == 2.5
+
+
+def _number_words_to_digits(utterance: str, lang: str,
+                            scale: Optional[Scale]) -> str:
+    """Dispatch to the converter of the language."""
     scale = _resolve_scale(lang, scale)
     lang2 = _base_lang(lang)
     if lang2 == "en":
@@ -1860,15 +1913,24 @@ def _reads_as_one_number(fragment: str, lang: str,
     with ("two three"). Rewriting the fragment to digits tells the two apart,
     because the rewrite keeps every number it recognises: "one hundred"
     becomes "100" and "two three" becomes "2 3".
+
+    The Arabic converter glues the conjunction onto the digits after it
+    ("7 و500"), where the count cannot see the second number, so across
+    "و" the Arabic extractor decides how many numbers the fragment holds.
     """
-    digits = numbers_to_digits(fragment, lang, scale=scale)
-    numbers = 0
-    for token in digits.split():
+    numbers = glued = 0
+    for token in numbers_to_digits(fragment, lang, scale=scale).split():
+        token = token.strip(_SPAN_PUNCTUATION)
+        if _is_ar(lang) and token[:1] == "و":
+            token, glued = token[1:], True
         try:
-            float(token.strip(_SPAN_PUNCTUATION))
+            float(token)
         except ValueError:
             continue
         numbers += 1
+    if glued:
+        return len(extract_numbers_ar(fragment,
+                                      lect=resolve_ar_lect(lang))) == 1
     return numbers == 1
 
 
@@ -1922,7 +1984,7 @@ def extract_number_spans(text: str, lang: str,
 
         last = index
         cursor = index
-        connector_used = False
+        connector_used = crossed_connector = False
         while cursor + 1 < len(words) and \
                 not text[words[cursor][1]:words[cursor + 1][0]].strip():
             nxt = words[cursor + 1]
@@ -1936,9 +1998,34 @@ def extract_number_spans(text: str, lang: str,
                     not (connector_used and grown == word) and \
                     (grown != suffix or _reads_as_one_number(text[start:nxt[1]],
                                                              lang, scale)):
+                crossed_connector = crossed_connector or connector_used
                 value, last, connector_used = grown, cursor + 1, False
             elif connector_used or word is not None:
-                break
+                # in a span that holds a connector, a number word that
+                # leaves the value unchanged may open the rest of a mixed
+                # number: "two and three quarters" is 2 + 3/4. The whole
+                # stretch must convert to one number, so "two hundred and one
+                # one third" ("201 0.333…") stays two numbers. Arabic
+                # writes its "و" onto the next word ("سبعة وخمسة مئة").
+                after = words[cursor + 2] if cursor + 2 < len(words) else None
+                glued_and = _is_ar(lang) and text.startswith("و", nxt[0])
+                if not (connector_used or crossed_connector or glued_and) or \
+                        word is None or grown != value or \
+                        after is None or text[nxt[1]:after[0]].strip():
+                    break
+                whole = text[start:after[1]]
+                longer = _numeric_value(whole, lang, short_scale, ordinals,
+                                        scale)
+                if longer is None or longer == value:
+                    break
+                if _is_ar(lang):
+                    if not _reads_as_one_number(whole, lang, scale):
+                        break
+                elif len(numbers_to_digits(whole, lang, scale=scale).split()) != 1:
+                    break
+                crossed_connector = crossed_connector or connector_used
+                value, last, connector_used = longer, cursor + 2, False
+                cursor += 1
             else:
                 connector_used = True
             cursor += 1

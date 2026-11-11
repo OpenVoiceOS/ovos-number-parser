@@ -406,6 +406,7 @@ _IT = NumberVocabulary(
     NUMBER_OVERFLOW="numero davvero enorme",
     # Italy follows the long scale: milione 10^6, miliardo 10^9, bilione 10^12
     DEFAULT_SCALE=Scale.LONG,
+    DIGIT_GROUP_MARK=".",
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS=False,           # fused forms carry no spoken joiner
     JOINER_ON_HUNDREDS=False,

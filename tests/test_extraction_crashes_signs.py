@@ -201,10 +201,20 @@ class TestMixedNumber(unittest.TestCase):
         # a decimal or fractional value before a fraction is no mixed number
         # whole part, so the sign rule of the mixed number does not apply:
         # the two values add
-        for lang in ("da", "nb", "nn"):
+        for lang in ("nb", "nn"):
             with self.subTest(lang=lang):
                 self.assertEqual(extract_number("-1/2 1/2", lang), 0)
                 self.assertEqual(extract_number("-3.5 1/2", lang), -3)
+
+    def test_non_integral_whole_part_is_its_own_number(self):
+        # a decimal or fractional value before a fraction is no mixed number
+        # whole part: the two are two numbers, as English reads them
+        for lang in ("en", "da", "de"):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number("-1/2 1/2", lang),
+                                 Fraction(-1, 2))
+                self.assertEqual(extract_number("-3.5 1/2", lang),
+                                 Fraction(-7, 2))
 
     def test_whole_part_past_float_range(self):
         # the value has no float, so it is no number, as the digit string

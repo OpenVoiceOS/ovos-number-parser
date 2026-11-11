@@ -210,17 +210,17 @@ _ORDINAL_STRING_BASE_NL = {
     70: "zeventigste",
     80: "tachtigste",
     90: "negentigste",
-    10e3: "honderdste",
+    100: "honderdste",
     1e3: "duizendste"
 }
 
 _SHORT_ORDINAL_STRING_NL = {
-    1e6: "miloenste",
+    1e6: "miljoenste",
     1e9: "miljardste",
     1e12: "biljoenste",
     1e15: "biljardste",
     1e18: "triljoenste",
-    1e21: "trijardste",
+    1e21: "triljardste",
     1e24: "quadriljoenste",
     1e27: "quadriljardste",
     1e30: "quintiljoenste",
@@ -230,12 +230,12 @@ _SHORT_ORDINAL_STRING_NL = {
 _SHORT_ORDINAL_STRING_NL.update(_ORDINAL_STRING_BASE_NL)
 
 _LONG_ORDINAL_STRING_NL = {
-    1e6: "miloenste",
+    1e6: "miljoenste",
     1e9: "miljardste",
     1e12: "biljoenste",
     1e15: "biljardste",
     1e18: "triljoenste",
-    1e21: "trijardste",
+    1e21: "triljardste",
     1e24: "quadriljoenste",
     1e27: "quadriljardste",
     1e30: "quintiljoenste",
