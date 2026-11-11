@@ -876,10 +876,11 @@ def _extract_decimal_with_text_en(tokens, short_scale, ordinals):
             numbers1 = \
                 _extract_numbers_with_text_en(partitions[0], short_scale,
                                               ordinals, fractional_numbers=False)
-            # after the marker "oh" is the digit zero ("one point oh five")
+            # after the marker "oh", "o" and "nought" are the digit zero
+            # ("one point oh five")
             after = []
             for _tok in partitions[2]:
-                if _tok.word.lower() == "oh" and (
+                if _tok.word.lower() in ("oh", "o", "nought") and (
                         not after or after[-1].word.lower() in _STRING_NUM_EN):
                     _tok = Token("zero", _tok.index)
                 after.append(_tok)
@@ -929,16 +930,24 @@ def _extract_decimal_with_text_en(tokens, short_scale, ordinals):
                 if _num_scale < 1000:
                     _num_scale = 1
                 _num_rest = _v % _num_scale
-                if not 0 <= _v // _num_scale <= 9:
+                _head = _v // _num_scale
+                if _num_scale > 1 and scale_words.get(
+                        _num.tokens[1].word.lower(), 1) >= 100:
+                    # one digit word before the scale word gives the digit;
+                    # the whole-number reader takes "zero million" after
+                    # "five" as 5000000
+                    _head = _STRING_NUM_EN.get(_num.tokens[0].word.lower(),
+                                               _head)
+                if not 0 <= _head <= 9:
                     if not _digits and _num_scale > 1:
                         # a composed reading before the scale word
                         # ("one point twenty five million")
-                        _digits = str(int(_v // _num_scale))
+                        _digits = str(int(_head))
                         _digit_tokens = _num.tokens
                         _scale = _num_scale
                         _rest = _num_rest
                     break
-                _digits += str(int(_v // _num_scale))
+                _digits += str(int(_head))
                 _digit_tokens.extend(_num.tokens)
                 _prev_end = _num.end_index
                 if _num_scale > 1:

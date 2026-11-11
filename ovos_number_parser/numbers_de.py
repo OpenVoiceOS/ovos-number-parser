@@ -458,19 +458,22 @@ def numbers_to_digits_de(text, short_scale=False,
     tokens = tokenize(_expand_compound_numbers_de(text))
     # the nouns "Millionen", "Viertel" and "Komma" are capitalised; a scale
     # or fraction noun reads as a number only after a count ("zwölf
-    # Millionen", "drei Viertel", not "Millionen Menschen", "im Viertel"),
-    # and "Komma" only between two numbers
+    # Millionen", "Drei Viertel", "ein halbes Viertel", not "Millionen
+    # Menschen", "im Viertel"), and "Komma" only between two numbers
     lowered = []
     for idx, token in enumerate(tokens):
         word = token.word.lower()
-        after_number = bool(lowered) and \
-            is_number_de(lowered[-1].word) is not None
+        prev = lowered[-1] if lowered else None
+        after_number = prev is not None and (
+            is_number_de(prev.word.lower()) is not None
+            or bool(is_fractional_de(prev.word.lower())))
         if after_number and (
                 _STRING_LONG_SCALE.get(word, 0) >= 10 ** 6
                 or word in _STRING_FRACTION
                 or word in _COMMA and idx + 1 < len(tokens)
-                and is_number_de(tokens[idx + 1].word) is not None):
+                and is_number_de(tokens[idx + 1].word.lower()) is not None):
             token = Token(word, token.index)
+            lowered[-1] = Token(prev.word.lower(), prev.index)
         lowered.append(token)
     # a capitalised fraction noun left without a count is the noun
     # ("im Viertel", "das erste Viertel")
@@ -492,7 +495,10 @@ def numbers_to_digits_de(text, short_scale=False,
         else:
             if numbers_to_replace and \
                     token.index == numbers_to_replace[0].start_index:
-                results.append(str(numbers_to_replace[0].value))
+                value = numbers_to_replace[0].value
+                if isinstance(value, float) and value.is_integer():
+                    value = int(value)
+                results.append(str(value))
             if numbers_to_replace and \
                     token.index == numbers_to_replace[0].end_index:
                 numbers_to_replace.pop(0)
@@ -730,7 +736,21 @@ def _extract_real_number_with_text_de(tokens, short_scale):
                 _val = _prev_val = None
                 continue
 
-                # spoken decimals
+        # a scale word after the decimal digits multiplies the whole
+        # decimal: "zwei Komma fünf Millionen" is 2500000
+        if _comma and word in _MULTIPLIER and _current_val is not None \
+                and _current_val >= 1000 and len(to_sum) > 1 \
+                and prev_word not in _COMMA:
+            digits = [Decimal(repr(v)) for v in to_sum]
+            decimal = digits[0] - sum(digits[1:]) if to_sum[0] < 0 \
+                else sum(digits)
+            value = decimal * _current_val
+            to_sum[:] = [int(value) if value == value.to_integral_value()
+                         else float(value)]
+            _comma = False
+            _val = _current_val = None
+
+        # spoken decimals
         if _current_val is not None and _comma:
             # to_sum = [ 1, 0.2, 0.04,...]
             to_sum.append(_current_val if _current_val >= 10 else (

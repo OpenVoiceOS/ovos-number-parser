@@ -1857,7 +1857,21 @@ def extract_number_spans(text: str, lang: str,
                                                              lang, scale)):
                 value, last, connector_used = grown, cursor + 1, False
             elif connector_used or word is not None:
-                break
+                # after a connector, a number word that leaves the value
+                # unchanged may open the rest of a mixed number ("tre og en
+                # halv")
+                after = words[cursor + 2] if cursor + 2 < len(words) else None
+                if not connector_used or word is None or grown != value or \
+                        after is None or text[nxt[1]:after[0]].strip():
+                    break
+                longer = _numeric_value(text[start:after[1]], lang,
+                                        short_scale, ordinals, scale)
+                if longer is None or longer == value or \
+                        not _reads_as_one_number(text[start:after[1]],
+                                                 lang, scale):
+                    break
+                value, last, connector_used = longer, cursor + 2, False
+                cursor += 1
             else:
                 connector_used = True
             cursor += 1
