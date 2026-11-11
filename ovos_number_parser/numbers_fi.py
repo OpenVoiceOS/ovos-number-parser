@@ -173,12 +173,13 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     Returns:
         (str): The pronounced number
     """
-    if ordinals:
+    if ordinals and number == int(number) and number >= 0:
         return pronounce_ordinal_fi(number)
     if abs(number) >= 10 ** 15:  # beyond the supported scale words
         return f"{Decimal(str(number)):f}".removesuffix(".0")
     if number < 0:
-        return "miinus " + pronounce_number_fi(abs(number), places)
+        return "miinus " + pronounce_number_fi(abs(number), places,
+                                                ordinals=ordinals)
     if number == int(number):
         return _pronounce_int_fi(int(number))
     result = _pronounce_int_fi(floor(number))

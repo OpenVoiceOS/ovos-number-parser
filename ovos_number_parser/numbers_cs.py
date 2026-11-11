@@ -6,7 +6,7 @@ from collections import OrderedDict
 import re
 from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
                                      partition_list, is_numeric, numeric_value, Token, ReplaceableNumber,
-                                     GrammaticalGender, scientific_notation)
+                                     GrammaticalGender, scientific_parts)
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF cs spellout-cardinal-feminine and -neuter). The masculine keeps
@@ -1166,9 +1166,7 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "záporné nekonečno"
     if scientific:
-        number = scientific_notation(num)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles zápornés of powers separately from the normal
@@ -1346,8 +1344,9 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
 
     # a magnitude with no spoken name reads scientifically
     if result in ("", "mínus ") and num >= 1e6:
-        return result + pronounce_number_cs(
-            num, places, short_scale, scientific=True)
+        # the scientific reading speaks its own sign word
+        return pronounce_number_cs(
+            -num if result else num, places, short_scale, scientific=True)
     if num != int(num) and abs(num) < 1.0 \
             and (result == "mínus " or not result):
         result += "nula"

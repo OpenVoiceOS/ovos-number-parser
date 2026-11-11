@@ -17,10 +17,11 @@ import sys
 from fractions import Fraction
 import math
 from collections import OrderedDict
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, fits_str_limit, look_for_fractions, \
-    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, scientific_notation
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, scientific_parts, \
+    round_half_up
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF ru spellout-cardinal-feminine and -neuter); the scale words
@@ -452,12 +453,9 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
     # plain "ноль" (never "минус ноль").
     if not scientific and isinstance(num, float) and math.isfinite(num) \
             and num != int(num):
-        num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
-                                               rounding=ROUND_HALF_UP)) or 0.0
+        num = float(round_half_up(Decimal(str(num)), places)) or 0.0
     if scientific:
-        number = scientific_notation(num)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negative powers separately from the normal
@@ -707,8 +705,9 @@ def _ordinal_stem_ru(n):
 
 def _ordinal_ru(n, short_scale=True):
     """Masculine ordinal of a whole number: the groups before the last
-    non-zero group stay cardinal ("две тысячи пятый"). Return None for 0 or
-    when that group has no scale name."""
+    non-zero group stay cardinal ("две тысячи пятый"). Return None for 0,
+    when that group has no scale name, or when the groups before it read
+    scientifically."""
     if n < 1:
         return None
     scale, group = 0, n
@@ -735,7 +734,11 @@ def _ordinal_ru(n, short_scale=True):
                           _ORDINAL_BASE_RU[rest % 10]]
             word = " ".join(words)
     if head:
-        word = f"{pronounce_number_ru(head, short_scale=short_scale)} {word}"
+        head_words = pronounce_number_ru(head, short_scale=short_scale)
+        if head_words == pronounce_number_ru(head, short_scale=short_scale,
+                                               scientific=True):
+            return None
+        word = f"{head_words} {word}"
     return word
 
 

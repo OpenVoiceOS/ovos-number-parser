@@ -6,7 +6,7 @@ from typing import Optional, Union
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, Scale,
                                      GrammaticalGender, NumberVocabulary,
-                                     RomanceNumberExtractor)
+                                     RomanceNumberExtractor, scientific_parts)
 
 _SHORT_ORDINAL_STRING_IT = {
     1: 'primo',
@@ -659,13 +659,11 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
         return "meno infinito"
 
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             return '{}{} per dieci elevato alla {}{}'.format(
-                'meno ' if float(n) < 0 else '',
-                pronounce_number_it(abs(float(n)), places, short_scale, False),
+                'meno ' if n < 0 else '',
+                pronounce_number_it(abs(n), places, short_scale, False),
                 'meno ' if power < 0 else '',
                 pronounce_number_it(abs(power), places, short_scale, False))
 

@@ -26,9 +26,11 @@ SCIENTIFIC_MODE = ["az", "bg", "cs", "fa", "hr", "pl", "ru", "sk", "sl",
                    "tr", "uk"]
 
 
-def minus_word(lang):
-    """The minus word of the language's ordinary negative reading."""
-    return pronounce_number(-5, lang)[:-len(pronounce_number(5, lang))]
+def scientific_minus_word(lang):
+    """The minus word of the language's scientific reading, "negative" in en
+    and "záporné" in cs."""
+    return pronounce_number(-5, lang, scientific=True)[
+        :-len(pronounce_number(5, lang))]
 
 
 class _ReprWrapper(float):
@@ -88,7 +90,8 @@ class TestSignedHugeIntegers(unittest.TestCase):
 
     def test_negative_is_minus_plus_positive(self):
         # 111 * 10 ** 398 repeats a mantissa digit and takes the dispatcher
-        # fallback; 10 ** 400 reads in the backend
+        # fallback; 10 ** 400 reads in the backend. Both read scientifically,
+        # with the minus word of the scientific form
         for lang, value in (("en", 10 ** 400), ("en", 111 * 10 ** 398),
                             ("ru", 10 ** 100), ("ru", 10 ** 400),
                             ("cs", 10 ** 400), ("cs", 111 * 10 ** 398),
@@ -96,7 +99,7 @@ class TestSignedHugeIntegers(unittest.TestCase):
             with self.subTest(lang=lang, value=value):
                 self.assertEqual(
                     pronounce_number(-value, lang),
-                    minus_word(lang) + pronounce_number(value, lang))
+                    scientific_minus_word(lang) + pronounce_number(value, lang))
 
     def test_beyond_the_float_range_is_not_empty(self):
         for lang in ("cs", "pl"):
@@ -139,14 +142,15 @@ class TestNoInfinityOrZeroForAFiniteValue(unittest.TestCase):
                 scientific = pronounce_number(value, lang, scientific=True)
                 self.assertEqual(pronounce_number(value, lang), scientific)
                 self.assertEqual(pronounce_number(-value, lang),
-                                 minus_word(lang) + scientific)
+                                 scientific_minus_word(lang) + scientific)
 
     def test_fallback_speaks_the_backend_words(self):
         # the dispatcher fallback replaces a backend reading it flags as
         # padded, so both must say the same words for every value
         for lang in SCIENTIFIC_MODE:
             for value in (10 ** 30, 12 * 10 ** 29, 4 * 10 ** 33, 10 ** 100,
-                          128 * 10 ** 398):
+                          128 * 10 ** 398, 12346 * 10 ** 396,
+                          99996 * 10 ** 396):
                 with self.subTest(lang=lang, value=value):
                     self.assertEqual(
                         _pronounce_bignum_fallback(value, lang, 3),
@@ -185,7 +189,7 @@ class TestLocalizedConnective(unittest.TestCase):
         for lang, connective in self.CONNECTIVE.items():
             for value, exponent in ((10 ** 25, 25), (10 ** 100, 100),
                                     (-10 ** 400, 400)):
-                mantissa = 1.0 if value > 0 else -1.0
+                mantissa = 1 if value > 0 else -1
                 with self.subTest(lang=lang, value=value):
                     self.assertEqual(
                         pronounce_number(value, lang),

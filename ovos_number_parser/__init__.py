@@ -54,7 +54,7 @@ from ovos_number_parser.numbers_hr import pronounce_number_hr, pronounce_ordinal
 from ovos_number_parser.numbers_he import pronounce_number_he, pronounce_ordinal_he, \
     extract_number_he, is_fractional_he, is_ordinal_he, nice_number_he
 from ovos_number_parser.numbers_hu import pronounce_number_hu, pronounce_ordinal_hu, extract_number_hu, \
-    is_fractional_hu, is_ordinal_hu, nice_number_hu
+    is_fractional_hu, is_ordinal_hu, nice_number_hu, pronounce_scientific_hu
 from ovos_number_parser.numbers_id import (pronounce_number_id, pronounce_number_ms,
                                            pronounce_ordinal_id, pronounce_ordinal_ms,
                                            extract_number_id, extract_number_ms,
@@ -107,7 +107,8 @@ from ovos_number_parser.numbers_pl import nice_number_pl
 from ovos_number_parser.numbers_ru import nice_number_ru
 from ovos_number_parser.numbers_sv import nice_number_sv
 from ovos_number_parser.numbers_uk import nice_number_uk
-from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation, fits_str_limit
+from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation, fits_str_limit, \
+    scientific_parts, round_half_up
 
 
 # --- canonical short/long scale convention per language --------------------
@@ -721,7 +722,31 @@ def _from_other_real(number):
         return float(number)
 
 
-def _round_for_speech(number: Union[int, float, Decimal, Fraction],
+def _fraction_as_decimal(number: Fraction,
+                         places: int) -> Union[int, Decimal]:
+    """A Fraction as its int when it is integral, else as a Decimal.
+
+    The Decimal holds two digits past each rounding ``pronounce_number``
+    makes at ``places``: the decimals of a plain reading, the mantissa
+    decimals of a scientific one and the first significant digit of a value
+    below the quantum. Its last digit is made odd when the expansion goes
+    on, so each rounding, half away from zero, rounds the Fraction exactly:
+    1/3 at 2 places reads as 0.33, and 1/8 at 2 places as 0.13.
+    """
+    if number.denominator == 1:
+        return number.numerator
+    numerator, denominator = abs(number.numerator), number.denominator
+    # the zeros after the decimal point before the first significant digit,
+    # or more
+    zeros = max(0, math.ceil((denominator.bit_length() - numerator.bit_length())
+                             * math.log10(2)) + 1)
+    shift = places + 2 + zeros
+    kept, cut = divmod(numerator * 10 ** shift, denominator)
+    return Decimal((int(number < 0),
+                    Decimal(kept | bool(cut)).as_tuple().digits, -shift))
+
+
+def _round_for_speech(number: Union[int, float, Decimal],
                       places: int) -> Union[int, float]:
     """Round a real number to ``places`` decimals, half away from zero.
 
@@ -751,25 +776,7 @@ def _round_for_speech(number: Union[int, float, Decimal, Fraction],
     integral one a float cannot hold exactly, becomes an int with every digit.
     A non-integral Decimal with more significant digits than a float holds
     after rounding reads as the nearest float.
-
-    A ``Fraction`` is rounded from its exact value: 1/3 at 2 places reads as
-    0.33, and 1/8 at 2 places as 0.13. An integral one becomes its int, and
-    one that rounds to zero reads as its nearest float, as a float that small
-    does.
     """
-    if isinstance(number, Fraction):
-        if number.denominator == 1:
-            return number.numerator
-        # two digits past ``places``, the last one made odd when the
-        # expansion goes on, round half away from zero exactly as the
-        # Fraction does
-        shift = places + 2
-        kept, cut = divmod(abs(number.numerator) * 10 ** shift,
-                           number.denominator)
-        if kept < 50:
-            return float(number)
-        number = Decimal((int(number < 0),
-                          Decimal(kept | bool(cut)).as_tuple().digits, -shift))
     if isinstance(number, Decimal):
         if number == number.to_integral_value() and (
                 number.as_tuple().exponent >= 0 or float(number) != number):
@@ -789,13 +796,7 @@ def _round_for_speech(number: Union[int, float, Decimal, Fraction],
         # no fractional part to shorten; also avoids quantize overflow on very
         # large integer-valued floats (1e300)
         return number
-    quantum = Decimal(1).scaleb(-places)
-    try:
-        rounded = exact.quantize(quantum, rounding=ROUND_HALF_UP)
-    except (ArithmeticError, ValueError):
-        # a value too large to quantize at this precision is already far coarser
-        # than ``places`` decimals; leave it untouched
-        return number
+    rounded = round_half_up(exact, places)
     if rounded == 0:
         # magnitude below the rounding quantum: hand the original value to the
         # backend so its sub-quantum reading and sign are preserved
@@ -825,7 +826,7 @@ _SCIENTIFIC_WORDS = {
     "en": "times ten to the power of",
     "es": "por diez elevado a",
     "pt": "vezes dez elevado a",
-    "it": "per dieci alla",
+    "it": "per dieci elevato alla",
     "fr": "fois dix puissance",
     "de": "mal zehn hoch",
     "nl": "maal tien tot de macht",
@@ -850,6 +851,8 @@ _SCIENTIFIC_WORDS = {
     "sl": "krat deset na",
     "tr": "çarpı on üzeri",
     "uk": "на десять у ступені",
+    "ar": "في عشرة أس",
+    "ms": "kali sepuluh pangkat",
 }
 
 
@@ -903,7 +906,7 @@ _DEFAULT_DIGIT_PRONUNCIATION = {
 _DIGIT_RUN = re.compile(r"\d{7,}")
 
 
-def _has_padded_scale_words(spoken: str) -> bool:
+def _has_padded_scale_words(spoken: str, lang: str) -> bool:
     """
     Whether a backend padded a magnitude by repeating its largest scale word.
 
@@ -911,15 +914,16 @@ def _has_padded_scale_words(spoken: str) -> bool:
     biggest word they know until the magnitude is covered
     ("trilioi trilioi trilioi", "sextiliões vigintiliões vigintiliões").
     No natural numeral repeats a scale word back to back, so two identical
-    adjacent words mark output that is not a reading at all.
+    adjacent words other than digit words mark output that is not a reading.
 
-    Only sound for a whole number. A digit-by-digit decimal repeats words
-    legitimately ("2.22" -> "dois vírgula dois dois"), so callers must scope
-    this check to integral values -- which is what the oversized-number path
-    deals with anyway.
+    A digit word repeats legitimately where digits are read one by one: the
+    mantissa of a scientific reading ("jedan zarez jedan jedan puta deset na
+    četiristo") or a digit-by-digit decimal ("dois vírgula dois dois").
     """
+    digit_words = {pronounce_number(digit, lang) for digit in range(10)}
     words = spoken.split()
-    return any(a == b for a, b in zip(words, words[1:]))
+    return any(a == b and a not in digit_words
+               for a, b in zip(words, words[1:]))
 
 
 def _has_unread_digits(spoken: str) -> bool:
@@ -938,42 +942,86 @@ def _has_unread_digits(spoken: str) -> bool:
 def _pronounce_bignum_fallback(number: Union[int, float, Decimal, Fraction],
                                lang: str, places: int) -> str:
     """
-    Spoken scientific reading for finite numbers too large for a language's
-    named-scale table, computed from the decimal string so it never overflows
-    the float range.
+    Spoken scientific reading for finite numbers a language's tables cannot
+    name, computed from the decimal digits so it never leaves the float range.
 
-    Mantissa, sign and exponent are all pronounced by the target language.
-    Only the connective joining them is looked up, and falls back to English
-    for languages missing from _SCIENTIFIC_WORDS.
+    A language whose backend has a scientific mode reads the value in that
+    mode, so the scientific form of one language has one wording. For any
+    other language, mantissa, sign and exponent are pronounced by the target
+    language. Only the connective joining them is looked up, and falls back
+    to English for languages missing from _SCIENTIFIC_WORDS. Hungarian reads
+    a negative exponent with its own words.
 
     Only the leading digits a rounding at ``places`` reads are computed, so
     a value past ``_READ_LIMIT`` never goes through ``str()`` of the whole
     number.
     """
-    if isinstance(number, Decimal):
-        digits = "".join(map(str, number.as_tuple().digits[:places + 2]))
-        exponent = number.adjusted()
-    else:
+    if not isinstance(number, Decimal):
         magnitude = abs(int(number))
         # bit_length() * log10(2) is the digit count to within one, so at
         # least places + 2 leading digits are kept
         cut = max(0, int(magnitude.bit_length() * math.log10(2)) - places - 3)
-        digits = str(magnitude // 10 ** cut)
-        exponent = len(digits) - 1 + cut
-    mantissa = Decimal(f"{digits[0]}.{digits[1:]}").quantize(
-        Decimal(1).scaleb(-places), ROUND_HALF_UP)
-    if mantissa == 10:  # 9.9996 at 3 places carries into the next power
-        mantissa, exponent = Decimal(1), exponent + 1
-    mantissa = float(mantissa)
+        number = Decimal((int(number < 0),
+                          Decimal(magnitude // 10 ** cut).as_tuple().digits,
+                          cut))
+    if _has_scientific_mode(lang):
+        scale = _resolve_scale(lang, None, None)
+        return _pronounce_number_dispatch(
+            number, lang, places, scale == Scale.SHORT, True, False,
+            DigitPronunciation.FULL_NUMBER, GrammaticalGender.MASCULINE, scale)
     # the sign rides on the mantissa so each language speaks its own minus
     # word ("menos dois...") instead of an English prefix
-    if number < 0:
-        mantissa = -mantissa
+    mantissa, exponent = scientific_parts(number, places)
+    if _base_lang(lang) == "hu" and exponent < 0:
+        return pronounce_scientific_hu(mantissa, exponent)
     mantissa_words = pronounce_number(mantissa, lang=lang, places=places)
     exponent_words = pronounce_number(exponent, lang=lang)
-    connective = _SCIENTIFIC_WORDS.get(_base_lang(lang),
+    connective = _SCIENTIFIC_WORDS.get("ar" if _is_ar(lang) else _base_lang(lang),
                                        _SCIENTIFIC_WORDS["en"])
     return f"{mantissa_words} {connective} {exponent_words}"
+
+
+#: languages whose backend reads ``scientific=True`` in a scientific form of
+#: its own, keyed by bare language code; Arabic lects are matched by _is_ar
+_SCIENTIFIC_MODE = frozenset({
+    "az", "bg", "cs", "el", "en", "fa", "he", "hr", "id", "it", "ms", "pl",
+    "ru", "sk", "sl", "tr", "uk"})
+
+#: a value below the quantum whose first significant digit lies further right
+#: than this many decimals reads in scientific form: 10 ** -323 is the
+#: smallest power of ten whose nine multiples a float holds digit for digit
+_MOST_PLACES = 323
+
+
+def _has_scientific_mode(lang: str) -> bool:
+    """Whether the backend for ``lang`` honours ``scientific=True``."""
+    return _is_ar(lang) or _base_lang(lang) in _SCIENTIFIC_MODE
+
+
+def _round_mantissa(number: Union[int, float, Decimal],
+                    places: int) -> Union[int, float, Decimal]:
+    """Round the scientific mantissa of ``number`` to ``places`` decimals.
+
+    The mantissa rounds once, half away from zero, from the exact decimal
+    digits, the same way as ``scientific_parts``: 12.3449 at 3 places is
+    1.234 times ten. The rounded value comes back as an int when it has no
+    fraction and as a float otherwise, so the backend reads the same mantissa
+    again without a second rounding. A mantissa with more digits than a float
+    holds reads as the nearest float, as a Decimal does in a plain reading.
+    A value below the normal float range that a float cannot hold digit for
+    digit comes back as a Decimal, which every backend with a scientific mode
+    reads. An int has no fraction to round twice and comes back unchanged.
+    """
+    if isinstance(number, int):
+        return number
+    mantissa, exponent = scientific_parts(number, places)
+    rounded = Decimal(str(mantissa)).scaleb(exponent)
+    if rounded == rounded.to_integral_value():
+        return int(rounded)
+    value = float(rounded)
+    if abs(value) >= sys.float_info.min or Decimal(repr(value)) == rounded:
+        return value
+    return rounded
 
 
 def pronounce_number(number: Union[int, float], lang: str,
@@ -993,21 +1041,35 @@ def pronounce_number(number: Union[int, float], lang: str,
     Parameters:
         number (int or float): The number to pronounce. A ``decimal.Decimal``
             reads as the float written with the same digits, and an integral
-            one as the int with the same digits. Any other ``numbers.Real``
-            (numpy float32) reads as the float its ``str()`` writes, and a
-            ``fractions.Fraction`` is rounded from its exact value. A number
-            with more than 4300 integer digits reads in the scientific form
-            in every language except Kabyle, which raises OverflowError past
-            its ceiling of 9999, and ValueError for a negative number.
+            one as the int with the same digits, and a Decimal below the
+            float range keeps its digit and its sign. Any other
+            ``numbers.Real`` (numpy float32) reads as the float its ``str()``
+            writes, and a ``fractions.Fraction`` is rounded from its exact
+            value. A number with more than 4300 integer digits reads in the
+            scientific form in every language except Kabyle, which raises
+            OverflowError past its ceiling of 9999, and ValueError for a
+            negative number.
         lang (str): BCP-47 language code specifying the language for pronunciation.
         places (int, optional): Number of decimal places to include (default is 3).
             The fractional part is rounded to this precision half away from zero
             before pronunciation, following ISO 80000-1 (Quantities and units --
             General) and NIST SP 811 (2008 ed.) Appendix B.7 on the rounding of
             numerical values; rounding that carries into the integer part is
-            spoken as such (0.999999 at 2 places -> "one").
+            spoken as such (0.999999 at 2 places -> "one"). A non-zero value
+            that would round to zero reads up to its first significant digit,
+            rounded the same way, with its sign (0.00012 at 3 places -> "zero
+            point zero zero zero one"). When that digit lies past the 323rd
+            decimal, the value reads in scientific form ("five times ten to
+            the power of minus three hundred and twenty four" for 5e-324). At
+            0 places a value that rounds to zero reads as the zero word alone.
         short_scale (bool, optional): DEPRECATED, use the ``scale`` enum instead.
-        scientific (bool, optional): If True, pronounce the number in scientific notation.
+        scientific (bool, optional): If True, pronounce the number in
+            scientific notation where the language has a scientific reading
+            (ar az bg cs el en fa he hr id it ms pl ru sk sl tr uk); other
+            languages ignore it. ``places`` then counts the mantissa decimals,
+            rounded once, half away from zero, from the exact digits (12.3449
+            at 3 places -> "one point two three four times ten to the power
+            of one").
         ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one").
         digits (DigitPronunciation, optional): Style for pronouncing digits (default is FULL_NUMBER).
         gender (GrammaticalGender, optional): Grammatical gender for languages that require it (default is MASCULINE).
@@ -1069,22 +1131,36 @@ def pronounce_number(number: Union[int, float], lang: str,
         # Kabyle reads up to 9999, and its backend raises for any int this
         # large without the cost of converting this one
         number = _READ_LIMIT if number > 0 else -_READ_LIMIT
-    # Round to the spoken precision before dispatch so every backend speaks a
-    # rounded value instead of a truncated one (see _round_for_speech).
-    number = _round_for_speech(number, places)
+    if isinstance(number, Fraction):
+        number = _fraction_as_decimal(number, places)
+    if scientific and _has_scientific_mode(lang):
+        # places counts the mantissa decimals: round the mantissa once, from
+        # the exact digits, and hand the backend the rounded value
+        number = _round_mantissa(number, places)
+    else:
+        if isinstance(number, (float, Decimal)) and number:
+            exact = Decimal(str(number))
+            lead = exact.adjusted()
+            if places <= 0 and not ordinals and abs(exact) < Decimal("0.5"):
+                # rounds to zero, and the zero word alone takes no minus word
+                number = 0
+            elif places > 0 and abs(exact) < Decimal(5).scaleb(-places - 1):
+                # rounds to zero at ``places``: read up to the first
+                # significant digit, rounded half away from zero on the digits
+                # after it
+                if lead < -_MOST_PLACES:
+                    return _pronounce_bignum_fallback(exact, lang, 0)
+                exact = exact.quantize(Decimal(1).scaleb(lead), ROUND_HALF_UP)
+                number, places = float(exact), -exact.adjusted()
+        # Round to the spoken precision before dispatch so every backend
+        # speaks a rounded value instead of a truncated one (see
+        # _round_for_speech).
+        number = _round_for_speech(number, places)
     if isinstance(number, float) and abs(number) >= 1e16:
         # Python writes a float this large in exponent form ("1e+22"). Read
         # the whole number of that shortest repr, the value the caller wrote,
         # rather than its binary expansion or the exponent string itself.
         number = int(Decimal(repr(float(number))))
-    # a negative value below the rounding quantum keeps its minus word only
-    # when digits follow it: a reading that is the zero word alone is unsigned
-    if not ordinals and -1 < number < 0:
-        args = (places, short_scale, scientific, ordinals, digits, gender,
-                scale, case)
-        unsigned = _pronounce_number_dispatch(-number, lang, *args)
-        if unsigned == _pronounce_number_dispatch(0, lang, *args):
-            return unsigned
     try:
         spoken = _pronounce_number_dispatch(
             number, lang, places, short_scale, scientific, ordinals,
@@ -1112,7 +1188,7 @@ def pronounce_number(number: Union[int, float], lang: str,
     if abs(number) >= 10 ** 15 and lang2 != "kab" and not scientific:
         # padded scale words are never a reading, so always replace them
         if (isinstance(number, int) or float(number).is_integer()) \
-                and _has_padded_scale_words(spoken):
+                and _has_padded_scale_words(spoken, lang):
             return _pronounce_bignum_fallback(number, lang, places)
         # a bare numeral is a legitimate fallback the TTS can read; only
         # improve on it where the scientific reading is fully localized

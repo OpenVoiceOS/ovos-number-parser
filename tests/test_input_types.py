@@ -66,8 +66,9 @@ def _best_per_call(first, second, rounds=9, calls=100):
 
 
 def _scientific(mantissa, exponent, lang):
-    return (f"{pronounce_number(mantissa, lang)} {CONNECTIVE[lang]} "
-            f"{pronounce_number(exponent, lang)}")
+    # the mantissa takes the sign word of the language's scientific mode
+    return (f"{pronounce_number(mantissa, lang, scientific=True)} "
+            f"{CONNECTIVE[lang]} {pronounce_number(exponent, lang)}")
 
 
 class _Single:
@@ -99,21 +100,22 @@ Real.register(_Single)
 class TestBeyondTheStringLimit:
     """Past 4300 integer digits every language reads the scientific form."""
 
-    # value, mantissa and exponent at the default 3 places
+    # value, mantissa and exponent at the default 3 places; a mantissa with
+    # no fraction reads as its int
     VALUES = [
-        (10 ** 4400, 1.0, 4400),
+        (10 ** 4400, 1, 4400),
         (-123456 * 10 ** 4395, -1.235, 4400),
-        (99995 * 10 ** 4396, 1.0, 4401),
-        (Decimal("1E+4400"), 1.0, 4400),
+        (99995 * 10 ** 4396, 1, 4401),
+        (Decimal("1E+4400"), 1, 4400),
         (Decimal("-1.23456E+4400"), -1.235, 4400),
-        (Decimal("1" + "0" * 5000 + ".5"), 1.0, 5000),
-        (Fraction(10 ** 4401 + 1, 10), 1.0, 4400),
+        (Decimal("1" + "0" * 5000 + ".5"), 1, 5000),
+        (Fraction(10 ** 4401 + 1, 10), 1, 4400),
     ]
 
     @pytest.mark.parametrize("lang", READING_LANGS)
     def test_reads_like_the_scientific_form_of_the_digits(self, lang):
         for value, mantissa, exponent in self.VALUES:
-            expected = pronounce_number(mantissa, lang)
+            expected = pronounce_number(mantissa, lang, scientific=True)
             reading = _reading(pronounce_number, value, lang)
             assert isinstance(reading, str), (lang, exponent, reading)
             assert reading.startswith(expected + " "), (lang, reading)
@@ -146,9 +148,9 @@ class TestBeyondTheStringLimit:
                               env=env, capture_output=True, text=True,
                               timeout=60, check=True)
         assert json.loads(done.stdout) == [
-            _scientific(1.0, 999999, "en"),
-            _scientific(-1.0, 1000000, "pt-PT"),
-            _scientific(1.0, 400000, "de"),
+            _scientific(1, 999999, "en"),
+            _scientific(-1, 1000000, "pt-PT"),
+            _scientific(1, 400000, "de"),
             "OverflowError", "ValueError", "ValueError", "ValueError"]
 
 
@@ -162,7 +164,7 @@ def test_scientific_words_entry(lang):
         values.append((10 ** 1000, 1000))
     for value, exponent in values:
         assert pronounce_number(value, lang) == \
-            _scientific(1.0, exponent, lang)
+            _scientific(1, exponent, lang)
 
 
 @pytest.mark.parametrize("lang", LANGS)

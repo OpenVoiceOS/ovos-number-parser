@@ -1,7 +1,7 @@
 import math
 import threading
 from dataclasses import dataclass, field
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, localcontext
 from enum import Enum
 from typing import List, Dict, Union, Any, Tuple, Optional, Callable
 import re
@@ -374,6 +374,54 @@ def scientific_notation(number: Union[int, float]) -> str:
         return '%E' % number
     except OverflowError:
         return format(Decimal(number), '.6E')
+
+
+def round_half_up(value: Decimal, places: int) -> Decimal:
+    """
+    ``value`` rounded half away from zero to ``places`` decimals.
+
+    The context precision holds every digit the rounding keeps, so a long
+    Decimal or a large ``places`` rounds instead of raising InvalidOperation
+    at the default precision of 28 digits.
+    """
+    with localcontext() as context:
+        context.prec = max(context.prec, value.adjusted() + places + 2)
+        return value.quantize(Decimal(1).scaleb(-places), ROUND_HALF_UP)
+
+
+def scientific_parts(number: Union[int, float, Decimal],
+                     places: int) -> Tuple[Union[int, float], int]:
+    """
+    Mantissa and exponent of ``number`` in scientific notation, with the
+    mantissa rounded half away from zero to ``places`` decimals.
+
+    The mantissa is rounded from the decimal digits of ``number``, so an int
+    or a Decimal beyond the float range rounds exactly. A mantissa that rounds
+    to ten carries into the exponent: 9.9996 at 3 places is 1 and exponent 1.
+
+    Args:
+        number (int, float or Decimal): finite number to split
+        places (int): decimals of the mantissa
+    Returns:
+        (tuple): the signed mantissa (an int when it has no fraction) and the
+            exponent, e.g. (1.235, 400) for 12346 * 10 ** 396 at 3 places
+    """
+    exact = Decimal(number) if isinstance(number, int) else Decimal(str(number))
+    if not exact:
+        return 0, 0
+    sign, digits, _ = exact.as_tuple()
+    exponent = exact.adjusted()
+    # decimals past the last digit add nothing but zeros
+    places = min(places, len(digits) - 1)
+    with localcontext() as context:
+        context.prec = len(digits) + 1
+        mantissa = Decimal((sign, digits, 1 - len(digits))).quantize(
+            Decimal(1).scaleb(-places), ROUND_HALF_UP)
+    if abs(mantissa) == 10:
+        mantissa, exponent = mantissa / 10, exponent + 1
+    if mantissa == mantissa.to_integral_value():
+        return int(mantissa), exponent
+    return float(mantissa), exponent
 
 
 @dataclass

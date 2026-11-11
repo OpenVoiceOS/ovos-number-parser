@@ -1,7 +1,7 @@
 from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, scientific_notation
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, scientific_parts
 
 _NUM_STRING_SL = {
     0: 'nič',
@@ -222,9 +222,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus neskončno"
     if scientific:
-        number = scientific_notation(num)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negatives of powers separately from the normal

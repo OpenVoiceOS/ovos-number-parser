@@ -19,7 +19,8 @@ citations.
 """
 
 import re
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
+    scientific_parts
 
 _AR_SEPARATOR = " و"  # the conjunction attaches to the following word
 
@@ -610,13 +611,12 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
     if scientific:
         if number == 0:
             return _ONES_AR[0]
-        n, power = ('%E' % number).replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(number, places)
         if power != 0:
-            mantissa = pronounce_number_ar(abs(float(n)), places, case=case)
+            mantissa = pronounce_number_ar(abs(n), places, case=case)
             exponent = pronounce_number_ar(abs(power), places, case=case)
             return "{}{} في عشرة أس {}{}".format(
-                _MINUS_AR + " " if float(n) < 0 else "", mantissa,
+                _MINUS_AR + " " if n < 0 else "", mantissa,
                 _MINUS_AR + " " if power < 0 else "", exponent)
     if ordinals:
         return pronounce_ordinal_ar(number, gender=gender, case=case)

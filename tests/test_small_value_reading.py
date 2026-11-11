@@ -2,9 +2,9 @@
 
 French read such a value as the raw numeral "1e-05". Hungarian left the
 numerator out when it rounds to zero and had no denominator past five
-places. At places=0, a value below one read as an empty string in az, cs,
-da, hr, it, pl, sk, sl, tr and uk. A negative value whose reading is the
-zero word alone keeps no minus word, since no digit follows it. The Unicode RBNF fallback raised for a value below 1e-6, because
+places. At places=0, a value that rounds to zero reads as the zero word
+alone in every language, with no minus word, since no digit follows it. The
+Unicode RBNF fallback raised for a value below 1e-6, because
 ``unicode_rbnf`` splits the fraction from ``str(Decimal)``, which writes
 "1E-7". Each expected reading is composed from readings that do not pass
 through the changed code: integer readings, and for RBNF the engine's own
@@ -54,8 +54,8 @@ def _hu(whole, numerator, denominator):
 
 
 @pytest.mark.parametrize("value, places, numerator, denominator", [
-    (1e-07, 5, 0, "százezred"),
-    (1e-05, 3, 0, "ezred"),
+    (1e-07, 5, 1, "tízmilliomod"),
+    (1e-05, 3, 1, "százezred"),
     (1e-05, 6, 10, "milliomod"),
     (1e-07, 7, 1, "tízmilliomod"),
     (1e-05, 8, 1000, "százmilliomod"),
@@ -79,31 +79,20 @@ def test_hu_round_thousands_numerator_has_no_hyphen():
         _hu(5, 2000, "tízezred")
 
 
-#: languages that read a value below one as their zero word at places=0
-_ZERO_AT_NO_PLACES = ("az", "cs", "da", "hr", "it", "pl", "sk", "sl", "tr",
-                      "uk")
+#: every native language module and every RBNF fallback language
+ALL_LANGS = (
+    "an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en", "es",
+    "et", "eu", "fa", "fi", "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
+    "kab", "ms", "mwl", "nb", "nl", "nn", "oc", "pl", "pt-PT", "pt-BR", "ro",
+    "ru", "sk", "sl", "sv", "tr", "uk") + FALLBACK_LANGS
 
 
-#: languages whose reading of a negative value below the rounding quantum
-#: is the zero word alone, with the places that give that reading
-_ZERO_ALONE = [(lang, 0) for lang in (
-    "ar", "az", "bg", "cs", "da", "de", "el", "et", "eu", "fa", "fi",
-    "fy", "he", "hr", "hu", "id", "it", "ms", "nb", "nl", "nn", "pl", "sk",
-    "sl", "sv", "tr", "uk")] + [(lang, 3) for lang in (
-    "ar", "el", "eu", "fa", "he")]
-
-
-@pytest.mark.parametrize("lang", _ZERO_AT_NO_PLACES)
-@pytest.mark.parametrize("value", [1e-05, 1e-07, 0.4])
-def test_value_below_one_at_no_places_reads_zero(lang, value):
+@pytest.mark.parametrize("lang", ALL_LANGS)
+@pytest.mark.parametrize("value", [
+    1e-05, 1e-07, 0.4, 0.49, 5e-324, Decimal("1E-5000")])
+def test_value_that_rounds_to_zero_at_no_places_reads_zero(lang, value):
     assert pronounce_number(value, lang, places=0) == pronounce_number(0, lang)
-
-
-@pytest.mark.parametrize("lang, places, value", [
-    (lang, places, value) for lang, places in _ZERO_ALONE
-    for value in (-1e-05, -1e-07, -0.0004) + ((-0.4,) if places == 0 else ())])
-def test_negative_value_read_as_zero_has_no_minus_word(lang, places, value):
-    assert pronounce_number(value, lang, places=places) == \
+    assert pronounce_number(-value, lang, places=0) == \
         pronounce_number(0, lang)
 
 

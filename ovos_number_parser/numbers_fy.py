@@ -232,7 +232,7 @@ def pronounce_number_fy(number, places=2, short_scale=True, scientific=False,
     Returns:
         (str): The pronounced number
     """
-    if ordinals:
+    if ordinals and number == int(number) and number >= 0:
         return pronounce_ordinal_fy(number)
 
     def pronounce_triplet_fy(num):
@@ -297,7 +297,8 @@ def pronounce_number_fy(number, places=2, short_scale=True, scientific=False,
     elif number == 0:
         return str(_NUM_STRING_FY[0])
     elif number < 0:
-        return "min " + pronounce_number_fy(abs(number), places)
+        return "min " + pronounce_number_fy(abs(number), places,
+                                            ordinals=ordinals)
     else:
         if number == int(number):
             return pronounce_whole_number_fy(number)
