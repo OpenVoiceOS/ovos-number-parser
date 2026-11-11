@@ -200,6 +200,8 @@ _FRACTION_PLURAL_SUFFIX_NB = 'er'
 
 _TABLES_NB = None  # populated at the end of the module
 _PLACEHOLDER = "<placeholder>"  # marks the tokens of a number already read
+# "mellom" names an interval: "mellom tre og elleve år" has two endpoints
+_BETWEEN = {"mellom"}
 
 
 class _NorwegianTables:
@@ -505,13 +507,20 @@ def _expand_compound_numbers(text, t):
                 current += v
                 prev_was_scale = False
             elif w == 'og' and j + 1 < len(expanded) and span_len \
-                    and total + current >= 100 and not (
-                        j + 2 < len(expanded)
-                        and _is_fractional(expanded[j + 2], t)):
+                    and not (j + 2 < len(expanded)
+                             and _is_fractional(expanded[j + 2], t)):
                 # "og" adds a smaller number after a hundred or a scale
-                # word; "hundre og en halv" is 100.5, not 101 halves
+                # word, and a tens word after a unit in the old counting
+                # ("fem og tjue"), but not between the ends of an interval
+                # ("mellom fem og tjue"); "hundre og en halv" is 100.5, not
+                # 101 halves
                 nxt = _int_value(expanded[j + 1])
-                if nxt is not None and nxt < (total + current):
+                if nxt is not None and (
+                        total + current >= 100 and nxt < total + current
+                        or span_len == 1 and not total
+                        and current in range(1, 10)
+                        and nxt in range(20, 100, 10)
+                        and not (out and out[-1] in _BETWEEN)):
                     j += 1
                     current += nxt
                     prev_was_scale = False
@@ -593,15 +602,16 @@ def _is_fractional(input_str, t):
     return prev_number + (numerator / denominator)
 
 
-def _og_joins(tokens, idx, to_sum, t):
+def _og_joins(tokens, idx, to_sum, number_words, t):
     """Whether the "og" at ``idx`` joins the numbers on both sides.
 
     "og" adds a smaller number after a hundred or a scale word ("hundre og
     fem"), a tens word after a unit in the old counting ("fem og tjue"), and
     the fraction of a mixed number ("tre og en halv"). Any other "og"
     before a number stands between two numbers ("mellom tre og fire
-    timer", "to og to"). Returns "sum", "fraction", "apart", or None when
-    no number follows.
+    timer", "to og to"), and so does a unit and a tens word after "mellom"
+    ("mellom fem og tjue personer"). Returns "sum", "fraction", "apart", or
+    None when no number follows.
     """
     left = abs(to_sum[0] - sum(to_sum[1:]) if to_sum and to_sum[0] < 0
                else sum(to_sum))
@@ -618,7 +628,9 @@ def _og_joins(tokens, idx, to_sum, t):
         return "fraction"
     if right is None:
         return None
-    if left >= 100 and right < left or \
+    first = number_words[0].index if number_words else 0
+    between = first and tokens[first - 1].word in _BETWEEN
+    if left >= 100 and right < left or not between and \
             left in range(1, 10) and right in range(20, 100, 10):
         return "sum"
     return "apart"
@@ -643,7 +655,7 @@ def _extract_real_number_with_text(tokens, t):
 
         if word in t.connectors and not number_words:
             continue
-        joins = _og_joins(tokens, idx, to_sum, t) \
+        joins = _og_joins(tokens, idx, to_sum, number_words, t) \
             if word in t.connectors else None
         if joins == "apart":
             # the "og" stays text between two numbers
@@ -739,8 +751,9 @@ def _extract_real_number_with_text(tokens, t):
         # is 2/3
         _plural_of = word[:-len(t.fraction_plural_suffix)] \
             if word.endswith(t.fraction_plural_suffix) else None
-        if _fraction_val and _prev_val is not None \
-                and abs(_prev_val) > sys.float_info.max:
+        if _fraction_val and any(
+                abs(v) > sys.float_info.max
+                for v in to_sum + ([] if _prev_val is None else [_prev_val])):
             # a whole part past the float range takes no fraction: like the
             # digit string "999...9.5", the mixed number is no number
             number_words.clear()
@@ -779,6 +792,25 @@ def _extract_real_number_with_text(tokens, t):
                     else _prev_val * _fraction_val
                 if tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])
+                # a whole number before the count makes a mixed number:
+                # "femtisju tre fjerdedeler" is 57 3/4. Before an improper
+                # fraction, or where no float keeps both parts, the whole
+                # number is a number of its own ("to fem fjerdedeler" is 2,
+                # then 5/4)
+                before = tokens[idx - 2] if idx >= 2 else None
+                whole = _is_number(before.word, t) \
+                    if before in number_words else None
+                if not to_sum and whole is not None:
+                    if abs(whole) < 2 ** 53 and \
+                            abs(whole) < float(abs(whole) + Fraction(_val)) \
+                            < abs(whole) + 1:
+                        to_sum.append(whole)
+                    else:
+                        val = whole
+                        if any(tok.word in t.negatives for tok in number_words):
+                            val = -abs(val)
+                        del number_words[number_words.index(before) + 1:]
+                        break
             else:
                 _val = _fraction_val
             _current_val = _val

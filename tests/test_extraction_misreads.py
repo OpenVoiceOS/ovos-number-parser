@@ -12,6 +12,7 @@ from fractions import Fraction
 from ovos_number_parser import (extract_number, extract_number_spans,
                                 is_fractional, numbers_to_digits,
                                 pronounce_number)
+from ovos_number_parser.numbers_ar import extract_numbers_ar
 from ovos_number_parser.util import Scale
 
 
@@ -227,7 +228,8 @@ class TestDigitGroups(unittest.TestCase):
                     self.assertEqual(extract_number(text, lang), expected)
         for lang in ("it", "ca"):
             with self.subTest(lang=lang):
-                self.assertEqual(numbers_to_digits("0.500", lang), "0.5")
+                # numbers_to_digits converts number words, never digits
+                self.assertEqual(numbers_to_digits("0.500", lang), "0.500")
         self.assertEqual(extract_number("0,500", "ms"), 0.5)
 
     def test_commas_that_are_no_group_separate_numbers(self):
@@ -507,6 +509,218 @@ class TestNorwegianNumbersToDigits(unittest.TestCase):
                            ("nn", "ein komma ein fire null")):
             with self.subTest(lang=lang):
                 self.assertEqual(numbers_to_digits(text, lang), "1.14")
+
+
+
+def _spans(text, lang):
+    return [(span.surface, span.value)
+            for span in extract_number_spans(text, lang)]
+
+
+class TestSpansJoinOnlyOneNumber(unittest.TestCase):
+    """A span grows past a number word only when the whole stretch converts
+    to one number."""
+
+    def test_an_article_before_a_scale_word_is_its_own_span(self):
+        for text, scale_phrase, scale in (
+                ("hun vant en gang en million kroner", "en million", 10 ** 6),
+                ("det var en gang en hundre år gammel mann", "en hundre", 100),
+                ("en dag en tusen", "en tusen", 1000)):
+            with self.subTest(text=text):
+                self.assertEqual(_spans(text, "nb"),
+                                 [("en", 1), (scale_phrase, scale)])
+
+    def test_and_a_half_is_one_span(self):
+        self.assertEqual(_spans("tre og en halv", "nb"),
+                         [("tre og en halv", 3 + Fraction(1, 2))])
+
+    def test_decimal_digits_after_a_zero_are_one_span(self):
+        for text, lang, expected in (("one point zero five", "en", 1.05),
+                                     ("null komma null fem", "nb", 0.05)):
+            with self.subTest(text=text):
+                self.assertEqual(_spans(text, lang), [(text, expected)])
+                self.assertEqual(
+                    extract_number(text, lang, ordinals=True), expected)
+
+
+class TestNorwegianBetween(unittest.TestCase):
+    """After "mellom" the two numbers bound an interval (Bokmålsordboka
+    "mellom": "barna var mellom tre og elleve år")."""
+
+    def test_between_names_two_numbers(self):
+        for lang, noun in (("nb", "personer"), ("nn", "personar")):
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    numbers_to_digits(f"mellom fem og tjue {noun}", lang),
+                    f"mellom 5 og 20 {noun}")
+                self.assertEqual(
+                    extract_number(f"mellom fem og tjue {noun}", lang), 5)
+        self.assertEqual(numbers_to_digits("mellom to og tretti år", "nb"),
+                         "mellom 2 og 30 år")
+
+    def test_between_after_the_number_does_not_split_it(self):
+        self.assertEqual(extract_number("fem og tjue meter i mellom", "nb"),
+                         5 + 20)
+        self.assertEqual(numbers_to_digits("fem og tjue meter i mellom", "nb"),
+                         "25 meter i mellom")
+        self.assertEqual(extract_number("-5 og 20 grader i mellom", "nb"),
+                         -(5 + 20))
+
+    def test_other_pairs_stay_apart(self):
+        for text, digits in (("fra fem til tjue personer",
+                              "fra 5 til 20 personer"),
+                             ("enten fem eller tjue", "enten 5 eller 20")):
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, "nb"), digits)
+                self.assertEqual(_spans(text, "nb")[0], ("fem", 5))
+
+
+class TestNorwegianSumBeforeAScale(unittest.TestCase):
+    """A scale word or fraction after a unit-and-tens sum multiplies the
+    whole sum."""
+
+    CASES = [("fem og tjue tusen", Fraction((5 + 20) * 1000)),
+             ("tre og tretti millioner", Fraction((3 + 30) * 10 ** 6)),
+             ("en og tjue tusen", Fraction((1 + 20) * 1000)),
+             ("sju og femti tre fjerdedeler", 7 + 50 + Fraction(3, 4))]
+
+    def test_extract(self):
+        for text, expected in self.CASES:
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "nb"), expected)
+
+    def test_spans(self):
+        for text, expected in self.CASES:
+            with self.subTest(text=text):
+                self.assertEqual(_spans(text, "nb"), [(text, expected)])
+        # a third has no exact float: the parts add up within rounding
+        self.assertEqual(_spans("sju og femti en tredjedel", "nb"),
+                         [("sju og femti en tredjedel", 57 + 1 / 3)])
+
+    def test_numbers_to_digits(self):
+        for text, expected in self.CASES:
+            with self.subTest(text=text):
+                digits = int(expected) if expected.denominator == 1 \
+                    else float(expected)
+                self.assertEqual(numbers_to_digits(f"{text} kroner", "nb"),
+                                 f"{digits} kroner")
+
+
+class TestNorwegianImproperFractionAfterANumber(unittest.TestCase):
+    """A mixed number holds a proper fraction; before an improper one the
+    whole number stands alone."""
+
+    def test_improper_fraction(self):
+        for text, first, digits in (
+                ("to fem fjerdedeler", 2, f"2 {5 / 4}"),
+                ("minus to fem fjerdedeler", -2, f"-2 {5 / 4}"),
+                ("sju og femti fem fjerdedeler", 7 + 50, f"57 {5 / 4}"),
+                ("to fire fjerdedeler", 2, "2 1")):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "nb"), first)
+                self.assertEqual(numbers_to_digits(text, "nb"), digits)
+
+    def test_proper_fraction_makes_a_mixed_number(self):
+        self.assertEqual(extract_number("to tre fjerdedeler", "nb"),
+                         2 + Fraction(3, 4))
+
+
+class TestNorwegianFractionPastFloatPrecision(unittest.TestCase):
+    """Where no float keeps the whole number and the fraction, the whole
+    number keeps its digits."""
+
+    def test_whole_number_keeps_its_digits(self):
+        whole = 2 ** 52 - 1
+        self.assertEqual(extract_number(f"{whole} tre fjerdedeler", "nb"),
+                         whole)
+        self.assertEqual(numbers_to_digits(f"{whole} tre fjerdedeler", "nb"),
+                         f"{whole} {3 / 4}")
+        self.assertEqual(
+            extract_number(f"{10 ** 400} tre fjerdedeler", "nb"), 10 ** 400)
+
+    def test_no_error_past_the_float_range(self):
+        big = str(10 ** 400)
+        for text, first, digits in (
+                (f"{big} en halv", False, f"{big} en halv"),
+                (f"tre og {big} en halv", 3, f"3 og {big} en halv"),
+                (f"tre {big} en halv", 3, f"3 {big} en halv")):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "nb"), first)
+                self.assertEqual(numbers_to_digits(text, "nb"), digits)
+
+
+class TestArabicSpansAcrossAnd(unittest.TestCase):
+    """Arabic spans follow the Arabic extractor's own reading of "و"."""
+
+    def test_unit_and_hundreds_is_one_number(self):
+        # the Arabic extractor reads both as one number: 7 + 5 * 100
+        for text in ("سبعة و خمسة مئة", "سبعة وخمسة مئة"):
+            with self.subTest(text=text):
+                self.assertEqual(extract_numbers_ar(text), [7 + 5 * 100])
+                self.assertEqual(_spans(text, "ar"), [(text, 7 + 5 * 100)])
+
+    def test_a_span_may_open_with_and(self):
+        text = "لديه سيارة وواحد مليون دينار"
+        self.assertEqual(extract_numbers_ar(text), [10 ** 6])
+        self.assertEqual(_spans(text, "ar"), [("وواحد مليون", 10 ** 6)])
+
+    def test_two_units_are_two_numbers(self):
+        self.assertEqual(_spans("سبعة و خمسة", "ar"),
+                         [("سبعة", 7), ("خمسة", 5)])
+
+
+class TestDigitStringsStayAsWritten(unittest.TestCase):
+    """numbers_to_digits converts number words, never digit strings."""
+
+    LANGS = ["en", "de", "nb", "nn", "da", "sv", "nl", "pt", "es", "it",
+             "fr", "ca", "pl", "ru", "eu", "el", "ar"]
+
+    def test_digit_strings(self):
+        for lang in self.LANGS:
+            for text in ("Version 2.0", "12.0", "10.000 Euro", "0.500",
+                         "2 5"):
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(
+                        numbers_to_digits(text, lang).casefold(),
+                        text.casefold())
+
+    def test_digits_joined_by_and(self):
+        for lang in ("nb", "nn", "da"):
+            for text in ("5 og 20", "-5 og 20"):
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(numbers_to_digits(text, lang), text)
+
+    def test_number_words_beside_digits_still_convert(self):
+        self.assertEqual(numbers_to_digits("1 sixth", "en"), str(1 / 6))
+        self.assertEqual(numbers_to_digits("minus 5", "en"), "-5")
+        self.assertEqual(numbers_to_digits("12.0 und zwei", "de"),
+                         "12.0 und 2")
+
+    def test_german_clock_is_still_written_with_a_colon(self):
+        self.assertEqual(numbers_to_digits("um 07.30 Uhr", "de"),
+                         "um 07:30 Uhr")
+
+
+class TestGermanDigitGroups(unittest.TestCase):
+    """German groups digits with "." and marks the decimal with ","
+    (CLDR de)."""
+
+    def test_grouped_digits(self):
+        for text, expected in (("12.000", 12000),
+                               ("1.234.567", 1234567),
+                               ("-12.000", -12000),
+                               ("kostet 12.000 Euro", 12000),
+                               ("12.000,5", 12000 + Fraction(1, 2)),
+                               ("1.234.567,5", 1234567 + Fraction(1, 2))):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "de"), expected)
+
+    def test_point_decimal_without_groups(self):
+        for text, expected in (("1.5", Fraction(3, 2)),
+                               ("0.500", Fraction(1, 2)),
+                               ("3.14159", 3.14159)):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "de"), expected)
 
 
 if __name__ == "__main__":

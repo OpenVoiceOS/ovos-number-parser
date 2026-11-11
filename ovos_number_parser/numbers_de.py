@@ -1,3 +1,4 @@
+import re
 import sys
 from fractions import Fraction
 from collections import OrderedDict
@@ -18,6 +19,12 @@ _GENDERED_ONE_DE = {
 }
 
 _ARTICLES = {'der', 'das', 'die', 'dem', 'den'}
+
+#: German groups the digits of a whole number by threes with ".", and marks
+#: the decimal with "," (CLDR de): "12.000" is 12000, "12.000,5" is 12000.5
+_DIGIT_GROUP_MARK_DE = "."
+_GROUPED_DIGITS_DE = re.compile(
+    rf"-?[1-9]\d{{0,2}}(?:{re.escape(_DIGIT_GROUP_MARK_DE)}\d{{3}})+(?:,\d+)?")
 
 # _SPOKEN_NUMBER
 _NUM_STRING = {
@@ -885,9 +892,15 @@ def _get_ordinal_index(input_str: str, type_: type = str):
     return type_(ord.replace(".", "")) if ord else ord
 
 
+def _ungroup_digits_de(word: str) -> str:
+    if _GROUPED_DIGITS_DE.fullmatch(word):
+        return word.replace(_DIGIT_GROUP_MARK_DE, "").replace(",", ".")
+    return word
+
+
 def is_number_de(word: str):
     if is_numeric_de(word):
-        return numeric_value(word)
+        return numeric_value(_ungroup_digits_de(word))
     elif word in _STRING_NUM:
         return _STRING_NUM.get(word)
     elif word in _STRING_LONG_SCALE:
@@ -909,7 +922,7 @@ def is_numeric_de(input_str):
     if input_str.endswith('.'):
         return False
     try:
-        numeric_value(input_str)
+        numeric_value(_ungroup_digits_de(input_str))
         return True
     except ValueError:
         return False
