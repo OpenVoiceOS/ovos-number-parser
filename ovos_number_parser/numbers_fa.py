@@ -1,7 +1,9 @@
 import math
+from decimal import Decimal
 from enum import IntEnum
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, scientific_parts
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, scientific_parts, \
+    round_half_up
 
 _FRACTION_STRING_FA = {
     2: 'دوم',
@@ -435,6 +437,11 @@ def pronounce_number_fa(number, places=2, scientific=False,
         return pronounce_number_fa(number, places, scientific=True)
     if ordinals:
         return _to_ordinal(number)
+    # the finest fraction word names the 11th decimal
+    most_places = 3 * len(_FARSI_FRAC_BIG) - 1
+    if places > most_places and not isinstance(number, int):
+        places = most_places
+        number = float(round_half_up(Decimal(str(number)), places))
     return _to_cardinal(number, places)
 
 

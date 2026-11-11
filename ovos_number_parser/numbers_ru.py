@@ -15,10 +15,11 @@
 #
 import math
 from collections import OrderedDict
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions, \
-    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, scientific_parts
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, scientific_parts, \
+    round_half_up
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF ru spellout-cardinal-feminine and -neuter); the scale words
@@ -450,8 +451,7 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
     # plain "ноль" (never "минус ноль").
     if not scientific and isinstance(num, float) and math.isfinite(num) \
             and num != int(num):
-        num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
-                                               rounding=ROUND_HALF_UP)) or 0.0
+        num = float(round_half_up(Decimal(str(num)), places)) or 0.0
     if scientific:
         n, power = scientific_parts(num, places)
         if power != 0:

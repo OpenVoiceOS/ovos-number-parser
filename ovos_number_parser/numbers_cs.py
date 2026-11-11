@@ -1298,8 +1298,9 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
 
     # a magnitude with no spoken name reads scientifically
     if result in ("", "mínus ") and num >= 1e6:
-        return result + pronounce_number_cs(
-            num, places, short_scale, scientific=True)
+        # the scientific reading speaks its own sign word
+        return pronounce_number_cs(
+            -num if result else num, places, short_scale, scientific=True)
     if num != int(num) and abs(num) < 1.0 \
             and (result == "mínus " or not result):
         result += "nula"

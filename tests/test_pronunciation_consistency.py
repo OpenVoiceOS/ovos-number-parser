@@ -261,14 +261,13 @@ def test_scientific_mantissa_rounds_once(lang, value, rounded):
         pronounce_number(rounded, lang, places=6, scientific=True)
 
 
-#: the scientific connective, from each language's own scientific reading
+#: the scientific connective of languages whose backend has no scientific
+#: mode
 CONNECTIVES = {
-    "en": "times ten to the power of",
     "es": "por diez elevado a",
     "pt-PT": "vezes dez elevado a",
     "de": "mal zehn hoch",
     "fr": "fois dix puissance",
-    "ar": "في عشرة أس",
 }
 
 
@@ -308,6 +307,8 @@ def test_first_digit_at_the_last_decimal_reads_in_full(lang):
     (9.6e-29, 3, "egyszer tíz a mínusz huszonnyolcadikon"),
     (-7e-30, 3, "mínusz hétszer tíz a mínusz harmincadikon"),
     (Decimal("-1E-1000"), 3, "mínusz egyszer tíz a mínusz ezrediken"),
+    # 1.5e-25 rounds to 2e-25 at 25 places
+    (1.5e-25, 25, "kétszer tíz a mínusz huszonötödiken"),
 ])
 def test_hu_value_finer_than_its_denominators(value, places, expected):
     assert pronounce_number(value, "hu", places=places) == expected
@@ -346,3 +347,125 @@ def test_fraction_past_the_float_range_reads_scientifically(lang):
 def test_scientific_fraction_rounds_its_mantissa_once(lang, fraction, rounded):
     assert pronounce_number(fraction, lang, places=3, scientific=True) == \
         pronounce_number(rounded, lang, places=6, scientific=True)
+
+
+@pytest.mark.parametrize("lang", LANGS)
+@pytest.mark.parametrize("value, places, quantum", [
+    (0.0005, 3, 0.001),
+    (0.0006, 3, 0.001),
+    (0.00099, 3, 0.001),
+    (-0.0005, 3, -0.001),
+    (-0.00075, 3, -0.001),
+    (0.05, 1, 0.1),
+    (-0.09, 1, -0.1),
+    (0.000005, 5, 0.00001),
+])
+@pytest.mark.parametrize("kind", [float, Decimal, Fraction])
+def test_value_from_half_the_quantum_rounds_up_to_it(
+        lang, value, places, quantum, kind):
+    # half the quantum and more rounds half away from zero to the quantum
+    number = kind(str(value)) if kind is not float else value
+    assert pronounce_number(number, lang, places=places) == \
+        pronounce_number(quantum, lang, places=places)
+
+
+@pytest.mark.parametrize("lang", LANGS)
+@pytest.mark.parametrize("value, rounded", [
+    (0.5, 1), (-0.5, -1), (0.4999, 0), (-0.4999, 0), (2.5, 3), (-2.5, -3),
+])
+@pytest.mark.parametrize("kind", [float, Decimal, Fraction])
+def test_places_zero_rounds_half_away_from_zero(lang, value, rounded, kind):
+    number = kind(str(value)) if kind is not float else value
+    assert pronounce_number(number, lang, places=0) == \
+        pronounce_number(rounded, lang)
+
+
+def _scientific_form(lang, mantissa, exponent):
+    """
+    The backend's own scientific reading of ``mantissa`` times ten to the
+    power of ``exponent``, from its reading of the same mantissa at the
+    exponent 5 or -5, which needs no fallback
+    """
+    reading = pronounce_number(mantissa * 10.0 ** (5 if exponent > 0 else -5),
+                               lang, scientific=True)
+    five = pronounce_number(5, lang)
+    assert reading.endswith(five)
+    return reading[:-len(five)] + pronounce_number(abs(exponent), lang)
+
+
+@pytest.mark.parametrize("lang", SCIENTIFIC_MODE)
+@pytest.mark.parametrize("value, mantissa, exponent", [
+    (Decimal("1E-5000"), 1, -5000),
+    (Decimal("-1E-400"), -1, -400),
+    (Decimal("-7.6E-400"), -8, -400),
+    (5e-324, 5, -324),
+    (Fraction(-1, 10 ** 400), -1, -400),
+    (10 ** 400, 1, 400),
+    (-3 * 10 ** 400, -3, 400),
+    pytest.param(10 ** 5000, 1, 5000, id="10**5000"),
+    pytest.param(-10 ** 5000, -1, 5000, id="-10**5000"),
+])
+def test_scientific_fallback_speaks_the_backend_wording(
+        lang, value, mantissa, exponent):
+    # one language, one scientific wording: "negative" in en, "elevato alla"
+    # in it, at every magnitude
+    assert pronounce_number(value, lang) == \
+        _scientific_form(lang, mantissa, exponent)
+
+
+@pytest.mark.parametrize("lang", SCIENTIFIC_MODE)
+@pytest.mark.parametrize("value, places, mantissa, exponent", [
+    (Decimal("1E-400"), 3, 1, -400),
+    (Fraction(1, 10 ** 400), 3, 1, -400),
+    (Fraction(-3, 10 ** 400), 3, -3, -400),
+    (Decimal("-2.5E-400"), 0, -3, -400),
+    (Decimal("2.4E-400"), 0, 2, -400),
+])
+def test_scientific_value_below_the_float_range_reads_its_digit(
+        lang, value, places, mantissa, exponent):
+    assert pronounce_number(value, lang, places=places, scientific=True) == \
+        _scientific_form(lang, mantissa, exponent)
+
+
+@pytest.mark.parametrize("value, places, mantissa, mantissa_places, exponent", [
+    (1.5e-25, 30, 1.5, 1, "huszonötödiken"),
+    (Decimal("1.5E-25"), 30, 1.5, 1, "huszonötödiken"),
+    (Fraction(3, 2 * 10 ** 25), 30, 1.5, 1, "huszonötödiken"),
+    (-1.25e-30, 40, -1.25, 2, "harmincadikon"),
+    (2.25e-30, 31, 2.3, 1, "harmincadikon"),
+])
+def test_hu_value_finer_than_its_denominators_keeps_its_mantissa(
+        value, places, mantissa, mantissa_places, exponent):
+    # the multiplicative suffix follows the last vowel: "tizedszer",
+    # "századszor" (Wiktionary "-szor")
+    words = pronounce_number(abs(mantissa), "hu", places=mantissa_places)
+    suffix = "szor" if words.endswith("század") else "szer"
+    sign = "mínusz " if mantissa < 0 else ""
+    assert pronounce_number(value, "hu", places=places) == \
+        f"{sign}{words}{suffix} tíz a mínusz {exponent}"
+
+
+def test_hu_direct_call_finer_than_its_denominators_keeps_its_mantissa():
+    assert pronounce_number_hu(1.5e-25, 30) == \
+        pronounce_number(1.5e-25, "hu", places=30)
+
+
+@pytest.mark.parametrize("lang", LANGS)
+@pytest.mark.parametrize("places", [28, 50, 300])
+@pytest.mark.parametrize("numerator, denominator", [(1, 3), (-2, 3), (1, 7)])
+def test_places_past_the_decimal_precision(lang, places, numerator,
+                                           denominator):
+    # float, Decimal and Fraction read as the nearest float at any places
+    readings = {pronounce_number(value, lang, places=places) for value in (
+        numerator / denominator,
+        Decimal(numerator) / Decimal(denominator),
+        Fraction(numerator, denominator))}
+    assert len(readings) == 1
+
+
+@pytest.mark.parametrize("places", [28, 50, 300])
+def test_en_places_past_the_decimal_precision_reads_every_float_digit(places):
+    # 1/3 as a float has 16 decimals, all of them threes
+    assert pronounce_number(1 / 3, "en", places=places) == \
+        "zero point" + " three" * 16
+

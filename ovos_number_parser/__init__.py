@@ -107,7 +107,7 @@ from ovos_number_parser.numbers_ru import nice_number_ru
 from ovos_number_parser.numbers_sv import nice_number_sv
 from ovos_number_parser.numbers_uk import nice_number_uk
 from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation, \
-    scientific_parts
+    scientific_parts, round_half_up
 
 
 # --- canonical short/long scale convention per language --------------------
@@ -749,13 +749,7 @@ def _round_for_speech(number: Union[int, float, Decimal],
         # no fractional part to shorten; also avoids quantize overflow on very
         # large integer-valued floats (1e300)
         return number
-    quantum = Decimal(1).scaleb(-places)
-    try:
-        rounded = exact.quantize(quantum, rounding=ROUND_HALF_UP)
-    except (ArithmeticError, ValueError):
-        # a value too large to quantize at this precision is already far coarser
-        # than ``places`` decimals; leave it untouched
-        return number
+    rounded = round_half_up(exact, places)
     if rounded == 0:
         # magnitude below the rounding quantum: hand the original value to the
         # backend so its sub-quantum reading and sign are preserved
@@ -785,7 +779,7 @@ _SCIENTIFIC_WORDS = {
     "en": "times ten to the power of",
     "es": "por diez elevado a",
     "pt": "vezes dez elevado a",
-    "it": "per dieci alla",
+    "it": "per dieci elevato alla",
     "fr": "fois dix puissance",
     "de": "mal zehn hoch",
     "nl": "maal tien tot de macht",
@@ -904,10 +898,12 @@ def _pronounce_bignum_fallback(number: Union[int, float, Decimal, Fraction],
     Spoken scientific reading for finite numbers a language's tables cannot
     name, computed from the decimal digits so it never leaves the float range.
 
-    Mantissa, sign and exponent are all pronounced by the target language.
-    Only the connective joining them is looked up, and falls back to English
-    for languages missing from _SCIENTIFIC_WORDS. Hungarian reads a
-    one-digit mantissa and a negative exponent with its own words.
+    A language whose backend has a scientific mode reads the value in that
+    mode, so the scientific form of one language has one wording. For any
+    other language, mantissa, sign and exponent are pronounced by the target
+    language. Only the connective joining them is looked up, and falls back
+    to English for languages missing from _SCIENTIFIC_WORDS. Hungarian reads
+    a negative exponent with its own words.
 
     Only the leading digits a rounding at ``places`` reads are computed, so
     a value past ``_READ_LIMIT`` never goes through ``str()`` of the whole
@@ -921,10 +917,15 @@ def _pronounce_bignum_fallback(number: Union[int, float, Decimal, Fraction],
         number = Decimal((int(number < 0),
                           Decimal(magnitude // 10 ** cut).as_tuple().digits,
                           cut))
+    if _has_scientific_mode(lang):
+        scale = _resolve_scale(lang, None, None)
+        return _pronounce_number_dispatch(
+            number, lang, places, scale == Scale.SHORT, True, False,
+            DigitPronunciation.FULL_NUMBER, GrammaticalGender.MASCULINE, scale)
     # the sign rides on the mantissa so each language speaks its own minus
     # word ("menos dois...") instead of an English prefix
     mantissa, exponent = scientific_parts(number, places)
-    if _base_lang(lang) == "hu" and isinstance(mantissa, int) and exponent < 0:
+    if _base_lang(lang) == "hu" and exponent < 0:
         return pronounce_scientific_hu(mantissa, exponent)
     mantissa_words = pronounce_number(mantissa, lang=lang, places=places)
     exponent_words = pronounce_number(exponent, lang=lang)
@@ -958,9 +959,11 @@ def _round_mantissa(number: Union[int, float, Decimal],
     digits, the same way as ``scientific_parts``: 12.3449 at 3 places is
     1.234 times ten. The rounded value comes back as an int when it has no
     fraction and as a float otherwise, so the backend reads the same mantissa
-    again without a second rounding. A value a float cannot hold digit for
-    digit comes back as a Decimal. An int has no fraction to round twice and
-    comes back unchanged.
+    again without a second rounding. A mantissa with more digits than a float
+    holds reads as the nearest float, as a Decimal does in a plain reading.
+    A value below the normal float range that a float cannot hold digit for
+    digit comes back as a Decimal, which every backend with a scientific mode
+    reads. An int has no fraction to round twice and comes back unchanged.
     """
     if isinstance(number, int):
         return number
@@ -969,7 +972,9 @@ def _round_mantissa(number: Union[int, float, Decimal],
     if rounded == rounded.to_integral_value():
         return int(rounded)
     value = float(rounded)
-    return value if Decimal(repr(value)) == rounded else rounded
+    if abs(value) >= sys.float_info.min or Decimal(repr(value)) == rounded:
+        return value
+    return rounded
 
 
 def pronounce_number(number: Union[int, float], lang: str,
@@ -1085,8 +1090,6 @@ def pronounce_number(number: Union[int, float], lang: str,
         # places counts the mantissa decimals: round the mantissa once, from
         # the exact digits, and hand the backend the rounded value
         number = _round_mantissa(number, places)
-        if isinstance(number, Decimal):
-            return _pronounce_bignum_fallback(number, lang, places)
     else:
         if isinstance(number, (float, Decimal)) and number:
             exact = Decimal(str(number))
@@ -1094,9 +1097,10 @@ def pronounce_number(number: Union[int, float], lang: str,
             if places <= 0 and not ordinals and abs(exact) < Decimal("0.5"):
                 # rounds to zero, and the zero word alone takes no minus word
                 number = 0
-            elif places > 0 and lead < -places:
-                # below the rounding quantum: read up to the first significant
-                # digit, rounded half away from zero on the digits after it
+            elif places > 0 and abs(exact) < Decimal(5).scaleb(-places - 1):
+                # rounds to zero at ``places``: read up to the first
+                # significant digit, rounded half away from zero on the digits
+                # after it
                 if lead < -_MOST_PLACES:
                     return _pronounce_bignum_fallback(exact, lang, 0)
                 exact = exact.quantize(Decimal(1).scaleb(lead), ROUND_HALF_UP)

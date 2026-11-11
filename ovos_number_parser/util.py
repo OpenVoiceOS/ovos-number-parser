@@ -335,6 +335,19 @@ def scientific_notation(number: Union[int, float]) -> str:
         return format(Decimal(number), '.6E')
 
 
+def round_half_up(value: Decimal, places: int) -> Decimal:
+    """
+    ``value`` rounded half away from zero to ``places`` decimals.
+
+    The context precision holds every digit the rounding keeps, so a long
+    Decimal or a large ``places`` rounds instead of raising InvalidOperation
+    at the default precision of 28 digits.
+    """
+    with localcontext() as context:
+        context.prec = max(context.prec, value.adjusted() + places + 2)
+        return value.quantize(Decimal(1).scaleb(-places), ROUND_HALF_UP)
+
+
 def scientific_parts(number: Union[int, float, Decimal],
                      places: int) -> Tuple[Union[int, float], int]:
     """

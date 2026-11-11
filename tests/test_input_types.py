@@ -66,8 +66,9 @@ def _best_per_call(first, second, rounds=9, calls=100):
 
 
 def _scientific(mantissa, exponent, lang):
-    return (f"{pronounce_number(mantissa, lang)} {CONNECTIVE[lang]} "
-            f"{pronounce_number(exponent, lang)}")
+    # the mantissa takes the sign word of the language's scientific mode
+    return (f"{pronounce_number(mantissa, lang, scientific=True)} "
+            f"{CONNECTIVE[lang]} {pronounce_number(exponent, lang)}")
 
 
 class _Single:
@@ -114,7 +115,7 @@ class TestBeyondTheStringLimit:
     @pytest.mark.parametrize("lang", READING_LANGS)
     def test_reads_like_the_scientific_form_of_the_digits(self, lang):
         for value, mantissa, exponent in self.VALUES:
-            expected = pronounce_number(mantissa, lang)
+            expected = pronounce_number(mantissa, lang, scientific=True)
             reading = _reading(pronounce_number, value, lang)
             assert isinstance(reading, str), (lang, exponent, reading)
             assert reading.startswith(expected + " "), (lang, reading)
