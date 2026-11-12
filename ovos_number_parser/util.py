@@ -510,11 +510,11 @@ class NumberVocabulary:
     # keep this off so the singular still adds.
     FRACTIONS_ALWAYS_MULTIPLY: bool = False
 
-    # extraction: a singular fraction right after a scale word is that
-    # fraction of the scale ("um milhão e meio" = 1500000, "mil milhões e
-    # meio" = 1500000000), not a fraction of one; a decimal reading needs the
-    # decimal marker ("um milhão vírgula cinco" = 1000000.5)
-    FRACTION_OF_SCALE: bool = False
+    # extraction: a half right after a scale word is half of the scale ("um
+    # milhão e meio" = 1500000, "mil milhões e meio" = 1500000000), not half
+    # of one; a decimal reading needs the decimal marker ("um milhão vírgula
+    # cinco" = 1000000.5)
+    HALF_OF_SCALE: bool = False
 
     # full spelling of "one <scale>" groups when they use an article or a
     # special form of "one" ("o mie", "un milion")
@@ -864,7 +864,7 @@ class RomanceNumberExtractor:
                 else:
                     if token in plural_fractions or self.vocab.FRACTIONS_ALWAYS_MULTIPLY:
                         result += (current or 1) * fraction
-                    elif self.vocab.FRACTION_OF_SCALE and trailing_scale:
+                    elif self.vocab.HALF_OF_SCALE and trailing_scale and fraction == 0.5:
                         part = fraction * trailing_scale
                         result += current + (int(part) if part == int(part) else part)
                     else:
@@ -904,6 +904,7 @@ class RomanceNumberExtractor:
                 i += 1
                 continue
 
+            trailing_scale = 0
             i += 1
 
         result += current

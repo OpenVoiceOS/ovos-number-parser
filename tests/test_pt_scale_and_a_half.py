@@ -44,6 +44,22 @@ class TestScaleAndAHalf(unittest.TestCase):
     def test_half_before_the_scale_still_multiplies(self):
         self.assertEqual(extract_number("meio milhão", lang="pt"), 500_000)
 
+    def test_the_half_does_not_cross_another_word(self):
+        # extract_number reads one number; a noun between the scale and
+        # "e meio" ends the scale run, so the half adds as it does on its own
+        for text, value in [("comprei mil livros e meio quilo de café", 1000.5),
+                            ("mil euros e meio", 1000.5),
+                            ("um milhão de pessoas e meia hora", 1000000.5)]:
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="pt"), value)
+
+    def test_only_the_half_is_of_the_scale(self):
+        # the ruling names "e meio" only; a quarter keeps its reading
+        for text, value in [("dois milhões e quarto", 2000000.25),
+                            ("dois mil e terço", 2000 + 1 / 3)]:
+            with self.subTest(text=text):
+                self.assertAlmostEqual(extract_number(text, lang="pt"), value)
+
 
 if __name__ == "__main__":
     unittest.main()
