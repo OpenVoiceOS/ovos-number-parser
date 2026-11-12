@@ -55,6 +55,14 @@ class TestConjunctionBeforeANewNumber(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="he"), text)
 
+    def test_a_private_use_character_in_the_input_stays(self):
+        # the converter holds a typed-apart ו in a private-use character; one
+        # that is already in the text is not a held ו
+        for text in ("ספר \ue000 עט", "ספר ו \ue000 שלוש"):
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, lang="he"),
+                                 text.replace("שלוש", "3"))
+
     def test_a_word_that_stays_a_word_keeps_its_conjunction(self):
         for text in self.UNCHANGED:
             with self.subTest(text=text):
