@@ -256,6 +256,11 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
         # 42nd: is_ordinal_da reads the vigesimal "fyrretyvende" as 40
         self.assertEqual(extract_number('to og fyrretyvende', lang="da",
                                         ordinals=True), 42)
+        # an ordinal below 20 is not a ten: "toogtiende" would read 12
+        self.assertEqual(extract_number('to og tiende', lang="da",
+                                        ordinals=True), 2)
+        self.assertEqual(numbers_to_digits_da('to og tiende', ordinals=True),
+                         "2 10")
 
     def test_numbers_to_digits_folds_the_compound(self):
         """The converters reach the fold through their own helper path."""
