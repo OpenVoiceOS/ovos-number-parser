@@ -1,14 +1,5 @@
 # Changelog
 
-## [0.24.44a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.44a1) (2026-11-12)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.43a1...0.24.44a1)
-
-**Merged pull requests:**
-
-- fix\(az\): correct the native ordinal and read pronounce\_ordinal with it [\#444](https://github.com/OpenVoiceOS/ovos-number-parser/pull/444) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(es\): read ordinals in the feminine and route pronounce\_ordinal to the Castilian engine [\#441](https://github.com/OpenVoiceOS/ovos-number-parser/pull/441) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.43a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.43a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.42a2...0.24.43a1)
