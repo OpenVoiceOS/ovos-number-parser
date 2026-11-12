@@ -635,6 +635,86 @@ def nice_number_it(number, speech=True, denominators=range(1, 21)):
     return return_string
 
 
+#: the ordinals up to ten have their own Latin-derived form (Treccani, La
+#: grammatica italiana, 2012, "Ordinali, aggettivi numerali"); 0 is
+#: "zeresimo" (Treccani, Vocabolario, "-esimo": "0-esimo (zeresimo, di posto
+#: zero)")
+_ORDINAL_UNITS_IT = ["zeresimo", "primo", "secondo", "terzo", "quarto",
+                     "quinto", "sesto", "settimo", "ottavo", "nono", "decimo"]
+
+#: the stem of each scale word above a thousand, by its plural and its
+#: singular ("milioni", "milione" -> "milion")
+_SCALE_STEMS_IT = {}
+for _n, _plural in _LONG_SCALE_IT.items():
+    if _n >= 10 ** 6:
+        _singular = _plural[:-1] + ("o" if _plural.endswith("di") else "e")
+        _SCALE_STEMS_IT[_plural] = _SCALE_STEMS_IT[_singular] = _plural[:-1]
+
+
+def _esimo_it(word):
+    """The -esimo ordinal of one fused cardinal word.
+
+    Treccani, La grammatica italiana (2012), "Ordinali, aggettivi numerali":
+    "Da undicesimo in poi, invece, si formano con il suffisso -esimo aggiunto
+    all'aggettivo numerale cardinale senza la vocale finale [...] Nei composti
+    con tre la -e finale si conserva [...] Nei composti con sei la -i finale si
+    conserva". A round count of thousands follows "millesimo": Treccani,
+    Vocabolario, "tremillesimo" ("der. di tremila, secondo l'agg. millesimo")
+    and "centomillesimo".
+    """
+    if word.endswith("mila"):
+        return word[:-len("mila")] + "millesimo"
+    if word.endswith("dieci"):
+        # CLDR RBNF it spellout-ordinal-masculine reads a final ten as
+        # "decimo" ("centodecimo")
+        return word[:-len("dieci")] + "decimo"
+    if word.endswith("centouno"):
+        # "centunesimo" (Treccani, Vocabolario, "centesimo")
+        return word[:-len("ouno")] + "unesimo"
+    if word.endswith("tré"):
+        word = word[:-1] + "e"
+    if word.endswith(("tre", "sei")):
+        return word + "esimo"
+    return word[:-1] + "esimo"
+
+
+def pronounce_ordinal_it(number: int,
+                         gender: GrammaticalGender = GrammaticalGender.MASCULINE
+                         ) -> str:
+    """Spoken Italian ordinal of a whole number.
+
+    Up to ten the ordinal has its own form; above ten the cardinal, one fused
+    word below a million, takes -esimo (see ``_esimo_it``). From a million up
+    the cardinal is several words: the last one takes the ordinal, and a
+    round scale word joins its count ("milionesimo", "duemilionesimo", CLDR
+    RBNF it spellout-ordinal-masculine). The feminine ends in -a.
+    """
+    if number < 0:
+        return "meno " + pronounce_ordinal_it(-number, gender)
+    if number <= 10:
+        word = _ORDINAL_UNITS_IT[number]
+    elif number < 10 ** 6:
+        word = _esimo_it(pronounce_number_it(number))
+    else:
+        # the scale words are the same in both scales up to 10^33, and only
+        # the long-scale reading spaces them
+        spoken = pronounce_number_it(number, short_scale=False)
+        if spoken == pronounce_number_it(number, short_scale=False,
+                                         scientific=True):
+            # past the last scale word: no ordinal reading
+            return spoken
+        *head, last = spoken.split(" ")
+        if last in _SCALE_STEMS_IT:
+            count = head.pop()
+            last = ("" if count == "un" else count) + _SCALE_STEMS_IT[last] + "esimo"
+        else:
+            last = _esimo_it(last)
+        word = " ".join(head + [last])
+    if gender == GrammaticalGender.FEMININE:
+        word = word[:-1] + "a"
+    return word
+
+
 def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
     """
     Convert a number to it's spoken equivalent
