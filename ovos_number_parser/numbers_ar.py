@@ -19,8 +19,8 @@ citations.
 """
 
 import re
-from math import isfinite
-from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
+    scientific_parts
 
 _AR_SEPARATOR = " و"  # the conjunction attaches to the following word
 
@@ -66,12 +66,13 @@ def _normalize_ar(text: str) -> str:
 # original nominative citation forms as the default; every spoken lect
 # defaults to the oblique case instead.
 #
-# A grammar stands behind that default for three lects only, each giving the
+# A grammar stands behind that default for four lects only, each giving the
 # ‑een/‑iin forms and no ‑aan/‑uun forms: Hijazi (Omar 1975, "itneen",
-# "talaatiin"), Gulf (Qafisheh 1970, "'iθneen") and Egyptian (Dirr 1904,
-# "etnen, itnen"); see AR_LECT_FORMS for the full references. For Najdi,
-# Levantine, Mesopotamian, Moroccan, Tunisian and Libyan no grammar has been
-# read, and the default is extrapolated from those three.
+# "talaatiin"), Gulf (Qafisheh 1970, "'iθneen"), Egyptian (Dirr 1904,
+# "etnen, itnen") and Najdi (Ingham 1994, p. 56, "rajjālēn itnēn" two men);
+# see AR_LECT_FORMS for the full references. For Levantine, Mesopotamian,
+# Moroccan, Tunisian and Libyan no grammar has been read, and the default is
+# extrapolated from those four.
 #
 # Code meanings: ISO 639-3 code table, https://iso639-3.sil.org/code_tables/639/data
 AR_DIALECT_DEFAULT_CASE = {
@@ -110,7 +111,7 @@ def resolve_ar_lang(lang: str):
                          default register, or None if ``lang`` does not name
                          an Arabic variety this engine serves.
     """
-    return AR_DIALECT_DEFAULT_CASE.get(lang.lower().split("-")[0])
+    return AR_DIALECT_DEFAULT_CASE.get(lang.lower().replace("_", "-").split("-")[0])
 
 
 # Gender. A cardinal takes the form that goes with the gender of the counted
@@ -344,12 +345,25 @@ def _cardinal_three_digit_ar(number: int, case: str = "nominative",
 
 
 def _cardinal_ar(number: int, case: str = "nominative",
-                 feminine: bool = False) -> str:
+                 feminine: bool = False, construct: bool = True) -> str:
     """Any whole number. The count before a scale word counts that word,
     which is masculine (ألف, مليون ...), so it stays masculine whatever the
     counted noun; only the last group below a thousand takes ``feminine``.
     Wikipedia "Arabic grammar": "thalāthatu ālāfin" 3,000; "iṯnā ‘ašara
     alfan wa-mi'atāni wa-thnatāni wa-‘ishrūna sanatan" 12,222 years.
+
+    A count ending in the dual two hundred is in construct with the scale
+    word after it and drops the dual's ن: 200,000 is مئتا ألف, and مئتي ألف
+    in the oblique. English Wiktionary, مئة, Arabic declension table, dual
+    construct: nominative "مِئَتَا miʔatā", accusative and genitive "مِئَتَيْ
+    miʔatay". ``construct=False`` keeps the full dual, for the lect tables,
+    which give the hundreds as words of their own.
+
+    The scale word after a count of 11 to 99 is written ألف, though grammar
+    puts it in the accusative, ألفًا (Wikipedia, above: "iṯnā ‘ašara alfan").
+    That ending is the indefinite accusative, and this module writes no
+    indefinite case ending on any word: case shows only in the endings of
+    the dual and the sound masculine plural (see ``_oblique``).
     """
     if number < 1000:
         return _cardinal_three_digit_ar(number, case, feminine)
@@ -367,7 +381,10 @@ def _cardinal_ar(number: int, case: str = "nominative",
             # scale nouns are masculine, so 3-10 take the ة-marked numeral
             parts.append(_ONES_AR[count] + " " + plural)
         else:
-            parts.append(_cardinal_ar(count, case) + " " + singular)
+            words = _cardinal_ar(count, case, construct=construct)
+            if construct and count % 1000 == 200:
+                words = words[:-1]
+            parts.append(words + " " + singular)
     if remainder:
         parts.append(_cardinal_three_digit_ar(remainder, case, feminine))
     return _AR_SEPARATOR.join(parts)
@@ -385,10 +402,10 @@ def _cardinal_ar(number: int, case: str = "nominative",
 # still composes the number, so a table names words and never arithmetic.
 #
 # Keyed by the ISO 639-3 code of the individual Arabic language, which is what
-# a caller passes as lang (acw, afb, arz); the macrolanguage
+# a caller passes as lang (acw, afb, arz, ars); the macrolanguage
 # code ar and the literary arb have no table and keep the literary
-# words, and so does any lect no source has been read for -- Najdi ars
-# among them, which is deliberate and not an oversight.
+# words, and so does any lect no source has been read for. A value no source
+# gives for a lect keeps its literary word in that lect's table too.
 #
 # Every form is quoted from a published grammar with its page. The Arabic
 # spelling of each is the form written in modern transcripts, counted
@@ -445,6 +462,38 @@ AR_LECT_FORMS = {
         700: "سبعمية",        # Qafisheh 1970 p. 302 sabaʕmiya; SADA n=79
         800: "ثمنمية",        # Qafisheh 1970 p. 305 θamanmiya; SADA n=16
         900: "تسعمية",        # Qafisheh 1970 p. 304 tisiʕmiya; SADA n=110
+    },
+    # Eastern Province Saudi Arabic, shipped under the Najdi code. Only 12, 100 and the spoken half نص
+    # (_SPOKEN_HALF_LOOKUP) come from a Najdi source: Bruce Ingham, Najdi Arabic: Central Arabian, John
+    # Benjamins, 1994, quoted from Google Books search-inside snippets of its preview (book id
+    # t1W7sEB_Kg8C), whose text layer drops the underline and underdot of the transcription ("talat" is
+    # ṯalāṯ; p. 14 lists the voiceless dental fricative among the consonants); Ingham's p. 171 also
+    # agrees on 300. Every other form is from the Eastern Province: Merrill Y. Van Wagoner et al.,
+    # Spoken Arabic (Saudi), Spoken Language Services, 1977, a course whose dialogues are set in Dhahran,
+    # read on the page images of the archive.org scan. The teens are written with ط after Habaka J.
+    # Feghali, Gulf Arabic: The Dialects of Kuwait, Bahrain, Qatar, UAE, and Oman, Dunwoody Press, 2008,
+    # p. 57: "it is very common in all Gulf dialects to realize the //-t-// in numbers 13 to 19 as an
+    # emphatic //-ṭ-//, e.g., //θamanṭaʕʃar// eighteen". No source prints these numerals in Arabic
+    # script; each spelling below transcribes the cited form letter for letter.
+    "ars": {
+        11: "احدعش",          # Van Wagoner 1977 p. 135 iHdaʿsh
+        12: "ثنعش",           # Ingham 1994 p. 56 "tnaʻaš rajjāl" twelve men; Van Wagoner p. 135 ithnaʿsh
+        13: "ثلاثطعش",        # Van Wagoner 1977 p. 135 thalaat taʿsh
+        14: "اربعطعش",        # Van Wagoner 1977 p. 135 arbaʿ taʿsh
+        15: "خمسطعش",         # Van Wagoner 1977 p. 135 khams taʿsh
+        16: "ستطعش",          # Van Wagoner 1977 p. 135 sitt taʿsh
+        17: "سبعطعش",         # Van Wagoner 1977 p. 135 sabiʿ taʿsh
+        18: "ثمانطعش",        # Van Wagoner 1977 p. 135 thimaan taʿsh
+        19: "تسعطعش",         # Van Wagoner 1977 p. 135 tisʿ taʿsh
+        100: "مية",           # Ingham 1994 p. 56 "myat rajjāl" a hundred men; Van Wagoner p. 136 miya
+        200: "ميتين",         # Van Wagoner 1977 p. 136 miyatayn
+        300: "ثلاث مية",      # Van Wagoner 1977 p. 136 thalaath miya; Ingham 1994 p. 171 "talat imyat iryāl"
+        400: "اربع مية",      # Van Wagoner 1977 p. 136 arbaʿ miya
+        500: "خمس مية",       # Van Wagoner 1977 p. 136 khams miya
+        600: "ست مية",        # Van Wagoner 1977 p. 136 sitt miya
+        700: "سبع مية",       # Van Wagoner 1977 p. 136 sabiʿ miya
+        800: "ثمان مية",      # Van Wagoner 1977 p. 136 thimaan miya
+        900: "تسع مية",       # Van Wagoner 1977 p. 136 tisiʿ miya
     },
     # Egyptian Arabic (Cairene). Source: Adolf Dirr, Colloquial Egyptian Arabic Grammar, for the Use of
     # Tourists, tr. W. H. Lyall, 1904, pp. 24 and 26.
@@ -541,7 +590,8 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
             in both registers. Any other value raises ValueError.
         lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
             cardinal words should be spoken instead of the literary ones --
-            ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian). The number is
+            ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian), ``ars``
+            (Najdi). The number is
             composed the same way either way and only the words differ; see
             :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
             ``ar`` and the literary ``arb`` all keep the literary words.
@@ -561,13 +611,12 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
     if scientific:
         if number == 0:
             return _ONES_AR[0]
-        n, power = ('%E' % number).replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(number, places)
         if power != 0:
-            mantissa = pronounce_number_ar(abs(float(n)), places, case=case)
+            mantissa = pronounce_number_ar(abs(n), places, case=case)
             exponent = pronounce_number_ar(abs(power), places, case=case)
             return "{}{} في عشرة أس {}{}".format(
-                _MINUS_AR + " " if float(n) < 0 else "", mantissa,
+                _MINUS_AR + " " if n < 0 else "", mantissa,
                 _MINUS_AR + " " if power < 0 else "", exponent)
     if ordinals:
         return pronounce_ordinal_ar(number, gender=gender, case=case)
@@ -577,7 +626,7 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
                                                       gender=gender)
 
     whole = int(number)
-    result = _cardinal_ar(whole, case, feminine)
+    result = _cardinal_ar(whole, case, feminine, construct=not lect)
     if lect:
         result = _lect_cardinal(result, whole if number == whole else None,
                                 case, lect, feminine)
@@ -650,7 +699,7 @@ def pronounce_ordinal_ar(number, gender="masculine", case="nominative"):
             "the feminine and oblique Arabic ordinals above 99 are "
             "implemented for 100 and 1000 only")
     # beyond 99 Arabic uses the definite cardinal ("المئة", "الألف")
-    return "ال" + _cardinal_ar(number)
+    return "ال" + _cardinal_ar(number, construct=False)
 
 
 def nice_number_ar(number, speech=True, denominators=range(1, 11),
@@ -765,6 +814,11 @@ def _build_lookup():
             hundreds[word.replace("مئة", "مائة")] = value
     hundreds.update({"مئتين": 200, "مائتين": 200, "ثمانيمئة": 800,
                      "ثمانيمائة": 800})
+    # The construct dual, which drops its ن before the counted noun, as
+    # _cardinal_ar says it before a scale word. English Wiktionary, مئة,
+    # Arabic declension table, dual construct: nominative "مِئَتَا miʔatā",
+    # accusative and genitive "مِئَتَيْ miʔatay".
+    hundreds.update({"مئتا": 200, "مئتي": 200, "مائتا": 200, "مائتي": 200})
     # colloquial مية for مئة/مائة (100), including fused ثلاثمية..تسعمية
     # (Qafisheh 1970 gives θalaθmiya 300 and θamaanmiya 800, which the OCR of
     # the archive.org scan prints "§Sala6miya" and "§amaanmiya"); see
@@ -790,6 +844,14 @@ def _build_lookup():
                    "مليارا": 1000000000})
     scale_duals.update({"ألفين": 2000, "مليونين": 2000000,
                         "مليارين": 2000000000})
+    # The oblique construct dual: English Wiktionary, ألف, مليون and مليار,
+    # Arabic declension tables, dual construct accusative and genitive
+    # "أَلْفَيْ ʔalfay", "مِلْيُونَيْ milyūnay", "مِلْيارَيْ milyāray". Each is
+    # read in context only, see _HOMOGRAPHS_AR. The nominative
+    # construct dual ألفا, مليونا, مليارا is spelled like the accusative
+    # singular; see _ACCUSATIVE_OR_CONSTRUCT_DUAL.
+    scale_duals.update({"ألفي": 2000, "مليوني": 2000000,
+                        "ملياري": 2000000000})
     # unambiguous fraction words usable inside a number ("خمسة ونصف")
     fractions = {"نصف": 0.5, "ثلث": 1 / 3, "ربع": 0.25, "سدس": 1 / 6,
                  "ثمن": 0.125}
@@ -799,10 +861,33 @@ def _build_lookup():
 
 (_UNITS_LOOKUP, _TENS_LOOKUP, _HUNDREDS_LOOKUP, _SCALES_LOOKUP,
  _SCALE_DUALS_LOOKUP, _FRACTIONS_LOOKUP) = _build_lookup()
+# ألفا, مليونا and مليارا are the accusative singular, as after eleven to
+# ninety-nine ("سبعة عشر ألفا" 17,000), and the nominative construct dual
+# (English Wiktionary, ألف, مليون, مليار, declension tables, dual construct
+# nominative "أَلْفَا ʔalfā", "مِلْيُونَا milyūnā", "مِلْيارَا milyārā"), as
+# in "ألفا ريال" 2,000 riyals. A construct dual has its counted noun directly
+# after it, and the words that may follow the accusative singular are an open
+# class ("قتل ألفا آخرين", "دفع ألفا فقط"), so the word is the dual only with
+# no count before it and a unit of _UNIT_WORDS_AR directly after it. Anywhere
+# else it is the singular, and always when it is written with the tanween of
+# the accusative singular, ألفًا "alfan" (Wiktionary, ألف, accusative
+# indefinite singular "أَلْفًا").
+_ACCUSATIVE_OR_CONSTRUCT_DUAL = _norm_map({
+    "ألفا": "ألفين", "مليونا": "مليونين", "مليارا": "مليارين"})
+_TANWEEN_FATH = "\u064b"
+
+
+def _is_construct_dual(tokens, j):
+    """True when tokens[j] is ألفا, مليونا or مليارا with a unit word directly
+    after it, which makes it the dual where no count comes before it."""
+    return tokens[j] in _ACCUSATIVE_OR_CONSTRUCT_DUAL and \
+        j + 1 < len(tokens) and tokens[j + 1] in _UNIT_WORDS_AR
 
 _TEEN_FIRST_LOOKUP = _norm_map({"أحد": 1, "إحدى": 1, "اثنا": 2, "اثني": 2,
                                 "اثنتا": 2, "اثنتي": 2})
 _TEEN_SECOND_LOOKUP = _norm_keys({"عشر", "عشرة"})
+# وأحد "and one (of eleven)" and واحد "one" are one word once أ is ا
+_AND_ONE = _normalize_ar("وأحد")
 # dialectal fused teens: unit+عشر contracted into one word ("خمسطعش" = 15).
 # Only the spellings of the lect tables are read, which are the forms the
 # grammars give (see AR_LECT_FORMS): Omar 1975 for Hijazi, Qafisheh 1970 for
@@ -1028,6 +1113,21 @@ _HUNDRED_MULT_LOOKUP = _norm_keys({"مئة", "مائة", "مية"})
 # is 1100). Alone, "ميت ريال" stays no number, because telling it from "a dead
 # ..." needs to know that the next word is a counted noun.
 _CONSTRUCT_HUNDRED_LOOKUP = _norm_map({"ميت": 100})
+# نص, the spoken half. Bruce Ingham, "Najdi Arabic: Central Arabian" (John
+# Benjamins, 1994), p. 114: "nuss sāʻah" half an hour, as the text layer of its
+# Google Books preview prints nuṣṣ. Merrill Y. Van Wagoner et al., "Spoken
+# Arabic (Saudi)" (Spoken Language Services, 1977), p. 139: nuṣṣ "one half".
+# Clive Holes, "Colloquial Arabic of the Gulf" (Routledge, 2010), p. 52:
+# "wáaHid u sittíin diináar u núSS" sixty-one and a half dinars. In the
+# written language نص is "text" (English Wiktionary, نص, Arabic: "text,
+# document"), so it is read as a half only in the lects listed below, only
+# after و and a unit, a ten or a teen ("خمسة ونص" is 5.5), and only where it
+# ends the number phrase: at the end of the text or before a unit word
+# ("خمسة ونص ريال"). Before any other word it can be "the text of" ("خمسة ونص
+# الكتاب"). After a hundred or a thousand ("مية ونص", "الف ونص") it is left
+# unread: spoken, those mean 150 and 1500, and no source read states that.
+_SPOKEN_HALF_LOOKUP = _norm_map({"نص": 0.5})
+_LECTS_WITH_SPOKEN_HALF = {"ars"}
 
 # Words that are also everyday words. A normaliser must not change what the
 # text says: reading water as 100 changes it, while leaving a real hundred as
@@ -1045,6 +1145,15 @@ _CONSTRUCT_HUNDRED_LOOKUP = _norm_map({"ميت": 100})
 #   Arabic, "Monday", "al-itnēn".
 # - الست: Egyptian Arabic, "woman", "Mrs, Miss, lady (title for a woman)",
 #   with "الست اللى فى الصورة" "the woman that's in this picture".
+# - ألفي, the oblique construct 2,000: Arabic, verb forms of أَلَّفَ and
+#   أَلْفَى (Etymologies 1 and 2), and ألفى "found" is the same word once ى
+#   and ي are one letter. مليوني and ملياري, the construct 2,000,000 and
+#   2,000,000,000, are read by the same rules, so that the three scale
+#   words read alike.
+# - ثمن: Arabic, Etymology 1 ثَمَن "a price", Etymology 2 ثُمْن "an eighth".
+#   It is a fraction where a unit word follows it ("ثمن كيلو"), inside a
+#   number ("خمسة وثمن") or as the whole text; "ثمن السيارة" is the price
+#   of the car.
 # Such a word is a number when:
 # - a unit word comes before it ("خمس مية"), or it is inside a number
 #   already started ("الف ومية");
@@ -1053,8 +1162,8 @@ _CONSTRUCT_HUNDRED_LOOKUP = _norm_map({"ميت": 100})
 # - و and a number word come after it ("مية وخمسين"); او is "or" and joins
 #   nothing;
 # - it is the whole text, bar one proclitic: a short answer ("بكم؟" ...
-#   "مية"). With the article, المية and الميتين alone are "the water" and "the
-#   dead", so they are not.
+#   "مية"). With the article, المية, الميتين and الثمن alone are "the water",
+#   "the dead" and "the price", so they are not.
 # A homograph next to another homograph is a number only when something else
 # makes that other one a number: "الست مية" and "ميت مية" stay as written.
 # The construct ميت needs its counted word after it: a scale word, a unit or a
@@ -1069,9 +1178,13 @@ _CONSTRUCT_HUNDRED = "ميت"
 _DAY_NAMES = _norm_keys({"التلات", "التلاتة", "الاتنين", "الاثنين"})
 # the homographs that are units three to nine, which build the hundreds
 _HUNDRED_UNIT_HOMOGRAPHS = _norm_keys({"التلات", "التلاتة", "الست"})
+_CONSTRUCT_DUAL_SCALES = _norm_map({"ألفي": "ألفين", "مليوني": "مليونين",
+                                    "ملياري": "مليارين"})
+_PRICE_OR_EIGHTH = "ثمن"
 _HOMOGRAPHS_AR = {_WATER_HUNDRED, _DEAD_TWO_HUNDRED, _CONSTRUCT_HUNDRED,
                   "ال" + _WATER_HUNDRED, "ال" + _DEAD_TWO_HUNDRED,
-                  "الست"} | _DAY_NAMES
+                  "الست", _PRICE_OR_EIGHTH, "ال" + _PRICE_OR_EIGHTH} | \
+    _DAY_NAMES | set(_CONSTRUCT_DUAL_SCALES)
 # يوم, alone or behind a one-letter proclitic (ويوم, بيوم)
 _DAY_WORDS = {"يوم"} | {c + "يوم" for c in "وبلف"}
 _PER_CENT_WORDS = _norm_keys({"بالمية", "بالمئة", "بالمائة", "%"})
@@ -1092,7 +1205,7 @@ _CONTEXT_CANONICAL_AR = {
     _CONSTRUCT_HUNDRED: "مئة", "ال" + _WATER_HUNDRED: "المئة",
     "ال" + _DEAD_TWO_HUNDRED: "المئتين", "الست": "ست",
     **_norm_map({"التلات": "ثلاث", "التلاتة": "ثلاثة", "الاتنين": "اثنين",
-                 "الاثنين": "اثنين"})}
+                 "الاثنين": "اثنين"}), **_CONSTRUCT_DUAL_SCALES}
 
 _ORDINAL_UNITS_LOOKUP = _norm_map(
     {stem: value for value, stem in _ORDINAL_STEMS_AR.items()})
@@ -1195,9 +1308,13 @@ def _counted_word_follows(tokens, j):
 
 def _joined_to_a_number(tokens, j):
     """True when و and a number word come directly after tokens[j]. او is
-    "or" and joins nothing."""
+    "or" and joins nothing. وأحد before عشر is و and the أحد of eleven,
+    though the normalisation spells it as واحد "one"."""
+    if j + 2 < len(tokens) and tokens[j + 1] == _AND_ONE and \
+            tokens[j + 2] in _TEEN_SECOND_LOOKUP:
+        return True
     return j + 2 < len(tokens) and tokens[j + 1] == "و" and (
-        _is_number(tokens[j + 2]) or _group_slot(tokens, j + 2) is not None
+        is_numeric(tokens[j + 2]) or _group_slot(tokens, j + 2) is not None
         and _licenses(tokens, j + 2))
 
 
@@ -1232,7 +1349,8 @@ def _out_of_context(tokens, j):
     if _joined_to_a_number(tokens, j):
         return False
     return not (_is_whole_text(tokens, j) and
-                tok not in ("ال" + _WATER_HUNDRED, "ال" + _DEAD_TWO_HUNDRED))
+                tok not in ("ال" + _WATER_HUNDRED, "ال" + _DEAD_TWO_HUNDRED,
+                            "ال" + _PRICE_OR_EIGHTH))
 
 
 def _group_slot(tokens, j):
@@ -1264,20 +1382,64 @@ def _group_slot(tokens, j):
     return None
 
 
-def _is_number(s):
-    try:
-        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
-        # string) carries no usable number and must not be treated as one
-        return isfinite(float(s))
-    except ValueError:
+def _is_spoken_half(tokens, j):
+    """True when tokens[j] is نص read as a half: after و and a unit, a ten or
+    a teen, and at the end of the text or before a unit word. See
+    _SPOKEN_HALF_LOOKUP."""
+    if tokens[j] not in _SPOKEN_HALF_LOOKUP or j < 2 or tokens[j - 1] != "و":
         return False
+    before = _bare(tokens[j - 2])
+    if not (before in _UNITS_LOOKUP or before in _TENS_LOOKUP or
+            before in _FUSED_TEENS_LOOKUP or before in _TEEN_SECOND_LOOKUP):
+        return False
+    if j + 1 < len(tokens):
+        # a unit word after the half makes it an amount, even after الساعة:
+        # "أجرة الساعة خمسة ونص ريال" is five and a half riyals an hour
+        return tokens[j + 1] in _UNIT_WORDS_AR
+    return not _is_clock_hour(tokens, j - 2)
+
+
+_CLOCK_WORD = _normalize_ar("الساعة")
+
+
+def _is_clock_hour(tokens, k):
+    """True when the number ending at tokens[k] follows الساعة "the hour, the
+    time", which makes it a time of day: "الساعة ثلاثة ونص" is half past
+    three, thirty minutes and not the half of a number, so its نص is not
+    read."""
+    if k > 0 and tokens[k] in _TEEN_SECOND_LOOKUP and \
+            _group_slot(tokens, k - 1) == "unit":
+        k -= 1
+    while k > 1 and tokens[k - 1] == "و" and \
+            _group_slot(tokens, k - 2) is not None:
+        k -= 2
+    return k > 0 and tokens[k - 1] == _CLOCK_WORD
+
+
+def _is_unread_fraction(tokens, j):
+    """True for a fraction noun after و and a hundred or a scale word ("ألف
+    ونصف"), which is no number, alone or joined; see _is_round."""
+    return j > 1 and _bare(tokens[j]) in _FRACTIONS_LOOKUP and \
+        tokens[j - 1] == "و" and _is_round(tokens[j - 2])
+
+
+def _is_round(token):
+    """True for a hundred or a scale word, after which a fraction noun is
+    left unread. Spoken, "ألف ونصف" is 1500, the half of the thousand
+    counted, while a fraction after a unit adds to it ("خمسة ونصف" is 5.5);
+    no source read states the reading after a hundred or a scale word, so
+    the number ends before و and the fraction, as the spoken half does (see
+    _SPOKEN_HALF_LOOKUP)."""
+    tok = _bare(token)
+    return tok in _HUNDREDS_LOOKUP or tok in _SCALES_LOOKUP or \
+        tok in _SCALE_DUALS_LOOKUP or tok in _CONSTRUCT_HUNDRED_LOOKUP
 
 
 def _tokenize_ar(text):
     """Normalize and split, detaching the attached conjunction "و"."""
     tokens = []
-    for token in _normalize_ar(text).split():
-        token = token.strip(".,!?;:؟،؛")
+    for written in text.split():
+        token = _normalize_ar(written).strip(".,!?;:؟،؛")
         if not token:
             continue
         vocab = (_UNITS_LOOKUP, _TENS_LOOKUP, _HUNDREDS_LOOKUP,
@@ -1293,6 +1455,7 @@ def _tokenize_ar(text):
                 any(token[1:] in v for v in vocab) or
                 token[1:] in _TEEN_SECOND_LOOKUP or
                 token[1:] in _CONSTRUCT_HUNDRED_LOOKUP or
+                token[1:] in _SPOKEN_HALF_LOOKUP or
                 token[1:].startswith("ال") and
                 any(token[3:] in v for v in vocab)):
             tokens.append("و")
@@ -1302,6 +1465,9 @@ def _tokenize_ar(text):
             if split:
                 tokens.append(split[0])
                 token = split[1]
+        if token in _ACCUSATIVE_OR_CONSTRUCT_DUAL and _TANWEEN_FATH in written:
+            # ألفًا with its tanween is the accusative singular, never the dual
+            token = token[:-1]
         tokens.append(token)
     return tokens
 
@@ -1330,11 +1496,79 @@ def _parse_ordinal_span(tokens, i):
     return None, i
 
 
-def _number_spans(tokens, ordinals=False):
+# أول and أولى are "first" alone; in a compound the one is حادي, حادية, so
+# "أول عشرة" is "the first ten" and no ordinal
+_FIRST_ORDINALS = _norm_keys({"أول", "أولى"})
+_SECOND_OR_A_SECOND = _normalize_ar("ثانية")
+
+
+def _ordinal_end(tokens, i):
+    """The end of the ordinal that starts at tokens[i], when its words are
+    cardinal words too, else None: a compound ordinal ("الحادي عشر",
+    "الخامسة والعشرين"), whose عشر and ten are no cardinals of their own, or
+    a ten with the article after a singular noun with the article ("الحلقة
+    العشرين", the twentieth episode). An ordinal is an adjective that
+    agrees with its noun in definiteness (Ryding ch. 15 section 2.4, quoted
+    at pronounce_ordinal_ar), so the two parts of a compound share the
+    article, and a definite ten after a definite singular noun is the
+    ordinal; after a plural it counts the noun ("السنوات العشرين")."""
+    tok = tokens[i]
+    definite = tok.startswith("ال")
+    stem = tok[2:] if definite else tok
+    if definite and stem in _TENS_LOOKUP:
+        before = tokens[i - 1] if i else ""
+        if before[:1] in _PROCLITICS_AR + "و" and before[1:3] == "ال":
+            before = before[1:]  # والحلقة, بالحلقة
+        elif before.startswith("لل"):
+            before = "ا" + before[1:]  # للحلقة, li- before the article
+        return i + 1 if before.startswith("ال") and \
+            before[2:] not in _NUMBER_WORDS and \
+            before not in _HOMOGRAPHS_AR and \
+            not _is_plural_head(before[2:]) else None
+    if stem not in _ORDINAL_UNITS_LOOKUP or stem in _FIRST_ORDINALS:
+        return None
+    if i + 1 < len(tokens) and tokens[i + 1] in _TEEN_SECOND_LOOKUP:
+        return i + 2
+    if i + 2 < len(tokens) and tokens[i + 1] == "و":
+        ten = tokens[i + 2]
+        if ten.startswith("ال") == definite and \
+                (ten[2:] if definite else ten) in _TENS_LOOKUP:
+            return i + 3
+    return None
+
+
+# Broken plurals of counted nouns, which a definite ten after them counts
+# rather than orders: "السنوات العشرين الماضية" is the past twenty years.
+_BROKEN_PLURAL_HEADS = _norm_keys({
+    "أعوام", "أيام", "دقائق", "دقايق", "ثواني", "سنين", "شهور", "أشهر",
+    "أسابيع", "ليالي", "رجال", "كتب", "أشخاص", "طلاب", "أطفال", "أولاد",
+    "أمتار", "دراهم", "دنانير", "أسئلة", "قرون", "عقود"})
+
+
+def _is_plural_head(stem):
+    """True for a noun in the plural: the sound feminine plural in ات, the
+    sound masculine plural in ين or ون, or a broken plural of
+    _BROKEN_PLURAL_HEADS. An ordinal follows a singular noun only."""
+    return stem.endswith(("ات", "ين", "ون")) or stem in _BROKEN_PLURAL_HEADS
+
+
+def _is_time_second(tokens, i, last_end, halves=False):
+    """True when tokens[i] is ثانية "a second", the unit of time, rather than
+    the feminine "second": with no article, right after a number ("ثلاثين
+    ثانية") or right before one ("ثانية واحدة")."""
+    if tokens[i] != _SECOND_OR_A_SECOND:
+        return False
+    return last_end == i or i + 1 < len(tokens) and \
+        _parse_number_span(tokens, i + 1, halves)[0] is not None
+
+
+def _number_spans(tokens, ordinals=False, halves=False):
     """Yield (start, end, value) for each number in tokens; start includes a
-    minus sign before the number."""
+    minus sign before the number. ``halves`` reads the spoken half نص (see
+    _SPOKEN_HALF_LOOKUP)."""
     i = 0
     n = len(tokens)
+    last_end = None
     while i < n:
         start = i
         tok = tokens[i]
@@ -1343,13 +1577,21 @@ def _number_spans(tokens, ordinals=False):
             negative = True
             i += 1
             tok = tokens[i]
+        if _is_time_second(tokens, i, last_end, halves):
+            i += 1
+            continue
         if ordinals:
             value, j = _parse_ordinal_span(tokens, i)
             if value is not None:
                 yield start, j, -value if negative else value
+                i = last_end = j
+                continue
+        else:
+            j = _ordinal_end(tokens, i)
+            if j:
                 i = j
                 continue
-        value, j = _parse_number_span(tokens, i)
+        value, j = _parse_number_span(tokens, i, halves)
         if value is None:
             i += 1
             continue
@@ -1360,10 +1602,10 @@ def _number_spans(tokens, ordinals=False):
                 value += frac
                 j = j2
         yield start, j, -value if negative else value
-        i = j
+        i = last_end = j
 
 
-def extract_numbers_ar(text, short_scale=True, ordinals=False):
+def extract_numbers_ar(text, short_scale=True, ordinals=False, lect=None):
     """
     Takes in a string and extracts a list of numbers.
 
@@ -1374,11 +1616,15 @@ def extract_numbers_ar(text, short_scale=True, ordinals=False):
         text (str): the string to extract numbers from
         short_scale (bool): ignored, Arabic scale words are unambiguous
         ordinals (bool): consider ordinal numbers ("الثالث" = 3)
+        lect (str, optional): the ISO 639-3 code of the lect the text is
+            in; ``ars`` also reads the spoken half نص (see
+            _SPOKEN_HALF_LOOKUP)
     Returns:
         list: list of extracted numbers as floats
     """
     return [value for _, _, value in
-            _number_spans(_tokenize_ar(text), ordinals)]
+            _number_spans(_tokenize_ar(text), ordinals,
+                          lect in _LECTS_WITH_SPOKEN_HALF)]
 
 
 def _closes_a_hundred(token):
@@ -1390,12 +1636,14 @@ def _closes_a_hundred(token):
     return tok in _UNITS_LOOKUP and (_UNITS_LOOKUP[tok] <= 2 or tok.endswith("ه"))
 
 
-def _parse_number_span(tokens, i):
-    """Parse one number starting at tokens[i].
+def _parse_number_span(tokens, i, halves=False):
+    """Parse one number starting at tokens[i]; ``halves`` reads the spoken
+    half نص.
 
     Returns (value, next_index); value is None if no number starts here."""
     total = 0
     current = 0
+    largest = 0
     started = False
     filled = set()  # magnitude slots already used in the current <1000 group
     n = len(tokens)
@@ -1403,6 +1651,9 @@ def _parse_number_span(tokens, i):
     while j < n:
         raw = tokens[j]
         if raw == "و" and started and j + 1 < n:
+            if halves and _is_spoken_half(tokens, j + 1):
+                j += 1
+                continue
             # the conjunction continues the number only when the next word is
             # a number component that fills a slot not already taken (two
             # units in a row, "ثلاثة وخمسة", are separate numbers, not eight)
@@ -1414,16 +1665,18 @@ def _parse_number_span(tokens, i):
                 # 404. A construct unit multiplies the next hundred as always:
                 # "مية وخمس مية" is 100 and 500.
                 slot = "unit"
+            if _is_unread_fraction(tokens, j + 1):
+                break
             if slot in ("scale", "frac") or (
                     slot in ("unit", "ten", "hundred") and slot not in filled):
                 j += 1
                 continue
             break
-        if _is_number(raw):
+        if is_numeric(raw):
             if started:
                 break
-            value = float(raw)
-            if value.is_integer():
+            value = numeric_value(raw)
+            if value == int(value):
                 value = int(value)
             # a digit run directly followed by a scale word multiplies it
             # ("355 ألف" = 355000)
@@ -1433,7 +1686,8 @@ def _parse_number_span(tokens, i):
                 value = value * _SCALES_LOOKUP[tok2]
                 j2 += 1
             return value, j2
-        if not started and _out_of_context(tokens, j):
+        if not started and (_out_of_context(tokens, j) or
+                            _is_unread_fraction(tokens, j)):
             break
         tok = _bare(raw)
         nxt = _bare(tokens[j + 1]) if j + 1 < n else None
@@ -1503,7 +1757,16 @@ def _parse_number_span(tokens, i):
             j += 1
             continue
         if tok in _SCALES_LOOKUP:
-            total += (current if current else 1) * _SCALES_LOOKUP[tok]
+            scale = _SCALES_LOOKUP[tok]
+            if total and scale > largest and tokens[j - 1] != "و":
+                # a scale word above every scale before it multiplies the
+                # whole number ("اثنا عشر مليون تريليون" = 12 * 10**6 * 10**12);
+                # after "و" it adds ("ألفان ومليون" = 1002000)
+                total = (total + current) * scale
+            else:
+                count = current or (2 if _is_construct_dual(tokens, j) else 1)
+                total += count * scale
+            largest = max(largest, scale)
             current = 0
             filled = set()
             started = True
@@ -1511,13 +1774,15 @@ def _parse_number_span(tokens, i):
             continue
         if tok in _SCALE_DUALS_LOOKUP:
             total += _SCALE_DUALS_LOOKUP[tok]
+            largest = max(largest, _SCALE_DUALS_LOOKUP[tok] // 2)
             current = 0
             filled = set()
             started = True
             j += 1
             continue
-        if tok in _FRACTIONS_LOOKUP:
-            current += _FRACTIONS_LOOKUP[tok]
+        if tok in _FRACTIONS_LOOKUP or halves and started and \
+                _is_spoken_half(tokens, j):
+            current += _FRACTIONS_LOOKUP.get(tok) or _SPOKEN_HALF_LOOKUP[tok]
             started = True
             j += 1
             break  # a fraction noun ends the number
@@ -1555,18 +1820,19 @@ def _parse_decimal_part(tokens, i):
     return value / 10 ** len(str(int(value))), j
 
 
-def extract_number_ar(text, ordinals=False):
+def extract_number_ar(text, ordinals=False, lect=None):
     """
     Extract the first number found in Modern Standard Arabic text.
 
     Args:
         text (str): the string to extract a number from
         ordinals (bool): consider ordinal numbers ("الثالث" = 3)
+        lect (str, optional): see ``extract_numbers_ar``
     Returns:
         (int, float or False): the extracted number, or False if the text
                                contains no number
     """
-    numbers = extract_numbers_ar(text, ordinals=ordinals)
+    numbers = extract_numbers_ar(text, ordinals=ordinals, lect=lect)
     if not numbers:
         return False
     value = numbers[0]
@@ -1645,11 +1911,13 @@ def _detach_proclitic(match):
 
 def _continues_a_number_ar(word):
     """True for a word that is a number only inside a number already
-    started: the construct hundred ميت, with or without an attached و."""
-    return _normalize_ar(word).removeprefix("و") in _CONSTRUCT_HUNDRED_LOOKUP
+    started: the construct hundred ميت and the spoken half نص, with or
+    without an attached و."""
+    bare = _normalize_ar(word).removeprefix("و")
+    return bare in _CONSTRUCT_HUNDRED_LOOKUP or bare in _SPOKEN_HALF_LOOKUP
 
 
-def _first_number_words_ar(words):
+def _first_number_words_ar(words, halves=False):
     """How many of `words` the first number covers, as this module reads them,
     or None when the first number does not start at the first word."""
     tokens, owner = [], []
@@ -1657,7 +1925,7 @@ def _first_number_words_ar(words):
         for token in _tokenize_ar(word):
             tokens.append(token)
             owner.append(w)
-    for start, end, _ in _number_spans(tokens):
+    for start, end, _ in _number_spans(tokens, halves=halves):
         if owner[start] != 0:
             return None
         return owner[end - 1] + 1
@@ -1668,14 +1936,18 @@ _MASK_RE = re.compile("\uf8ff(.)\uf8ff")
 _PUNCT_AR = ".,!?;:؟،؛"
 
 
-def _resolve_context_words_ar(utterance):
+def _resolve_context_words_ar(utterance, halves=False):
     """Decide each word that is a number only in context (see
-    ``_out_of_context``) against its sentence.
+    ``_out_of_context``, and with ``halves`` the spoken half نص, see
+    ``_is_spoken_half``) against its sentence.
 
     The span converter reads words one at a time, so such a word is settled
     first: where the sentence makes it a number it is spelled the
     unambiguous way (مية as مئة), and elsewhere it is masked, so the converter
-    reads it as no number. Returns the rewritten text and the masked words.
+    reads it as no number. The words of an ordinal (see ``_ordinal_end``)
+    and a fraction left unread after a hundred or a scale word (see
+    ``_is_round``) are masked too. Returns the rewritten text and the masked
+    words.
     """
     written = utterance.split()
     words = list(written)
@@ -1684,28 +1956,94 @@ def _resolve_context_words_ar(utterance):
         for token in _tokenize_ar(word):
             tokens.append(token)
             owner.append(w)
-    in_number = set()
-    for start, end, _ in _number_spans(tokens):
+    in_number, starts = set(), set()
+    for start, end, _ in _number_spans(tokens, halves=halves):
         in_number.update(range(start, end))
+        starts.add(start)
+    unread = set()
+    for k in range(len(tokens)):
+        end = _ordinal_end(tokens, k)
+        if end:
+            unread.update(range(k, end))
+        elif _is_unread_fraction(tokens, k):
+            unread.add(k)
+    unread -= in_number
     masked = []
     for k, token in enumerate(tokens):
-        if token not in _CONTEXT_CANONICAL_AR and not (
+        half = halves and token in _SPOKEN_HALF_LOOKUP
+        # the construct dual with no count before it, which the converter,
+        # reading the word alone, would take as the singular
+        dual = k in in_number and _is_construct_dual(tokens, k) and (
+            k in starts or tokens[k - 1] == "و" and k > 1 and
+            (_bare(tokens[k - 2]) in _SCALES_LOOKUP or
+             _bare(tokens[k - 2]) in _SCALE_DUALS_LOOKUP))
+        if not half and not dual and token not in _CONTEXT_CANONICAL_AR and \
+                k not in unread and not (
                 k not in in_number and _hundred_after_a_day_or_lady(tokens, k)):
             continue
         w = owner[k]
         word = written[w]
         if k in in_number:
+            if half:
+                continue
             lead = word[:len(word) - len(word.lstrip(_PUNCT_AR))]
             trail = word[len(word.rstrip(_PUNCT_AR)):]
             prefix = "".join(t for i, t in enumerate(tokens)
                              if owner[i] == w and i < k)
-            words[w] = lead + prefix + _CONTEXT_CANONICAL_AR[token] + trail
+            words[w] = lead + prefix + (
+                _ACCUSATIVE_OR_CONSTRUCT_DUAL[token] if dual
+                else _CONTEXT_CANONICAL_AR[token]) + trail
         else:
             words[w] = "\uf8ff" + chr(0xE000 + len(masked)) + "\uf8ff"
             masked.append(word)
     if words == written:
         return utterance, masked
     return " ".join(words), masked
+
+
+# The literary 11 and 12 written as one word, which the converter reads whole
+# (see _SADA_TEENS_AR): "اثنا عشر" is two words and the first, أحد, إحدى,
+# اثنا, اثني, اثنتا or اثنتي, is no number by itself ("ما في أحد" is "there
+# is nobody").
+_FUSED_LITERARY_TEENS = {1: "احدعشر", 2: "اثنعشر"}
+# The dual nouns of _DUAL_NOUNS_AR, which are not numerals: اثنتان and
+# اثنتين are.
+_DUAL_NOUN_TOKENS = _norm_keys(_DUAL_NOUNS_AR - {"اثنتان", "اثنتين"})
+_DUAL_MASK_RE = re.compile("\uf8fe(.)\uf8fe")
+
+
+def _join_literary_teens_ar(text):
+    """Write each literary 11 and 12 as one word: "اثنا عشر" as اثنعشر,
+    "وإحدى عشرة" as واحدعشر. A proclitic on the first word is kept, and
+    a mark of punctuation after عشر or عشرة."""
+    out = []
+    for word in text.split():
+        if out and out[-1][0] not in _PUNCT_AR and \
+                out[-1][-1] not in _PUNCT_AR and \
+                _normalize_ar(word.rstrip(_PUNCT_AR)) in _TEEN_SECOND_LOOKUP:
+            tokens = _tokenize_ar(out[-1])
+            if tokens[-1] in _TEEN_FIRST_LOOKUP and \
+                    all(t in _PROCLITICS_AR + "و" for t in tokens[:-1]):
+                out[-1] = out[-1][:len(tokens) - 1] + \
+                    _FUSED_LITERARY_TEENS[_TEEN_FIRST_LOOKUP[tokens[-1]]] + \
+                    word[len(word.rstrip(_PUNCT_AR)):]
+                continue
+        out.append(word)
+    return " ".join(out)
+
+
+def _mask_dual_nouns_ar(text):
+    """Mask each word that is a dual noun ("ساعتين" two hours), so that the
+    converter keeps it: written as 2 it would lose the noun it counts.
+    Returns the masked text and the masked words."""
+    masked = []
+
+    def mask(match):
+        if not any(t in _DUAL_NOUN_TOKENS for t in _tokenize_ar(match.group(0))):
+            return match.group(0)
+        masked.append(match.group(0))
+        return "\uf8fe" + chr(0xE000 + len(masked) - 1) + "\uf8fe"
+    return _WORD_RE.sub(mask, text), masked
 
 
 def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
@@ -1716,16 +2054,22 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     number reads as an ordinary token, converts through the shared
     span converter, then glues the clitic back onto the produced digits
     ("و355000"). Text without glued clitics passes through the converter
-    unchanged.
+    unchanged. The literary 11 and 12 convert whole ("اثنا عشر شهرا" ->
+    "12 شهرا"), and a dual noun stays as written ("انتظرت ساعتين" keeps
+    ساعتين), since the digit 2 alone would drop the noun it counts.
     """
     # deferred: the shared converter lives in the package root, which imports
     # this module — importing it at module level would be circular
     from ovos_number_parser import _numbers_to_digits_generic
-    resolved, masked = _resolve_context_words_ar(utterance)
+    halves = resolve_ar_lect(lang) in _LECTS_WITH_SPOKEN_HALF
+    resolved, masked = _resolve_context_words_ar(utterance, halves)
+    resolved, duals = _mask_dual_nouns_ar(_join_literary_teens_ar(resolved))
     spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)
     spaced = _WORD_RE.sub(_detach_proclitic, spaced)
-    converted = _numbers_to_digits_generic(spaced, lang,
-                                           continues=_continues_a_number_ar,
-                                           first_number_words=_first_number_words_ar)
+    converted = _numbers_to_digits_generic(
+        spaced, lang, continues=_continues_a_number_ar,
+        first_number_words=lambda words: _first_number_words_ar(words, halves))
     converted = _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
+    converted = _DUAL_MASK_RE.sub(lambda m: duals[ord(m.group(1)) - 0xE000],
+                                  converted)
     return _MASK_RE.sub(lambda m: masked[ord(m.group(1)) - 0xE000], converted)

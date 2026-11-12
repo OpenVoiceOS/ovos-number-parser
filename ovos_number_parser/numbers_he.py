@@ -8,8 +8,8 @@ value times two (``מאתיים`` = 200, ``אלפיים`` = 2000). Niqqud (vowel
 points and cantillation marks) is stripped before matching.
 """
 
-from math import isfinite
-from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
+    scientific_parts
 
 # niqqud and cantillation marks are stripped so vocalized text matches
 _NORM_TABLE = {c: None for c in range(0x0591, 0x05C8)}
@@ -187,15 +187,14 @@ def pronounce_number_he(number, places=2, scientific=False, ordinals=False,
     if scientific:
         if number == 0:
             return _ONES_HE[0]
-        n, power = ('%E' % number).replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(number, places)
         if power != 0:
-            mantissa = pronounce_number_he(abs(float(n)), places,
+            mantissa = pronounce_number_he(abs(n), places,
                                            feminine=feminine)
             exponent = pronounce_number_he(abs(power), places,
                                            feminine=feminine)
             return "{}{} כפול עשר בחזקת {}{}".format(
-                _MINUS_HE + " " if float(n) < 0 else "", mantissa,
+                _MINUS_HE + " " if n < 0 else "", mantissa,
                 _MINUS_HE + " " if power < 0 else "", exponent)
     if ordinals:
         return pronounce_ordinal_he(number)
@@ -323,15 +322,6 @@ _ORDINAL_UNITS_LOOKUP = {w: v for v, w in _ORDINALS_HE.items()}
 _ORDINAL_UNITS_LOOKUP.update({w: v for v, w in _ORDINALS_FEM_HE.items()})
 
 
-def _is_number(s):
-    try:
-        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
-        # string) carries no usable number and must not be treated as one
-        return isfinite(float(s))
-    except ValueError:
-        return False
-
-
 def _in_vocab(token):
     return (token in _UNITS_LOOKUP or token in _TENS_LOOKUP or
             token in _SCALES_LOOKUP or token in _SCALE_DUALS_LOOKUP or
@@ -435,6 +425,7 @@ def _parse_number_span(tokens, i):
     Returns (value, next_index); value is None if no number starts here."""
     total = 0
     current = 0
+    largest = 0
     started = False
     n = len(tokens)
     j = i
@@ -450,11 +441,11 @@ def _parse_number_span(tokens, i):
                 j += 1
                 continue
             break
-        if _is_number(tok):
+        if is_numeric(tok):
             if started:
                 break
-            value = float(tok)
-            if value.is_integer():
+            value = numeric_value(tok)
+            if value == int(value):
                 value = int(value)
             return value, j + 1
         # teens: unit word followed by עשר/עשרה
@@ -487,7 +478,15 @@ def _parse_number_span(tokens, i):
             j += 1
             continue
         if tok in _SCALES_LOOKUP:
-            total += (current if current else 1) * _SCALES_LOOKUP[tok]
+            scale = _SCALES_LOOKUP[tok]
+            if total and scale > largest and tokens[j - 1] != "ו":
+                # a scale word above every scale before it multiplies the
+                # whole number ("שנים עשר מיליון טריליון" = 12 * 10**6 * 10**12);
+                # after "ו" it adds ("אלפיים ומיליון" = 1002000)
+                total = (total + current) * scale
+            else:
+                total += (current if current else 1) * scale
+            largest = max(largest, scale)
             current = 0
             started = True
             j += 1
@@ -498,6 +497,7 @@ def _parse_number_span(tokens, i):
                 current += 200
             else:
                 total += value
+                largest = max(largest, value // 2)
                 current = 0
             started = True
             j += 1

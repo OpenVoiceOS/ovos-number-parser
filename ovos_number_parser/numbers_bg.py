@@ -25,10 +25,13 @@ tens ("единайсет", "двайсет", "трийсет", "четирий�
 when parsing, but pronunciation always produces the full standard forms
 ("единадесет", "двадесет", "тридесет", "четиридесет", "шестдесет").
 """
+import sys
+from fractions import Fraction
+from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, fits_str_limit, look_for_fractions, \
+    invert_dict, ReplaceableNumber, partition_list, tokenize, Token, scientific_parts
 
 _NUM_STRING_BG = {
     0: 'нула',
@@ -95,11 +98,11 @@ _VARIANT_NUM_BG = {
 
 # thousands and the international scale words with their count forms
 _SCALE_BG = OrderedDict([
-    (1e3, 'хиляда'),
-    (1e6, 'милион'),
-    (1e9, 'милиард'),
-    (1e12, 'трилион'),
-    (1e15, 'квадрилион'),
+    (10 ** 3, 'хиляда'),
+    (10 ** 6, 'милион'),
+    (10 ** 9, 'милиард'),
+    (10 ** 12, 'трилион'),
+    (10 ** 15, 'квадрилион'),
 ])
 
 _SCALE_PLURAL_BG = {
@@ -408,9 +411,7 @@ def pronounce_number_bg(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "минус безкрайност"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             return '{}{} по десет на степен {}{}'.format(
                 'минус ' if float(n) < 0 else '',
@@ -428,13 +429,15 @@ def pronounce_number_bg(number, places=2, short_scale=True, scientific=False,
 
     whole_words = _int_bg(int(num))
     if whole_words is None:
-        return "безкрайност"
+        # a magnitude with no spoken name reads scientifically
+        return result + pronounce_number_bg(
+            num, places, short_scale, scientific=True)
     result += " ".join(whole_words)
 
     # deal with fractional part
     if not num == int(num) and places > 0:
         result += " запетая"
-        _num_str = str(num).split(".")[1][0:places]
+        _num_str = f"{Decimal(str(num)):f}".split(".")[1][0:places]
         for char in _num_str:
             result += " " + _NUM_STRING_BG[int(char)]
     return result
@@ -459,6 +462,8 @@ def numbers_to_digits_bg(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_bg(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -693,6 +698,7 @@ def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
     next_val = None
     negative = False
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -712,13 +718,44 @@ def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
         if is_numeric(word[:-1]) and word.endswith("."):
             word = word[:-1]
 
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts ("-0 1/2" = -0.5);
+        # any other fraction is a number of its own ("3.5 1/2" is 3.5, then
+        # 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 \
+                and val is not False and val is not None:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                whole = abs(int(val))
+                mixed = float(whole + Fraction(float(a_pieces[0]))
+                              / Fraction(float(a_pieces[1])))
+                # the float must keep both parts: from 2**52 on it cannot, so
+                # the whole number keeps its digits and the fraction is a
+                # number of its own ("9007199254740993 1/2")
+                if whole < mixed < whole + 1:
+                    negative_whole = val < 0 or \
+                        tokens[idx - 1].word.startswith("-")
+                    val = -mixed if negative_whole else mixed
+                    number_words.append(token)
+            break
+
         if word not in _STRING_SCALE_BG and \
                 word not in _STRING_NUM_BG and \
                 word not in _SUMS_BG and \
                 word not in _MULTIPLIES_BG and \
                 not (ordinals and word in _STRING_ORDINAL_BG) and \
                 not is_numeric(word) and \
-                not is_fractional_bg(word, short_scale=short_scale) and \
+                not (is_fractional_bg(word, short_scale=short_scale) and
+                     (ordinals or not _is_ordinal_word_bg(word))) and \
                 not look_for_fractions(word.split('/')):
             words_only = [token.word for token in number_words]
             if number_words and not all([w in _NEGATIVES_BG for w in words_only]):
@@ -737,12 +774,10 @@ def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
         else:
             number_words.append(token)
 
+        number_end = idx
         # is this word already a number?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number?
@@ -789,6 +824,12 @@ def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
         # две трети
         if not ordinals:
             next_val = is_fractional_bg(next_word, short_scale=short_scale)
+            # an ordinal is the denominator of a proper fraction only:
+            # "две трети" is 2/3, "трети етаж" is the third floor
+            if next_val and _is_ordinal_word_bg(next_word) \
+                    and not (val and val == int(val)
+                             and 0 < val < round(1 / next_val)):
+                next_val = None
             if next_val:
                 if not val:
                     val = 1
@@ -799,12 +840,15 @@ def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
         # so no per-token negation happens here
 
         # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            a_pieces = word.split('/')
-            if look_for_fractions(a_pieces):
-                val = float(a_pieces[0]) / float(a_pieces[1])
-        else:
+        # look for fractions like "2/3". A digit fraction is a value of its
+        # own: the value of a number before it ("5 1/2") must not block it
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces):
+            val = float(a_pieces[0]) / float(a_pieces[1])
+            if not val:
+                # a zero fraction is the number 0 ("0/2" reads as 0)
+                val = 0
+        elif val:
             if all([
                 prev_word in _SUMS_BG,
                 word not in _SUMS_BG,
@@ -864,6 +908,32 @@ def extract_number_bg(text, short_scale=True, ordinals=False):
     if isinstance(value, float) and value.is_integer():
         value = int(value)
     return value
+
+
+def _is_ordinal_word_bg(input_str):
+    """True if the word is an ordinal ("трети", "шеста", "стотна"), third
+    and up.
+
+    Bulgarian spells a fraction with the ordinal: the feminine ("една трета",
+    "една стотна") and its plural ("две трети"), which for most ordinals is
+    also the masculine. Without a numerator the word is the ordinal: "трети
+    етаж" is the third floor. "половин" and "четвърт" are no ordinals.
+    """
+    return input_str.lower() in _ORDINAL_WORDS_BG
+
+
+def _ordinal_words_bg():
+    words = {word for num, word in _ORDINAL_BG.items() if num > 2}
+    for num, word in _FRACTION_STRING_BG.items():
+        # every fraction word past a half is the feminine ordinal, except
+        # the noun "четвърт" (whose plural is the masculine "четвърти")
+        if num > 2 and word != 'четвърт':
+            words.add(word)
+            words.add(word[:-1] + 'и' if word.endswith('а') else word + 'и')
+    return frozenset(words)
+
+
+_ORDINAL_WORDS_BG = _ordinal_words_bg()
 
 
 def is_fractional_bg(input_str, short_scale=True):

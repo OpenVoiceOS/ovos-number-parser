@@ -11,7 +11,7 @@ from ovos_number_parser.numbers_en import (
 
 class TestNumberParserEN(unittest.TestCase):
     def test_numbers_to_digits_en(self):
-        self.assertEqual(numbers_to_digits_en('three billions'), '3000000000.0')
+        self.assertEqual(numbers_to_digits_en('three billions'), '3000000000')
         self.assertEqual(numbers_to_digits_en('two point five'), '2.5')
         self.assertEqual(numbers_to_digits_en('two point forty two'), '2.42')
         # with ordinals off, "fifth" is left as a word: it must never be

@@ -44,9 +44,11 @@ class TestInfinity(unittest.TestCase):
 class TestHugeFiniteIntegers(unittest.TestCase):
     def test_beyond_scale_falls_back_to_scientific(self):
         # it previously raised IndexError on numbers past its named scale.
-        # The connective is spoken in the target language, not in English.
+        # The connective is spoken in the target language, not in English:
+        # the backend reads its own scientific form for a magnitude with no
+        # spoken name.
         out = pronounce_number(10 ** 400, "it")
-        self.assertIn("per dieci alla", out)
+        self.assertIn("per dieci elevato alla", out)
         self.assertIn("quattrocento", out)
         self.assertNotIn("times ten to the power of", out)
 
@@ -58,10 +60,10 @@ class TestHugeFiniteIntegers(unittest.TestCase):
         self.assertNotIn("negative", out)
 
     def test_mantissa_pronounced_in_target_language(self):
-        # Czech has no entry in _SCIENTIFIC_WORDS, so the connective falls
-        # back to English while the mantissa and exponent stay Czech. This
-        # pins the documented fallback, not a claim of Czech coverage.
-        out = pronounce_number(2 ** 2000, "cs")
+        # Asturian has no entry in _SCIENTIFIC_WORDS, so the connective falls
+        # back to English while the mantissa and exponent stay Asturian. This
+        # pins the documented fallback, not a claim of Asturian coverage.
+        out = pronounce_number(10 ** 400, "ast")
         self.assertIsInstance(out, str)
         self.assertIn("times ten to the power of", out)
 

@@ -13,13 +13,13 @@ class TestGermanPronounce(unittest.TestCase):
     """Anchors for spoken German numbers."""
 
     def test_pronounce_number(self):
-        expected = {0: 'null', 1: 'eins', 2: 'zwei', 3: 'drei', 4: 'vier', 5: 'fünf', 6: 'sechs', 7: 'sieben', 8: 'acht', 9: 'neun', 10: 'zehn', 11: 'elf', 12: 'zwölf', 13: 'dreizehn', 14: 'vierzehn', 15: 'fünfzehn', 16: 'sechzehn', 17: 'siebzehn', 18: 'achtzehn', 19: 'neunzehn', 20: 'zwanzig', 21: 'einundzwanzig', 30: 'dreißig', 42: 'zweiundvierzig', 50: 'fünfzig', 66: 'sechsundsechzig', 70: 'siebzig', 80: 'achtzig', 90: 'neunzig', 99: 'neunundneunzig', 100: 'einhundert', 101: 'einhunderteins', 123: 'einhundertdreiundzwanzig', 200: 'zweihundert', 500: 'fünfhundert', 999: 'neunhundertneunundneunzig', 1000: 'eintausend', 2000: 'zweitausend', 2023: 'zweitausenddreiundzwanzig', 1000000: 'eine Million ', 2000000: 'zwei Millionen '}
+        expected = {0: 'null', 1: 'eins', 2: 'zwei', 3: 'drei', 4: 'vier', 5: 'fünf', 6: 'sechs', 7: 'sieben', 8: 'acht', 9: 'neun', 10: 'zehn', 11: 'elf', 12: 'zwölf', 13: 'dreizehn', 14: 'vierzehn', 15: 'fünfzehn', 16: 'sechzehn', 17: 'siebzehn', 18: 'achtzehn', 19: 'neunzehn', 20: 'zwanzig', 21: 'einundzwanzig', 30: 'dreißig', 42: 'zweiundvierzig', 50: 'fünfzig', 66: 'sechsundsechzig', 70: 'siebzig', 80: 'achtzig', 90: 'neunzig', 99: 'neunundneunzig', 100: 'einhundert', 101: 'einhunderteins', 123: 'einhundertdreiundzwanzig', 200: 'zweihundert', 500: 'fünfhundert', 999: 'neunhundertneunundneunzig', 1000: 'eintausend', 2000: 'zweitausend', 2023: 'zweitausenddreiundzwanzig', 1000000: 'eine Million', 2000000: 'zwei Millionen'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="de"), spoken)
 
     def test_pronounce_negative_and_decimal(self):
-        expected = {-7: 'minus sieben', -42: 'minus zweiundvierzig', 2.5: 'zwei Komma fünf null null', 3.14: 'drei Komma eins vier null', -3.5: 'minus drei Komma fünf null null', 0.5: ' Komma fünf null null'}
+        expected = {-7: 'minus sieben', -42: 'minus zweiundvierzig', 2.5: 'zwei Komma fünf null null', 3.14: 'drei Komma eins vier null', -3.5: 'minus drei Komma fünf null null', 0.5: 'null Komma fünf null null'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="de"), spoken)
@@ -29,13 +29,13 @@ class TestGermanExtract(unittest.TestCase):
     """Anchors for extracting numbers from German text."""
 
     def test_extract_number(self):
-        expected = {0: 'null', 1: 'eins', 2: 'zwei', 3: 'drei', 4: 'vier', 5: 'fünf', 6: 'sechs', 7: 'sieben', 8: 'acht', 9: 'neun', 10: 'zehn', 11: 'elf', 12: 'zwölf', 13: 'dreizehn', 14: 'vierzehn', 15: 'fünfzehn', 16: 'sechzehn', 17: 'siebzehn', 18: 'achtzehn', 19: 'neunzehn', 20: 'zwanzig', 21: 'einundzwanzig', 30: 'dreißig', 42: 'zweiundvierzig', 50: 'fünfzig', 66: 'sechsundsechzig', 70: 'siebzig', 80: 'achtzig', 90: 'neunzig', 99: 'neunundneunzig', 100: 'einhundert', 101: 'einhunderteins', 123: 'einhundertdreiundzwanzig', 200: 'zweihundert', 500: 'fünfhundert', 999: 'neunhundertneunundneunzig', 1000: 'eintausend', 2000: 'zweitausend', 2023: 'zweitausenddreiundzwanzig', 1000000: 'eine Million ', 2000000: 'zwei Millionen '}
+        expected = {0: 'null', 1: 'eins', 2: 'zwei', 3: 'drei', 4: 'vier', 5: 'fünf', 6: 'sechs', 7: 'sieben', 8: 'acht', 9: 'neun', 10: 'zehn', 11: 'elf', 12: 'zwölf', 13: 'dreizehn', 14: 'vierzehn', 15: 'fünfzehn', 16: 'sechzehn', 17: 'siebzehn', 18: 'achtzehn', 19: 'neunzehn', 20: 'zwanzig', 21: 'einundzwanzig', 30: 'dreißig', 42: 'zweiundvierzig', 50: 'fünfzig', 66: 'sechsundsechzig', 70: 'siebzig', 80: 'achtzig', 90: 'neunzig', 99: 'neunundneunzig', 100: 'einhundert', 101: 'einhunderteins', 123: 'einhundertdreiundzwanzig', 200: 'zweihundert', 500: 'fünfhundert', 999: 'neunhundertneunundneunzig', 1000: 'eintausend', 2000: 'zweitausend', 2023: 'zweitausenddreiundzwanzig', 1000000: 'eine Million', 2000000: 'zwei Millionen'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="de"), number)
 
     def test_extract_negative_and_decimal(self):
-        expected = {-7: 'minus sieben', -42: 'minus zweiundvierzig', 2.5: 'zwei Komma fünf null null', 3.14: 'drei Komma eins vier null', -3.5: 'minus drei Komma fünf null null', 0.5: ' Komma fünf null null'}
+        expected = {-7: 'minus sieben', -42: 'minus zweiundvierzig', 2.5: 'zwei Komma fünf null null', 3.14: 'drei Komma eins vier null', -3.5: 'minus drei Komma fünf null null', 0.5: 'null Komma fünf null null'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="de"), number)

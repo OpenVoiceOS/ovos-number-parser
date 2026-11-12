@@ -197,10 +197,12 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
     NN = [("hundre og femte", 100, 100),
           ("ein og tjuande", 1, False)]
 
-    #: the fraction shape: with the flag on the leading cardinal answers, and
-    #: with the flag off the fraction still does.
-    FRACTIONS_NB = [("en halv", 1, 0.5),
-                    ("en kvart", 1, 0.25),
+    #: the fraction shape: a cardinal followed by its denominator is one
+    #: number, so with the flag on or off the fraction answers, as it does in
+    #: da and de ("en halv", "ein halb"). Behind a whole number the fraction
+    #: is a second span, and with the flag on the leading cardinal answers.
+    FRACTIONS_NB = [("en halv", 0.5, 0.5),
+                    ("en kvart", 0.25, 0.25),
                     ("tre en halv", 3, 3.5)]
 
     def _assert_rows(self, lang, rows):
@@ -220,7 +222,7 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
     def test_a_fraction_line_answers_its_leading_cardinal_under_the_flag(self):
         self._assert_rows("nb", self.FRACTIONS_NB)
         self.assertEqual(extract_number('ein halv', lang="nn",
-                                        ordinals=True), 1)
+                                        ordinals=True), 0.5)
         self.assertEqual(extract_number('ein halv', lang="nn"), 0.5)
 
     def test_the_control_da_and_de_already_read_it_this_way(self):

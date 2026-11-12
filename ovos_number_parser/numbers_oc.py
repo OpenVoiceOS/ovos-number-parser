@@ -109,6 +109,7 @@ _OC = NumberVocabulary(
 
     DECIMAL_MARKER=["virgula", "punt", ".", ","],
     NEGATIVE_SIGN=["mens"],
+    NEGATIVE_IDIOMS=[("mai", "o", "mens")],
     UNITS={
         0: 'zèro',
         1: 'un',
