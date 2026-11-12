@@ -137,6 +137,13 @@ _ES = NumberVocabulary(
         800: 'ochocientos',
         900: 'novecientos'
     },
+    # RAE and ASALE, Diccionario panhispánico de dudas, "uno" § 2.3: a number
+    # agrees with the noun it precedes ("mil una", "mil doscientas"), and so
+    # does the count before "mil" ("setecientas mil toneladas", "cuarenta y
+    # una mil pesetas"); "millón" and the scale words above it are masculine
+    # nouns and keep the masculine count
+    AGREEING_SCALES=[1000],
+    AGREE_AFTER_SCALE=True,
     FRACTION={
         2: 'medio',
         3: 'tercio',
