@@ -69,6 +69,7 @@ _PT_PT = NumberVocabulary(
 
     HUNDRED_PARTICLE="cento", # how to read "1XX"
     DENOMINATOR_PARTICLE="avos",   # for fractions  X / N {PARTICLE}
+    CARDINAL_DENOMINATORS=True,  # "três doze avos" = 3/12
     NUMBER_OVERFLOW="número exageradamente grande",
     DIVIDED_BY_ZERO="a dividir por zero", # how to read X/0 values
     NO_PREV_UNIT=[100, 1000], # "mil" vs "um mil"  / "cem" vs "um cem"
@@ -293,6 +294,7 @@ _PT_BR = NumberVocabulary(
     HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
     DIVIDED_BY_ZERO=_PT_PT.DIVIDED_BY_ZERO,
     DENOMINATOR_PARTICLE=_PT_PT.DENOMINATOR_PARTICLE,
+    CARDINAL_DENOMINATORS=_PT_PT.CARDINAL_DENOMINATORS,
     HUNDRED_PARTICLE=_PT_PT.HUNDRED_PARTICLE,
     NO_PREV_UNIT=_PT_PT.NO_PREV_UNIT,
     NO_PLURAL=_PT_PT.NO_PLURAL,
