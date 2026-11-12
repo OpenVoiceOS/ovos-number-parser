@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.24.34a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.34a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.33a1...0.24.34a1)
+
+**Merged pull requests:**
+
+- fix\(eu,fa\): read the ordinal word under ordinals=True [\#368](https://github.com/OpenVoiceOS/ovos-number-parser/pull/368) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.24.33a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.33a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.32a1...0.24.33a1)
+
+## [0.24.32a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.32a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.31a1...0.24.32a1)
+
+**Merged pull requests:**
+
+- fix\(oc\): read the 8th and 80th spellings a native speaker reported [\#438](https://github.com/OpenVoiceOS/ovos-number-parser/pull/438) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(pt\): read the count before a fraction word and the "avos" denominator [\#434](https://github.com/OpenVoiceOS/ovos-number-parser/pull/434) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.31a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.31a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.30a1...0.24.31a1)
@@ -361,17 +382,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.8a1...0.22.9a1)
 
-**Merged pull requests:**
-
-- fix\(ar\): every attested teen spelling reads as its number [\#339](https://github.com/OpenVoiceOS/ovos-number-parser/pull/339) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.22.8a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.8a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.7a1...0.22.8a1)
-
-**Merged pull requests:**
-
-- fix\(ar\): numbers\_to\_digits keeps the conjunction و before a new number [\#338](https://github.com/OpenVoiceOS/ovos-number-parser/pull/338) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.22.7a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.7a1) (2026-09-21)
 
@@ -555,15 +568,15 @@
 
 ## [0.18.13a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.13a1) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.11a1...0.18.13a1)
-
-## [0.18.11a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.11a1) (2026-07-18)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.12a1...0.18.11a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.12a1...0.18.13a1)
 
 ## [0.18.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.12a1) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.10a1...0.18.12a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.11a1...0.18.12a1)
+
+## [0.18.11a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.11a1) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.10a1...0.18.11a1)
 
 ## [0.18.10a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.10a1) (2026-07-18)
 
