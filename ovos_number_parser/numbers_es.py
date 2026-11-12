@@ -294,9 +294,6 @@ _ES = NumberVocabulary(
     }
 )
 
-_UNACCENTED_ES = str.maketrans("áéíóú", "aeiou")
-
-
 class SpanishNumberExtractor(RomanceNumberExtractor):
     """Castilian number engine.
 
@@ -337,14 +334,14 @@ class SpanishNumberExtractor(RomanceNumberExtractor):
         if count == 1:
             words = scale_word
         else:
-            # the count as it stands before the scale noun ("veintiún mil")
+            # DPD "ordinales" § 2d: "prefijando al ordinal simple el cardinal
+            # que lo multiplica". The count stands as it does before the scale
+            # noun ("treinta y un mil"), written as one word as DPD
+            # "cardinales" § 2 allows ("treintaicinco") and as the fraction
+            # noun of the same number is ("treintaiunmilésimo").
             count_words = self.pronounce_number(count, scale=scale,
                                                 gender=GrammaticalGender.NEUTRAL)
-            if " " in count_words:
-                # the DPD gives no one-word form for a count of several words
-                words = f"{self.pronounce_number(count, scale=scale)} {scale_word}"
-            else:
-                words = count_words.translate(_UNACCENTED_ES) + scale_word
+            words = _one_word_es(count_words) + scale_word
         if remainder:
             words += " " + self._pronounce_ordinal_core(remainder, gender, scale)
         return words
@@ -395,7 +392,10 @@ def fraction_noun_es(denominator: int, plural: bool = False) -> str:
     "milmillonésimo"); every other denominator outside the table takes -avo
     on the cardinal written as one word ("cincuentaiseisavo", "doscientosavo").
     The cardinal drops a final -a and keeps -e or -o (§ 5); "uno" drops its
-    -o ("cientounava" in § 2, "veintiunavo" in § 3 c).
+    -o ("cientounava" in § 2, "veintiunavo" in § 3 c). The -ésimo noun is
+    the ordinal of DPD "ordinales" § 2d, formed "prefijando al ordinal
+    simple el cardinal que lo multiplica", so it equals
+    ``ES.pronounce_ordinal`` for a count times mil or millón.
 
     Raises OverflowError from 10**24 up, where the vocabulary has no noun.
     """
