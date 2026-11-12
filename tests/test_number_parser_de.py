@@ -45,7 +45,7 @@ class TestGermanExtract(unittest.TestCase):
                          21)
 
     def test_no_number(self):
-        self.assertIn(extract_number("hallo wie geht es dir", lang="de"), (False, None))
+        self.assertIs(extract_number("hallo wie geht es dir", lang="de"), False)
 
 
 class TestGermanRoundTrip(unittest.TestCase):
@@ -95,7 +95,7 @@ class TestGermanAdversarial(unittest.TestCase):
     def test_empty_and_junk(self):
         for text in ["", "   ", "hallo welt", "!!!", "\n\t"]:
             with self.subTest(text=text):
-                self.assertIn(extract_number(text, lang="de"), (False, None))
+                self.assertIs(extract_number(text, lang="de"), False)
 
     def test_case_insensitive(self):
         self.assertEqual(extract_number("MINUS SIEBEN".lower(), lang="de"), -7)
