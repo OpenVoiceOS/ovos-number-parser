@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.24.35a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.35a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.34a1...0.24.35a1)
+
+**Merged pull requests:**
+
+- fix\(fr\): read ordinals as the cardinal with -ième [\#448](https://github.com/OpenVoiceOS/ovos-number-parser/pull/448) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(en\): native ordinal for zero, round hundreds and units inside a number [\#443](https://github.com/OpenVoiceOS/ovos-number-parser/pull/443) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(ru\): zero ordinal, the count before a scale word, and the long scale [\#440](https://github.com/OpenVoiceOS/ovos-number-parser/pull/440) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.34a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.34a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.33a1...0.24.34a1)
@@ -365,10 +375,6 @@
 ## [0.22.11a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.11a1) (2026-09-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.10a1...0.22.11a1)
-
-**Closed issues:**
-
-- Arabic: hundreds composed on واحد and اثنين \(اتنين مية → 200\) [\#343](https://github.com/OpenVoiceOS/ovos-number-parser/issues/343)
 
 **Merged pull requests:**
 
