@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.31a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.31a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.30a1...0.24.31a1)
+
+**Merged pull requests:**
+
+- fix\(de\): extract\_number answers False when the line holds no number [\#439](https://github.com/OpenVoiceOS/ovos-number-parser/pull/439) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.30a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.30a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.29a1...0.24.30a1)
@@ -384,10 +392,6 @@
 ## [0.22.6a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.6a1) (2026-09-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.5a1...0.22.6a1)
-
-**Merged pull requests:**
-
-- fix\(ar\): ماية is not a spelling of "hundred" [\#332](https://github.com/OpenVoiceOS/ovos-number-parser/pull/332) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.22.5a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.5a1) (2026-09-21)
 
