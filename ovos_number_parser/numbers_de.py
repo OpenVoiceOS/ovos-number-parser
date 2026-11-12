@@ -1046,7 +1046,9 @@ def extract_number_de(text, short_scale=True, ordinals=False):
         if preferred:
             numbers = preferred
 
-    number = numbers[0].value if numbers else None
+    if not numbers:
+        return False
+    number = numbers[0].value
 
     if number and not isinstance(number, int):
         try:

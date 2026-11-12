@@ -34,7 +34,7 @@ from ovos_number_parser.numbers_en import numbers_to_digits_en, is_ordinal_en, p
 from ovos_number_parser.numbers_el import pronounce_number_el, pronounce_ordinal_el, \
     extract_number_el, is_fractional_el, is_ordinal_el
 from ovos_number_parser.numbers_es import (numbers_to_digits_es, pronounce_number_es, extract_number_es,
-                                           is_fractional_es, ES)
+                                           is_fractional_es, fraction_noun_es, ES)
 from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu, \
     pronounce_ordinal_eu, is_ordinal_eu
 from ovos_number_parser.numbers_et import pronounce_number_et, pronounce_ordinal_et, extract_number_et, \
@@ -254,6 +254,15 @@ def _pronounce_fraction_generic(fraction_word: str, lang: str) -> str:
                     if t.isdecimal() else t
                     for t in tokens)
 
+    if result is None and lang2 == "es" and n2 > 1:
+        try:
+            noun = fraction_noun_es(n2, plural=n1 != 1)
+        except OverflowError:  # no reading for the denominator
+            noun = None
+        if noun:
+            # the noun is masculine: "un veintiunavo", "veintiún cincuentavos"
+            count = pronounce_number(n1, lang, gender=GrammaticalGender.NEUTRAL)
+            result = f"{count} {noun}"
     if result is None:
         # approximate: cardinal numerator + ordinal denominator
         result = f"{pronounce_number(n1, lang)} {pronounce_ordinal(n2, lang)}"
@@ -617,7 +626,8 @@ def _number_words_to_digits(utterance: str, lang: str,
     if lang2 == "de":
         return numbers_to_digits_de(utterance)
     if lang2 == "pt":
-        return PT_PT.numbers_to_digits(utterance, scale=scale)
+        return PT_BR.numbers_to_digits(utterance, scale=scale) if "br" in lang.lower() \
+            else PT_PT.numbers_to_digits(utterance, scale=scale)
     if lang2 == "mwl":
         return MWL.numbers_to_digits(utterance, scale=scale)
     if lang2 == "ro":
@@ -1707,6 +1717,11 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_number_sl(number, ordinals=True)
     if lang2 == "kab":
         return pronounce_ordinal_kab(number, gender)
+    if lang2 == "ru" and number and (
+            isinstance(number, int) or isinstance(number, float) and number.is_integer()) \
+            and abs(number) < 10 ** 24:
+        # the Russian engine has no ordinal scale word from 10**24 up
+        return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
     # fallback to unicode RBNF
     return _pronounce_rbnf(number, lang, True, gender)
 
