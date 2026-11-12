@@ -16,7 +16,8 @@ Notes on the grammar encoded below:
 - "mila" (thousand) is invariable and never takes a preceding "un".
 - Occitan uses the long scale (milion, miliard).
 """
-from typing import Optional, Union
+from dataclasses import dataclass, field
+from typing import Dict, Optional, Union
 
 from ovos_number_parser.util import (Scale, GrammaticalGender, NumberVocabulary,
                                      RomanceNumberExtractor)
@@ -84,7 +85,22 @@ _ORDINAL_COMPOUNDS = {
 }
 
 
-_OC = NumberVocabulary(
+@dataclass
+class OccitanVocabulary(NumberVocabulary):
+    """The vocabulary, plus ordinal spellings read but never written."""
+
+    #: variant spellings of ordinals, for extraction only
+    ORDINAL_ALT_SPELLINGS: Dict[str, int] = field(default_factory=dict)
+
+    def get_ordinal_strings(self, scale: Optional[Scale] = None) -> Dict[str, int]:
+        ordinals = super().get_ordinal_strings(scale)
+        for word, value in self.ORDINAL_ALT_SPELLINGS.items():
+            ordinals.setdefault(word, value)
+            ordinals.setdefault(self.swap_gender(word, GrammaticalGender.FEMININE), value)
+        return ordinals
+
+
+_OC = OccitanVocabulary(
     LANG="oc-FR",
     swap_gender=swap_gender_oc,
     pluralize=pluralize_oc,
@@ -198,10 +214,19 @@ _OC = NumberVocabulary(
     ALT_SPELLINGS={
         # variant spellings of 8 and 80 (issue #302, native reporter)
         'ueit': 8,
+        'uèit': 8,
         'uòch': 8,  # Montpellier
         'ueitanta': 80,  # Wiktionary alternative form (Cantalausa)
         'uechanta': 80,
         'uòchanta': 80,  # Montpellier
+    },
+    ORDINAL_ALT_SPELLINGS={
+        # variant spellings of 8th and 80th (issue #302, native reporter)
+        'uechen': 8,
+        'ueiten': 8,
+        'oiten': 8,
+        'uòchen': 8,  # Montpellier
+        'uòchanten': 80,  # Montpellier
     },
     ORDINAL_UNITS={
         1: 'primièr',

@@ -160,6 +160,24 @@ class TestExtractOC(unittest.TestCase):
         self.assertEqual(OC.extract_number("uechanta"), 80)
         self.assertEqual(OC.extract_number("uòchanta"), 80)
 
+    def test_alt_spellings_named_by_the_native_reporter(self):
+        # issue #302: "8: uèch and uèit and locally uòch in Montpellier",
+        # "8th: ochen, uechen, ueiten, oiten", Montpellier "8th: uòchen",
+        # "80th: uòchanten"
+        self.assertEqual(OC.extract_number("uèit"), 8)
+        self.assertEqual(OC.extract_number("ai uèit cats"), 8)
+        for word in ("ochen", "uechen", "ueiten", "oiten", "uòchen"):
+            with self.subTest(word=word):
+                self.assertEqual(OC.is_ordinal(word), 8)
+                self.assertEqual(
+                    OC.extract_number(f"lo {word} jorn", ordinals=True), 8)
+        self.assertEqual(OC.is_ordinal("uòchanten"), 80)
+        self.assertEqual(OC.extract_number("la uòchena", ordinals=True), 8)
+
+    def test_alt_ordinal_spellings_are_never_written(self):
+        self.assertEqual(OC.pronounce_number(8, ordinals=True), "ochen")
+        self.assertEqual(OC.pronounce_number(80, ordinals=True), "ochanten")
+
     def test_pluralize_classes(self):
         # noun classes per Ubaud (issue #302)
         self.assertEqual(pluralize_oc("peis"), "peises")    # -is
