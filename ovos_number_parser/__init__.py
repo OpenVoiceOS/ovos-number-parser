@@ -61,7 +61,8 @@ from ovos_number_parser.numbers_id import (pronounce_number_id, pronounce_number
                                            is_fractional_id, is_fractional_ms,
                                            nice_number_id, nice_number_ms,
                                            numbers_to_digits_id, numbers_to_digits_ms)
-from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, is_fractional_it, IT)
+from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, pronounce_ordinal_it,
+                                            is_fractional_it, IT)
 from ovos_number_parser.numbers_kab import (pronounce_number_kab, pronounce_ordinal_kab, extract_number_kab,
                                              is_fractional_kab, is_ordinal_kab, numbers_to_digits_kab)
 from ovos_number_parser.numbers_mwl import MWL
@@ -80,7 +81,8 @@ from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number
     is_fractional_pl, pronounce_ordinal_pl
 from ovos_number_parser.numbers_pt import PortugueseVariant, PT_PT, PT_BR
 from ovos_number_parser.numbers_ro import RO
-from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru
+from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru, \
+    _ordinal_ru
 from ovos_number_parser.numbers_sk import numbers_to_digits_sk, pronounce_number_sk, is_fractional_sk, \
     extract_number_sk, pronounce_ordinal_sk, nice_number_sk
 from ovos_number_parser.numbers_sl import pronounce_number_sl, extract_number_sl, is_fractional_sl, \
@@ -1289,6 +1291,8 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
         # NOT routed through IT: the engine spaces the tens ("venti cinque")
         # where Italian elides them ("venticinque"). Legacy path until the
         # engine handles elision, so `digits` stays unused here.
+        if ordinals and not scientific and number == int(number):
+            return pronounce_ordinal_it(int(number), gender)
         return pronounce_number_it(number, places, short_scale, scientific)
     if lang2 == "kab":
         return pronounce_number_kab(number, places, ordinals, gender)
@@ -1699,6 +1703,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_hu(number)
     if lang2 == "id":
         return pronounce_ordinal_id(number)
+    if lang2 == "it" and 0 <= number < 10 ** 6 and number == int(number):
+        return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
     if lang2 == "ms":
         return pronounce_ordinal_ms(number)
     if lang2 == "tr":
@@ -1733,10 +1739,10 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_number_sl(number, ordinals=True)
     if lang2 == "kab":
         return pronounce_ordinal_kab(number, gender)
-    if lang2 == "ru" and number and (
+    if lang2 == "ru" and (
             isinstance(number, int) or isinstance(number, float) and number.is_integer()) \
-            and abs(number) < 10 ** 24:
-        # the Russian engine has no ordinal scale word from 10**24 up
+            and _ordinal_ru(abs(int(number)), short_scale) is not None:
+        # past the scale words of the Russian engine there is no ordinal
         return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
     # fallback to unicode RBNF
     return _pronounce_rbnf(number, lang, True, gender)
