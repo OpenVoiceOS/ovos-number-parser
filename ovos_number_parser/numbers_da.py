@@ -249,6 +249,21 @@ _COMMA = {"komma"}
 _EXTRA_SPACE_DA = ""
 
 
+# The ordinals of the tens 40-90 come in two forms, both correct (Dansk
+# Sprognævn, sproget.dk SV00000084): the newer cardinal plus -ende
+# ("fyrrende") and the older vigesimal -(inds)tyvende ("fyrretyvende"). The
+# older forms and "tressende" are no suffix of the cardinal, so each maps to
+# the cardinal ten it names.
+_DA_TENS_ORDINALS = {
+    "fyrretyvende": "fyrre",
+    "halvtredsindstyvende": "halvtreds",
+    "tresindstyvende": "tres", "tressende": "tres",
+    "halvfjerdsindstyvende": "halvfjerds",
+    "firsindstyvende": "firs",
+    "halvfemsindstyvende": "halvfems",
+}
+
+
 def is_ordinal_da(input_str):
     """
     This function takes the given text and checks if it is an ordinal number.
@@ -291,6 +306,12 @@ def is_ordinal_da(input_str):
     }
     if lowerstr in irregular:
         return irregular[lowerstr]
+
+    for ordinal, cardinal in _DA_TENS_ORDINALS.items():
+        if lowerstr.endswith(ordinal):
+            # "toogfyrretyvende" = "toogfyrre" + "nde", read below
+            value = _cardinal_value(lowerstr[:-len(ordinal)] + cardinal)
+            return False if value is None else value
 
     if lowerstr.endswith("te"):
         value = _cardinal_value(lowerstr[:-2] + "e")
