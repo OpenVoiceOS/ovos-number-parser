@@ -419,6 +419,9 @@ class TestRegionalFrenchOrdinals(unittest.TestCase):
                                   "quatre-vingt-", expected)
                 expected = expected.replace("quatre-vingts mill",
                                             "quatre-vingt mill")
+                # TLFi "millionième": "Adj. numéral ordinal. Qui occupe le
+                # rang marqué par le nombre d'un million", with no "un"
+                expected = re.sub(r"^un (?=milli\w+ième$)", "", expected)
                 with self.subTest(lang=lang, value=value):
                     self.assertEqual(
                         pronounce_number(value, lang, ordinals=True), expected)

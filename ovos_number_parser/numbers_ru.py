@@ -172,6 +172,11 @@ _LONG_SCALE_RU = OrderedDict([
     (1e120, "вигинтиллион"),
 ])
 
+# The scale words by the power of ten they name. The float keys above stop
+# being exact powers of ten past 10^22, so a lookup goes by the exponent.
+_SHORT_SCALE_POWERS_RU = {round(math.log10(k)): w for k, w in _SHORT_SCALE_RU.items()}
+_LONG_SCALE_POWERS_RU = {round(math.log10(k)): w for k, w in _LONG_SCALE_RU.items()}
+
 _ORDINAL_BASE_RU = {
     1: 'первый',
     2: 'второй',
@@ -487,11 +492,6 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
 
     tens = [number_names[n] for n in range(10, 100, 10)]
 
-    if short_scale:
-        hundreds = [_SHORT_SCALE_RU[n] for n in _SHORT_SCALE_RU.keys()]
-    else:
-        hundreds = [_LONG_SCALE_RU[n] for n in _LONG_SCALE_RU.keys()]
-
     # deal with negative numbers
     result = ""
     if num < 0:
@@ -505,81 +505,16 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
             (word := _ordinal_ru(int(num), short_scale)):
         result += word
     else:
-        def _sub_thousand(n, ordinals=False):
+        def _sub_thousand(n):
             assert 0 <= n <= 999
-            if n in _SHORT_ORDINAL_RU and ordinals:
-                return _SHORT_ORDINAL_RU[n]
             if n <= 19:
                 return digits[n]
             elif n <= 99:
                 q, r = divmod(n, 10)
-                return tens[q - 1] + (" " + _sub_thousand(r, ordinals) if r
-                                      else "")
+                return tens[q - 1] + (" " + _sub_thousand(r) if r else "")
             else:
                 q, r = divmod(n, 100)
-                return _NUM_STRING_RU[q * 100] + (" " + _sub_thousand(r, ordinals) if r else "")
-
-        def _short_scale(n):
-            # A finite value above the largest named scale has no spoken name
-            # here; return "" so the caller falls back to a scientific reading.
-            # "бесконечность" is reserved for actual math.inf (handled above).
-            if n > max(_SHORT_SCALE_RU.keys()):
-                return ""
-            ordi = ordinals
-
-            if int(n) != n:
-                ordi = False
-            n = int(n)
-            assert 0 <= n
-            res = []
-            for i, z in enumerate(_split_by(n, 1000)):
-                if not z:
-                    continue
-                number = _sub_thousand(z, not i and ordi)
-
-                if i:
-                    if i >= len(hundreds):
-                        return ""
-                    if ordi:
-                        if i * 1000 in _SHORT_ORDINAL_RU:
-                            if z == 1:
-                                number = _SHORT_ORDINAL_RU[i * 1000]
-                            else:
-                                if z > 5:
-                                    number = number[:-1] + "и"
-                                number += _SHORT_ORDINAL_RU[i * 1000]
-                        else:
-                            if n not in _SHORT_SCALE_RU:
-                                num = int("1" + "0" * (len(str(n)) // 3 * 3))
-
-                                if number[-3:] == "два":
-                                    number = number[:-1] + "ух"
-                                elif number[-2:] == "ри" or number[-2:] == "ре":
-                                    number = number[:-1] + "ёх"
-                                elif number[-1:] == "ь":
-                                    number = number[:-1] + "и"
-
-                                number += _SHORT_SCALE_RU[num] + "ный"
-                            else:
-                                number = _SHORT_SCALE_RU[n] + "ный"
-                    elif z == 1:
-                        number = hundreds[i - 1]
-                    else:
-                        if i == 1:
-                            if z % 10 == 1 and z % 100 // 10 != 1:
-                                number = number[:-2] + "на"
-                            elif z % 10 == 2 and z % 100 // 10 != 1:
-                                number = number[:-1] + "е"
-                            number += " " + plural_ru(z, "тысяча", "тысячи", "тысяч")
-                        elif 1 <= z % 10 <= 4 and z % 100 // 10 != 1:
-                            number += " " + hundreds[i - 1] + "а"
-                        else:
-                            number += " " + hundreds[i - 1] + "ов"
-
-                res.append(number)
-                ordi = False
-
-            return " ".join(reversed(res))
+                return _NUM_STRING_RU[q * 100] + (" " + _sub_thousand(r) if r else "")
 
         def _split_by(n, split=1000):
             assert 0 <= n
@@ -589,66 +524,35 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
                 res.append(r)
             return res
 
-        def _long_scale(n):
-            # See _short_scale: a finite value beyond the largest named scale
-            # returns "" for a scientific fallback, never the infinity word.
-            if n >= max(_LONG_SCALE_RU.keys()):
-                return ""
-            ordi = ordinals
-            if int(n) != n:
-                ordi = False
-            n = int(n)
-            assert 0 <= n
+        def _scale_reading(n):
+            # Every group of three digits takes the scale word of its power of
+            # ten, in the plural form its count asks for. A group with no
+            # scale word returns "" so the caller falls back to a scientific
+            # reading; "бесконечность" is reserved for math.inf (handled above).
+            names = _SHORT_SCALE_POWERS_RU if short_scale else _LONG_SCALE_POWERS_RU
             res = []
-            for i, z in enumerate(_split_by(n, 1000000)):
+            for i, z in enumerate(_split_by(int(n), 1000)):
                 if not z:
                     continue
-                number = pronounce_number_ru(z, places, True, scientific,
-                                             ordinals=ordi and not i)
-                # strip off the comma after the thousand
+                number = _sub_thousand(z)
                 if i:
-                    if i >= len(hundreds):
+                    name = names.get(3 * i)
+                    if name is None:
                         return ""
-                    # plus one as we skip 'thousand'
-                    # (and 'hundred', but this is excluded by index value)
-                    number = number.replace(',', '')
-
-                    if ordi:
-                        if (i + 1) * 1000000 in _LONG_ORDINAL_RU:
-                            if z == 1:
-                                number = _LONG_ORDINAL_RU[
-                                    (i + 1) * 1000000]
-                            else:
-                                number += _LONG_ORDINAL_RU[
-                                    (i + 1) * 1000000]
-                        else:
-                            if n not in _LONG_SCALE_RU:
-                                num = int("1" + "0" * (len(str(n)) // 3 * 3))
-
-                                if number[-3:] == "два":
-                                    number = number[:-1] + "ух"
-                                elif number[-2:] == "ри" or number[-2:] == "ре":
-                                    number = number[:-1] + "ёх"
-                                elif number[-1:] == "ь":
-                                    number = number[:-1] + "и"
-
-                                number += _LONG_SCALE_RU[num] + "ный"
-                            else:
-                                number = " " + _LONG_SCALE_RU[n] + "ный"
-                    elif z == 1:
-                        number = hundreds[i]
-                    elif z <= 4:
-                        number += " " + hundreds[i] + "а"
+                    if i == 1:
+                        # тысяча is feminine: "одна тысяча", "две тысячи"
+                        if z % 10 == 1 and z % 100 != 11:
+                            number = number[:-2] + "на"
+                        elif z % 10 == 2 and z % 100 != 12:
+                            number = number[:-1] + "е"
+                        word = plural_ru(z, name, name[:-1] + "и", name[:-1])
                     else:
-                        number += " " + hundreds[i] + "ов"
-
+                        word = plural_ru(z, name, name + "а", name + "ов")
+                    number = word if z == 1 else f"{number} {word}"
                 res.append(number)
             return " ".join(reversed(res))
 
-        if short_scale:
-            result += _short_scale(num)
-        else:
-            result += _long_scale(num)
+        result += _scale_reading(num)
 
     # deal with a magnitude that has no spoken name: read it scientifically
     # (covers floats in "e" notation and very large ints alike) so a finite
@@ -705,18 +609,20 @@ def _ordinal_stem_ru(n):
 
 def _ordinal_ru(n, short_scale=True):
     """Masculine ordinal of a whole number: the groups before the last
-    non-zero group stay cardinal ("две тысячи пятый"). Return None for 0,
-    when that group has no scale name, or when the groups before it read
+    non-zero group stay cardinal ("две тысячи пятый"). Return None when that
+    group has no scale name, or when the groups before it read
     scientifically."""
-    if n < 1:
-        return None
+    if n == 0:
+        # CLDR RBNF ru spellout-ordinal-masculine: 0 "нулевой"
+        return "нулевой"
     scale, group = 0, n
     while group % 1000 == 0:
         scale, group = scale + 1, group // 1000
     head = (group - group % 1000) * 1000 ** scale
     group %= 1000
     if scale:
-        name = (_SHORT_SCALE_RU if short_scale else _LONG_SCALE_RU).get(1000 ** scale)
+        name = (_SHORT_SCALE_POWERS_RU if short_scale
+                else _LONG_SCALE_POWERS_RU).get(3 * scale)
         if name is None:
             return None
         word = ("" if group == 1 else _ordinal_stem_ru(group)) + \
