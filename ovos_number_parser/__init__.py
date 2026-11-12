@@ -1707,6 +1707,11 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_number_sl(number, ordinals=True)
     if lang2 == "kab":
         return pronounce_ordinal_kab(number, gender)
+    if lang2 == "ru" and number and (
+            isinstance(number, int) or isinstance(number, float) and number.is_integer()) \
+            and abs(number) < 10 ** 24:
+        # the Russian engine has no ordinal scale word from 10**24 up
+        return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
     # fallback to unicode RBNF
     return _pronounce_rbnf(number, lang, True, gender)
 
