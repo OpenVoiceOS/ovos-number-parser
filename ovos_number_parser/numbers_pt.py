@@ -1,3 +1,40 @@
+"""Number tools for Portuguese, European (pt-PT) and Brazilian (pt-BR).
+
+A tag that contains "br" reads Brazilian Portuguese. Every other tag reads
+European Portuguese. pt-PT uses the long scale ("mil milhões", "bilião") and
+pt-BR the short scale ("bilhão").
+
+Sources for the rules in this module:
+
+Conjunction between classes. Cunha & Cintra, "Nova Gramática do Português
+Contemporâneo" (1984), p. 372: "Não se emprega a conjunção entre os milhares
+e as centenas, salvo quando o número terminar numa centena com dois zeros".
+So 1892 is "mil oitocentos e noventa e dois" and 1800 is "mil e oitocentos".
+Ciberdúvidas, answer 34389: the conjunction also joins the two rightmost
+classes when the second begins with a zero ("mil e vinte", "mil e um").
+
+Gender. Only "um", "dois" and the hundreds from "duzentos" inflect
+(linguagem.pt, "Numerais": "Um, dois e as centenas concordam em género com o
+substantivo que contam"). "Mil" is an invariable numeral (linguagem.pt: "Mil
+é invariável como numeral"), so the count before it agrees with the counted
+noun. Só Português, FAQ 359: "o numeral que a antecede deve ser flexionado de
+acordo com o gênero do substantivo seguinte", hence "duas mil pessoas" and
+"duzentas mil casas". The group after a scale word also counts the noun
+(Priberam, "mil": "mil e uma artimanhas"). "Milhão" is a masculine noun
+(Só Português, FAQ 359), so its own count stays masculine: "dois milhões".
+
+Fractions. Priberam, "vigésimo", noun sense 2: "Cada uma das vinte partes
+iguais em que se divide um todo." Priberam, "avo": "doze vinte e cinco avos
+= 12/25".
+
+Ordinals of thousands. Teyssier, "Manual de Língua Portuguesa", p. 183,
+writes 2000.º as "dois milésimo": the count before "milésimo" is cardinal.
+
+"Um milhão e meio" is half of the scale, 1500000. A decimal needs the decimal
+marker: 1000000.5 is "um milhão vírgula cinco".
+
+Overview of the numerals: https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
+"""
 from enum import Enum
 from typing import Union, Optional
 import warnings
@@ -60,7 +97,6 @@ def pluralize_pt(word: str):
     return word
 
 
-# https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
 _PT_PT = NumberVocabulary(
     LANG="pt-PT",
 
@@ -82,19 +118,10 @@ _PT_PT = NumberVocabulary(
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
-    # Cunha & Cintra, "Nova Gramática do Português Contemporâneo" (1984),
-    # p. 372: "Não se emprega a conjunção entre os milhares e as centenas,
-    # salvo quando o número terminar numa centena com dois zeros" -- so
-    # 1892 = "mil oitocentos e noventa e dois" but 1800 = "mil e oitocentos".
-    # Ciberdúvidas (ISCTE-IUL, resposta 34389) adds the other half: the
-    # conjunction also joins the two rightmost classes when the second begins
-    # with a zero ("mil e vinte", "mil e um"). Together: join when the
-    # remainder is below 100 or is a whole number of hundreds.
+    # join when the remainder is below 100 or a whole number of hundreds
     JOINER_ON_THOUSANDS = True,  # "mil e duzentos", "mil e cem"
-    # "mil" is an invariable numeral, so the count before it agrees with the
-    # counted noun ("duas mil pessoas", "duzentas mil casas"), and so does the
-    # group after any scale word ("mil e uma noites"). "milhão" is a masculine
-    # noun, so its own count stays masculine ("dois milhões de pessoas").
+    # the count before "mil" and the group after a scale word agree with
+    # the counted noun; "milhão" is a masculine noun
     AGREEING_SCALES=[1000],
     AGREE_AFTER_SCALE=True,
 
@@ -308,14 +335,7 @@ _PT_BR = NumberVocabulary(
     JOIN_WORD=_PT_PT.JOIN_WORD,
     JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS=True,  # add JOIN_WORD from 100-1000 - "duzentos e um"
-    # Cunha & Cintra, "Nova Gramática do Português Contemporâneo" (1984),
-    # p. 372: "Não se emprega a conjunção entre os milhares e as centenas,
-    # salvo quando o número terminar numa centena com dois zeros" -- so
-    # 1892 = "mil oitocentos e noventa e dois" but 1800 = "mil e oitocentos".
-    # Ciberdúvidas (ISCTE-IUL, resposta 34389) adds the other half: the
-    # conjunction also joins the two rightmost classes when the second begins
-    # with a zero ("mil e vinte", "mil e um"). Together: join when the
-    # remainder is below 100 or is a whole number of hundreds.
+    # join when the remainder is below 100 or a whole number of hundreds
     JOINER_ON_THOUSANDS=True,  # "mil e duzentos", "mil e cem"
     AGREEING_SCALES=_PT_PT.AGREEING_SCALES,
     AGREE_AFTER_SCALE=_PT_PT.AGREE_AFTER_SCALE,
