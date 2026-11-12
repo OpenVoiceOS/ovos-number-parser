@@ -1,14 +1,5 @@
 # Changelog
 
-## [0.24.27a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.27a1) (2026-11-12)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.26a1...0.24.27a1)
-
-**Merged pull requests:**
-
-- fix\(ru\): read pronounce\_ordinal with the Russian engine [\#436](https://github.com/OpenVoiceOS/ovos-number-parser/pull/436) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(es\): keep the feminine above 999 [\#433](https://github.com/OpenVoiceOS/ovos-number-parser/pull/433) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.26a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.26a1) (2026-11-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.25a1...0.24.26a1)
