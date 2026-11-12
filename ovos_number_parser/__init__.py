@@ -1653,6 +1653,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return OC.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang2 == "an":
         return AN.pronounce_ordinal(number, scale=scale, gender=gender)
+    if lang2 == "az" and (isinstance(number, int) or number.is_integer()):
+        return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
     if _is_ar(lang):
         return pronounce_ordinal_ar(number, gender=gender, case=case)
     if lang2 == "da":

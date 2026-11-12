@@ -137,9 +137,9 @@ _ORDINAL_BASE_AZ = {
     40: "qırxıncı",
     50: "əllinci",
     60: "altmışıncı",
-    70: "yetmışinci",
+    70: "yetmişinci",
     80: "səksəninci",
-    90: "doxsanınçı",
+    90: "doxsanıncı",
     1e2: "yüzüncü",
     1e3: "mininci"
 }
@@ -414,7 +414,9 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
     num = abs(num)
 
     # check for a direct match
-    if num in number_names and not ordinals:
+    if num == 0 and ordinals:
+        result += "sıfır" + _get_ordinal_ak("sıfır")
+    elif num in number_names and not ordinals:
         if num > 1000:
             result += "bir "
         result += number_names[num]
@@ -431,8 +433,11 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                                       else "")
             else:
                 q, r = divmod(n, 100)
-                return (digits[q] + " " if q != 1 else "") + "yüz" + (
-                    " " + _sub_thousand(r, ordinals) if r else "")
+                if r:
+                    tail = " " + _sub_thousand(r, ordinals)
+                else:
+                    tail = _get_ordinal_ak("yüz") if ordinals else ""
+                return (digits[q] + " " if q != 1 else "") + "yüz" + tail
 
         def _short_scale(n):
             if n >= 999 * max(_SHORT_SCALE_AZ.keys()):
@@ -457,7 +462,9 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                     if ordi:
 
                         if 1000 ** i in _SHORT_ORDINAL_AZ:
-                            if z == 1:
+                            # "min" is said without "bir"; a larger scale
+                            # word drops it only when it stands alone
+                            if z == 1 and (i == 1 or n == 1000 ** i):
                                 number = _SHORT_ORDINAL_AZ[1000 ** i]
                             else:
                                 number += _SHORT_ORDINAL_AZ[1000 ** i]
@@ -509,7 +516,7 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
 
                     if ordi:
                         if 1000000 ** i in _LONG_ORDINAL_AZ:
-                            if z == 1:
+                            if z == 1 and n == 1000000 ** i:
                                 number = _LONG_ORDINAL_AZ[1000000 ** i]
                             else:
                                 number += " " + _LONG_ORDINAL_AZ[1000000 ** i]
@@ -525,6 +532,7 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
 
                         number += " " + hundreds[i + 1]
                 res.append(number)
+                ordi = False
             return ", ".join(reversed(res))
 
         if short_scale:
