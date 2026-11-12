@@ -348,5 +348,29 @@ class TestBasqueNonDecimalUnicodeDigits(unittest.TestCase):
         self.assertEqual(extract_number('٣', lang="eu"), 3)
 
 
+class TestBasqueOrdinalsUnderTheFlag(unittest.TestCase):
+    """ordinals=True reads the -garren ordinal (Euskaltzaindia Araua 18)."""
+
+    LINES = [("hirugarren atea", 3),       # the third door
+             ("bigarren aldiz", 2),         # for the second time
+             ("hamargarren eguna", 10),     # the tenth day
+             ("lehenengo lekua", 1)]        # the first place
+
+    def test_the_flag_reads_the_ordinal(self):
+        for line, value in self.LINES:
+            with self.subTest(line=line):
+                self.assertEqual(extract_number(line, lang="eu",
+                                                ordinals=True), value)
+
+    def test_without_the_flag_no_ordinal_is_read(self):
+        for line, _ in self.LINES:
+            with self.subTest(line=line):
+                self.assertIs(extract_number(line, lang="eu"), False)
+
+    def test_a_cardinal_still_reads_under_the_flag(self):
+        self.assertEqual(extract_number("bi eta hiru", lang="eu",
+                                        ordinals=True), 5)
+
+
 if __name__ == "__main__":
     unittest.main()

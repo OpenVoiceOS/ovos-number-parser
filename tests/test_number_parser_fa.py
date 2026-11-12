@@ -145,5 +145,35 @@ class TestPersianBigRoundTrip(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, lang="fa"), number)
 
 
+class TestPersianOrdinalsUnderTheFlag(unittest.TestCase):
+    """ordinals=True reads the ordinal word; without it the line has none.
+
+    The forms are the ones pronounce_ordinal_fa writes: the suppletive اول,
+    the named forms up to 20 (سوم is third), and the cardinal plus م (ام
+    after a vowel). Self-consistency with the writer only; no native reader
+    has checked these lines.
+    """
+
+    LINES = [("فصل سوم کتاب", 3),       # the third chapter of the book
+             ("روز دهم", 10),            # the tenth day
+             ("نفر اول", 1),             # the first person
+             ("طبقه بیستم", 20)]         # the twentieth floor
+
+    def test_the_flag_reads_the_ordinal(self):
+        for line, value in self.LINES:
+            with self.subTest(line=line):
+                self.assertEqual(extract_number(line, lang="fa",
+                                                ordinals=True), value)
+
+    def test_without_the_flag_no_ordinal_is_read(self):
+        for line, _ in self.LINES:
+            with self.subTest(line=line):
+                self.assertIs(extract_number(line, lang="fa"), False)
+
+    def test_a_cardinal_still_reads_under_the_flag(self):
+        self.assertEqual(extract_number("من دو کتاب دارم", lang="fa",
+                                        ordinals=True), 2)
+
+
 if __name__ == "__main__":
     unittest.main()
