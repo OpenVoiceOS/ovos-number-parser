@@ -10,14 +10,24 @@ Expected values:
   next to "altmış doqquzuncu" and "yetmiş birinci"), "doxsanıncı" ("doxsan +
   -ıncı", "ninetieth", next to "səksən doqquzuncu" and "doxsan birinci") and
   "yüzüncü" ("yüz + -üncü", "hundredth", next to "doxsan doqquzuncu" and
-  "yüz birinci"; Azərbaycan dilinin izahlı lüğəti, p. 636).
+  "yüz birinci"). The "yüzüncü" entry cites, under "Further reading",
+  Orucov (ed.), *Azərbaycan dilinin izahlı lüğəti*, 2nd ed., Baku:
+  Şərq-Qərb, 2006, vol. 4, p. 636. That locator is en.wiktionary's; the
+  scan was not read.
 - CLDR RBNF ``az`` spellout-ordinal: ``0: sıfırıncı;`` and
   ``100: ←%spellout-numbering← yüz→%%uncu2→;`` with ``%%uncu2`` giving
   "üncü" on a round hundred, so 200 is "iki yüzüncü".
 - The last word takes the suffix and the words before it stay cardinal, so a
   scale word keeps its count when other words come before it: 1100 is "min,
   yüzüncü" ("min, yüz" as a cardinal) and 10^12 + 10^6 is "bir trilyon, bir
-  milyonuncu" ("bir trilyon, bir milyon").
+  milyonuncu" ("bir trilyon, bir milyon"). On the long scale the same
+  number is "bir milyard, bir milyonuncu" ("bir milyard, bir milyon").
+- Open: a bare round scale word drops its count ("milyonuncu" for 10^6,
+  "trilyonuncu" for 10^12), as dev's tests/test_number_parser_az.py
+  expects. No source here rules on "bir milyonuncu" against "milyonuncu".
+- From 10^24 up the engine has no ordinal scale word and falls back to a
+  scientific cardinal, so pronounce_ordinal raises NotImplementedError
+  there, as it did before the route.
 """
 import unittest
 
@@ -62,6 +72,22 @@ class TestAzerbaijaniOrdinals(unittest.TestCase):
         self.assertEqual(
             pronounce_number(1000500, "az", ordinals=True, scale=Scale.LONG),
             "bir milyon, beş yüzüncü")
+
+    def test_long_scale_keeps_the_count_before_the_last_group(self):
+        # 10^12 + 10^6 on the long scale: "bir milyard, bir milyon"
+        for call in (
+                lambda: pronounce_number(10 ** 12 + 10 ** 6, "az",
+                                         ordinals=True, scale=Scale.LONG),
+                lambda: pronounce_ordinal(10 ** 12 + 10 ** 6, "az",
+                                          scale=Scale.LONG)):
+            self.assertEqual(call(), "bir milyard, bir milyonuncu")
+
+    def test_no_ordinal_from_ten_to_the_24(self):
+        for number in (10 ** 24, 10 ** 30, -10 ** 24):
+            for scale in (Scale.SHORT, Scale.LONG):
+                with self.subTest(number=number, scale=scale):
+                    with self.assertRaises(NotImplementedError):
+                        pronounce_ordinal(number, "az", scale=scale)
 
     def test_cardinals_stay(self):
         for number, expected in ((0, "sıfır"), (70, "yetmiş"),
