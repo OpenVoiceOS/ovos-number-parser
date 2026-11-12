@@ -1707,6 +1707,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_number_sl(number, ordinals=True)
     if lang2 == "kab":
         return pronounce_ordinal_kab(number, gender)
+    if lang2 == "ru" and number and (isinstance(number, int) or number.is_integer()):
+        return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
     # fallback to unicode RBNF
     return _pronounce_rbnf(number, lang, True, gender)
 
