@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.24.42a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.42a2) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.41a1...0.24.42a2)
+
+**Merged pull requests:**
+
+- fix\(ru\): route zero and every named scale power to the Russian ordinal [\#464](https://github.com/OpenVoiceOS/ovos-number-parser/pull/464) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- test\(fr\): give the OQLF hyphenation reference its locator [\#463](https://github.com/OpenVoiceOS/ovos-number-parser/pull/463) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix\(it\): read ordinals with the Italian path [\#442](https://github.com/OpenVoiceOS/ovos-number-parser/pull/442) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.41a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.41a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.40a1...0.24.41a1)
@@ -372,10 +382,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.15a1...0.22.16a1)
 
-**Merged pull requests:**
-
-- fix\(ar\): a construct unit after و still multiplies the next hundred [\#356](https://github.com/OpenVoiceOS/ovos-number-parser/pull/356) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.22.15a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.15a1) (2026-09-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.14a1...0.22.15a1)
@@ -638,11 +644,11 @@
 
 ## [0.18.9a27](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a27) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a16...0.18.9a27)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a17...0.18.9a27)
 
-## [0.18.9a16](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a16) (2026-07-18)
+## [0.18.9a17](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a17) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a25...0.18.9a16)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a25...0.18.9a17)
 
 ## [0.18.9a25](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a25) (2026-07-18)
 
@@ -674,15 +680,15 @@
 
 ## [0.18.9a18](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a18) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a17...0.18.9a18)
-
-## [0.18.9a17](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a17) (2026-07-18)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a28...0.18.9a17)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a28...0.18.9a18)
 
 ## [0.18.9a28](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a28) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a15...0.18.9a28)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a16...0.18.9a28)
+
+## [0.18.9a16](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a16) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a15...0.18.9a16)
 
 ## [0.18.9a15](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a15) (2026-07-18)
 
@@ -834,15 +840,15 @@
 
 ## [0.10.0a3](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.10.0a3) (2026-07-16)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.10.0a1...0.10.0a3)
-
-## [0.10.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.10.0a1) (2026-07-16)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.10.0a2...0.10.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.10.0a2...0.10.0a3)
 
 ## [0.10.0a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.10.0a2) (2026-07-16)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.9.0a1...0.10.0a2)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.10.0a1...0.10.0a2)
+
+## [0.10.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.10.0a1) (2026-07-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.9.0a1...0.10.0a1)
 
 ## [0.9.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.9.0a1) (2026-07-16)
 
