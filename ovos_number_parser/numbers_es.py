@@ -1,3 +1,4 @@
+import unicodedata
 from typing import List, Optional, Union
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, tokenize, Token,
@@ -284,6 +285,52 @@ _FRACTION_STRING_ES = {
     19: 'diecinueveavo',
     20: 'veinteavo'
 }
+
+
+def _one_word_es(cardinal: str) -> str:
+    """Write a cardinal as one word ("cincuenta y seis" -> "cincuentaiseis").
+
+    The suffix after it takes the stress, so the written accent goes
+    ("veintidós" -> "veintidos-").
+    """
+    word = cardinal.replace(" y ", "i").replace(" ", "")
+    return unicodedata.normalize("NFC", "".join(
+        c for c in unicodedata.normalize("NFD", word) if c != "\u0301"))
+
+
+def fraction_noun_es(denominator: int, plural: bool = False) -> str:
+    """The masculine fraction noun (sustantivo fraccionario) of a denominator.
+
+    RAE and ASALE, Diccionario panhispánico de dudas, "fraccionarios": mil,
+    millón and their multiples take the ordinal form in -ésimo ("dosmilésimo",
+    "milmillonésimo"); every other denominator outside the table takes -avo
+    on the cardinal written as one word ("veintiunavo", "cincuentaiseisavo",
+    "doscientosavo"), which drops a final -a and keeps -e or -o (§ 5).
+
+    Raises OverflowError when the denominator has no reading as one word.
+    """
+    if denominator in _ES.FRACTION:
+        noun = _ES.FRACTION[denominator]
+    elif denominator % 10 ** 6 == 0:
+        # "millonésimo", "dosmillonésimo", "milmillonésimo", "billonésimo"
+        value = max(v for v in _ES.ORDINAL_LONG_SCALE if denominator % v == 0)
+        count = denominator // value
+        if count >= 10 ** 6:
+            raise OverflowError(f"no fraction noun for {denominator}")
+        noun = _ES.ORDINAL_LONG_SCALE[value]
+        if count > 1:
+            noun = _one_word_es(ES.pronounce_number(
+                count, gender=GrammaticalGender.NEUTRAL)) + noun
+    elif denominator % 1000 == 0:
+        # the cardinal ends in "mil": "dosmilésimo", "cienmilésimo"
+        cardinal = ES.pronounce_number(denominator, gender=GrammaticalGender.NEUTRAL)
+        noun = _one_word_es(cardinal[:-len("mil")]) + _ES.ORDINAL_LONG_SCALE[1000]
+    else:
+        cardinal = _one_word_es(ES.pronounce_number(denominator))
+        if cardinal.endswith("uno") or cardinal.endswith("a"):
+            cardinal = cardinal[:-1]  # veintiunavo, treintavo
+        noun = cardinal + "avo"
+    return pluralize_es(noun) if plural else noun
 
 
 def extract_number_es(text, short_scale=True, ordinals=False):
