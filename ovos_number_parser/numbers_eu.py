@@ -465,7 +465,7 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
         # reads back exactly what that side writes, and adds no form of its
         # own. Without this the flag was a no-op for Basque: the word loop
         # below reads cardinals only, so a line never reached a second number
-        # span and the leftmost rule could not answer (T-4475).
+        # span and the leftmost rule could not answer.
         for word in aWords:
             ordinal = is_ordinal_eu(word.strip(".,!?;:"))
             if ordinal is not False:

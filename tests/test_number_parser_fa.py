@@ -3,7 +3,9 @@ import unittest
 from ovos_number_parser import extract_number, pronounce_number
 from ovos_number_parser.numbers_fa import (extract_numbers_fa,
                                            is_fractional_fa,
-                                           pronounce_number_fa)
+                                           is_ordinal_fa,
+                                           pronounce_number_fa,
+                                           pronounce_ordinal_fa)
 
 
 class TestPersianPronounce(unittest.TestCase):
@@ -173,6 +175,19 @@ class TestPersianOrdinalsUnderTheFlag(unittest.TestCase):
     def test_a_cardinal_still_reads_under_the_flag(self):
         self.assertEqual(extract_number("من دو کتاب دارم", lang="fa",
                                         ordinals=True), 2)
+
+    def test_is_ordinal_fa_reads_back_every_single_word_ordinal(self):
+        # the reader inverts the writer: every one-word ordinal from 1 to
+        # 1000 reads back as its number. A compound ("بیست و سوم") is more
+        # than one word and is outside is_ordinal_fa.
+        single = {n: pronounce_ordinal_fa(n) for n in range(1, 1001)}
+        single = {n: w for n, w in single.items() if " " not in w}
+        # 30th and 50th carry the suffix after a zero-width non-joiner
+        self.assertEqual(single[30], "سی\u200cام")
+        self.assertEqual(single[50], "پنجاه\u200cام")
+        wrong = {n: is_ordinal_fa(w) for n, w in single.items()
+                 if is_ordinal_fa(w) != n}
+        self.assertEqual(wrong, {})
 
 
 if __name__ == "__main__":

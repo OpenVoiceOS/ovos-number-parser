@@ -255,7 +255,7 @@ def extract_number_fa(text, ordinals=False):
         # ordinals=True asks for the ordinal to be READ, and nothing read one:
         # extract_numbers_fa below sees cardinals only, so the flag was a no-op
         # for Farsi and a line never reached a second number span, which left
-        # the leftmost rule unable to answer (T-4475).
+        # the leftmost rule unable to answer.
         for word in text.split():
             ordinal = is_ordinal_fa(word)
             if ordinal is not False:
