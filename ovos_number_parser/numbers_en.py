@@ -484,14 +484,19 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
             print('ERROR: Exception in pronounce_number_en: {}' + repr(e))
 
     # check for a direct match
-    if num in number_names and not ordinals:
+    if ordinals and num == 0:
+        result += "zeroth"
+    elif ordinals and num == 100:
+        # a round unit alone takes no "one", as "thousandth" and "millionth"
+        result += _SHORT_ORDINAL_EN[100]
+    elif num in number_names and not ordinals:
         if num > 90:
             result += "one "
         result += number_names[num]
     else:
         def _sub_thousand(n, ordinals=False):
             assert 0 <= n <= 999
-            if n in _SHORT_ORDINAL_EN and ordinals:
+            if n < 100 and n in _SHORT_ORDINAL_EN and ordinals:
                 return _SHORT_ORDINAL_EN[n]
             if n <= 19:
                 return digits[n]
@@ -501,8 +506,9 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
                                       else "")
             else:
                 q, r = divmod(n, 100)
-                return digits[q] + " hundred" + (
-                    " and " + _sub_thousand(r, ordinals) if r else "")
+                if r:
+                    return digits[q] + " hundred and " + _sub_thousand(r, ordinals)
+                return digits[q] + (" hundredth" if ordinals else " hundred")
 
         def _short_scale(n):
             # A finite value above the largest named scale returns "" so the
@@ -529,7 +535,7 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
                     if ordi:
 
                         if 1000 ** i in _SHORT_ORDINAL_EN:
-                            if z == 1:
+                            if z == 1 and n == 1000 ** i:
                                 number = _SHORT_ORDINAL_EN[1000 ** i]
                             else:
                                 number += _SHORT_ORDINAL_EN[1000 ** i]
@@ -571,6 +577,10 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
                     continue
                 number = pronounce_number_en(z, places, True, scientific,
                                              ordinals=ordi and not i)
+                if ordi and not i and z != n \
+                        and number in ("hundredth", "thousandth"):
+                    # the bare form is for the round unit alone
+                    number = "one " + number
                 # strip off the comma after the thousand
                 if i:
                     if i >= len(hundreds):
@@ -581,7 +591,7 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
 
                     if ordi:
                         if 1000000 ** i in _LONG_ORDINAL_EN:
-                            if z == 1:
+                            if z == 1 and n == 1000000 ** i:
                                 number = _LONG_ORDINAL_EN[1000000 ** i]
                             else:
                                 number += " " + _LONG_ORDINAL_EN[1000000 ** i]
@@ -597,6 +607,7 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
 
                         number += " " + hundreds[i + 1]
                 res.append(number)
+                ordi = False
             return ", ".join(reversed(res))
 
         if short_scale:
