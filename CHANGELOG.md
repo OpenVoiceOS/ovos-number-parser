@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.41a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.41a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.40a1...0.24.41a1)
+
+**Merged pull requests:**
+
+- fix\(nb, nn, da\): read the og-inverted ordinal compound as one number [\#369](https://github.com/OpenVoiceOS/ovos-number-parser/pull/369) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.40a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.40a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.39a1...0.24.40a1)
@@ -371,10 +379,6 @@
 ## [0.22.15a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.15a1) (2026-09-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.22.14a1...0.22.15a1)
-
-**Merged pull requests:**
-
-- fix\(ar\): a full-form unit after و closes a filled hundred [\#353](https://github.com/OpenVoiceOS/ovos-number-parser/pull/353) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.22.14a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.14a1) (2026-09-22)
 
