@@ -137,11 +137,14 @@ _ES = NumberVocabulary(
         800: 'ochocientos',
         900: 'novecientos'
     },
-    # RAE and ASALE, Diccionario panhispánico de dudas, "uno" § 2.3: a number
-    # agrees with the noun it precedes ("mil una", "mil doscientas"), and so
-    # does the count before "mil" ("setecientas mil toneladas", "cuarenta y
-    # una mil pesetas"); "millón" and the scale words above it are masculine
-    # nouns and keep the masculine count
+    # RAE and ASALE, Diccionario panhispánico de dudas, "uno" § 2.3: "Los
+    # numerales uno, una y sus compuestos concuerdan en género con el
+    # sustantivo al que acompañan cuando lo preceden inmediatamente", so the
+    # group after a scale word agrees. Before "mil" the feminine is optional
+    # for "uno" and its compounds ("cuarenta y una mil pesetas") and required
+    # for the hundreds ("setecientas mil toneladas"); this reads both as
+    # feminine. DLE "millón" ("m.") makes millón a masculine noun, so the
+    # count before it stays masculine; only "mil" is listed here
     AGREEING_SCALES=[1000],
     AGREE_AFTER_SCALE=True,
     FRACTION={
