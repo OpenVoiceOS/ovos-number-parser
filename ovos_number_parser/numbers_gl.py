@@ -61,6 +61,7 @@ _GL = NumberVocabulary(
 
     NUMBER_OVERFLOW="número exageradamente grande",
     DEFAULT_SCALE=Scale.LONG,
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["e"],
 
     JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e un"
@@ -70,6 +71,8 @@ _GL = NumberVocabulary(
 
     DECIMAL_MARKER=["coma", "punto", ".", ","],
     NEGATIVE_SIGN=["menos"],
+    NEGATIVE_IDIOMS=[("polo", "menos"), ("ao", "menos"), ("a", "menos", "que"),
+                     ("máis", "ou", "menos")],
     UNITS={
         0: 'cero',
         1: 'un',

@@ -14,10 +14,13 @@
 # limitations under the License.
 #
 
+import sys
+from fractions import Fraction
 from collections import OrderedDict
+from decimal import Decimal
 from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, Token, \
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, fits_str_limit, look_for_fractions, Token, \
     ReplaceableNumber, tokenize, partition_list, invert_dict
 
 _ARTICLES_NL = {'de', 'het'}
@@ -80,103 +83,103 @@ _LONG_SCALE_NL = OrderedDict([
     (100, 'honderd'),
     (1000, 'duizend'),
     (1000000, 'miljoen'),
-    (1e12, "biljoen"),
-    (1e18, 'triljoen'),
-    (1e24, "quadriljoen"),
-    (1e30, "quintillion"),
-    (1e36, "sextillion"),
-    (1e42, "septillion"),
-    (1e48, "octillion"),
-    (1e54, "nonillion"),
-    (1e60, "decillion"),
-    (1e66, "undecillion"),
-    (1e72, "duodecillion"),
-    (1e78, "tredecillion"),
-    (1e84, "quattuordecillion"),
-    (1e90, "quinquadecillion"),
-    (1e96, "sedecillion"),
-    (1e102, "septendecillion"),
-    (1e108, "octodecillion"),
-    (1e114, "novendecillion"),
-    (1e120, "vigintillion"),
-    (1e306, "unquinquagintillion"),
-    (1e312, "duoquinquagintillion"),
-    (1e336, "sesquinquagintillion"),
-    (1e366, "unsexagintillion")
+    (10 ** 12, "biljoen"),
+    (10 ** 18, 'triljoen'),
+    (10 ** 24, "quadriljoen"),
+    (10 ** 30, "quintillion"),
+    (10 ** 36, "sextillion"),
+    (10 ** 42, "septillion"),
+    (10 ** 48, "octillion"),
+    (10 ** 54, "nonillion"),
+    (10 ** 60, "decillion"),
+    (10 ** 66, "undecillion"),
+    (10 ** 72, "duodecillion"),
+    (10 ** 78, "tredecillion"),
+    (10 ** 84, "quattuordecillion"),
+    (10 ** 90, "quinquadecillion"),
+    (10 ** 96, "sedecillion"),
+    (10 ** 102, "septendecillion"),
+    (10 ** 108, "octodecillion"),
+    (10 ** 114, "novendecillion"),
+    (10 ** 120, "vigintillion"),
+    (10 ** 306, "unquinquagintillion"),
+    (10 ** 312, "duoquinquagintillion"),
+    (10 ** 336, "sesquinquagintillion"),
+    (10 ** 366, "unsexagintillion")
 ])
 
 _SHORT_SCALE_NL = OrderedDict([
     (100, 'honderd'),
     (1000, 'duizend'),
     (1000000, 'miljoen'),
-    (1e9, "miljard"),
-    (1e12, 'biljoen'),
-    (1e15, "quadrillion"),
-    (1e18, "quintiljoen"),
-    (1e21, "sextiljoen"),
-    (1e24, "septiljoen"),
-    (1e27, "octiljoen"),
-    (1e30, "noniljoen"),
-    (1e33, "deciljoen"),
-    (1e36, "undeciljoen"),
-    (1e39, "duodeciljoen"),
-    (1e42, "tredeciljoen"),
-    (1e45, "quattuordeciljoen"),
-    (1e48, "quinquadeciljoen"),
-    (1e51, "sedeciljoen"),
-    (1e54, "septendeciljoen"),
-    (1e57, "octodeciljoen"),
-    (1e60, "novendeciljoen"),
-    (1e63, "vigintiljoen"),
-    (1e66, "unvigintiljoen"),
-    (1e69, "uuovigintiljoen"),
-    (1e72, "tresvigintiljoen"),
-    (1e75, "quattuorvigintiljoen"),
-    (1e78, "quinquavigintiljoen"),
-    (1e81, "qesvigintiljoen"),
-    (1e84, "septemvigintiljoen"),
-    (1e87, "octovigintiljoen"),
-    (1e90, "novemvigintiljoen"),
-    (1e93, "trigintiljoen"),
-    (1e96, "untrigintiljoen"),
-    (1e99, "duotrigintiljoen"),
-    (1e102, "trestrigintiljoen"),
-    (1e105, "quattuortrigintiljoen"),
-    (1e108, "quinquatrigintiljoen"),
-    (1e111, "sestrigintiljoen"),
-    (1e114, "septentrigintiljoen"),
-    (1e117, "octotrigintiljoen"),
-    (1e120, "noventrigintiljoen"),
-    (1e123, "quadragintiljoen"),
-    (1e153, "quinquagintiljoen"),
-    (1e183, "sexagintiljoen"),
-    (1e213, "septuagintiljoen"),
-    (1e243, "octogintiljoen"),
-    (1e273, "nonagintiljoen"),
-    (1e303, "centiljoen"),
-    (1e306, "uncentiljoen"),
-    (1e309, "duocentiljoen"),
-    (1e312, "trescentiljoen"),
-    (1e333, "decicentiljoen"),
-    (1e336, "undecicentiljoen"),
-    (1e363, "viginticentiljoen"),
-    (1e366, "unviginticentiljoen"),
-    (1e393, "trigintacentiljoen"),
-    (1e423, "quadragintacentiljoen"),
-    (1e453, "quinquagintacentiljoen"),
-    (1e483, "sexagintacentiljoen"),
-    (1e513, "septuagintacentiljoen"),
-    (1e543, "ctogintacentiljoen"),
-    (1e573, "nonagintacentiljoen"),
-    (1e603, "ducentiljoen"),
-    (1e903, "trecentiljoen"),
-    (1e1203, "quadringentiljoen"),
-    (1e1503, "quingentiljoen"),
-    (1e1803, "sescentiljoen"),
-    (1e2103, "septingentiljoen"),
-    (1e2403, "octingentiljoen"),
-    (1e2703, "nongentiljoen"),
-    (1e3003, "milliniljoen")
+    (10 ** 9, "miljard"),
+    (10 ** 12, 'biljoen'),
+    (10 ** 15, "quadrillion"),
+    (10 ** 18, "quintiljoen"),
+    (10 ** 21, "sextiljoen"),
+    (10 ** 24, "septiljoen"),
+    (10 ** 27, "octiljoen"),
+    (10 ** 30, "noniljoen"),
+    (10 ** 33, "deciljoen"),
+    (10 ** 36, "undeciljoen"),
+    (10 ** 39, "duodeciljoen"),
+    (10 ** 42, "tredeciljoen"),
+    (10 ** 45, "quattuordeciljoen"),
+    (10 ** 48, "quinquadeciljoen"),
+    (10 ** 51, "sedeciljoen"),
+    (10 ** 54, "septendeciljoen"),
+    (10 ** 57, "octodeciljoen"),
+    (10 ** 60, "novendeciljoen"),
+    (10 ** 63, "vigintiljoen"),
+    (10 ** 66, "unvigintiljoen"),
+    (10 ** 69, "uuovigintiljoen"),
+    (10 ** 72, "tresvigintiljoen"),
+    (10 ** 75, "quattuorvigintiljoen"),
+    (10 ** 78, "quinquavigintiljoen"),
+    (10 ** 81, "qesvigintiljoen"),
+    (10 ** 84, "septemvigintiljoen"),
+    (10 ** 87, "octovigintiljoen"),
+    (10 ** 90, "novemvigintiljoen"),
+    (10 ** 93, "trigintiljoen"),
+    (10 ** 96, "untrigintiljoen"),
+    (10 ** 99, "duotrigintiljoen"),
+    (10 ** 102, "trestrigintiljoen"),
+    (10 ** 105, "quattuortrigintiljoen"),
+    (10 ** 108, "quinquatrigintiljoen"),
+    (10 ** 111, "sestrigintiljoen"),
+    (10 ** 114, "septentrigintiljoen"),
+    (10 ** 117, "octotrigintiljoen"),
+    (10 ** 120, "noventrigintiljoen"),
+    (10 ** 123, "quadragintiljoen"),
+    (10 ** 153, "quinquagintiljoen"),
+    (10 ** 183, "sexagintiljoen"),
+    (10 ** 213, "septuagintiljoen"),
+    (10 ** 243, "octogintiljoen"),
+    (10 ** 273, "nonagintiljoen"),
+    (10 ** 303, "centiljoen"),
+    (10 ** 306, "uncentiljoen"),
+    (10 ** 309, "duocentiljoen"),
+    (10 ** 312, "trescentiljoen"),
+    (10 ** 333, "decicentiljoen"),
+    (10 ** 336, "undecicentiljoen"),
+    (10 ** 363, "viginticentiljoen"),
+    (10 ** 366, "unviginticentiljoen"),
+    (10 ** 393, "trigintacentiljoen"),
+    (10 ** 423, "quadragintacentiljoen"),
+    (10 ** 453, "quinquagintacentiljoen"),
+    (10 ** 483, "sexagintacentiljoen"),
+    (10 ** 513, "septuagintacentiljoen"),
+    (10 ** 543, "ctogintacentiljoen"),
+    (10 ** 573, "nonagintacentiljoen"),
+    (10 ** 603, "ducentiljoen"),
+    (10 ** 903, "trecentiljoen"),
+    (10 ** 1203, "quadringentiljoen"),
+    (10 ** 1503, "quingentiljoen"),
+    (10 ** 1803, "sescentiljoen"),
+    (10 ** 2103, "septingentiljoen"),
+    (10 ** 2403, "octingentiljoen"),
+    (10 ** 2703, "nongentiljoen"),
+    (10 ** 3003, "milliniljoen")
 ])
 
 _ORDINAL_STRING_BASE_NL = {
@@ -207,17 +210,17 @@ _ORDINAL_STRING_BASE_NL = {
     70: "zeventigste",
     80: "tachtigste",
     90: "negentigste",
-    10e3: "honderdste",
+    100: "honderdste",
     1e3: "duizendste"
 }
 
 _SHORT_ORDINAL_STRING_NL = {
-    1e6: "miloenste",
+    1e6: "miljoenste",
     1e9: "miljardste",
     1e12: "biljoenste",
     1e15: "biljardste",
     1e18: "triljoenste",
-    1e21: "trijardste",
+    1e21: "triljardste",
     1e24: "quadriljoenste",
     1e27: "quadriljardste",
     1e30: "quintiljoenste",
@@ -227,12 +230,12 @@ _SHORT_ORDINAL_STRING_NL = {
 _SHORT_ORDINAL_STRING_NL.update(_ORDINAL_STRING_BASE_NL)
 
 _LONG_ORDINAL_STRING_NL = {
-    1e6: "miloenste",
+    1e6: "miljoenste",
     1e9: "miljardste",
     1e12: "biljoenste",
     1e15: "biljardste",
     1e18: "triljoenste",
-    1e21: "trijardste",
+    1e21: "triljardste",
     1e24: "quadriljoenste",
     1e27: "quadriljardste",
     1e30: "quintiljoenste",
@@ -400,16 +403,8 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
                                 places):  # fixed number of places even with
         # trailing zeros
         result = ""
-        num = round(num, places)
-        place = 10
-        while places > 0:  # doesn't work with 1.0001 and places = 2: int(
-            # number*place) % 10 > 0 and places > 0:
-            result += " " + _NUM_STRING_NL[int(num * place) % 10]
-            if int(num * place) % 10 == 1:
-                result += ''  # "1" is pronounced "eins" after the decimal
-                # point
-            place *= 10
-            places -= 1
+        for digit in f"{Decimal(str(num)):f}".split(".")[1][:places].ljust(places, "0"):
+            result += " " + _NUM_STRING_NL[int(digit)]
         return result
 
     def pronounce_whole_number_nl(num, scale_level=0):
@@ -445,7 +440,7 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
                     result += ""  # Miljioen
                 result += ""  # Miljard, Miljoen
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_nl(num,
                                          scale_level) + result + ''
@@ -467,7 +462,6 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             return spoken
         else:
             whole_number_part = floor(number)
-            fractional_part = number - whole_number_part
             whole_spoken = pronounce_whole_number_nl(whole_number_part) or \
                 _NUM_STRING_NL[0]
             if whole_spoken == "een":
@@ -475,7 +469,7 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             result += whole_spoken
             if places > 0:
                 result += " komma"
-                result += pronounce_fractional_nl(fractional_part, places)
+                result += pronounce_fractional_nl(number, places)
             return result
 
 
@@ -524,6 +518,8 @@ def numbers_to_digits_nl(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_nl(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -765,6 +761,7 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
     prev_val = None
     next_val = None
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -778,6 +775,36 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
 
         prev_word = tokens[idx - 1].word if idx > 0 else ""
         next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
+
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts ("-0 1/2" = -0.5);
+        # any other fraction is a number of its own ("3.5 1/2" is 3.5, then
+        # 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 \
+                and val is not False and val is not None:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                whole = abs(int(val))
+                mixed = float(whole + Fraction(float(a_pieces[0]))
+                              / Fraction(float(a_pieces[1])))
+                # the float must keep both parts: from 2**52 on it cannot, so
+                # the whole number keeps its digits and the fraction is a
+                # number of its own ("9007199254740993 1/2")
+                if whole < mixed < whole + 1:
+                    negative_whole = val < 0 or \
+                        tokens[idx - 1].word.startswith("-")
+                    val = -mixed if negative_whole else mixed
+                    number_words.append(token)
+            break
 
         if word not in string_num_scale and \
                 word not in _STRING_NUM_NL and \
@@ -806,12 +833,10 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
         else:
             number_words.append(token)
 
+        number_end = idx
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?
@@ -871,6 +896,9 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
             aPieces = word.split('/')
             if look_for_fractions(aPieces):
                 val = float(aPieces[0]) / float(aPieces[1])
+                if not val:
+                    # a zero fraction is the number 0 ("0/2" reads as 0)
+                    val = 0
                 current_val = val
 
         else:

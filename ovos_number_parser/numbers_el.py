@@ -8,8 +8,8 @@ spellings, and unaccented input: matching is done on text with the Greek
 tonos and diaeresis stripped and the final sigma folded.
 """
 
-from math import isfinite
-from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
+    scientific_parts
 
 # tonos/diaeresis stripping + final sigma folding, applied after casefold
 _NORM_TABLE = {ord(a): b for a, b in zip("άέήίόύώϊϋΐΰς", "αεηιουωιυιυσ")}
@@ -164,13 +164,12 @@ def pronounce_number_el(number, places=2, scientific=False, ordinals=False):
     if scientific:
         if number == 0:
             return _ONES_EL[0]
-        n, power = ('%E' % number).replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(number, places)
         if power != 0:
-            mantissa = pronounce_number_el(abs(float(n)), places)
+            mantissa = pronounce_number_el(abs(n), places)
             exponent = pronounce_number_el(abs(power), places)
-            return "{}{} επί δέκα στη δύναμη {}{}".format(
-                _MINUS_EL + " " if float(n) < 0 else "", mantissa,
+            return "{}{} επί δέκα στη δύναμη του {}{}".format(
+                _MINUS_EL + " " if n < 0 else "", mantissa,
                 _MINUS_EL + " " if power < 0 else "", exponent)
     if ordinals:
         return pronounce_ordinal_el(number)
@@ -351,15 +350,6 @@ def _build_ordinal_lookup():
  _ORD_SCALES_LOOKUP) = _build_ordinal_lookup()
 
 
-def _is_number(s):
-    try:
-        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
-        # string) carries no usable number and must not be treated as one
-        return isfinite(float(s))
-    except ValueError:
-        return False
-
-
 def _tokenize_el(text):
     """Normalize (casefold, strip accents) and split into clean tokens."""
     tokens = []
@@ -430,11 +420,11 @@ def _parse_number_span(tokens, i):
                 tokens[j + 1] in _FRACTIONS_LOOKUP:
             j += 1
             continue
-        if _is_number(tok):
+        if is_numeric(tok):
             if started:
                 break
-            value = float(tok)
-            if value.is_integer():
+            value = numeric_value(tok)
+            if value == int(value):
                 value = int(value)
             return value, j + 1
         if tok in _HUNDREDS_LOOKUP and last_rank > 3:

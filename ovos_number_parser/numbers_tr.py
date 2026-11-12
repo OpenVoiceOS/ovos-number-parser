@@ -22,11 +22,12 @@ short scale ("milyar" = 1e9). The decimal separator is spoken "virgül"
 the special words "yarım" (a standalone half), "buçuk" (a half after a
 number: "bir buçuk" = 1.5) and "çeyrek" (a quarter).
 """
+from decimal import Decimal
 import re
 from collections import OrderedDict
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, Token, ReplaceableNumber)
+from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
+                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_parts)
 
 _NUM_STRING_TR = {
     0: 'sıfır',
@@ -321,9 +322,7 @@ def pronounce_number_tr(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "eksi sonsuzluk"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             # This handles negatives of powers separately from the normal
             # handling since each call disables the scientific flag
@@ -375,7 +374,7 @@ def pronounce_number_tr(number, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n >= 999 * max(_SHORT_SCALE_TR.keys()):
-                return "sonsuzluk"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -426,15 +425,17 @@ def pronounce_number_tr(number, places=2, short_scale=True, scientific=False,
 
         result += _short_scale(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_tr(num, places, short_scale, scientific=True)
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "eksi ") and num >= 1e6:
+        return result + pronounce_number_tr(
+            num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "eksi " or not result):
+        result += "sıfır"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "eksi " or not result):
-            result += "sıfır"
+    if not num == int(num) and places > 0:
         result += " virgül"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
@@ -765,10 +766,7 @@ def _extract_whole_number_with_text_tr(tokens, short_scale, ordinals):
 
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?
@@ -904,7 +902,8 @@ def _initialize_number_data_tr(short_scale, speech=True):
         else _STRING_LONG_ORDINAL_TR
 
     string_num_scale_tr = _SHORT_SCALE_TR if short_scale else _LONG_SCALE_TR
-    string_num_scale_tr = invert_dict(string_num_scale_tr)
+    string_num_scale_tr = {word: exact_int(value)
+                           for value, word in string_num_scale_tr.items()}
 
     return multiplies, string_num_ordinal_tr, string_num_scale_tr
 

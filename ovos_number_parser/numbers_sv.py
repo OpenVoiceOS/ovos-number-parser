@@ -13,9 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from math import floor, isfinite
+from decimal import Decimal
+from math import floor
 
-from ovos_number_parser.util import (convert_to_mixed_fraction, is_numeric, look_for_fractions, Token)
+from ovos_number_parser.util import (convert_to_mixed_fraction, is_numeric, numeric_value, look_for_fractions,
+                                     Token, GrammaticalGender)
 
 _NUM_STRING_SV = {
     0: 'noll',
@@ -165,7 +167,7 @@ def nice_number_sv(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -222,14 +224,8 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
     def pronounce_fractional_sv(num, places):
         # fixed number of places even with trailing zeros
         result = ""
-        num = round(num, places)
-        place = 10
-        while places > 0:
-            # doesn't work with 1.0001 and places = 2: int(
-            # num*place) % 10 > 0 and places > 0:
-            result += " " + _NUM_STRING_SV[int(num * place) % 10]
-            place *= 10
-            places -= 1
+        for digit in f"{Decimal(str(num)):f}".split(".")[1][:places].ljust(places, "0"):
+            result += " " + _NUM_STRING_SV[int(digit)]
         return result
 
     def pronounce_whole_number_sv(num, scale_level=0):
@@ -260,7 +256,7 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
                 result += ' ' + _NUM_POWERS_OF_TEN_SV[scale_level]
                 result += 'er' + _EXTRA_SPACE_SV  # MiljonER
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_sv(num, scale_level) + result
 
@@ -270,18 +266,24 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
     elif number == 0:
         return str(_NUM_STRING_SV[0])
     elif number < 0:
-        return "minus " + pronounce_number_sv(abs(number), places)
+        return "minus " + pronounce_number_sv(abs(number), places, gender=gender)
     else:
         if number == int(number):
-            return pronounce_whole_number_sv(number)
+            spoken = pronounce_whole_number_sv(number)
+            # Swedish has one common gender, "en" (ICU RBNF sv
+            # spellout-cardinal-reale and -feminine: "tjugoen", "ettusen en").
+            # FEMININE selects it; MASCULINE is the default gender and keeps
+            # the counting form "ett", as NEUTRAL does.
+            if gender == GrammaticalGender.FEMININE and spoken.endswith("ett"):
+                spoken = spoken[:-3] + "en"
+            return spoken
         else:
             whole_number_part = floor(number)
-            fractional_part = number - whole_number_part
             result += pronounce_whole_number_sv(whole_number_part) or \
                 _NUM_STRING_SV[0]
             if places > 0:
                 result += " komma"
-                result += pronounce_fractional_sv(fractional_part, places)
+                result += pronounce_fractional_sv(number, places)
             return result
 
 
@@ -531,18 +533,21 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
             expanded.append(str(v))
         else:
             expanded.append(w)
-    # merge lower-magnitude continuations ("2000 23" -> 2023)
+    # merge lower-magnitude continuations ("2000 23" -> 2023); a digit run
+    # that int() cannot read is no number and never merges
     scales = {100, 1000, 1000000, 1000000000, 1000000000000}
     merged = []
     for idx, w in enumerate(expanded):
-        if merged and w.isdecimal() and merged[-1].isdecimal():
+        if merged and w.isdecimal() and merged[-1].isdecimal() \
+                and is_numeric(w) and is_numeric(merged[-1]):
             prev, nxt = int(merged[-1]), int(w)
             if nxt in scales and prev < nxt:
                 # "två miljoner" -> 2 * 1000000
                 merged[-1] = str(prev * nxt)
                 continue
             follow = int(expanded[idx + 1]) if idx + 1 < len(expanded) \
-                and expanded[idx + 1].isdecimal() else None
+                and expanded[idx + 1].isdecimal() \
+                and is_numeric(expanded[idx + 1]) else None
             # a small value that a following scale word will multiply belongs
             # to that scale, not the preceding group ("en miljon ett tusen")
             if not (follow in scales and nxt < follow) \
@@ -556,6 +561,7 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     collapsed = []
     for w in merged:
         if collapsed and w.isdecimal() and collapsed[-1].isdecimal() \
+                and is_numeric(w) and is_numeric(collapsed[-1]) \
                 and _merge_values_sv(int(collapsed[-1]), int(w)):
             collapsed[-1] = str(int(collapsed[-1]) + int(w))
         else:
@@ -587,10 +593,13 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
     count = 0
     while count < len(aWords):
         word = aWords[count]
-        if is_numeric(word) and isfinite(float(word)):
-            # an overflowing digit string ("9" * 400) or a non-finite token
-            # floats to inf; it carries no usable number, so it is skipped
-            val = float(word)
+        if and_pass and word.startswith("-"):
+            # a signed part after "och" opens the next number: "5 och -3"
+            # is 5, then -3
+            val = valPreAnd
+            break
+        if is_numeric(word):
+            val = numeric_value(word)
             if count + 1 < len(aWords):
                 valNext = is_fractional_sv(aWords[count + 1])
                 if valNext:
@@ -679,9 +688,10 @@ def extract_number_sv(text, short_scale=True, ordinals=False):
         break
 
     if val is not False and val is not None:
-        val = float(val)
-        if val.is_integer():
-            val = int(val)
+        if not isinstance(val, int):
+            val = float(val)
+            if val.is_integer():
+                val = int(val)
         if negative:
             val = -val
     return val or False

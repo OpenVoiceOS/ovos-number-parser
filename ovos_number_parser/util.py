@@ -1,7 +1,7 @@
 import math
 import threading
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP, localcontext
 from enum import Enum
 from typing import List, Dict, Union, Any, Tuple, Optional, Callable
 import re
@@ -196,6 +196,44 @@ def invert_dict(original: Dict[Any, Any]) -> Dict[Any, Any]:
     return {value: key for key, value in original.items()}
 
 
+def exact_int(value: Any) -> Any:
+    """
+    Return a whole float as the integer that its literal spells.
+
+    Scale tables write constants as ``1e24``, which is the float nearest to
+    10 ** 24 and not 10 ** 24 itself. ``repr`` keeps the written digits, so
+    ``exact_int(1e24) == 10 ** 24``. A value that is not a finite whole float
+    is returned unchanged.
+
+    Args:
+        value: a number from a scale table
+
+    Returns:
+        int for a finite whole float, else ``value`` unchanged
+    """
+    if isinstance(value, float) and math.isfinite(value) and value.is_integer():
+        return int(Decimal(repr(value)))
+    return value
+
+
+def exact_sum(values: List[Union[int, float]]) -> float:
+    """
+    Add numbers as the decimals their literals spell.
+
+    Spoken decimal digits are summed one place at a time ("eins Komma eins
+    vier" is 1 + 0.1 + 0.04), and float addition gives 1.1400000000000001.
+    ``repr`` keeps the written digits of each part, so the sum is exact
+    before it becomes a float.
+
+    Args:
+        values: the parts of one number
+
+    Returns:
+        float nearest to the exact sum
+    """
+    return float(sum(Decimal(repr(value)) for value in values))
+
+
 def is_numeric(input_str: str) -> bool:
     """
     Return True if the input string represents a valid number, otherwise False.
@@ -204,20 +242,67 @@ def is_numeric(input_str: str) -> bool:
         input_str (str): The string to test for numeric value.
 
     Returns:
-        bool: True if the string is a finite number (or a plain integer string,
-            which stays exact even when it exceeds float range), False for a
-            non-finite token such as "inf", "nan" or "1e309".
+        bool: True if the string is a finite number or a plain integer string
+            that ``int`` can read, False for a non-finite token such as "inf",
+            "nan" or "1e309".
     """
     try:
         val = float(input_str)
     except ValueError:
         return False
-    if math.isfinite(val):
+    if input_str.strip().lstrip("+-").isdigit():
+        # a plain integer string is read exactly, even beyond float range.
+        # One longer than the interpreter's integer string conversion limit
+        # (sys.get_int_max_str_digits) cannot be read or written back, so it
+        # carries no usable number
+        try:
+            int(input_str)
+        except ValueError:
+            return False
         return True
-    # a plain integer string that overflows float to inf is still a usable
-    # number (Python ints are unbounded); a non-finite token such as "inf",
-    # "nan" or "1e309" carries no usable number and must not be treated as one
-    return input_str.strip().lstrip("+-").isdigit()
+    return math.isfinite(val)
+
+
+def fits_str_limit(value: Any) -> bool:
+    """
+    Return False for an integer that ``str`` cannot write.
+
+    An integer with more digits than the interpreter's integer string
+    conversion limit (``sys.get_int_max_str_digits``) has no decimal string.
+    It is no number, as a digit string past that limit is none for
+    ``is_numeric``.
+
+    Args:
+        value: a value an extractor produced
+
+    Returns:
+        bool: False for an integer past the limit, else True
+    """
+    if isinstance(value, int):
+        try:
+            str(value)
+        except ValueError:
+            return False
+    return True
+
+
+def numeric_value(input_str: str) -> Union[int, float]:
+    """
+    Return the value of a string that ``is_numeric`` accepts.
+
+    A plain integer string, signed or not, is read with ``int`` and keeps
+    every digit, where ``float`` keeps only about 17 significant digits. Any
+    other numeric string, a decimal or an exponent, is read as a float.
+
+    Args:
+        input_str (str): a string for which ``is_numeric`` is True
+
+    Returns:
+        int for a plain integer string, else float
+    """
+    if input_str.strip().lstrip("+-").isdigit():
+        return int(input_str)
+    return float(input_str)
 
 
 def look_for_fractions(split_list: List[str]) -> bool:
@@ -270,6 +355,73 @@ def convert_to_mixed_fraction(number: Union[int, float], denominators=range(1, 2
         return None
 
     return int_number, int(round(numerator)), denominator
+
+
+def scientific_notation(number: Union[int, float]) -> str:
+    """
+    Format ``number`` as ``'%E' % number`` does, ints beyond the float range
+    included.
+
+    ``'%E'`` converts to float, which raises OverflowError for an int such as
+    10 ** 400; such an int is then formatted from its exact decimal value.
+
+    Args:
+        number (int or float): finite number to format
+    Returns:
+        (str): the number as "<mantissa>E<signed exponent>", e.g. "1.000000E+400"
+    """
+    try:
+        return '%E' % number
+    except OverflowError:
+        return format(Decimal(number), '.6E')
+
+
+def round_half_up(value: Decimal, places: int) -> Decimal:
+    """
+    ``value`` rounded half away from zero to ``places`` decimals.
+
+    The context precision holds every digit the rounding keeps, so a long
+    Decimal or a large ``places`` rounds instead of raising InvalidOperation
+    at the default precision of 28 digits.
+    """
+    with localcontext() as context:
+        context.prec = max(context.prec, value.adjusted() + places + 2)
+        return value.quantize(Decimal(1).scaleb(-places), ROUND_HALF_UP)
+
+
+def scientific_parts(number: Union[int, float, Decimal],
+                     places: int) -> Tuple[Union[int, float], int]:
+    """
+    Mantissa and exponent of ``number`` in scientific notation, with the
+    mantissa rounded half away from zero to ``places`` decimals.
+
+    The mantissa is rounded from the decimal digits of ``number``, so an int
+    or a Decimal beyond the float range rounds exactly. A mantissa that rounds
+    to ten carries into the exponent: 9.9996 at 3 places is 1 and exponent 1.
+
+    Args:
+        number (int, float or Decimal): finite number to split
+        places (int): decimals of the mantissa
+    Returns:
+        (tuple): the signed mantissa (an int when it has no fraction) and the
+            exponent, e.g. (1.235, 400) for 12346 * 10 ** 396 at 3 places
+    """
+    exact = Decimal(number) if isinstance(number, int) else Decimal(str(number))
+    if not exact:
+        return 0, 0
+    sign, digits, _ = exact.as_tuple()
+    exponent = exact.adjusted()
+    # decimals past the last digit add nothing but zeros
+    places = min(places, len(digits) - 1)
+    with localcontext() as context:
+        context.prec = len(digits) + 1
+        mantissa = Decimal((sign, digits, 1 - len(digits))).quantize(
+            Decimal(1).scaleb(-places), ROUND_HALF_UP)
+    if abs(mantissa) == 10:
+        mantissa, exponent = mantissa / 10, exponent + 1
+    if mantissa == mantissa.to_integral_value():
+        return int(mantissa), exponent
+    return float(mantissa), exponent
 
 
 @dataclass
@@ -338,9 +490,19 @@ class NumberVocabulary:
     # ends in 00 or in 20-99 ("douăzeci DE mii", "o sută DE milioane")
     SCALE_LINKER: str = ""
 
+    # a count of the largest scale word from this value up has no reading in
+    # words: it would stack scale words past the compounds the language uses
+    # ("trilioane de trilioane"). None reads every count.
+    MAX_SCALE_COUNT: Optional[int] = None
+
     # extraction: the word for 100 multiplies the preceding units
     # ("două sute" = 200) instead of being added to them
     MULTIPLY_HUNDREDS: bool = False
+
+    # extraction: the mark that groups the thousands of a digit string whose
+    # decimal mark is the comma ("12.000" = 12000, "1.234,5" = 1234.5).
+    # Empty when no such mark is set, and "12.000" reads as 12.0
+    DIGIT_GROUP_MARK: str = ""
 
     # extraction: a fraction noun always multiplies the preceding cardinal
     # ("un quarto" = 1/4, "tre quarti" = 3/4) instead of adding to it, even in
@@ -358,6 +520,9 @@ class NumberVocabulary:
     #: "și" ("douăzeci și unu" = 21). Listed here so the descending-joiner rule
     #: skips them.
     MULTIPLICATIVE_JOIN_WORD: List[str] = field(default_factory=list)
+    #: fixed phrases that hold a NEGATIVE_SIGN word without a sign meaning
+    #: ("pelo menos" = at least): the minus word in them never signs a number
+    NEGATIVE_IDIOMS: List[Tuple[str, ...]] = field(default_factory=list)
 
     SCALE_ONE: Dict[int, str] = field(default_factory=dict)
 
@@ -489,6 +654,33 @@ class RomanceNumberExtractor:
 
         return False
 
+    def _signs(self, tokens: List[str], idx: int, numbers_map: Dict[str, Any]) -> bool:
+        """
+        Tell if the NEGATIVE_SIGN word at tokens[idx] signs the number after it.
+
+        The word signs a number only as a prefix: a number must follow it, no
+        number may come before it ("tres menos dos" is a subtraction), nor a
+        token that starts with digits ("9h moins 10" is clock time), and it
+        must not be part of a NEGATIVE_IDIOMS phrase ("pelo menos tres").
+        """
+        def is_number(tok: str) -> bool:
+            digits = tok.rstrip(".,!?;:").replace(",", ".").removeprefix("-")
+            return tok in numbers_map or self.is_fractional(tok) is not False \
+                or digits.replace(".", "", 1).isdecimal()
+
+        if idx + 1 >= len(tokens) or not is_number(tokens[idx + 1]):
+            return False
+        if idx and (is_number(tokens[idx - 1])
+                    or tokens[idx - 1].removeprefix("-")[:1].isdigit()):
+            return False
+        for idiom in self.vocab.NEGATIVE_IDIOMS:
+            for k, word in enumerate(idiom):
+                start = idx - k
+                if word == tokens[idx] and start >= 0 \
+                        and tuple(tokens[start:start + len(idiom)]) == idiom:
+                    return False
+        return True
+
     def extract_number(self,
                        text: str,
                        ordinals: bool = False,
@@ -515,23 +707,42 @@ class RomanceNumberExtractor:
         ordinals_map = self.vocab.get_ordinal_strings(scale)
         scales_map = self.vocab.SHORT_SCALE if scale == Scale.SHORT else self.vocab.LONG_SCALE
 
-        # normalize and tokenize
-        clean_text = text.lower().replace('-', ' ')
+        # normalize and tokenize; a hyphen joins words ("vinte-e-dois"), but
+        # a hyphen that opens a token before a digit or a decimal separator
+        # is the minus sign ("-12", "-.5")
+        clean_text = re.sub(r"(?<=\S)-|-(?![.,]?\d)", " ", text.lower())
         # the joiner is kept: it is what tells "vinte e um" (21, one number)
         # apart from "tres e vinte" (3 and 20, two numbers)
         tokens = clean_text.split()
 
         # a digit token wins if it appears before any spoken number word
-        for tok in tokens:
-            t = tok.strip(".,!?;:").replace(",", ".")
+        group = self.vocab.DIGIT_GROUP_MARK
+        # a group number never starts with 0 ("0.500" is a decimal)
+        grouped = re.compile(rf"-?[1-9]\d{{0,2}}(?:{re.escape(group)}\d{{3}})+(?:,\d+)?")
+        for idx, tok in enumerate(tokens):
+            # a leading decimal separator belongs to the number (".5")
+            t = tok.rstrip(".,!?;:").lstrip("!?;:")
+            if group and grouped.fullmatch(t):
+                t = t.replace(group, "")
+            t = t.replace(",", ".")
             if t and t.lstrip("-").replace(".", "", 1).isdecimal():
-                val = float(t)
-                # an out-of-range digit token (e.g. "1e309" or a 400-digit
-                # string) overflows to inf/nan; it carries no usable number,
+                # an out-of-range token (a 400-digit decimal, or a digit
+                # string longer than int() reads) carries no usable number,
                 # so skip it rather than return a non-finite value
-                if not math.isfinite(val):
+                if not is_numeric(t):
                     continue
-                return int(val) if val.is_integer() else val
+                val = numeric_value(t)
+                if idx and tokens[idx - 1] in self.vocab.NEGATIVE_SIGN \
+                        and self._signs(tokens, idx - 1, numbers_map):
+                    # the minus word signs digits as it signs number words
+                    sign = -1
+                else:
+                    sign = 1
+                if val == int(val):
+                    # a whole float rounds the digit string; above 2 ** 53
+                    # it also drops digits of the whole part
+                    return sign * int(Decimal(t).to_integral_value(ROUND_HALF_UP))
+                return sign * val
             if tok in numbers_map or tok in ordinals_map or tok in scales_map:
                 break
 
@@ -542,6 +753,7 @@ class RomanceNumberExtractor:
 
         result = 0
         current = 0
+        largest_scale = 0
         saw_number = False
         is_negative = False
 
@@ -549,7 +761,13 @@ class RomanceNumberExtractor:
         while i < len(tokens):
             token = tokens[i]
             if token in self.vocab.NEGATIVE_SIGN:
-                is_negative = True
+                if self._signs(tokens, i, numbers_map):
+                    if saw_number:
+                        # a signed number after a number is a second number
+                        break
+                    is_negative = True
+                elif saw_number:
+                    break
                 i += 1
                 continue
 
@@ -578,10 +796,17 @@ class RomanceNumberExtractor:
                         # thousand-level: keep accumulating so a bigger scale
                         # (e.g. milhão) can still multiply the whole group
                         current = (current or 1) * 1000
+                    elif val > largest_scale:
+                        # a scale word above every scale before it
+                        # multiplies the whole number so far ("dotze milions
+                        # bilions" = 12 * 10 ** 6 * 10 ** 12)
+                        result = (result + current or 1) * val
+                        current = 0
                     else:
                         current = (current or 1) * val
                         result += current
                         current = 0
+                    largest_scale = max(largest_scale, val)
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
                     # ("două sute" = 200, "dos cents" = 200), leaving higher
@@ -682,11 +907,21 @@ class RomanceNumberExtractor:
             str: The input text with written numbers replaced by their digit representations.
         """
         scale = scale or self.vocab.DEFAULT_SCALE
+        numbers_map = self.vocab.get_number_strings(scale)
+        # a hyphen chain of number words around a joiner is one spoken
+        # number ("vinte-e-dois"); without a joiner it is a range
+        # ("doi-trei"), and other hyphenated words keep their hyphens
+        joiners = set(self.vocab.JOIN_WORD) - set(self.vocab.MULTIPLICATIVE_JOIN_WORD)
+        utterance = re.sub(
+            r"[^\W\d_]+(?:-[^\W\d_]+)+",
+            lambda m: m.group().replace("-", " ") if all(
+                w in numbers_map or w in joiners
+                for w in m.group().split("-"))
+            and joiners & set(m.group().split("-")) else m.group(),
+            utterance)
         words = word_tokenize(utterance)
         output = []
         i = 0
-
-        numbers_map = self.vocab.get_number_strings(scale)
 
         def next_word(idx):
             return words[idx + 1] if idx + 1 < len(words) else None
@@ -695,9 +930,9 @@ class RomanceNumberExtractor:
             w = words[idx]
             if w in numbers_map or w in self.vocab.JOIN_WORD:
                 return True
-            # a negative sign or decimal marker only extends a span if it is
-            # immediately followed by a number word ("menos vinte", "tres coma catorze")
-            if w in self.vocab.NEGATIVE_SIGN or w in self.vocab.DECIMAL_MARKER:
+            # a decimal marker only extends a span if it is immediately
+            # followed by a number word ("tres coma catorze")
+            if w in self.vocab.DECIMAL_MARKER:
                 return next_word(idx) in numbers_map
             return False
 
@@ -705,8 +940,10 @@ class RomanceNumberExtractor:
             w = words[idx]
             if w in numbers_map:
                 return True
+            # a sign word opens a span before a number word ("menos vinte")
             if w in self.vocab.NEGATIVE_SIGN:
-                return next_word(idx) in numbers_map
+                return next_word(idx) in numbers_map \
+                    and self._signs(words, idx, numbers_map)
             return False
 
         while i < len(words):
@@ -715,6 +952,9 @@ class RomanceNumberExtractor:
                 # Start a new span
                 number_span_words = []
                 j = i
+                if words[i] in self.vocab.NEGATIVE_SIGN:
+                    number_span_words.append(words[i])
+                    j += 1
                 while j < len(words) and continues_span(j):
                     if words[j] in self.vocab.JOIN_WORD and number_span_words \
                             and words[j] not in self.vocab.MULTIPLICATIVE_JOIN_WORD:
@@ -765,7 +1005,8 @@ class RomanceNumberExtractor:
                          digits: DigitPronunciation = DigitPronunciation.FULL_NUMBER,
                          gender: GrammaticalGender = GrammaticalGender.MASCULINE,
                          _force_hundreds_join: bool = False,
-                         _under_higher_scale: bool = False
+                         _under_higher_scale: bool = False,
+                         _fraction_digits: bool = False
                          ) -> str:
         """
         Return the full pronunciation of a number, supporting cardinal and ordinal forms, decimals, large scales, grammatical gender, and both Brazilian and European Portuguese variants.
@@ -844,7 +1085,8 @@ class RomanceNumberExtractor:
                             if after_last_digit >= 5:
                                 last_digit += 1
                             decimal_part_str = decimal_part_str[:places - 1] + str(last_digit)
-                        decimal_pronunciation_parts.append(self.pronounce_number(int(decimal_part_str), gender=gender))
+                        decimal_pronunciation_parts.append(self.pronounce_number(
+                            int(decimal_part_str), gender=gender, _fraction_digits=True))
                 else:
                     for digit in decimal_part_str:
                         decimal_pronunciation_parts.append(self.pronounce_number(int(digit), gender=gender))
@@ -871,6 +1113,10 @@ class RomanceNumberExtractor:
 
         count = n // scale_val[0]
         remainder = n % scale_val[0]
+        # the digits after the decimal marker keep their reading in words
+        if self.vocab.MAX_SCALE_COUNT and count >= self.vocab.MAX_SCALE_COUNT \
+                and not _fraction_digits:
+            raise OverflowError(f"no scale word for {n}")
 
         # Pronounce the 'count' part of the number
         is_singular = count == 1 or scale_val[0] in self.vocab.NO_PLURAL
@@ -886,7 +1132,8 @@ class RomanceNumberExtractor:
                                                         GrammaticalGender.MASCULINE)
             count_pronunciation = self.pronounce_number(count, places, scale,
                                                         gender=count_gender,
-                                                        _under_higher_scale=True)
+                                                        _under_higher_scale=True,
+                                                        _fraction_digits=_fraction_digits)
             # counts ending in 00 or 20-99 link to the scale word
             # ("douăzeci de mii")
             if self.vocab.SCALE_LINKER and (count % 100 == 0 or count % 100 >= 20):
@@ -904,7 +1151,8 @@ class RomanceNumberExtractor:
             and self.vocab.JOINER_ON_SCALE_REMAINDER
         remainder_str = self.pronounce_number(remainder, places, scale,
                                               _force_hundreds_join=remainder_force,
-                                              _under_higher_scale=nested_under_higher)
+                                              _under_higher_scale=nested_under_higher,
+                                              _fraction_digits=_fraction_digits)
         # Conjunction logic: add JOIN_WORD if the remainder is the last group and is
         # less than 100 or a multiple of 100.
         join_word = self.vocab.JOIN_WORD[0] if len(self.vocab.JOIN_WORD) else ""
@@ -1195,12 +1443,17 @@ def leftmost_separated_number(text: str, lang: str, ordinals: bool
     the languages did not agree on which one answers. The rule is that the
     number written first wins, whether it is the ordinal or the cardinal.
 
-    The rule covers numbers that other words separate, and only those. Two
-    adjacent number words are how a fraction is written ("two thirds",
-    "zwei drittel"), so they are left to the language's own reading.
-    :func:`ovos_number_parser.extract_number_spans` draws that line already:
-    it grows adjacent number words into one span, so a line with two spans
-    is a line whose numbers are separated.
+    The rule covers numbers that other words separate, and only those.
+    Whether an adjacent cardinal-then-ordinal pair reads as a fraction and
+    collapses into one span is a property of the locale, not a general rule
+    of :func:`ovos_number_parser.extract_number_spans`. In German
+    ("zwei drittel") and Danish ("to tredje") that order is one span, so the
+    rule never reaches it; the ordinal-then-cardinal order in those same
+    languages stays two spans. English reads the singular pair ("two
+    third", "third two") as one span in both orders, while the plural
+    ("two thirds") stays two spans. Kabyle ("sin wis kṛaḍ") stays two spans
+    in both orders. The rule reaches a locale's adjacent pair exactly when
+    the pair is two spans.
 
     Args:
         text: the line to read.
@@ -1214,6 +1467,12 @@ def leftmost_separated_number(text: str, lang: str, ordinals: bool
         span scan.
     """
     if not ordinals or not isinstance(text, str):
+        return None
+    if len(word_tokenize(text)) < 2:
+        # extract_number_spans can answer two spans only when the line
+        # itself holds two or more words; word_tokenize splits at least as
+        # often as the span scanner's own word boundaries, so this can
+        # never skip a line the scan would have found two spans in.
         return None
     if getattr(_LEFTMOST_SCAN, "active", False):
         return None

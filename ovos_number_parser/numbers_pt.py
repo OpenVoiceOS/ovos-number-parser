@@ -75,6 +75,8 @@ _PT_PT = NumberVocabulary(
     NO_PLURAL=[1000], # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
 
     DEFAULT_SCALE=Scale.LONG,
+    DIGIT_GROUP_MARK=".",
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
@@ -90,6 +92,8 @@ _PT_PT = NumberVocabulary(
 
     DECIMAL_MARKER=["vírgula", "virgula", "ponto", ".", ","],
     NEGATIVE_SIGN=["menos"],
+    NEGATIVE_IDIOMS=[("pelo", "menos"), ("ao", "menos"), ("a", "menos", "que"),
+                     ("mais", "ou", "menos")],
     UNITS={
         0: 'zero',
         1: 'um',
@@ -283,6 +287,8 @@ _PT_BR = NumberVocabulary(
     swap_gender=swap_gender_pt,  # used for female forms
     pluralize=pluralize_pt,  # use for plural forms
     DEFAULT_SCALE=Scale.SHORT,
+    DIGIT_GROUP_MARK=".",
+    MAX_SCALE_COUNT=10 ** 6,
     DIVIDED_BY_ZERO=_PT_PT.DIVIDED_BY_ZERO,
     DENOMINATOR_PARTICLE=_PT_PT.DENOMINATOR_PARTICLE,
     HUNDRED_PARTICLE=_PT_PT.HUNDRED_PARTICLE,
@@ -303,6 +309,7 @@ _PT_BR = NumberVocabulary(
     JOINER_ON_THOUSANDS=True,  # "mil e duzentos", "mil e cem"
     DECIMAL_MARKER=_PT_PT.DECIMAL_MARKER,
     NEGATIVE_SIGN=_PT_PT.NEGATIVE_SIGN,
+    NEGATIVE_IDIOMS=_PT_PT.NEGATIVE_IDIOMS,
     UNITS=_PT_PT.UNITS,
     TENS={
         **_PT_PT.TENS,

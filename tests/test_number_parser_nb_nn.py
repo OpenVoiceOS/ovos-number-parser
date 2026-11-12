@@ -201,11 +201,12 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
     NN = [("hundre og femte", 100, 100),
           ("ein og tjuande", 21, False)]
 
-    #: the fraction shape: with the flag on the leading cardinal answers, and
-    #: with the flag off the fraction still does. No ordinal word appears on
-    #: these lines, so the og-inverted fix does not reach them.
-    FRACTIONS_NB = [("en halv", 1, 0.5),
-                    ("en kvart", 1, 0.25),
+    #: the fraction shape: a cardinal followed by its denominator is one
+    #: number, so with the flag on or off the fraction answers, as it does in
+    #: da and de ("en halv", "ein halb"). Behind a whole number the fraction
+    #: is a second span, and with the flag on the leading cardinal answers.
+    FRACTIONS_NB = [("en halv", 0.5, 0.5),
+                    ("en kvart", 0.25, 0.25),
                     ("tre en halv", 3, 3.5)]
 
     def _assert_rows(self, lang, rows):
@@ -225,7 +226,7 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
     def test_a_fraction_line_answers_its_leading_cardinal_under_the_flag(self):
         self._assert_rows("nb", self.FRACTIONS_NB)
         self.assertEqual(extract_number('ein halv', lang="nn",
-                                        ordinals=True), 1)
+                                        ordinals=True), 0.5)
         self.assertEqual(extract_number('ein halv', lang="nn"), 0.5)
 
     def test_da_og_inverted_compound_joins_the_family(self):
@@ -252,8 +253,6 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
         """
         self.assertEqual(extract_number('einundzwanzigste', lang="de",
                                         ordinals=True), 21)
-        self.assertEqual(extract_number('hundert und fünfte', lang="de",
-                                        ordinals=True), 100)
         self.assertEqual(extract_number('hundert und fünfte', lang="de",
                                         ordinals=True), 100)
 

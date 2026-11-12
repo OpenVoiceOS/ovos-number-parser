@@ -6,10 +6,13 @@ the count: "tisuću" (1000), "dvije tisuće" (2000), "pet tisuća" (5000),
 "milijun" / "dva milijuna", "milijarda" / "dvije milijarde" / "pet milijardi".
 Croatian uses the long scale (milijun = 1e6, milijarda = 1e9, bilijun = 1e12).
 """
+import sys
+from fractions import Fraction
+from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, fits_str_limit, look_for_fractions, \
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, scientific_parts
 
 _NUM_STRING_HR = {
     0: 'nula',
@@ -147,19 +150,19 @@ _SUMS = {'dvadeset', '20', 'trideset', '30', 'četrdeset', '40', 'pedeset', '50'
 
 # declined forms of the scale words used when speaking multiples
 _SCALE_DECLENSIONS_HR = {
-    "tisuću": 1e3,
-    "tisuće": 1e3,
-    "milijuna": 1e6,
-    "milijardu": 1e9,
-    "milijarde": 1e9,
-    "milijardi": 1e9,
-    "bilijuna": 1e12,
-    "bilijarde": 1e15,
-    "bilijardi": 1e15,
-    "trilijuna": 1e18,
-    "trilijarde": 1e21,
-    "trilijardi": 1e21,
-    "kvadrilijuna": 1e24,
+    "tisuću": 10 ** 3,
+    "tisuće": 10 ** 3,
+    "milijuna": 10 ** 6,
+    "milijardu": 10 ** 9,
+    "milijarde": 10 ** 9,
+    "milijardi": 10 ** 9,
+    "bilijuna": 10 ** 12,
+    "bilijarde": 10 ** 15,
+    "bilijardi": 10 ** 15,
+    "trilijuna": 10 ** 18,
+    "trilijarde": 10 ** 21,
+    "trilijardi": 10 ** 21,
+    "kvadrilijuna": 10 ** 24,
 }
 
 _MULTIPLIES_HR = set(_SCALE_HR.values()) | set(_SCALE_DECLENSIONS_HR)
@@ -271,9 +274,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus beskonačnost"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             return '{}{} puta deset na {}{}'.format(
                 'minus ' if float(n) < 0 else '',
@@ -281,7 +282,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
                     abs(float(n)), places, short_scale, False, ordinals=False),
                 'minus ' if power < 0 else '',
                 pronounce_number_hr(abs(power), places, short_scale, False,
-                                    ordinals=True))
+                                    ordinals=False))
 
     number_names = _NUM_STRING_HR.copy()
     number_names.update(_SCALE_HR)
@@ -321,7 +322,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
 
         def _scale_hr(n):
             if n > max(_SCALE_HR.keys()):
-                return "beskonačnost"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -385,15 +386,17 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
 
         result += _scale_hr(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_hr(num, places, short_scale, scientific=True)
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "minus ") and num >= 1e6:
+        return result + pronounce_number_hr(
+            num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "minus " or not result):
+        result += "nula"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "minus " or not result):
-            result += "nula"
+    if not num == int(num) and places > 0:
         result += " zarez"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
@@ -449,6 +452,8 @@ def numbers_to_digits_hr(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_hr(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -689,6 +694,7 @@ def _extract_whole_number_with_text_hr(tokens, short_scale, ordinals):
     next_val = None
     negative = False
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -714,6 +720,36 @@ def _extract_whole_number_with_text_hr(tokens, short_scale, ordinals):
         if not ordinals:
             word = _text_hr_inflection_normalize(word)
 
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts ("-0 1/2" = -0.5);
+        # any other fraction is a number of its own ("3.5 1/2" is 3.5, then
+        # 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 \
+                and val is not False and val is not None:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                whole = abs(int(val))
+                mixed = float(whole + Fraction(float(a_pieces[0]))
+                              / Fraction(float(a_pieces[1])))
+                # the float must keep both parts: from 2**52 on it cannot, so
+                # the whole number keeps its digits and the fraction is a
+                # number of its own ("9007199254740993 1/2")
+                if whole < mixed < whole + 1:
+                    negative_whole = val < 0 or \
+                        tokens[idx - 1].word.startswith("-")
+                    val = -mixed if negative_whole else mixed
+                    number_words.append(token)
+            break
+
         if word not in string_num_scale and \
                 word not in _STRING_NUM_HR and \
                 word not in _SUMS and \
@@ -734,17 +770,18 @@ def _extract_whole_number_with_text_hr(tokens, short_scale, ordinals):
                 and not (ordinals and prev_word in string_num_ordinal) \
                 and prev_word not in _NEGATIVES:
             number_words = [token]
-        elif prev_word in _SUMS and word in _SUMS:
+        elif prev_word in _SUMS and word in _SUMS \
+                and not _STRING_NUM_HR.get(word, 100) < 100 <= _STRING_NUM_HR.get(prev_word, 0):
+            # two tens words are two numbers; a tens word after a
+            # hundreds word continues it ("tristo četrdeset")
             number_words = [token]
         else:
             number_words.append(token)
 
+        number_end = idx
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?
@@ -806,12 +843,15 @@ def _extract_whole_number_with_text_hr(tokens, short_scale, ordinals):
         # so no per-token negation happens here
 
         # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            a_pieces = word.split('/')
-            if look_for_fractions(a_pieces):
-                val = float(a_pieces[0]) / float(a_pieces[1])
-        else:
+        # look for fractions like "2/3". A digit fraction is a value of its
+        # own: the value of a number before it ("5 1/2") must not block it
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces):
+            val = float(a_pieces[0]) / float(a_pieces[1])
+            if not val:
+                # a zero fraction is the number 0 ("0/2" reads as 0)
+                val = 0
+        elif val:
             if all([
                 prev_word in _SUMS,
                 word not in _SUMS,
@@ -870,7 +910,8 @@ def _initialize_number_data(short_scale):
         multiplies, string_num_ordinal, string_num_scale
 
     """
-    string_num_scale_hr = invert_dict(_SCALE_HR)
+    string_num_scale_hr = {word: exact_int(value)
+                           for value, word in _SCALE_HR.items()}
     string_num_scale_hr.update(_SCALE_DECLENSIONS_HR)
     return _MULTIPLIES_HR, _STRING_SHORT_ORDINAL_HR, string_num_scale_hr
 
