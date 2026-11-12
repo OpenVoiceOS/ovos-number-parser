@@ -203,14 +203,16 @@ class TestTagSpelling(unittest.TestCase):
         self.assertEqual(is_ordinal("dvadeset i prvi", "sr-Latn"), 21)
 
     def test_regional_french_ordinals_recognised_leniently(self):
-        # fr-BE and fr-CH speak the regional CLDR ordinals and read both
-        # those and the forms of France
+        # fr-BE and fr-CH speak the regional ordinals of the French engine
+        # and read those, the regional CLDR forms and the forms of France
         for tag, locale in [("fr-BE", "fr_BE"), ("fr-CH", "fr_CH")]:
             for number in range(1, 101):
+                spoken = pronounce_number(number, tag, ordinals=True)
                 regional = masculine_ordinal(locale, number)
                 france = masculine_ordinal("fr", number)
                 with self.subTest(tag=tag, number=number):
-                    self.assertEqual(pronounce_ordinal(number, tag), regional)
+                    self.assertEqual(pronounce_ordinal(number, tag), spoken)
+                    self.assertEqual(is_ordinal(spoken, tag), number)
                     self.assertEqual(is_ordinal(regional, tag), number)
                     self.assertEqual(is_ordinal(france, tag), number)
         self.assertEqual(pronounce_ordinal(70, "fr-BE"), "septantième")

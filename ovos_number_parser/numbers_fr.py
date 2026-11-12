@@ -427,10 +427,20 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
 
     def pronounce_ordinal(self, number, gender=GrammaticalGender.MASCULINE,
                           scale=None):
-        """A regional ordinal is its cardinal with the suffix -ième
-        ("septante-deux" -> "septante-deuxième"), as the regional tens are."""
-        if not self.decimal_tens or not isinstance(number, (int, float)) \
-                or int(number) == 0:
+        """The ordinal is the cardinal with the suffix -ième on its last word.
+
+        TLFi "-ième": "-ième sert à former des adjectifs numéraux ordinaux
+        [...] : deuxième, troisième, centième, cent unième, deux cent
+        troisième". The final mute e drops ("quatre" -> "quatrième"), "cinq"
+        takes a u and "neuf" a v (TLFi "cinquième", "neuvième"), the plural -s
+        of "quatre-vingts", "cents" and "millions" drops (TLFi
+        "quatre-vingtième", "Qui occupe le rang marqué par le nombre
+        quatre-vingts"), and a final "un" gives "unième" (TLFi "unième":
+        "vingt et unième, quatre vingt-unième, cent unième"). Rank 1 is
+        "premier"/"première", and a round million or milliard takes no "un"
+        (TLFi "millionième": "Qui occupe le rang marqué par le nombre d'un
+        million")."""
+        if not isinstance(number, (int, float)) or int(number) == 0:
             return super().pronounce_ordinal(number, gender, scale)
         if number < 0:
             return f"{self.vocab.NEGATIVE_SIGN[0]} " \
@@ -439,8 +449,14 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
             return "première" if gender == GrammaticalGender.FEMININE \
                 else "premier"
         cardinal = self.pronounce_number(int(number), scale=scale)
+        if cardinal.startswith("un ") and " " not in cardinal[3:]:
+            cardinal = cardinal[3:]
         if cardinal.endswith("s") and not cardinal.endswith("trois"):
             cardinal = cardinal[:-1]
+        # "millionième" is a numeral adjective, not the noun "million", so a
+        # round "cents" or "quatre-vingts" before it loses its -s as before
+        # "mille" (see _VINGT_CENT_BEFORE_MILLE_FR)
+        cardinal = _VINGT_CENT_BEFORE_LAST_WORD_FR.sub(r"\1", cardinal)
         if cardinal.endswith("cinq"):
             return cardinal + "uième"
         if cardinal.endswith("neuf"):
@@ -460,6 +476,7 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
 #: when the group is terminal or precedes a noun scale; this trims it back for
 #: the one case where it is wrong.
 _VINGT_CENT_BEFORE_MILLE_FR = re.compile(r"(quatre-vingt|cent)s(?= mille\b)")
+_VINGT_CENT_BEFORE_LAST_WORD_FR = re.compile(r"(quatre-vingt|cent)s(?= \S+$)")
 
 
 def _fix_vingt_cent_plural_fr(text: str) -> str:
