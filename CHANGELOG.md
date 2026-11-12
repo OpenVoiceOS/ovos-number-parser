@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.39a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.39a1) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.38a1...0.24.39a1)
+
+**Merged pull requests:**
+
+- fix\(he\): numbers\_to\_digits keeps the ו before a new number [\#437](https://github.com/OpenVoiceOS/ovos-number-parser/pull/437) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.38a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.38a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.37a1...0.24.38a1)
@@ -371,10 +379,6 @@
 **Closed issues:**
 
 - Arabic: numbers\_to\_digits merges a repeated hundred across two numbers [\#351](https://github.com/OpenVoiceOS/ovos-number-parser/issues/351)
-
-**Merged pull requests:**
-
-- fix\(ar\): a unit two before a hundred builds two hundred again [\#350](https://github.com/OpenVoiceOS/ovos-number-parser/pull/350) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.22.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.22.12a1) (2026-09-22)
 
