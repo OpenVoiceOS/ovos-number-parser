@@ -97,6 +97,22 @@ class TestSpanishFractionNouns(unittest.TestCase):
         self.assertEqual(pronounce_fraction(f"{numerator}/30", "es-ES"),
                          f"{pronounce_number(numerator, 'es-ES')} treintavos")
 
+    def test_uno_compounds_apocopate_above_999(self):
+        # "uno" § 2.2: the apocope also rules "uno" inside a compound
+        self.assertReads([
+            ("1001/30", "mil un treintavos"),
+            ("1/1001000000", "un milunmillonésimo"),
+        ])
+
+    def test_no_noun_from_ten_to_the_24(self):
+        # the vocabulary names no -ésimo noun above "trillonésimo", so these
+        # raise as they do without a fraction noun
+        for fraction in ("1/" + str(10 ** 24), "1/" + str(10 ** 24 + 1),
+                         "7/" + str(10 ** 30 + 7)):
+            with self.subTest(fraction=fraction):
+                with self.assertRaises(NotImplementedError):
+                    pronounce_fraction(fraction, "es-ES")
+
     def test_negative_fraction(self):
         self.assertReads([("-1/30", "menos un treintavo"),
                           ("7/-30", "menos siete treintavos")])

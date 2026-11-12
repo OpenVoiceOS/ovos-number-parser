@@ -304,19 +304,20 @@ def fraction_noun_es(denominator: int, plural: bool = False) -> str:
     RAE and ASALE, Diccionario panhispánico de dudas, "fraccionarios": mil,
     millón and their multiples take the ordinal form in -ésimo ("dosmilésimo",
     "milmillonésimo"); every other denominator outside the table takes -avo
-    on the cardinal written as one word ("veintiunavo", "cincuentaiseisavo",
-    "doscientosavo"), which drops a final -a and keeps -e or -o (§ 5).
+    on the cardinal written as one word ("cincuentaiseisavo", "doscientosavo").
+    The cardinal drops a final -a and keeps -e or -o (§ 5); "uno" drops its
+    -o ("cientounava" in § 2, "veintiunavo" in § 3 c).
 
-    Raises OverflowError when the denominator has no reading as one word.
+    Raises OverflowError from 10**24 up, where the vocabulary has no noun.
     """
+    if denominator >= 10 ** 24:
+        raise OverflowError(f"no fraction noun for {denominator}")
     if denominator in _ES.FRACTION:
         noun = _ES.FRACTION[denominator]
     elif denominator % 10 ** 6 == 0:
         # "millonésimo", "dosmillonésimo", "milmillonésimo", "billonésimo"
         value = max(v for v in _ES.ORDINAL_LONG_SCALE if denominator % v == 0)
         count = denominator // value
-        if count >= 10 ** 6:
-            raise OverflowError(f"no fraction noun for {denominator}")
         noun = _ES.ORDINAL_LONG_SCALE[value]
         if count > 1:
             noun = _one_word_es(ES.pronounce_number(
