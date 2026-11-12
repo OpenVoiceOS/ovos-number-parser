@@ -52,7 +52,7 @@ from ovos_number_parser.numbers_gl import GL, pronounce_number_gl, extract_numbe
 from ovos_number_parser.numbers_hr import pronounce_number_hr, pronounce_ordinal_hr, extract_number_hr, \
     is_fractional_hr, nice_number_hr, numbers_to_digits_hr
 from ovos_number_parser.numbers_he import pronounce_number_he, pronounce_ordinal_he, \
-    extract_number_he, is_fractional_he, is_ordinal_he, nice_number_he
+    extract_number_he, is_fractional_he, is_ordinal_he, nice_number_he, numbers_to_digits_he
 from ovos_number_parser.numbers_hu import pronounce_number_hu, pronounce_ordinal_hu, extract_number_hu, \
     is_fractional_hu, is_ordinal_hu, nice_number_hu, pronounce_scientific_hu
 from ovos_number_parser.numbers_id import (pronounce_number_id, pronounce_number_ms,
@@ -203,7 +203,7 @@ _NUMBER_CONNECTORS = {
     # "venti e cinque"), so "e" separates two numbers rather than joining them
     "fr": {"et"}, "fy": {"en"}, "it": set(), "nl": {"en"}, "sv": {"och"},
     "fa": {"و"}, "hr": {"i"}, "sl": {"in"}, "hu": set(), "fi": set(),
-    "et": set(), "kab": {"u", "d", "ed"},
+    "et": set(), "kab": {"u", "d", "ed"}, "he": {"ו"},
 }
 
 
@@ -642,6 +642,8 @@ def _number_words_to_digits(utterance: str, lang: str,
         return numbers_to_digits_ar(utterance, lang)
     if lang2 == "kab":
         return numbers_to_digits_kab(utterance)
+    if lang2 == "he":
+        return numbers_to_digits_he(utterance)
     return _numbers_to_digits_generic(utterance, lang)
 
 
