@@ -32,9 +32,13 @@ des noms et non des adjectifs numéraux". "millionième" is an adjective numeral
 millième").
 
 The ordinal keeps the spelling of the engine's own cardinal ("vingt-et-un",
-"cent un"), so "vingt et unième" reads "vingt-et-unième" here. The OQLF
-(Rectifications liées aux numéraux composés) joins compound ordinals with
-hyphens as well.
+"cent un"), so "vingt et unième" reads "vingt-et-unième" here. That is the
+spelling of the 1990 rectifications: OQLF, Banque de dépannage
+linguistique, "Rectifications liées aux nombres composés" (fiche 23163):
+"Les nombres composés et les adjectifs ordinaux composés sont
+systématiquement reliés par des traits d'union [...] cent-deuxième". The
+same fiche hyphenates "cent-deuxième", while the engine keeps the space in
+"cent unième", the traditional spelling the TLFi gives.
 """
 import unittest
 
