@@ -1,14 +1,5 @@
 # Changelog
 
-## [0.24.32a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.32a1) (2026-11-12)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.31a1...0.24.32a1)
-
-**Merged pull requests:**
-
-- fix\(oc\): read the 8th and 80th spellings a native speaker reported [\#438](https://github.com/OpenVoiceOS/ovos-number-parser/pull/438) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(pt\): read the count before a fraction word and the "avos" denominator [\#434](https://github.com/OpenVoiceOS/ovos-number-parser/pull/434) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.31a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.31a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.30a1...0.24.31a1)
