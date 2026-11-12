@@ -446,11 +446,11 @@ def _component_value(tokens, k):
 def _fits(current, value):
     """Whether a component of ``value`` can follow ``current`` in one number.
 
-    A compound numeral names its components from the largest to the smallest
-    ("שלושת־אלפים שש־מאות ושבע־עשרה", Hebrew Wikipedia, "שם מספר", section
-    "אבני יסוד"), so a unit only follows a whole ten, a ten or a teen only a
-    whole hundred, and a hundred only a whole thousand: "שלושה וארבעה" is two
-    numbers, three and four.
+    A compound numeral names its components from the largest to the
+    smallest, as the example in Hebrew Wikipedia, "שם מספר", section
+    "אבני יסוד", shows ("שלושת־אלפים שש־מאות ושבע־עשרה"). So a unit only
+    follows a whole ten, a ten or a teen only a whole hundred, and a hundred
+    only a whole thousand: "שלושה וארבעה" is two numbers, three and four.
     """
     if value is None:
         return True
@@ -575,8 +575,9 @@ def _parse_decimal_part(tokens, i):
 
 
 _WORD_RE = re.compile(r'\S+')
-#: a ו left alone before the digits the converter wrote for its number
-_CONJUNCTION_DIGITS_RE = re.compile(r'(?<!\S)ו (?=[0-9])')
+#: a ו that _detach_conjunction split off and the converter left alone: it
+#: goes back onto the digits or the word after it
+_CONJUNCTION_DIGITS_RE = re.compile(r'(?<!\S)ו (?=\S)')
 
 
 def _detach_conjunction(match):

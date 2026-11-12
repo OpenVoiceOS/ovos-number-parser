@@ -1,9 +1,10 @@
 """Hebrew ו ("and") before a number word: one number or a new one.
 
 A compound numeral names its components from the largest to the smallest and
-puts ו before the last one ("שלושת־אלפים שש־מאות ושבע־עשרה" = 3617, Hebrew
-Wikipedia, "שם מספר", section "אבני יסוד"). A ו before a component that does
-not fit that order starts a new number, and numbers_to_digits keeps it.
+puts ו before the last one, as the example in Hebrew Wikipedia, "שם מספר",
+section "אבני יסוד", shows: "שלושת־אלפים שש־מאות ושבע־עשרה" = 3617. A ו before
+a component that does not fit that order starts a new number, and
+numbers_to_digits keeps it.
 """
 import unittest
 
@@ -35,6 +36,19 @@ class TestConjunctionBeforeANewNumber(unittest.TestCase):
     HUNDREDS = [("שלוש מאות", "300"),
                 ("תשע מאות תשעים ותשע", "999"),
                 ("אלף תשע מאות שמונים וחמש", "1985")]
+
+    #: a ו word that the converter does not turn into digits: the text comes
+    #: back as it was written
+    UNCHANGED = ["והשלושה הלכו",  # "and the three went"
+                 "ושנייה",  # "and a second"
+                 "וראשון",  # "and first"
+                 "ושליש",  # "and a third"
+                 "ורבע"]  # "and a quarter"
+
+    def test_a_word_that_stays_a_word_keeps_its_conjunction(self):
+        for text in self.UNCHANGED:
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, lang="he"), text)
 
     def test_the_conjunction_stays_before_a_new_number(self):
         for text, expected in self.KEPT:
