@@ -27,7 +27,7 @@ def swap_gender_pt(word: str, gender: GrammaticalGender) -> str:
     Returns:
         str: The word with its ending swapped to match the specified gender, if applicable; otherwise, the original word.
     """
-    invariant = {"zero", "quatro", "cinco", "oito", "cem", "cento",
+    invariant = {"zero", "quatro", "cinco", "oito", "dezoito", "cem", "cento",
                  "mil", "milhão", "bilhão", "trilhão", "conto"}
     if word in invariant:
         # most portuguese cardinals do not inflect for gender
@@ -91,6 +91,12 @@ _PT_PT = NumberVocabulary(
     # with a zero ("mil e vinte", "mil e um"). Together: join when the
     # remainder is below 100 or is a whole number of hundreds.
     JOINER_ON_THOUSANDS = True,  # "mil e duzentos", "mil e cem"
+    # "mil" is an invariable numeral, so the count before it agrees with the
+    # counted noun ("duas mil pessoas", "duzentas mil casas"), and so does the
+    # group after any scale word ("mil e uma noites"). "milhão" is a masculine
+    # noun, so its own count stays masculine ("dois milhões de pessoas").
+    AGREEING_SCALES=[1000],
+    AGREE_AFTER_SCALE=True,
 
     DECIMAL_MARKER=["vírgula", "virgula", "ponto", ".", ","],
     NEGATIVE_SIGN=["menos"],
@@ -311,6 +317,8 @@ _PT_BR = NumberVocabulary(
     # with a zero ("mil e vinte", "mil e um"). Together: join when the
     # remainder is below 100 or is a whole number of hundreds.
     JOINER_ON_THOUSANDS=True,  # "mil e duzentos", "mil e cem"
+    AGREEING_SCALES=_PT_PT.AGREEING_SCALES,
+    AGREE_AFTER_SCALE=_PT_PT.AGREE_AFTER_SCALE,
     DECIMAL_MARKER=_PT_PT.DECIMAL_MARKER,
     NEGATIVE_SIGN=_PT_PT.NEGATIVE_SIGN,
     NEGATIVE_IDIOMS=_PT_PT.NEGATIVE_IDIOMS,
