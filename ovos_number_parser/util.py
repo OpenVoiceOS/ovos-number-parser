@@ -499,6 +499,11 @@ class NumberVocabulary:
     # ("două sute" = 200) instead of being added to them
     MULTIPLY_HUNDREDS: bool = False
 
+    # extraction: a denominator above ten is the cardinal plus
+    # DENOMINATOR_PARTICLE ("doze avos" = 1/12), and a cardinal before it
+    # counts the parts ("três doze avos" = 3/12)
+    CARDINAL_DENOMINATORS: bool = False
+
     # extraction: the mark that groups the thousands of a digit string whose
     # decimal mark is the comma ("12.000" = 12000, "1.234,5" = 1234.5).
     # Empty when no such mark is set, and "12.000" reads as 12.0
@@ -529,6 +534,12 @@ class NumberVocabulary:
     # grammatical gender the count before each scale word agrees with
     # ("două mii" - feminine "două", not masculine "doi")
     SCALE_GENDERS: Dict[int, GrammaticalGender] = field(default_factory=dict)
+    # scale words that are not nouns: a feminine count before them agrees
+    # with the counted noun ("setecientas mil toneladas")
+    AGREEING_SCALES: List[int] = field(default_factory=list)
+    # the group after a scale word agrees with the counted noun
+    # ("mil doscientas personas")
+    AGREE_AFTER_SCALE: bool = False
 
     # full spelling of "1/x" fractions when they use an article
     # ("o jumătate", "un sfert")
@@ -750,12 +761,17 @@ class RomanceNumberExtractor:
         # cardinal ("tres cuartos" = 3/4), singular ones add ("dois e meio" = 2.5)
         singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
         plural_fractions = {self.vocab.pluralize(w) for w in singular_fractions} - singular_fractions
+        particle = self.vocab.DENOMINATOR_PARTICLE
+        cardinal_denominators = self.vocab.CARDINAL_DENOMINATORS
 
         result = 0
         current = 0
         largest_scale = 0
         saw_number = False
         is_negative = False
+        # the value of ``current`` where a second cardinal follows a cardinal
+        # below 1000 with no joiner: "três doze" is 3 and 12, not one number
+        numerator = None
 
         i = 0
         while i < len(tokens):
@@ -814,6 +830,8 @@ class RomanceNumberExtractor:
                     below = current % 100
                     current += (below or 1) * 100 - below
                 else:
+                    if i and val < 1000 and numbers_map.get(tokens[i - 1], 1000) < 1000:
+                        numerator = current
                     current += val
                 i += 1
                 continue
@@ -841,11 +859,30 @@ class RomanceNumberExtractor:
                     # so leave it pending for the scale branch to multiply
                     current += fraction
                 else:
+                    count = numbers_map.get(tokens[i - 1]) if i else None
                     if token in plural_fractions or self.vocab.FRACTIONS_ALWAYS_MULTIPLY:
                         result += (current or 1) * fraction
+                    elif count is not None and count < 1000:
+                        # a cardinal said right before a singular fraction
+                        # counts its parts ("um quinto" = 1/5), and only a
+                        # joiner makes the fraction add ("dois e meio" = 2.5)
+                        result += current - count + count * fraction
                     else:
                         result += current + fraction
                     current = 0
+                    numerator = None
+                i += 1
+                continue
+
+            # "doze vinte e cinco avos" = 12/25: the cardinal before the
+            # particle is the denominator, a cardinal before that counts
+            denominator = current - (numerator or 0)
+            if token == particle and cardinal_denominators and denominator > 10 \
+                    and i and tokens[i - 1] in numbers_map:
+                result += (1 if numerator is None else numerator) / denominator
+                current = 0
+                numerator = None
+                saw_number = True
                 i += 1
                 continue
 
@@ -908,6 +945,9 @@ class RomanceNumberExtractor:
         """
         scale = scale or self.vocab.DEFAULT_SCALE
         numbers_map = self.vocab.get_number_strings(scale)
+        particle = self.vocab.DENOMINATOR_PARTICLE
+        cardinal_denominators = self.vocab.CARDINAL_DENOMINATORS
+        singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
         # a hyphen chain of number words around a joiner is one spoken
         # number ("vinte-e-dois"); without a joiner it is a range
         # ("doi-trei"), and other hyphenated words keep their hyphens
@@ -974,6 +1014,24 @@ class RomanceNumberExtractor:
                 while number_span_words and number_span_words[-1] in self.vocab.JOIN_WORD:
                     number_span_words.pop()
                     j -= 1
+
+                if words[j:j + 1] == [particle] and cardinal_denominators:
+                    # "três doze avos" holds two numbers, the count and the
+                    # denominator: end the span where the denominator starts
+                    for k in range(len(number_span_words) - 1, 0, -1):
+                        if numbers_map.get(number_span_words[k - 1], 1000) < 1000 \
+                                and numbers_map.get(number_span_words[k], 1000) < 1000:
+                            del number_span_words[k:]
+                            j = i + k
+                            break
+                elif j < len(words) and len(number_span_words) > 2 \
+                        and number_span_words[-2] in joiners \
+                        and words[j] in singular_fractions:
+                    # the cardinal before a singular fraction counts its parts
+                    # and is a number of its own: "dois e um quarto" is 2 and
+                    # 1/4, so the span ends before the joiner
+                    del number_span_words[-2:]
+                    j -= 2
 
                 # Form the phrase from the span and extract the number value
                 phrase = " ".join(number_span_words)
@@ -1128,8 +1186,12 @@ class RomanceNumberExtractor:
         elif count == 1 and scale_val[0] in self.vocab.NO_PREV_UNIT:
             count_str = scale_word
         else:
-            count_gender = self.vocab.SCALE_GENDERS.get(scale_val[0],
-                                                        GrammaticalGender.MASCULINE)
+            if gender == GrammaticalGender.FEMININE and \
+                    scale_val[0] in self.vocab.AGREEING_SCALES:
+                count_gender = gender
+            else:
+                count_gender = self.vocab.SCALE_GENDERS.get(scale_val[0],
+                                                            GrammaticalGender.MASCULINE)
             count_pronunciation = self.pronounce_number(count, places, scale,
                                                         gender=count_gender,
                                                         _under_higher_scale=True,
@@ -1149,7 +1211,10 @@ class RomanceNumberExtractor:
         # number below one million takes the terminal conjunction on its hundreds
         remainder_force = scale_val[0] == 1000 and not _under_higher_scale \
             and self.vocab.JOINER_ON_SCALE_REMAINDER
+        remainder_gender = gender if self.vocab.AGREE_AFTER_SCALE \
+            else GrammaticalGender.MASCULINE
         remainder_str = self.pronounce_number(remainder, places, scale,
+                                              gender=remainder_gender,
                                               _force_hundreds_join=remainder_force,
                                               _under_higher_scale=nested_under_higher,
                                               _fraction_digits=_fraction_digits)
