@@ -8,6 +8,8 @@ value times two (``מאתיים`` = 200, ``אלפיים`` = 2000). Niqqud (vowel
 points and cantillation marks) is stripped before matching.
 """
 
+import re
+
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
     scientific_parts
 
@@ -419,6 +421,43 @@ def extract_numbers_he(text, short_scale=True, ordinals=False):
     return results
 
 
+def _component_value(tokens, k):
+    """The value of the unit, teen, ten or hundred that starts at tokens[k].
+
+    None for a scale word, a fraction or a word that is no number."""
+    tok = tokens[k]
+    nxt = tokens[k + 1] if k + 1 < len(tokens) else None
+    if tok in _UNITS_LOOKUP:
+        unit = _UNITS_LOOKUP[tok]
+        if 1 <= unit <= 9 and nxt in _TEEN_SECOND_LOOKUP:
+            return 10 + unit
+        if 3 <= unit <= 9 and nxt in _HUNDRED_MULT_LOOKUP:
+            return unit * 100
+        return unit
+    if tok in _TENS_LOOKUP:
+        return _TENS_LOOKUP[tok]
+    if tok in _HUNDRED_WORDS:
+        return _HUNDRED_WORDS[tok]
+    if tok in _SCALE_DUALS_LOOKUP and _SCALE_DUALS_LOOKUP[tok] < 1000:
+        return _SCALE_DUALS_LOOKUP[tok]
+    return None
+
+
+def _fits(current, value):
+    """Whether a component of ``value`` can follow ``current`` in one number.
+
+    A compound numeral names its components from the largest to the
+    smallest, as the example in Hebrew Wikipedia, "שם מספר", section
+    "אבני יסוד", shows ("שלושת־אלפים שש־מאות ושבע־עשרה"). So a unit only
+    follows a whole ten, a ten or a teen only a whole hundred, and a hundred
+    only a whole thousand: "שלושה וארבעה" is two numbers, three and four.
+    """
+    if value is None:
+        return True
+    place = 10 ** len(str(int(value))) if value else 10
+    return current % place == 0
+
+
 def _parse_number_span(tokens, i):
     """Parse one number starting at tokens[i].
 
@@ -437,7 +476,8 @@ def _parse_number_span(tokens, i):
             nxt = tokens[j + 1]
             if (nxt in _UNITS_LOOKUP or nxt in _TENS_LOOKUP or
                     nxt in _SCALES_LOOKUP or nxt in _SCALE_DUALS_LOOKUP or
-                    nxt in _HUNDRED_WORDS or nxt in _FRACTIONS_LOOKUP):
+                    nxt in _HUNDRED_WORDS or nxt in _FRACTIONS_LOOKUP) and \
+                    _fits(current, _component_value(tokens, j + 1)):
                 j += 1
                 continue
             break
@@ -448,6 +488,9 @@ def _parse_number_span(tokens, i):
             if value == int(value):
                 value = int(value)
             return value, j + 1
+        if started and tokens[j - 1] != "ו" and \
+                not _fits(current, _component_value(tokens, j)):
+            break
         # teens: unit word followed by עשר/עשרה
         if tok in _UNITS_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9 and \
                 j + 1 < n and tokens[j + 1] in _TEEN_SECOND_LOOKUP:
@@ -529,6 +572,50 @@ def _parse_decimal_part(tokens, i):
     if digits:
         return sum(d / 10 ** (k + 1) for k, d in enumerate(digits)), j
     return None, i
+
+
+_WORD_RE = re.compile(r'\S+')
+#: a ו that _detach_conjunction split off and the converter left alone: it
+#: goes back onto the digits or the word after it
+_CONJUNCTION_DIGITS_RE = re.compile(r'(?<!\S)ו (?=\S)')
+#: a ו the writer typed as a word of its own
+_OWN_WORD_CONJUNCTION_RE = re.compile(r'(?<!\S)ו(?!\S)')
+#: the private-use characters that can stand in for such a ו while the
+#: converter runs, so that neither the converter nor the re-glue above
+#: touches it; the first one absent from the input is used
+_PRIVATE_USE = range(0xE000, 0xF900)
+
+
+def _detach_conjunction(match):
+    """Put a space after a ו written onto a number word.
+
+    The shared converter then reads the ו as a connector: it joins the parts
+    of one number ("אלף וחמישים" is 1050) and stays a word before a number
+    that starts anew ("מכונית ושלוש אופניים")."""
+    word = match.group(0)
+    tokens = _tokenize_he(word)
+    if len(tokens) == 2 and tokens[0] == "ו" and word[0] == "ו":
+        return "ו " + word[1:]
+    return word
+
+
+def numbers_to_digits_he(utterance: str) -> str:
+    """Replace spoken Hebrew number spans with digits.
+
+    A ו attached to a number word that starts a new number stays, glued to
+    the digits: "יש לי מכונית ושלוש אופניים" becomes "יש לי מכונית ו3
+    אופניים", while "אלף וחמישים" becomes "1050".
+    """
+    # deferred: the shared converter lives in the package root, which imports
+    # this module
+    from ovos_number_parser import _numbers_to_digits_generic
+    placeholder = next(chr(c) for c in _PRIVATE_USE if chr(c) not in utterance)
+    held = _OWN_WORD_CONJUNCTION_RE.sub(placeholder, utterance)
+    spaced = _WORD_RE.sub(_detach_conjunction, held)
+    # "מאות" is no number alone but multiplies the unit before it
+    converted = _numbers_to_digits_generic(
+        spaced, "he", continues=lambda word: word in _HUNDRED_MULT_LOOKUP)
+    return _CONJUNCTION_DIGITS_RE.sub("ו", converted).replace(placeholder, "ו")
 
 
 def extract_number_he(text, ordinals=False):
