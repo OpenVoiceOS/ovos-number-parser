@@ -1661,6 +1661,8 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_de(number)
     if lang2 == "et":
         return pronounce_ordinal_et(number)
+    if lang2 == "es" and (isinstance(number, int) or number.is_integer()):
+        return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
     if lang2 == "fi":
         return pronounce_ordinal_fi(number)
     if lang2 == "hr":
