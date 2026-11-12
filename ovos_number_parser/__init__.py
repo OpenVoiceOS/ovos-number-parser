@@ -290,6 +290,12 @@ def _ordinal_reverse_table(lang: str) -> dict:
             elif word.endswith("o"):
                 table.setdefault(word[:-1] + "a", n)
         base = _base_lang(lang)
+        if base == "fr":
+            # French speaks its own ordinals and still reads the CLDR RBNF
+            # forms ("quatre-vingt-et-unième" beside "quatre-vingt-unième")
+            for n in candidates:
+                word = _pronounce_rbnf(n, lang, True, GrammaticalGender.MASCULINE)
+                table.setdefault(word.lower(), n)
         if base != lang:
             for word, n in _ordinal_reverse_table(base).items():
                 table.setdefault(word, n)
@@ -1663,6 +1669,10 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_et(number)
     if lang2 == "fi":
         return pronounce_ordinal_fi(number)
+    if lang2 == "fr" and number and (isinstance(number, int) or number.is_integer()) \
+            and abs(number) < 10 ** 15:
+        # from 10 ** 15 the French engine reads the cardinal scientifically
+        return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
     if lang2 == "hr":
         return pronounce_ordinal_hr(number)
     if lang2 == "el":
