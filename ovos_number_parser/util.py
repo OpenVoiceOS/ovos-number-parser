@@ -510,6 +510,12 @@ class NumberVocabulary:
     # keep this off so the singular still adds.
     FRACTIONS_ALWAYS_MULTIPLY: bool = False
 
+    # extraction: a singular fraction right after a scale word is that
+    # fraction of the scale ("um milhão e meio" = 1500000, "mil milhões e
+    # meio" = 1500000000), not a fraction of one; a decimal reading needs the
+    # decimal marker ("um milhão vírgula cinco" = 1000000.5)
+    FRACTION_OF_SCALE: bool = False
+
     # full spelling of "one <scale>" groups when they use an article or a
     # special form of "one" ("o mie", "un milion")
     #: entries of JOIN_WORD that are *not* additive joiners but partitive or
@@ -749,11 +755,15 @@ class RomanceNumberExtractor:
         # plural fraction words ("cuartos", "terzos") multiply by the preceding
         # cardinal ("tres cuartos" = 3/4), singular ones add ("dois e meio" = 2.5)
         singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
+        scales_words = {w for w, v in numbers_map.items() if v >= 1000}
         plural_fractions = {self.vocab.pluralize(w) for w in singular_fractions} - singular_fractions
 
         result = 0
         current = 0
         largest_scale = 0
+        # the value of the run of scale words just read ("mil milhões" =
+        # 10 ** 9), 0 once another number word follows
+        trailing_scale = 0
         saw_number = False
         is_negative = False
 
@@ -790,6 +800,11 @@ class RomanceNumberExtractor:
             val = numbers_map.get(token)
             if val is not None:
                 saw_number = True
+                if val >= 1000:
+                    after_scale = i and tokens[i - 1] in scales_words
+                    trailing_scale = (trailing_scale if after_scale else 1) * val
+                else:
+                    trailing_scale = 0
                 if val >= 1000:
                     # scale multiplier (mil, milhão, ...)
                     if val == 1000:
@@ -843,9 +858,13 @@ class RomanceNumberExtractor:
                 else:
                     if token in plural_fractions or self.vocab.FRACTIONS_ALWAYS_MULTIPLY:
                         result += (current or 1) * fraction
+                    elif self.vocab.FRACTION_OF_SCALE and trailing_scale:
+                        part = fraction * trailing_scale
+                        result += current + (int(part) if part == int(part) else part)
                     else:
                         result += current + fraction
                     current = 0
+                trailing_scale = 0
                 i += 1
                 continue
 

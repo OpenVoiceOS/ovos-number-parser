@@ -1,0 +1,49 @@
+"""Portuguese "e meio" after a scale word is half of that scale.
+
+Owner ruling for this repository: "1000000.5 would be 'um milhão virgula
+cinco'". So "um milhão e meio" is 1500000, and the decimal reading needs the
+decimal marker. Expected values are hand arithmetic: the scale times 1.5.
+"""
+import unittest
+
+from ovos_number_parser import extract_number
+
+
+class TestScaleAndAHalf(unittest.TestCase):
+    #: text, value, language tag
+    ROWS = [("um milhão e meio", 1_500_000, "pt-PT"),
+            ("dois milhões e meio", 2_500_000, "pt-PT"),
+            ("vendeu um milhão e meio de discos", 1_500_000, "pt-PT"),
+            ("mil milhões e meio", 1_500_000_000, "pt-PT"),
+            ("dois mil milhões e meio", 2_500_000_000, "pt-PT"),
+            ("um bilião e meio", 1_500_000_000_000, "pt-PT"),
+            ("dois biliões e meio", 2_500_000_000_000, "pt-PT"),
+            ("mil e meio", 1_500, "pt-PT"),
+            ("dois mil e meio", 2_500, "pt-PT"),
+            ("um milhão e meio", 1_500_000, "pt-BR"),
+            ("dois bilhões e meio", 2_500_000_000, "pt-BR")]
+
+    def test_half_of_the_scale(self):
+        for text, value, lang in self.ROWS:
+            with self.subTest(text=text, lang=lang):
+                got = extract_number(text, lang=lang)
+                self.assertEqual(got, value)
+                self.assertIsInstance(got, int)
+
+    def test_the_decimal_reading_needs_the_marker(self):
+        self.assertEqual(extract_number("um milhão vírgula cinco", lang="pt"),
+                         1_000_000.5)
+
+    def test_a_half_after_a_number_below_a_thousand_is_still_a_half(self):
+        for text, value in [("dois e meio", 2.5), ("dez e meio", 10.5),
+                            ("cem e meio", 100.5),
+                            ("uma hora e meia", 1.5)]:
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="pt"), value)
+
+    def test_half_before_the_scale_still_multiplies(self):
+        self.assertEqual(extract_number("meio milhão", lang="pt"), 500_000)
+
+
+if __name__ == "__main__":
+    unittest.main()
