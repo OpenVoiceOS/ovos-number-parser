@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.46a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.46a2) (2026-11-12)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.46a1...0.24.46a2)
+
+**Merged pull requests:**
+
+- docs\(pt\): list the sources for the Portuguese rules in the module docstring [\#472](https://github.com/OpenVoiceOS/ovos-number-parser/pull/472) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.46a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.46a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.45a1...0.24.46a1)
@@ -95,10 +103,6 @@
 ## [0.24.34a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.34a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.33a1...0.24.34a1)
-
-**Merged pull requests:**
-
-- fix\(eu,fa\): read the ordinal word under ordinals=True [\#368](https://github.com/OpenVoiceOS/ovos-number-parser/pull/368) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.33a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.33a1) (2026-11-12)
 
