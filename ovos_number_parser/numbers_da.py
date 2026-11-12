@@ -647,14 +647,17 @@ def _extract_number_with_text_da_helper(tokens, short_scale, ordinals):
             if ordinal:
                 # the "og"-inverted compound ("en og tyvende" = en + og +
                 # tyvende = 1 + 20 = 21) names the smaller unit before the
-                # larger ordinal tens word; that single-word prefix is the
+                # larger ordinal tens word (the old counting:
+                # "enerleddet først, deretter og, og så tierleddet", Store
+                # norske leksikon, "den gamle tellemåten"), so only a unit
+                # 1-9 before an ordinal ten 20-90 folds; that single-word prefix is the
                 # same reading is_ordinal_da already gives its glued
                 # spelling ("enogtyvende"). Without this the line reads as
                 # a cardinal and an unrelated ordinal, two spans, and the
                 # leftmost-separated rule answers the leading cardinal.
                 if idx >= 2 and tokens[idx - 1].word.lower() in _NUMBER_CONNECTORS:
                     prefix_val = is_number_da(tokens[idx - 2].word.lower())
-                    if prefix_val is not None and prefix_val < ordinal:
+                    if prefix_val in range(1, 10) and ordinal in range(20, 100, 10):
                         glued = "".join(tok.word.lower()
                                         for tok in tokens[idx - 2:idx + 1])
                         compound = is_ordinal_da(glued)
@@ -1129,12 +1132,15 @@ def extract_number_da(text, short_scale=False, ordinals=False):
             if ordinal:
                 # the "og"-inverted compound ("en og tyvende" = en + og +
                 # tyvende = 1 + 20 = 21) names the smaller unit before the
-                # larger ordinal tens word; that single-word prefix is the
+                # larger ordinal tens word (the old counting:
+                # "enerleddet først, deretter og, og så tierleddet", Store
+                # norske leksikon, "den gamle tellemåten"), so only a unit
+                # 1-9 before an ordinal ten 20-90 folds; that single-word prefix is the
                 # same reading is_ordinal_da already gives its glued
                 # spelling ("enogtyvende")
                 if idx >= 2 and ord_tokens[idx - 1].word.lower() in _NUMBER_CONNECTORS:
                     prefix_val = is_number_da(ord_tokens[idx - 2].word.lower())
-                    if prefix_val is not None and prefix_val < ordinal:
+                    if prefix_val in range(1, 10) and ordinal in range(20, 100, 10):
                         glued = "".join(t.word.lower()
                                         for t in ord_tokens[idx - 2:idx + 1])
                         compound = is_ordinal_da(glued)

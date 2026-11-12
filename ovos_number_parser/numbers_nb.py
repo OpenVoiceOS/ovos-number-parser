@@ -743,14 +743,17 @@ def _extract_number_with_text(tokens, t, ordinals=False):
             if ordinal is not False:
                 # the "og"-inverted compound ("en og tjuende" = en + og +
                 # tjuende = 1 + 20 = 21) names the smaller unit before the
-                # larger ordinal tens word; that single-word prefix is the
+                # larger ordinal tens word (the old counting:
+                # "enerleddet først, deretter og, og så tierleddet", Store
+                # norske leksikon, "den gamle tellemåten"), so only a unit
+                # 1-9 before an ordinal ten 20-90 folds; that single-word prefix is the
                 # same arithmetic _is_ordinal already applies to its glued
                 # spelling ("enogtjuende"). Without this the line reads as
                 # a cardinal and an unrelated ordinal, two spans, and the
                 # leftmost-separated rule answers the leading cardinal.
                 if idx >= 2 and tokens[idx - 1].word.lower() in t.connectors:
                     prefix_val = _word_value(tokens[idx - 2].word.lower(), t)
-                    if prefix_val is not None and prefix_val < ordinal:
+                    if prefix_val in range(1, 10) and ordinal in range(20, 100, 10):
                         glued = "".join(tok.word.lower()
                                         for tok in tokens[idx - 2:idx + 1])
                         compound = _is_ordinal(glued, t)
@@ -792,8 +795,11 @@ def _extract_number(text, t, ordinals=False):
         # here already behave that way; nb and nn returned False.
         #
         # The "og"-inverted compound ("en og tjuende" = en + og + tjuende =
-        # 1 + 20 = 21) names the smaller unit before the larger ordinal
-        # tens word; that single-word prefix is the same arithmetic
+        # 1 + 20 = 21) names a unit 1-9 before an ordinal ten 20-90, the
+        # order of the old counting ("enerleddet først, deretter og, og så
+        # tierleddet", Store norske leksikon, "den gamle tellemåten"). Any
+        # other pair ("to og tredje") stays two numbers. The prefix reads
+        # with the same arithmetic
         # _is_ordinal already applies to its glued spelling ("enogtjuende").
         # Without this, the scan below answers the ordinal word alone (20),
         # the leftmost-separated rule's span-growth probe reads that answer
@@ -807,7 +813,7 @@ def _extract_number(text, t, ordinals=False):
             if ordinal is not False:
                 if i >= 2 and words[i - 1].lower() in t.connectors:
                     prefix_val = _word_value(words[i - 2].lower(), t)
-                    if prefix_val is not None and prefix_val < ordinal:
+                    if prefix_val in range(1, 10) and ordinal in range(20, 100, 10):
                         glued = "".join(w.lower() for w in words[i - 2:i + 1])
                         compound = _is_ordinal(glued, t)
                         if compound is not False:

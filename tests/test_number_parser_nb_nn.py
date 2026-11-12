@@ -196,7 +196,14 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
           ("tjue og tredje", 20, 20),
           ("to hundre og tredje", 200, 200),
           ("tusen og andre", 1000, 1000),
-          ("en og tjuende", 21, False)]
+          ("en og tjuende", 21, False),
+          ("fem og tjuende", 25, 5),
+          ("ni og nittiende", 99, 9),
+          # only a unit before an ordinal ten folds (Store norske leksikon,
+          # "den gamle tellemåten": "enerleddet først, deretter og, og så
+          # tierleddet"); "two and third" is two numbers, the leftmost wins
+          ("to og tredje", 2, 2),
+          ("to og hundrede", 2, 2)]
 
     NN = [("hundre og femte", 100, 100),
           ("ein og tjuande", 21, False)]
@@ -240,6 +247,10 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
                                         ordinals=True), 21)
         self.assertEqual(extract_number('hundrede og femte', lang="da",
                                         ordinals=True), 100)
+        self.assertEqual(extract_number('fem og tyvende', lang="da",
+                                        ordinals=True), 25)
+        self.assertEqual(extract_number('to og tredje', lang="da",
+                                        ordinals=True), 2)
 
     def test_de_glued_compound_is_unaffected(self):
         """German never reaches this fix: a spaced "und" stays two numbers.
