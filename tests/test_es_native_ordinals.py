@@ -37,7 +37,7 @@ import unittest
 
 from ovos_number_parser import pronounce_number, pronounce_ordinal
 from ovos_number_parser.numbers_es import fraction_noun_es
-from ovos_number_parser.util import GrammaticalGender
+from ovos_number_parser.util import GrammaticalGender, Scale
 
 M = GrammaticalGender.MASCULINE
 F = GrammaticalGender.FEMININE
@@ -102,6 +102,14 @@ class TestSpanishOrdinals(unittest.TestCase):
                 with self.subTest(number=number):
                     self.assertEqual(pronounce_ordinal(number, "es"),
                                      fraction_noun_es(number))
+
+    def test_no_short_scale_ordinal_from_ten_to_the_18(self):
+        # the short scale ends at "trillonésimo" (10**12); a count of a
+        # million or more trillions has no single-word ordinal
+        for number in (10 ** 18, 10 ** 21, 10 ** 23):
+            with self.subTest(number=number):
+                with self.assertRaises(NotImplementedError):
+                    pronounce_ordinal(number, "es", scale=Scale.SHORT)
 
     def test_no_ordinal_from_ten_to_the_24(self):
         # the vocabulary has no ordinal scale word past "trillonésimo"
