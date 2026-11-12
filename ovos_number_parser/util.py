@@ -654,6 +654,13 @@ class RomanceNumberExtractor:
 
         return False
 
+    def _cardinal_denominators(self) -> bool:
+        """Whether a denominator above ten is the cardinal plus a particle
+        ("doze avos"), so "três doze avos" reads 3/12."""
+        particle = self.vocab.DENOMINATOR_PARTICLE
+        return bool(particle) and any(
+            w.endswith(" " + particle) for w in self.vocab.FRACTION.values())
+
     def _signs(self, tokens: List[str], idx: int, numbers_map: Dict[str, Any]) -> bool:
         """
         Tell if the NEGATIVE_SIGN word at tokens[idx] signs the number after it.
@@ -750,12 +757,17 @@ class RomanceNumberExtractor:
         # cardinal ("tres cuartos" = 3/4), singular ones add ("dois e meio" = 2.5)
         singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
         plural_fractions = {self.vocab.pluralize(w) for w in singular_fractions} - singular_fractions
+        particle = self.vocab.DENOMINATOR_PARTICLE
+        cardinal_denominators = self._cardinal_denominators()
 
         result = 0
         current = 0
         largest_scale = 0
         saw_number = False
         is_negative = False
+        # the value of ``current`` where a second cardinal follows a cardinal
+        # below 1000 with no joiner: "três doze" is 3 and 12, not one number
+        numerator = None
 
         i = 0
         while i < len(tokens):
@@ -814,6 +826,8 @@ class RomanceNumberExtractor:
                     below = current % 100
                     current += (below or 1) * 100 - below
                 else:
+                    if i and val < 1000 and numbers_map.get(tokens[i - 1], 1000) < 1000:
+                        numerator = current
                     current += val
                 i += 1
                 continue
@@ -841,11 +855,29 @@ class RomanceNumberExtractor:
                     # so leave it pending for the scale branch to multiply
                     current += fraction
                 else:
+                    count = numbers_map.get(tokens[i - 1]) if i else None
                     if token in plural_fractions or self.vocab.FRACTIONS_ALWAYS_MULTIPLY:
                         result += (current or 1) * fraction
+                    elif count is not None and count < 1000:
+                        # a cardinal said right before a singular fraction
+                        # counts its parts ("um quinto" = 1/5), and only a
+                        # joiner makes the fraction add ("dois e meio" = 2.5)
+                        result += current - count + count * fraction
                     else:
                         result += current + fraction
                     current = 0
+                    numerator = None
+                i += 1
+                continue
+
+            # "doze vinte e cinco avos" = 12/25: the cardinal before the
+            # particle is the denominator, a cardinal before that counts
+            denominator = current - (numerator or 0)
+            if token == particle and cardinal_denominators and denominator:
+                result += (1 if numerator is None else numerator) / denominator
+                current = 0
+                numerator = None
+                saw_number = True
                 i += 1
                 continue
 
@@ -908,6 +940,9 @@ class RomanceNumberExtractor:
         """
         scale = scale or self.vocab.DEFAULT_SCALE
         numbers_map = self.vocab.get_number_strings(scale)
+        particle = self.vocab.DENOMINATOR_PARTICLE
+        cardinal_denominators = self._cardinal_denominators()
+        singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
         # a hyphen chain of number words around a joiner is one spoken
         # number ("vinte-e-dois"); without a joiner it is a range
         # ("doi-trei"), and other hyphenated words keep their hyphens
@@ -974,6 +1009,24 @@ class RomanceNumberExtractor:
                 while number_span_words and number_span_words[-1] in self.vocab.JOIN_WORD:
                     number_span_words.pop()
                     j -= 1
+
+                if words[j:j + 1] == [particle] and cardinal_denominators:
+                    # "três doze avos" holds two numbers, the count and the
+                    # denominator: end the span where the denominator starts
+                    for k in range(len(number_span_words) - 1, 0, -1):
+                        if numbers_map.get(number_span_words[k - 1], 1000) < 1000 \
+                                and numbers_map.get(number_span_words[k], 1000) < 1000:
+                            del number_span_words[k:]
+                            j = i + k
+                            break
+                elif j < len(words) and len(number_span_words) > 2 \
+                        and number_span_words[-2] in joiners \
+                        and words[j] in singular_fractions:
+                    # the cardinal before a singular fraction counts its parts
+                    # and is a number of its own: "dois e um quarto" is 2 and
+                    # 1/4, so the span ends before the joiner
+                    del number_span_words[-2:]
+                    j -= 2
 
                 # Form the phrase from the span and extract the number value
                 phrase = " ".join(number_span_words)
