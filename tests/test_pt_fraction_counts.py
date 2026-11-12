@@ -62,5 +62,44 @@ class TestAvosDenominator(unittest.TestCase):
                          "12 25 avos")
 
 
+class TestAvosNeedsADenominatorAboveTen(unittest.TestCase):
+    """"avos" joins only a denominator above ten (Priberam, "avo"). Below that,
+    or with no number word right before it, "avos" is the unaccented spelling
+    of "avós" (grandparents) and the number before it stays a count."""
+    cases = {
+        "visitei os meus dois avos": 2,
+        "os meus quatro avos moram no Porto": 4,
+        "dez avos": 10,
+        "os meus três queridos avos": 3,
+        "tenho três netos e dois avos": 5,
+        "vieram os doze netos e os avos": 12,
+    }
+
+    def test_extract(self):
+        for text, expected in self.cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="pt"), expected)
+
+    def test_digits(self):
+        self.assertEqual(numbers_to_digits("visitei os meus dois avos", "pt"),
+                         "visitei os meus 2 avos")
+
+    def test_eleven_is_the_first_avos_denominator(self):
+        self.assertAlmostEqual(extract_number("onze avos", lang="pt"), 1 / 11)
+
+
+class TestMirandeseKeepsItsReading(unittest.TestCase):
+    """The count and particle rules follow a Portuguese source. Mirandese
+    reads "abos" as before until a Mirandese source covers it."""
+
+    def test_extract(self):
+        for text, expected in {"trés duoze abos": 15, "dous abos": 2}.items():
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="mwl"), expected)
+
+    def test_digits(self):
+        self.assertEqual(numbers_to_digits("trés duoze abos", "mwl"), "15 abos")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -499,6 +499,11 @@ class NumberVocabulary:
     # ("două sute" = 200) instead of being added to them
     MULTIPLY_HUNDREDS: bool = False
 
+    # extraction: a denominator above ten is the cardinal plus
+    # DENOMINATOR_PARTICLE ("doze avos" = 1/12), and a cardinal before it
+    # counts the parts ("três doze avos" = 3/12)
+    CARDINAL_DENOMINATORS: bool = False
+
     # extraction: the mark that groups the thousands of a digit string whose
     # decimal mark is the comma ("12.000" = 12000, "1.234,5" = 1234.5).
     # Empty when no such mark is set, and "12.000" reads as 12.0
@@ -660,13 +665,6 @@ class RomanceNumberExtractor:
 
         return False
 
-    def _cardinal_denominators(self) -> bool:
-        """Whether a denominator above ten is the cardinal plus a particle
-        ("doze avos"), so "três doze avos" reads 3/12."""
-        particle = self.vocab.DENOMINATOR_PARTICLE
-        return bool(particle) and any(
-            w.endswith(" " + particle) for w in self.vocab.FRACTION.values())
-
     def _signs(self, tokens: List[str], idx: int, numbers_map: Dict[str, Any]) -> bool:
         """
         Tell if the NEGATIVE_SIGN word at tokens[idx] signs the number after it.
@@ -764,7 +762,7 @@ class RomanceNumberExtractor:
         singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
         plural_fractions = {self.vocab.pluralize(w) for w in singular_fractions} - singular_fractions
         particle = self.vocab.DENOMINATOR_PARTICLE
-        cardinal_denominators = self._cardinal_denominators()
+        cardinal_denominators = self.vocab.CARDINAL_DENOMINATORS
 
         result = 0
         current = 0
@@ -879,7 +877,8 @@ class RomanceNumberExtractor:
             # "doze vinte e cinco avos" = 12/25: the cardinal before the
             # particle is the denominator, a cardinal before that counts
             denominator = current - (numerator or 0)
-            if token == particle and cardinal_denominators and denominator:
+            if token == particle and cardinal_denominators and denominator > 10 \
+                    and i and tokens[i - 1] in numbers_map:
                 result += (1 if numerator is None else numerator) / denominator
                 current = 0
                 numerator = None
@@ -947,7 +946,7 @@ class RomanceNumberExtractor:
         scale = scale or self.vocab.DEFAULT_SCALE
         numbers_map = self.vocab.get_number_strings(scale)
         particle = self.vocab.DENOMINATOR_PARTICLE
-        cardinal_denominators = self._cardinal_denominators()
+        cardinal_denominators = self.vocab.CARDINAL_DENOMINATORS
         singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
         # a hyphen chain of number words around a joiner is one spoken
         # number ("vinte-e-dois"); without a joiner it is a range
