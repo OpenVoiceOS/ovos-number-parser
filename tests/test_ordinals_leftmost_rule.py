@@ -54,6 +54,9 @@ REACHED = {
     # flag again, so the line reaches two spans and the rule answers.
     "nb": (extract_number_nb, "to", "tredje", 2, 2),
     "nn": (extract_number_nn, "to", "tredje", 2, 2),
+    # the extractors consult is_ordinal_eu and is_ordinal_fa under the flag
+    "eu": (extract_number_eu, "bi", "hirugarren", 2, 2),
+    "fa": (extract_number_fa, "دو", "سوم", 2, 2),
     "kab": (extract_number_kab, "sin", "wis kṛaḍ", 3, 2),
     "en": (extract_number_en, "two", "third", 2, 2),
 }
@@ -64,9 +67,11 @@ REACHED = {
 #: never reaches it. Any other adjacency stays two spans and the rule does
 #: reach it. Kabyle writes its ordinal as a phrase, "wis kṛaḍ", so neither of
 #: its orders is one span and the rule reaches both. English reads both of
-#: its orders as one span.
+#: its orders as one span. The eu and fa pairs are measured, not copied from a
+#: sibling: both collapse the cardinal-then-ordinal order to one span, as da,
+#: de, nb and nn do.
 ADJACENT_SPANS = {"da": (2, 1), "de": (2, 1), "kab": (2, 2), "en": (1, 1),
-                  "nb": (2, 1), "nn": (2, 1)}
+                  "nb": (2, 1), "nn": (2, 1), "eu": (2, 1), "fa": (2, 1)}
 
 #: locales whose parser cannot answer the rule yet, with the value each one
 #: returns today and the task that unblocks it. Each entry is a defect in the
@@ -74,10 +79,9 @@ ADJACENT_SPANS = {"da": (2, 1), "de": (2, 1), "kab": (2, 2), "en": (1, 1),
 #: spans, so there is no "leftmost" to choose.
 BLOCKED = {
     # nb and nn were here under "cardinal unread" until T-3864 gave
-    # _extract_number its fall-through; they are in REACHED now.
-    # the ordinal word is not recognised at all
-    "eu": (extract_number_eu, "bi", "hirugarren", 2, 2, "ordinal unread"),
-    "fa": (extract_number_fa, "دو", "سوم", 2, 2, "ordinal unread"),
+    # _extract_number its fall-through; eu and fa were here under "ordinal
+    # unread" until T-4475 wired each language's own ordinal reader into its
+    # extractor. All four are in REACHED now.
     # T-4415: the Romance extractor adds the two numbers together
     "ca": (extract_number_ca, "dos", "tercer", 5, 5, "T-4415 additive"),
     "es": (extract_number_es, "dos", "tercero", 5, 5, "T-4415 additive"),
