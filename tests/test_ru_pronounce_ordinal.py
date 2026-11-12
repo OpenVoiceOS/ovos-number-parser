@@ -67,14 +67,42 @@ class TestRussianPronounceOrdinal(unittest.TestCase):
         self.assertEqual(pronounce_ordinal(10 ** 12, "ru", scale=Scale.LONG), long_reading)
         self.assertEqual(pronounce_ordinal(10 ** 12, "ru", scale=Scale.SHORT), short_reading)
 
-    def test_no_ordinal_scale_word_from_ten_to_the_24(self):
-        # the Russian engine names no ordinal scale from 10**24 up, so these
-        # stay on the RBNF fallback, which has no rule for them either
-        for number in (10 ** 24, -10 ** 24, 10 ** 30):
-            with self.subTest(number=number):
-                with self.assertRaises(NotImplementedError):
-                    pronounce_ordinal(number, "ru")
+    def test_zero_in_each_gender(self):
+        # ru.wiktionary "нулевой" declines as an adjective of type 1b
+        for gender, expected in ((GrammaticalGender.FEMININE, "нулевая"),
+                                 (GrammaticalGender.NEUTRAL, "нулевое")):
+            with self.subTest(gender=gender.name):
+                self.assertEqual(pronounce_ordinal(0, "ru", gender=gender),
+                                 expected)
+        self.assertEqual(pronounce_ordinal(0.0, "ru"), "нулевой")
 
+    def test_round_scale_names_by_scale(self):
+        # ru.wikipedia "Системы наименования чисел", "Таблица от значения к
+        # названию": 10^12 триллион (short) / биллион (long), 10^18
+        # квинтиллион / триллион, 10^24 септиллион / квадриллион
+        for scale, cases in (
+                (Scale.SHORT, [(10 ** 12, "триллионный"),
+                               (10 ** 18, "квинтиллионный"),
+                               (10 ** 24, "септиллионный"),
+                               (-10 ** 24, "минус септиллионный"),
+                               (10 ** 30, "нониллионный")]),
+                (Scale.LONG, [(10 ** 12, "биллионный"),
+                              (10 ** 18, "триллионный"),
+                              (10 ** 24, "квадриллионный")])):
+            self.assertReads(cases, scale=scale)
+        self.assertReads([(10 ** 24, "септиллионная")],
+                         gender=GrammaticalGender.FEMININE)
+
+    def test_no_ordinal_past_the_scale_words(self):
+        # the engine names no power 10^96 or above in the short scale, and
+        # none at 10^69 or 10^93 in the long scale, so these stay on the RBNF
+        # fallback, which has no rule for them either
+        for number, scale in ((10 ** 96, Scale.SHORT), (10 ** 99, Scale.SHORT),
+                              (10 ** 96 + 1000, Scale.SHORT),
+                              (10 ** 69, Scale.LONG), (10 ** 93, Scale.LONG)):
+            with self.subTest(number=len(str(number)) - 1, scale=scale.name):
+                with self.assertRaises(NotImplementedError):
+                    pronounce_ordinal(number, "ru", scale=scale)
 
 if __name__ == "__main__":
     unittest.main()
