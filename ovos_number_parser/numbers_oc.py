@@ -95,8 +95,9 @@ class OccitanVocabulary(NumberVocabulary):
     def get_ordinal_strings(self, scale: Optional[Scale] = None) -> Dict[str, int]:
         ordinals = super().get_ordinal_strings(scale)
         for word, value in self.ORDINAL_ALT_SPELLINGS.items():
-            ordinals.setdefault(word, value)
-            ordinals.setdefault(self.swap_gender(word, GrammaticalGender.FEMININE), value)
+            feminine = self.swap_gender(word, GrammaticalGender.FEMININE)
+            for form in (word, feminine, self.pluralize(word), self.pluralize(feminine)):
+                ordinals.setdefault(form, value)
         return ordinals
 
 

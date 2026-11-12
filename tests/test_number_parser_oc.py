@@ -174,6 +174,24 @@ class TestExtractOC(unittest.TestCase):
         self.assertEqual(OC.is_ordinal("uòchanten"), 80)
         self.assertEqual(OC.extract_number("la uòchena", ordinals=True), 8)
 
+    def test_alt_ordinal_spellings_take_the_feminine_and_plural(self):
+        # the variants inflect as the referential "ochen" does: "ochena",
+        # "los ochens" and "las ochenas" read 8 on dev
+        for text in ("los uechens", "las uechenas", "los ueitens",
+                     "los uòchens", "las uòchantenas"):
+            with self.subTest(text=text):
+                self.assertEqual(OC.extract_number(text, ordinals=True),
+                                 80 if "uòchanten" in text else 8)
+
+    def test_ueitena_and_oitena_read_as_the_feminine_8th(self):
+        # issue #302 lists "ueitena, oitena" beside the forms for 80; whether
+        # they are cardinals for 80 waits on the native speaker. Here they are
+        # the regular feminine of "ueiten" and "oiten", like "ochena".
+        for word in ("ueitena", "oitena"):
+            with self.subTest(word=word):
+                self.assertEqual(OC.extract_number(word, ordinals=True), 8)
+                self.assertIs(OC.extract_number(word), False)
+
     def test_alt_ordinal_spellings_are_never_written(self):
         self.assertEqual(OC.pronounce_number(8, ordinals=True), "ochen")
         self.assertEqual(OC.pronounce_number(80, ordinals=True), "ochanten")
