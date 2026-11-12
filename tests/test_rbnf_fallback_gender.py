@@ -41,7 +41,7 @@ class TestRbnfFallbackGender(unittest.TestCase):
         self.assertEqual(pronounce_ordinal(2, "ru", gender=N), "второе")
 
     def test_ordinal_rule_set_by_gender(self):
-        for lang in ("hi", "vec", "ru", "fr", "es", "it"):
+        for lang in ("hi", "vec", "ru", "fr", "it"):
             for gender, name in ((M, "masculine"), (F, "feminine")):
                 ruleset = f"spellout-ordinal-{name}"
                 for number in (1, 2, 3, 21):

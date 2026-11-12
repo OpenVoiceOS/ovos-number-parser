@@ -1683,6 +1683,11 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_de(number)
     if lang2 == "et":
         return pronounce_ordinal_et(number)
+    if lang2 == "es" and (isinstance(number, int) or number.is_integer()) \
+            and abs(number) < (10 ** 18 if scale == Scale.SHORT else 10 ** 24):
+        # the Castilian engine's last ordinal scale word is "trillonésimo":
+        # 10**18 on the long scale, 10**12 on the short scale
+        return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
     if lang2 == "fi":
         return pronounce_ordinal_fi(number)
     if lang2 == "fr" and number and (isinstance(number, int) or number.is_integer()) \

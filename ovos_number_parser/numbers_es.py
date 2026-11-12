@@ -235,9 +235,32 @@ _ES = NumberVocabulary(
         8: 'octavo',
         9: 'noveno'
     },
+    # DPD "ordinales" § 2c: undécimo and duodécimo are "las preferidas en el
+    # uso culto"; § 3: from 13 to 29 the one-word spelling is "hoy
+    # mayoritaria y siempre preferible"; § 5: "vigesimoctavo (mejor que
+    # vigesimooctavo)". From 30 on the two-word spelling stays.
+    PREFER_EXPLICIT_ORDINALS=True,
     ORDINAL_TENS={
         10: 'décimo',
+        11: 'undécimo',
+        12: 'duodécimo',
+        13: 'decimotercero',
+        14: 'decimocuarto',
+        15: 'decimoquinto',
+        16: 'decimosexto',
+        17: 'decimoséptimo',
+        18: 'decimoctavo',
+        19: 'decimonoveno',
         20: 'vigésimo',
+        21: 'vigesimoprimero',
+        22: 'vigesimosegundo',
+        23: 'vigesimotercero',
+        24: 'vigesimocuarto',
+        25: 'vigesimoquinto',
+        26: 'vigesimosexto',
+        27: 'vigesimoséptimo',
+        28: 'vigesimoctavo',
+        29: 'vigesimonoveno',
         30: 'trigésimo',
         40: 'cuadragésimo',
         50: 'quincuagésimo',
@@ -271,7 +294,60 @@ _ES = NumberVocabulary(
     }
 )
 
-ES = RomanceNumberExtractor(_ES)
+class SpanishNumberExtractor(RomanceNumberExtractor):
+    """Castilian number engine.
+
+    Ordinals follow the DPD "ordinales" (RAE and ASALE, 2nd ed.). The
+    feminine replaces the final -o with -a in every word of a two-word
+    ordinal ("vigésima primera") and in the last part of a one-word ordinal
+    ("decimotercera"). Every word of a Spanish ordinal ends in -o, so the
+    swap goes word by word on the masculine reading. Above 999 the cardinal
+    that multiplies a scale ordinal joins it in one word ("dosmilésimo",
+    "quinientosmilésimo", "milmillonésimo"), stressed on the last part only.
+    """
+
+    def pronounce_ordinal(self,
+                          number: Union[int, float],
+                          gender: GrammaticalGender = GrammaticalGender.MASCULINE,
+                          scale: Optional[Scale] = None
+                          ) -> str:
+        masculine = super().pronounce_ordinal(
+            number, GrammaticalGender.MASCULINE, scale)
+        if gender != GrammaticalGender.FEMININE or not number:
+            return masculine
+        return " ".join(word[:-1] + "a" if word.endswith("o") else word
+                        for word in masculine.split(" "))
+
+    def _pronounce_ordinal_core(self,
+                                number: Union[int, float],
+                                gender: GrammaticalGender = GrammaticalGender.MASCULINE,
+                                scale: Optional[Scale] = None
+                                ) -> str:
+        if not isinstance(number, (int, float)) or number < 1000:
+            return super()._pronounce_ordinal_core(number, gender, scale)
+        scale = scale or self.vocab.DEFAULT_SCALE
+        scales = self.vocab.ORDINAL_SHORT_SCALE if scale == Scale.SHORT \
+            else self.vocab.ORDINAL_LONG_SCALE
+        n = int(number)
+        scale_val, scale_word = max((v, w) for v, w in scales.items() if v <= n)
+        count, remainder = divmod(n, scale_val)
+        if count == 1:
+            words = scale_word
+        else:
+            # DPD "ordinales" § 2d: "prefijando al ordinal simple el cardinal
+            # que lo multiplica". The count stands as it does before the scale
+            # noun ("treinta y un mil"), written as one word as DPD
+            # "cardinales" § 2 allows ("treintaicinco") and as the fraction
+            # noun of the same number is ("treintaiunmilésimo").
+            count_words = self.pronounce_number(count, scale=scale,
+                                                gender=GrammaticalGender.NEUTRAL)
+            words = _one_word_es(count_words) + scale_word
+        if remainder:
+            words += " " + self._pronounce_ordinal_core(remainder, gender, scale)
+        return words
+
+
+ES = SpanishNumberExtractor(_ES)
 
 # fraction denominator spellings kept for nice_number_es
 _FRACTION_STRING_ES = {
@@ -316,7 +392,10 @@ def fraction_noun_es(denominator: int, plural: bool = False) -> str:
     "milmillonésimo"); every other denominator outside the table takes -avo
     on the cardinal written as one word ("cincuentaiseisavo", "doscientosavo").
     The cardinal drops a final -a and keeps -e or -o (§ 5); "uno" drops its
-    -o ("cientounava" in § 2, "veintiunavo" in § 3 c).
+    -o ("cientounava" in § 2, "veintiunavo" in § 3 c). The -ésimo noun is
+    the ordinal of DPD "ordinales" § 2d, formed "prefijando al ordinal
+    simple el cardinal que lo multiplica", so it equals
+    ``ES.pronounce_ordinal`` for a count times mil or millón.
 
     Raises OverflowError from 10**24 up, where the vocabulary has no noun.
     """
