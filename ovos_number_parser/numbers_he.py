@@ -578,6 +578,11 @@ _WORD_RE = re.compile(r'\S+')
 #: a ו that _detach_conjunction split off and the converter left alone: it
 #: goes back onto the digits or the word after it
 _CONJUNCTION_DIGITS_RE = re.compile(r'(?<!\S)ו (?=\S)')
+#: a ו the writer typed as a word of its own
+_OWN_WORD_CONJUNCTION_RE = re.compile(r'(?<!\S)ו(?!\S)')
+#: stands in for such a ו while the converter runs, so that neither the
+#: converter nor the re-glue above touches it
+_HELD_CONJUNCTION = "\ue000"
 
 
 def _detach_conjunction(match):
@@ -603,11 +608,12 @@ def numbers_to_digits_he(utterance: str) -> str:
     # deferred: the shared converter lives in the package root, which imports
     # this module
     from ovos_number_parser import _numbers_to_digits_generic
-    spaced = _WORD_RE.sub(_detach_conjunction, utterance)
+    held = _OWN_WORD_CONJUNCTION_RE.sub(_HELD_CONJUNCTION, utterance)
+    spaced = _WORD_RE.sub(_detach_conjunction, held)
     # "מאות" is no number alone but multiplies the unit before it
     converted = _numbers_to_digits_generic(
         spaced, "he", continues=lambda word: word in _HUNDRED_MULT_LOOKUP)
-    return _CONJUNCTION_DIGITS_RE.sub("ו", converted)
+    return _CONJUNCTION_DIGITS_RE.sub("ו", converted).replace(_HELD_CONJUNCTION, "ו")
 
 
 def extract_number_he(text, ordinals=False):

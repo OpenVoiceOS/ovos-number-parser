@@ -45,6 +45,16 @@ class TestConjunctionBeforeANewNumber(unittest.TestCase):
                  "ושליש",  # "and a third"
                  "ורבע"]  # "and a quarter"
 
+    #: a ו typed as a word of its own: the converter did not split it off,
+    #: so it stays where the writer put it
+    OWN_WORD = ["ספר ו עט",  # "book and pen", no number
+                "ספר ו 3 עטים"]  # the digits were already there
+
+    def test_a_conjunction_typed_apart_stays_apart(self):
+        for text in self.OWN_WORD:
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, lang="he"), text)
+
     def test_a_word_that_stays_a_word_keeps_its_conjunction(self):
         for text in self.UNCHANGED:
             with self.subTest(text=text):
