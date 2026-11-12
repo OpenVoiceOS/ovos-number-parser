@@ -617,7 +617,8 @@ def _number_words_to_digits(utterance: str, lang: str,
     if lang2 == "de":
         return numbers_to_digits_de(utterance)
     if lang2 == "pt":
-        return PT_PT.numbers_to_digits(utterance, scale=scale)
+        return PT_BR.numbers_to_digits(utterance, scale=scale) if "br" in lang.lower() \
+            else PT_PT.numbers_to_digits(utterance, scale=scale)
     if lang2 == "mwl":
         return MWL.numbers_to_digits(utterance, scale=scale)
     if lang2 == "ro":
