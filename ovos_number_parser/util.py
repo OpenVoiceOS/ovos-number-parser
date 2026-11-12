@@ -529,6 +529,12 @@ class NumberVocabulary:
     # grammatical gender the count before each scale word agrees with
     # ("două mii" - feminine "două", not masculine "doi")
     SCALE_GENDERS: Dict[int, GrammaticalGender] = field(default_factory=dict)
+    # scale words that are not nouns: a feminine count before them agrees
+    # with the counted noun ("setecientas mil toneladas")
+    AGREEING_SCALES: List[int] = field(default_factory=list)
+    # the group after a scale word agrees with the counted noun
+    # ("mil doscientas personas")
+    AGREE_AFTER_SCALE: bool = False
 
     # full spelling of "1/x" fractions when they use an article
     # ("o jumătate", "un sfert")
@@ -1128,8 +1134,12 @@ class RomanceNumberExtractor:
         elif count == 1 and scale_val[0] in self.vocab.NO_PREV_UNIT:
             count_str = scale_word
         else:
-            count_gender = self.vocab.SCALE_GENDERS.get(scale_val[0],
-                                                        GrammaticalGender.MASCULINE)
+            if gender == GrammaticalGender.FEMININE and \
+                    scale_val[0] in self.vocab.AGREEING_SCALES:
+                count_gender = gender
+            else:
+                count_gender = self.vocab.SCALE_GENDERS.get(scale_val[0],
+                                                            GrammaticalGender.MASCULINE)
             count_pronunciation = self.pronounce_number(count, places, scale,
                                                         gender=count_gender,
                                                         _under_higher_scale=True,
@@ -1149,7 +1159,10 @@ class RomanceNumberExtractor:
         # number below one million takes the terminal conjunction on its hundreds
         remainder_force = scale_val[0] == 1000 and not _under_higher_scale \
             and self.vocab.JOINER_ON_SCALE_REMAINDER
+        remainder_gender = gender if self.vocab.AGREE_AFTER_SCALE \
+            else GrammaticalGender.MASCULINE
         remainder_str = self.pronounce_number(remainder, places, scale,
+                                              gender=remainder_gender,
                                               _force_hundreds_join=remainder_force,
                                               _under_higher_scale=nested_under_higher,
                                               _fraction_digits=_fraction_digits)
