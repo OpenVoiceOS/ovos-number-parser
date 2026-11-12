@@ -31,7 +31,9 @@ Ordinals of thousands. Teyssier, "Manual de Língua Portuguesa", p. 183,
 writes 2000.º as "dois milésimo": the count before "milésimo" is cardinal.
 
 "Um milhão e meio" is half of the scale, 1500000. A decimal needs the decimal
-marker: 1000000.5 is "um milhão vírgula cinco".
+marker: 1000000.5 is "um milhão vírgula cinco". extract_number and
+numbers_to_digits both read it so ("mil e meio" is 1500). Only the half is
+of the scale: "dois milhões e um quarto" adds a quarter of one.
 
 Overview of the numerals: https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
 """

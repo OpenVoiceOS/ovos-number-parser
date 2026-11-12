@@ -972,6 +972,7 @@ class RomanceNumberExtractor:
         # number ("vinte-e-dois"); without a joiner it is a range
         # ("doi-trei"), and other hyphenated words keep their hyphens
         joiners = set(self.vocab.JOIN_WORD) - set(self.vocab.MULTIPLICATIVE_JOIN_WORD)
+        half_words = {self.vocab.FRACTION.get(2), self.vocab.FRACTION_FEMALE.get(2)} - {None}
         utterance = re.sub(
             r"[^\W\d_]+(?:-[^\W\d_]+)+",
             lambda m: m.group().replace("-", " ") if all(
@@ -1034,6 +1035,15 @@ class RomanceNumberExtractor:
                 while number_span_words and number_span_words[-1] in self.vocab.JOIN_WORD:
                     number_span_words.pop()
                     j -= 1
+
+                if self.vocab.HALF_OF_SCALE and number_span_words \
+                        and numbers_map.get(number_span_words[-1], 0) >= 1000 \
+                        and j + 1 < len(words) and words[j] in joiners \
+                        and words[j + 1] in half_words:
+                    # a half right after a scale word is half of that scale
+                    # ("um milhão e meio" = 1500000), as extract_number reads it
+                    number_span_words += words[j:j + 2]
+                    j += 2
 
                 if words[j:j + 1] == [particle] and cardinal_denominators:
                     # "três doze avos" holds two numbers, the count and the
