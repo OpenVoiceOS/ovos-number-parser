@@ -121,6 +121,19 @@ _NUMBER_END_MARKS = ",;:!?."
 _NUMBER_END = "\x00"
 
 
+def _end_mark(words: List[str], k: int) -> str:
+    """The marks that end a number after ``words[k]``, or "".
+
+    A period alone ends it only at the end of the text or before a capital,
+    so an abbreviation stays a word: "dez." is dezembro in "3 dez. 2025".
+    """
+    word = words[k]
+    mark = word[len(word.rstrip(_NUMBER_END_MARKS)):]
+    if mark.strip(".") or k + 1 == len(words) or words[k + 1][:1].isupper():
+        return mark
+    return ""
+
+
 def word_tokenize(utterance: str) -> List[str]:
     """
     Splits a Portuguese text string into a list of tokens, separating words and punctuation.
@@ -755,14 +768,20 @@ class RomanceNumberExtractor:
         clean_text = re.sub(r"(?<=\S)-|-(?![.,]?\d)", " ", text.lower())
         # the joiner is kept: it is what tells "vinte e um" (21, one number)
         # apart from "tres e vinte" (3 and 20, two numbers)
+        # a comma or a sentence mark after a number word ends the number
+        # there ("vinte e dois, disse ele"); the mark is kept as a token of
+        # its own that no number crosses.  The cased words tell a sentence
+        # end from an abbreviation.
+        cased = re.sub(r"(?<=\S)-|-(?![.,]?\d)", " ", text).split()
+        lowered = clean_text.split()
+        if len(cased) != len(lowered):
+            cased = lowered
         tokens = []
-        for tok in clean_text.split():
-            # a comma or a sentence mark after a number word ends the number
-            # there ("vinte e dois, disse ele"); the mark is kept as a token
-            # of its own that no number crosses
-            stem = tok.rstrip(_NUMBER_END_MARKS)
-            if stem != tok and (stem in numbers_map or stem in ordinals_map
-                                or self.is_fractional(stem) is not False):
+        for k, tok in enumerate(lowered):
+            mark = _end_mark(cased, k)
+            stem = tok[:len(tok) - len(mark)]
+            if mark and (stem in numbers_map or stem in ordinals_map
+                         or self.is_fractional(stem) is not False):
                 tokens += [stem, _NUMBER_END]
             else:
                 tokens.append(tok)
@@ -1047,11 +1066,12 @@ class RomanceNumberExtractor:
         # a comma or a sentence mark after a number word ends the number
         # there; the mark goes back after the digits
         marks = [""] * len(words)
-        for k, w in enumerate(words):
-            stem = w.rstrip(_NUMBER_END_MARKS)
-            if stem != w and (stem in numbers_map
-                              or self.is_fractional(stem) is not False):
-                words[k], marks[k] = stem, w[len(stem):]
+        for k, w in enumerate(list(words)):
+            mark = _end_mark(words, k)
+            stem = w[:len(w) - len(mark)]
+            if mark and (stem in numbers_map
+                         or self.is_fractional(stem) is not False):
+                words[k], marks[k] = stem, mark
         output = []
         i = 0
 

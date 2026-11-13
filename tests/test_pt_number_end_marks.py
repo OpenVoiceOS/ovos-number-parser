@@ -28,6 +28,19 @@ class TestNumberEndMarks(unittest.TestCase):
             with self.subTest(text=text, lang=lang):
                 self.assertEqual(extract_number(text, lang=lang), value)
 
+    def test_a_period_inside_the_text_keeps_an_abbreviation(self):
+        # "dez." is the abbreviation of dezembro: a period alone ends a
+        # number only at the end of the text or before a capital
+        for text, digits in [
+                ("a reunião é a 3 dez. 2025", "a reunião é a 3 dez. 2025"),
+                ("no dia vinte e cinco dez. de dois mil",
+                 "no dia 25 dez. de 2000"),
+                ("ganhou dez. Ele ganhou cinco.", "ganhou 10. Ele ganhou 5.")]:
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
+        self.assertEqual(extract_number("ganhou dez. Ele ganhou cinco.",
+                                        lang="pt-PT"), 10)
+
     def test_numbers_to_digits_keeps_the_mark(self):
         for text, digits, lang in [
                 ("vinte e dois, disse ele", "22, disse ele", "pt-PT"),
