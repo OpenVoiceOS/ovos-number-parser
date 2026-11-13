@@ -124,12 +124,15 @@ _NUMBER_END = "\x00"
 def _end_mark(words: List[str], k: int) -> str:
     """The marks that end a number after ``words[k]``, or "".
 
-    A period alone ends it only at the end of the text or before a capital,
-    so an abbreviation stays a word: "dez." is dezembro in "3 dez. 2025".
+    A period, alone or before another mark, ends it only at the end of the
+    text or before a capital, so an abbreviation stays a word: "dez." is
+    dezembro in "3 dez. 2025" and in "3 dez., disse".
     """
     word = words[k]
     mark = word[len(word.rstrip(_NUMBER_END_MARKS)):]
-    if mark.strip(".") or k + 1 == len(words) or words[k + 1][:1].isupper():
+    abbreviation = mark[:1] == "." and mark[1:2] != "."
+    if mark.strip(".") and not abbreviation or k + 1 == len(words) \
+            or words[k + 1][:1].isupper():
         return mark
     return ""
 
@@ -765,7 +768,6 @@ class RomanceNumberExtractor:
         # normalize and tokenize; a hyphen joins words ("vinte-e-dois"), but
         # a hyphen that opens a token before a digit or a decimal separator
         # is the minus sign ("-12", "-.5")
-        clean_text = re.sub(r"(?<=\S)-|-(?![.,]?\d)", " ", text.lower())
         # the joiner is kept: it is what tells "vinte e um" (21, one number)
         # apart from "tres e vinte" (3 and 20, two numbers)
         # a comma or a sentence mark after a number word ends the number
@@ -773,9 +775,7 @@ class RomanceNumberExtractor:
         # its own that no number crosses.  The cased words tell a sentence
         # end from an abbreviation.
         cased = re.sub(r"(?<=\S)-|-(?![.,]?\d)", " ", text).split()
-        lowered = clean_text.split()
-        if len(cased) != len(lowered):
-            cased = lowered
+        lowered = [word.lower() for word in cased]
         tokens = []
         for k, tok in enumerate(lowered):
             mark = _end_mark(cased, k)

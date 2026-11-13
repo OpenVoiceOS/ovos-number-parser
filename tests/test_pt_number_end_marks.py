@@ -33,6 +33,7 @@ class TestNumberEndMarks(unittest.TestCase):
         # number only at the end of the text or before a capital
         for text, digits in [
                 ("a reunião é a 3 dez. 2025", "a reunião é a 3 dez. 2025"),
+                ("a reunião é a 3 dez., disse", "a reunião é a 3 dez., disse"),
                 ("no dia vinte e cinco dez. de dois mil",
                  "no dia 25 dez. de 2000"),
                 ("ganhou dez. Ele ganhou cinco.", "ganhou 10. Ele ganhou 5.")]:
