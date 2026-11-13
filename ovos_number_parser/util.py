@@ -949,12 +949,16 @@ class RomanceNumberExtractor:
             if token in self.vocab.DECIMAL_MARKER:
                 # the decimal part is the run of number words right after
                 # the marker: "dois vírgula cinco quilos e três" is 2.5; a
-                # preposition between two scale words stays in it ("milhões
-                # de biliões")
+                # joiner stays in it only inside a compound ("noventa e
+                # nove"), and a preposition only between two scale words
+                # ("milhões de biliões")
                 tail = []
                 for n in range(i + 1, len(tokens)):
                     t = tokens[n]
-                    if t in numbers_map or t in self.vocab.JOIN_WORD \
+                    if t in numbers_map \
+                            or t in self.vocab.JOIN_WORD \
+                            and self._joins_compound(tail, tokens[n + 1:n + 2],
+                                                     numbers_map) \
                             or t in self.vocab.HALF_OF_SCALE_FOLLOWERS \
                             and numbers_map.get(tokens[n - 1], 0) >= 1000 \
                             and n + 1 < len(tokens) \
@@ -1012,7 +1016,9 @@ class RomanceNumberExtractor:
                     saw_number = True
                     break
                 if decimal_str:
-                    result += current + float(f"0.{decimal_str}")
+                    # summed as decimals: 7 + 0.94 is 7.94, not 7.9399999999999995
+                    result = float(Decimal(str(result))
+                                   + Decimal(f"{current}.{decimal_str}"))
                     current = 0
                     saw_number = True
                     break
@@ -1030,6 +1036,16 @@ class RomanceNumberExtractor:
         if is_negative:
             result = -result
         return result
+
+    def _joins_compound(self, before: List[str], after: List[str],
+                        numbers_map: Dict[str, int]) -> bool:
+        """True when a joiner between ``before`` and ``after`` builds one
+        compound: tens or hundreds, then a smaller number ("noventa e nove",
+        "cento e vinte"). "cinco e dois" is two numbers."""
+        head = numbers_map.get(before[-1]) if before else None
+        nxt = numbers_map.get(after[0]) if after else None
+        return head is not None and nxt is not None and 20 <= head < 1000 \
+            and nxt < head
 
     def numbers_to_digits(self,
                           utterance: str,
@@ -1110,13 +1126,18 @@ class RomanceNumberExtractor:
                         # span has to end so the tail survives ("tres y veinte").
                         nxt = numbers_map.get(next_word(j))
                         sofar = self.extract_number(" ".join(number_span_words))
-                        if nxt is None or sofar is False or nxt >= sofar \
-                                or next_word(j) in bare_plurals \
-                                or set(number_span_words) & set(self.vocab.DECIMAL_MARKER):
+                        if set(number_span_words) & set(self.vocab.DECIMAL_MARKER):
+                            # after the marker a joiner only builds a
+                            # compound of the decimal part ("vírgula
+                            # noventa e nove")
+                            if not self._joins_compound(number_span_words,
+                                                        [next_word(j)],
+                                                        numbers_map):
+                                break
+                        elif nxt is None or sofar is False or nxt >= sofar \
+                                or next_word(j) in bare_plurals:
                             # a plural scale word after a joiner has no count
-                            # ("dois milhões e milhares de pessoas"), and no
-                            # number goes on past a joiner after its decimal
-                            # part ("dois vírgula cinco milhões e três")
+                            # ("dois milhões e milhares de pessoas")
                             break
                     number_span_words.append(words[j])
                     j += 1

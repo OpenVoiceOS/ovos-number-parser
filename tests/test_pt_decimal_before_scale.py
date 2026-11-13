@@ -73,6 +73,36 @@ class TestDecimalBeforeScale(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
 
+    def test_a_composed_decimal_keeps_its_joiner(self):
+        # the joiner inside "noventa e nove" belongs to the decimal: 42.99
+        for text, digits in [
+                ("quarenta e dois vírgula noventa e nove euros",
+                 "42.99 euros"),
+                ("doze vírgula trinta e cinco", "12.35"),
+                ("dois vírgula vinte e cinco milhões", "2250000"),
+                # "cinco e três" is no compound: 2.5 and then 3
+                ("dois vírgula cinco e três", "2.5 e 3"),
+                # a compound descends: "vinte e trinta" is two numbers
+                ("dois vírgula vinte e trinta", "2.2 e 30")]:
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
+
+    def test_a_scale_word_after_a_joiner_is_a_second_number(self):
+        # "e mil" after the decimal is another number: the decimal is 2.5
+        for text, value in [("entre dois vírgula cinco e mil", 2.5),
+                            ("dois vírgula cinco e três", 2.5),
+                            ("custa entre um vírgula cinco e dois mil euros",
+                             1.5)]:
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="pt-PT"), value)
+
+    def test_a_decimal_sums_without_a_float_error(self):
+        # 7 + 0.94 in binary floats is 7.9399999999999995
+        self.assertEqual(extract_number("sete vírgula noventa e quatro",
+                                        lang="pt-PT"), 7.94)
+        self.assertEqual(numbers_to_digits("sete vírgula noventa e quatro",
+                                           lang="pt-PT"), "7.94")
+
     def test_a_decimal_after_a_scale_is_unchanged(self):
         # the scale before the marker counts whole units, and the decimal
         # adds to them: 1000000 + 0.5
