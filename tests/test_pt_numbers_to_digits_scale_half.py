@@ -1,5 +1,6 @@
-"""numbers_to_digits reads Portuguese "e meio" after a scale word as
-extract_number does: half of that scale.
+"""numbers_to_digits reads Portuguese "e meio" after a scale noun as
+extract_number does: half of that noun. After the numeral "mil" the half is
+half of one.
 
 "Um milhão e meio" is 1500000 and a decimal needs the decimal marker
 ("um milhão vírgula cinco" is 1000000.5); the numbers_pt module docstring
@@ -15,8 +16,6 @@ class TestNumbersToDigitsScaleAndAHalf(unittest.TestCase):
     #: text, expected output, language tag
     ROWS = [("um milhão e meio", "1500000", "pt-PT"),
             ("dois milhões e meio", "2500000", "pt-PT"),
-            ("mil e meio", "1500", "pt-PT"),
-            ("dois mil e meio", "2500", "pt-PT"),
             ("mil milhões e meio", "1500000000", "pt-PT"),
             ("um bilião e meio", "1500000000000", "pt-PT"),
             ("vendeu um milhão e meio de discos",
@@ -24,8 +23,6 @@ class TestNumbersToDigitsScaleAndAHalf(unittest.TestCase):
             ("menos um milhão e meio", "-1500000", "pt-PT"),
             ("um milhão e meio", "1500000", "pt-BR"),
             ("dois bilhões e meio", "2500000000", "pt-BR"),
-            ("mil e meio", "1500", "pt-BR"),
-            ("mil e meia", "1500", "pt-PT"),
             ("um milhão e meia", "1500000", "pt-BR"),
             ("dois milhões e meio e mais nada",
              "2500000 e mais nada", "pt-PT")]
@@ -59,6 +56,17 @@ class TestNumbersToDigitsScaleAndAHalf(unittest.TestCase):
                                ("uma hora e meia", "1 hora e meia")]:
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="pt"), expected)
+
+    def test_a_half_after_mil_stays_a_word(self):
+        # "mil" is a numeral: "mil e meio" is 1000.5 in extract_number, and
+        # here the half keeps its word as after any other numeral
+        for text, expected, value in [("mil e meio", "1000 e meio", 1000.5),
+                                      ("mil e meia", "1000 e meia", 1000.5),
+                                      ("dois mil e meio", "2000 e meio", 2000.5)]:
+            for lang in ("pt-PT", "pt-BR"):
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(numbers_to_digits(text, lang=lang), expected)
+                    self.assertEqual(extract_number(text, lang=lang), value)
 
     def test_the_half_does_not_cross_another_word(self):
         for text, expected in [

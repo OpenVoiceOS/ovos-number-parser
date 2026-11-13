@@ -1,4 +1,7 @@
-"""Portuguese "e meio" after a scale word is half of that scale.
+"""Portuguese "e meio" after a scale noun is half of that noun.
+
+"Mil" is a numeral, not a noun, so "mil e meio" is 1000.5; the numbers_pt
+module docstring cites the sources.
 
 Owner ruling for this repository: "1000000.5 would be 'um milhão virgula
 cinco'". So "um milhão e meio" is 1500000, and the decimal reading needs the
@@ -18,8 +21,6 @@ class TestScaleAndAHalf(unittest.TestCase):
             ("dois mil milhões e meio", 2_500_000_000, "pt-PT"),
             ("um bilião e meio", 1_500_000_000_000, "pt-PT"),
             ("dois biliões e meio", 2_500_000_000_000, "pt-PT"),
-            ("mil e meio", 1_500, "pt-PT"),
-            ("dois mil e meio", 2_500, "pt-PT"),
             ("um milhão e meio", 1_500_000, "pt-BR"),
             ("dois bilhões e meio", 2_500_000_000, "pt-BR")]
 
@@ -29,6 +30,21 @@ class TestScaleAndAHalf(unittest.TestCase):
                 got = extract_number(text, lang=lang)
                 self.assertEqual(got, value)
                 self.assertIsInstance(got, int)
+
+    def test_a_half_after_mil_is_half_of_one(self):
+        # "mil" is a numeral, not a noun: the half after it is half of one,
+        # as after "dois"; the value is the thousands plus 0.5
+        for text, value in [("mil e meio", 1000.5), ("mil e meia", 1000.5),
+                            ("dois mil e meio", 2000.5),
+                            ("cem mil e meio", 100000.5)]:
+            for lang in ("pt-PT", "pt-BR"):
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(extract_number(text, lang=lang), value)
+
+    def test_the_last_scale_word_decides(self):
+        # "mil milhões" ends on the noun "milhões": half of 10 ** 9
+        self.assertEqual(extract_number("dois mil milhões e meio", lang="pt-PT"),
+                         2_500_000_000)
 
     def test_the_decimal_reading_needs_the_marker(self):
         self.assertEqual(extract_number("um milhão vírgula cinco", lang="pt"),
