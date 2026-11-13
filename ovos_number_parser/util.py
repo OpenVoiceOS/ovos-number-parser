@@ -947,10 +947,24 @@ class RomanceNumberExtractor:
                 continue
 
             if token in self.vocab.DECIMAL_MARKER:
-                tail = tokens[i + 1:]
-                # a scale word after the decimal digits multiplies the whole
-                # decimal ("dois vírgula cinco milhões" = 2500000), when no
-                # scale word came before the marker
+                # the decimal part is the run of number words right after
+                # the marker: "dois vírgula cinco quilos e três" is 2.5; a
+                # preposition between two scale words stays in it ("milhões
+                # de biliões")
+                tail = []
+                for n in range(i + 1, len(tokens)):
+                    t = tokens[n]
+                    if t in numbers_map or t in self.vocab.JOIN_WORD \
+                            or t in self.vocab.HALF_OF_SCALE_FOLLOWERS \
+                            and numbers_map.get(tokens[n - 1], 0) >= 1000 \
+                            and n + 1 < len(tokens) \
+                            and numbers_map.get(tokens[n + 1], 0) >= 1000:
+                        tail.append(t)
+                    else:
+                        break
+                # a scale word right after the decimal digits multiplies the
+                # whole decimal ("dois vírgula cinco milhões" = 2500000), when
+                # no scale word came before the marker; the number ends there
                 multiplier = 1
                 if not result and current < 1000:
                     k = next((n for n, t in enumerate(tail)
@@ -969,13 +983,8 @@ class RomanceNumberExtractor:
                                 n += 1
                             else:
                                 break
-                        after = tail[n:n + 2]
-                        if not (after and (after[0] in numbers_map
-                                           or after[0] in self.vocab.JOIN_WORD
-                                           and after[1:2]
-                                           and after[1] in numbers_map)):
-                            multiplier = math.prod(run)
-                            tail = tail[:k]
+                        multiplier = math.prod(run)
+                        tail = tail[:k]
                 tail_vals = [numbers_map[t] for t in tail if t in numbers_map]
                 if tail_vals and all(
                         0 <= v <= 9 and float(v) == int(v)

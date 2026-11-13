@@ -49,6 +49,30 @@ class TestDecimalBeforeScale(unittest.TestCase):
                               lang="pt-BR"),
             "2500000 de pessoas")
 
+    def test_a_scale_word_later_in_the_sentence_counts_nothing(self):
+        # the decimal part is the run of number words right after the
+        # marker: "anos" and "quilos" end the number at 2.5
+        for text in ("tenho dois vírgula cinco anos e mil euros",
+                     "dois vírgula cinco quilos e um milhão de vezes",
+                     "dois vírgula cinco quilos e três"):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="pt-PT"), 2.5)
+        self.assertEqual(
+            extract_number("dois vírgula vinte e cinco milhões", lang="pt-PT"),
+            2 * 10 ** 6 + 25 * 10 ** 4)
+
+    def test_the_number_ends_after_the_scale_word(self):
+        # a joiner after the scale run starts a second number, in both
+        # functions: 2,5 milhões and then 3
+        self.assertEqual(
+            extract_number("dois vírgula cinco milhões e três", lang="pt-PT"),
+            25 * 10 ** 5)
+        for text, digits in [("dois vírgula cinco milhões e três",
+                              "2500000 e 3"),
+                             ("zero vírgula um mil e três", "100 e 3")]:
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
+
     def test_a_decimal_after_a_scale_is_unchanged(self):
         # the scale before the marker counts whole units, and the decimal
         # adds to them: 1000000 + 0.5
