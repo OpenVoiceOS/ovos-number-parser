@@ -523,6 +523,9 @@ class NumberVocabulary:
     #: scale words that are numerals, not nouns: a half after one of them is
     #: half of one, as after any other numeral ("mil e meio" = 1000.5)
     SCALE_NUMERALS: List[str] = field(default_factory=list)
+    #: a plural scale word needs a count before it to be a number: alone it
+    #: is "a great many" ("milhões de pessoas"), and reads as no number
+    PLURAL_SCALE_NEEDS_COUNT: bool = False
     #: words that may follow such a half in numbers_to_digits, besides the end
     #: of the text and a joiner: a preposition that opens what is counted ("um
     #: milhão e meio de discos"). Any other word is a noun the half counts
@@ -775,6 +778,9 @@ class RomanceNumberExtractor:
         # cardinal ("tres cuartos" = 3/4), singular ones add ("dois e meio" = 2.5)
         singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
         scales_words = {w for w, v in numbers_map.items() if v >= 1000}
+        # plural scale words ("milhões"), which need a count before them
+        bare_plurals = {p for w in scales_words if (p := self.vocab.pluralize(w)) != w} \
+            & scales_words if self.vocab.PLURAL_SCALE_NEEDS_COUNT else set()
         plural_fractions = {self.vocab.pluralize(w) for w in singular_fractions} - singular_fractions
         particle = self.vocab.DENOMINATOR_PARTICLE
         cardinal_denominators = self.vocab.CARDINAL_DENOMINATORS
@@ -824,6 +830,9 @@ class RomanceNumberExtractor:
                 continue
 
             val = numbers_map.get(token)
+            if token in bare_plurals and not saw_number:
+                # no count before the plural: "milhões de pessoas"
+                val = None
             if val is not None:
                 saw_number = True
                 if val >= 1000:
