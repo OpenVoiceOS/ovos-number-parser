@@ -948,6 +948,34 @@ class RomanceNumberExtractor:
 
             if token in self.vocab.DECIMAL_MARKER:
                 tail = tokens[i + 1:]
+                # a scale word after the decimal digits multiplies the whole
+                # decimal ("dois vírgula cinco milhões" = 2500000), when no
+                # scale word came before the marker
+                multiplier = 1
+                if not result and current < 1000:
+                    k = next((n for n, t in enumerate(tail)
+                              if numbers_map.get(t, 0) >= 1000), None)
+                    if k:
+                        # the scale run, also across a preposition between
+                        # two scale words ("milhões de biliões")
+                        run, n = [], k
+                        while n < len(tail):
+                            if numbers_map.get(tail[n], 0) >= 1000:
+                                run.append(numbers_map[tail[n]])
+                                n += 1
+                            elif tail[n] in self.vocab.HALF_OF_SCALE_FOLLOWERS \
+                                    and n + 1 < len(tail) \
+                                    and numbers_map.get(tail[n + 1], 0) >= 1000:
+                                n += 1
+                            else:
+                                break
+                        after = tail[n:n + 2]
+                        if not (after and (after[0] in numbers_map
+                                           or after[0] in self.vocab.JOIN_WORD
+                                           and after[1:2]
+                                           and after[1] in numbers_map)):
+                            multiplier = math.prod(run)
+                            tail = tail[:k]
                 tail_vals = [numbers_map[t] for t in tail if t in numbers_map]
                 if tail_vals and all(
                         0 <= v <= 9 and float(v) == int(v)
@@ -968,6 +996,12 @@ class RomanceNumberExtractor:
                         decimal_str = "0" * zeros + str(int(tail_num))
                     else:
                         decimal_str = ''
+                if decimal_str and multiplier > 1:
+                    scaled = Decimal(f"{current}.{decimal_str}") * multiplier
+                    result = int(scaled) if scaled == int(scaled) else float(scaled)
+                    current = 0
+                    saw_number = True
+                    break
                 if decimal_str:
                     result += current + float(f"0.{decimal_str}")
                     current = 0
@@ -1068,9 +1102,12 @@ class RomanceNumberExtractor:
                         nxt = numbers_map.get(next_word(j))
                         sofar = self.extract_number(" ".join(number_span_words))
                         if nxt is None or sofar is False or nxt >= sofar \
-                                or next_word(j) in bare_plurals:
+                                or next_word(j) in bare_plurals \
+                                or set(number_span_words) & set(self.vocab.DECIMAL_MARKER):
                             # a plural scale word after a joiner has no count
-                            # ("dois milhões e milhares de pessoas")
+                            # ("dois milhões e milhares de pessoas"), and no
+                            # number goes on past a joiner after its decimal
+                            # part ("dois vírgula cinco milhões e três")
                             break
                     number_span_words.append(words[j])
                     j += 1
