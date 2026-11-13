@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.47a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.47a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.46a2...0.24.47a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): read the other spelling of a scale word \("um bilhão" in pt-PT\) [\#475](https://github.com/OpenVoiceOS/ovos-number-parser/pull/475) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.46a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.46a2) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.46a1...0.24.46a2)
@@ -53,10 +61,6 @@
 ## [0.24.41a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.41a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.40a1...0.24.41a1)
-
-**Merged pull requests:**
-
-- fix\(nb, nn, da\): read the og-inverted ordinal compound as one number [\#369](https://github.com/OpenVoiceOS/ovos-number-parser/pull/369) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.40a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.40a1) (2026-11-12)
 
@@ -373,10 +377,6 @@
 ## [0.23.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.23.2a1) (2026-10-08)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.23.1a1...0.23.2a1)
-
-**Merged pull requests:**
-
-- fix: state the leftmost-ordinal fraction invariant per locale, skip the span scan for one word [\#370](https://github.com/OpenVoiceOS/ovos-number-parser/pull/370) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.23.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.23.1a1) (2026-09-27)
 
