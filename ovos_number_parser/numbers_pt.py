@@ -41,7 +41,9 @@ Ordinals of thousands. Teyssier, "Manual de Língua Portuguesa", p. 183,
 writes 2000.º as "dois milésimo": the count before "milésimo" is cardinal.
 
 "Um milhão e meio" is half of the scale, 1500000. A decimal needs the decimal
-marker: 1000000.5 is "um milhão vírgula cinco".
+marker: 1000000.5 is "um milhão vírgula cinco". extract_number and
+numbers_to_digits both read it so ("mil e meio" is 1500). Only the half is
+of the scale: "dois milhões e um quarto" adds a quarter of one.
 
 Overview of the numerals: https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
 """
@@ -148,6 +150,7 @@ _PT_PT = PortugueseVocabulary(
     DIGIT_GROUP_MARK=".",
     MAX_SCALE_COUNT=10 ** 6,
     HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
+    HALF_OF_SCALE_FOLLOWERS=["de", "do", "da", "dos", "das"],
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
@@ -359,6 +362,7 @@ _PT_BR = PortugueseVocabulary(
     DIGIT_GROUP_MARK=".",
     MAX_SCALE_COUNT=10 ** 6,
     HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
+    HALF_OF_SCALE_FOLLOWERS=_PT_PT.HALF_OF_SCALE_FOLLOWERS,
     DIVIDED_BY_ZERO=_PT_PT.DIVIDED_BY_ZERO,
     DENOMINATOR_PARTICLE=_PT_PT.DENOMINATOR_PARTICLE,
     CARDINAL_DENOMINATORS=_PT_PT.CARDINAL_DENOMINATORS,
