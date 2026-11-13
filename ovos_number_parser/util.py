@@ -3,7 +3,7 @@ import threading
 from dataclasses import dataclass, field
 from decimal import Decimal, ROUND_HALF_UP, localcontext
 from enum import Enum
-from typing import List, Dict, Union, Any, Tuple, Optional, Callable
+from typing import List, Dict, Union, Any, Tuple, Optional, Callable, Set
 import re
 
 
@@ -709,6 +709,14 @@ class RomanceNumberExtractor:
                     return False
         return True
 
+    def _plural_scales(self, numbers_map: Dict[str, int]) -> Set[str]:
+        """The plural scale words that need a count right before them
+        ("dois milhões"); alone they name "a great many" and are no number."""
+        if not self.vocab.PLURAL_SCALE_NEEDS_COUNT:
+            return set()
+        scales = {w for w, v in numbers_map.items() if v >= 1000}
+        return {p for w in scales if (p := self.vocab.pluralize(w)) != w} & scales
+
     def extract_number(self,
                        text: str,
                        ordinals: bool = False,
@@ -778,9 +786,7 @@ class RomanceNumberExtractor:
         # cardinal ("tres cuartos" = 3/4), singular ones add ("dois e meio" = 2.5)
         singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
         scales_words = {w for w, v in numbers_map.items() if v >= 1000}
-        # plural scale words ("milhões"), which need a count before them
-        bare_plurals = {p for w in scales_words if (p := self.vocab.pluralize(w)) != w} \
-            & scales_words if self.vocab.PLURAL_SCALE_NEEDS_COUNT else set()
+        bare_plurals = self._plural_scales(numbers_map)
         plural_fractions = {self.vocab.pluralize(w) for w in singular_fractions} - singular_fractions
         particle = self.vocab.DENOMINATOR_PARTICLE
         cardinal_denominators = self.vocab.CARDINAL_DENOMINATORS
@@ -830,8 +836,14 @@ class RomanceNumberExtractor:
                 continue
 
             val = numbers_map.get(token)
-            if token in bare_plurals and not saw_number:
-                # no count before the plural: "milhões de pessoas"
+            if token in bare_plurals and not (
+                    i and tokens[i - 1] in numbers_map
+                    or i > 1 and tokens[i - 2] in scales_words
+                    and tokens[i - 1] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
+                # a plural takes its count from the number word right before
+                # it ("dois milhões"), or from a scale word and a preposition
+                # ("milhões de biliões"); alone it is no number ("milhões de
+                # pessoas", "dois golos perante milhares de adeptos")
                 val = None
             if val is not None:
                 saw_number = True
@@ -994,6 +1006,7 @@ class RomanceNumberExtractor:
         # ("doi-trei"), and other hyphenated words keep their hyphens
         joiners = set(self.vocab.JOIN_WORD) - set(self.vocab.MULTIPLICATIVE_JOIN_WORD)
         half_words = {self.vocab.FRACTION.get(2), self.vocab.FRACTION_FEMALE.get(2)} - {None}
+        bare_plurals = self._plural_scales(numbers_map)
         utterance = re.sub(
             r"[^\W\d_]+(?:-[^\W\d_]+)+",
             lambda m: m.group().replace("-", " ") if all(
@@ -1046,7 +1059,10 @@ class RomanceNumberExtractor:
                         # span has to end so the tail survives ("tres y veinte").
                         nxt = numbers_map.get(next_word(j))
                         sofar = self.extract_number(" ".join(number_span_words))
-                        if nxt is None or sofar is False or nxt >= sofar:
+                        if nxt is None or sofar is False or nxt >= sofar \
+                                or next_word(j) in bare_plurals:
+                            # a plural scale word after a joiner has no count
+                            # ("dois milhões e milhares de pessoas")
                             break
                     number_span_words.append(words[j])
                     j += 1

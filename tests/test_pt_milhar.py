@@ -74,6 +74,24 @@ class TestBarePluralScale(unittest.TestCase):
                                            lang="pt-PT"),
                          "milhões de pessoas viram 2 golos")
 
+    def test_an_earlier_number_is_not_the_count(self):
+        # the count is the number word right before the plural; a number
+        # further back counts something else
+        for text, value in [("a equipa marcou dois golos perante milhares de adeptos", 2),
+                            ("três dias depois chegaram milhares de refugiados", 3),
+                            ("há dois anos milhões de pessoas", 2),
+                            ("dois milhões e milhares de pessoas", 2_000_000)]:
+            for lang in LANGS:
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(extract_number(text, lang=lang), value)
+
+    def test_numbers_to_digits_keeps_a_plural_after_a_joiner(self):
+        for lang in LANGS:
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    numbers_to_digits("dois milhões e milhares de pessoas", lang=lang),
+                    "2000000 e milhares de pessoas")
+
     def test_a_singular_scale_word_alone_still_reads(self):
         # only the plural names "a great many"; "milhão" alone is one million
         self.assertEqual(extract_number("milhão de pessoas", lang="pt-PT"),
