@@ -526,7 +526,7 @@ class NumberVocabulary:
     #: words that may follow such a half in numbers_to_digits, besides the end
     #: of the text and a joiner: a preposition that opens what is counted ("um
     #: milhão e meio de discos"). Any other word is a noun the half counts
-    #: itself ("mil e meia dúzia" is a thousand and half a dozen)
+    #: itself ("um milhão e meia dúzia" is a million and half a dozen)
     HALF_OF_SCALE_FOLLOWERS: List[str] = field(default_factory=list)
 
     # full spelling of "one <scale>" groups when they use an article or a
@@ -1055,8 +1055,9 @@ class RomanceNumberExtractor:
                         and words[j + 1] in half_words \
                         and (j + 2 == len(words) or words[j + 2] in joiners
                              or words[j + 2] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
-                    # a half right after a scale word is half of that scale
-                    # ("um milhão e meio" = 1500000), as extract_number reads it
+                    # a half right after a scale word that is not a numeral
+                    # is half of that scale ("um milhão e meio" = 1500000),
+                    # as extract_number reads it
                     number_span_words += words[j:j + 2]
                     j += 2
 

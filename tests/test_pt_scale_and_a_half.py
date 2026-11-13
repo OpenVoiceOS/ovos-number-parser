@@ -1,7 +1,8 @@
 """Portuguese "e meio" after a scale noun is half of that noun.
 
 "Mil" is a numeral, not a noun, so "mil e meio" is 1000.5; the numbers_pt
-module docstring cites the sources.
+module docstring cites the sources. Owner ruling for this repository: ""um
+milhar e meio" would be 1500 "mil e meio" would be 1000.5".
 
 Owner ruling for this repository: "1000000.5 would be 'um milhão virgula
 cinco'". So "um milhão e meio" is 1500000, and the decimal reading needs the
@@ -36,7 +37,9 @@ class TestScaleAndAHalf(unittest.TestCase):
         # as after "dois"; the value is the thousands plus 0.5
         for text, value in [("mil e meio", 1000.5), ("mil e meia", 1000.5),
                             ("dois mil e meio", 2000.5),
-                            ("cem mil e meio", 100000.5)]:
+                            ("cem mil e meio", 100000.5),
+                            # no joiner: the half still follows "mil"
+                            ("dois mil meio", 2000.5)]:
             for lang in ("pt-PT", "pt-BR"):
                 with self.subTest(text=text, lang=lang):
                     self.assertEqual(extract_number(text, lang=lang), value)
