@@ -4,6 +4,16 @@ A tag that contains "br" reads Brazilian Portuguese. Every other tag reads
 European Portuguese. pt-PT uses the long scale ("mil milhões", "bilião") and
 pt-BR the short scale ("bilhão").
 
+Each variety also reads the other spelling of a scale word above "milhão",
+with its own value. Ciberdúvidas, answer 30031 ("As grafias e as pronúncias
+de bilião e bilhão"): "ambas as formas — bilião e bilhão — se encontram
+registadas", and "bilhão" is of informal use "apesar de significar o mesmo
+que bilião"; the answer extends this to "trilhão/trilião" and
+"quatrilhão/quatrilião". Priberam, "bilhão", sense 1: "[Informal] Um milhão
+de milhões (10^12)", synonym "BILIÃO"; Priberam, "bilião", sense 2:
+"[Brasil] Mil milhões (10^9)". So "um bilhão" is 10^12 in pt-PT and
+"um bilião" is 10^9 in pt-BR. "Milhão" has one spelling.
+
 Sources for the rules in this module:
 
 Conjunction between classes. Cunha & Cintra, "Nova Gramática do Português
@@ -35,8 +45,9 @@ marker: 1000000.5 is "um milhão vírgula cinco".
 
 Overview of the numerals: https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
 """
+from dataclasses import dataclass
 from enum import Enum
-from typing import Union, Optional
+from typing import Dict, Union, Optional, Tuple
 import warnings
 from ovos_number_parser.util import (Scale, GrammaticalGender,
                                      DigitPronunciation,
@@ -97,8 +108,30 @@ def pluralize_pt(word: str):
     return word
 
 
-_PT_PT = NumberVocabulary(
+@dataclass
+class PortugueseVocabulary(NumberVocabulary):
+    """The vocabulary, plus the other spelling of the scale words, read but
+    never written."""
+
+    #: the ending of a scale word and its other spelling ("lião", "lhão")
+    SCALE_ALT_ENDING: Tuple[str, str] = ("", "")
+
+    def get_number_strings(self, scale: Optional[Scale] = None) -> Dict[str, int]:
+        numbers = super().get_number_strings(scale)
+        ending, alt = self.SCALE_ALT_ENDING
+        scales = self.SHORT_SCALE if (scale or self.DEFAULT_SCALE) == Scale.SHORT \
+            else self.LONG_SCALE
+        for value, word in scales.items():
+            if value > 10 ** 6 and word.endswith(ending):
+                other = word[:-len(ending)] + alt
+                numbers.setdefault(other, value)
+                numbers.setdefault(self.pluralize(other), value)
+        return numbers
+
+
+_PT_PT = PortugueseVocabulary(
     LANG="pt-PT",
+    SCALE_ALT_ENDING=("lião", "lhão"),  # "bilhão" reads as "bilião"
 
     swap_gender=swap_gender_pt, # used for female forms
     pluralize=pluralize_pt, # use for plural forms
@@ -317,8 +350,9 @@ _PT_PT = NumberVocabulary(
     }
 )
 
-_PT_BR = NumberVocabulary(
+_PT_BR = PortugueseVocabulary(
     LANG="pt-BR",
+    SCALE_ALT_ENDING=("lhão", "lião"),  # "bilião" reads as "bilhão"
     swap_gender=swap_gender_pt,  # used for female forms
     pluralize=pluralize_pt,  # use for plural forms
     DEFAULT_SCALE=Scale.SHORT,
