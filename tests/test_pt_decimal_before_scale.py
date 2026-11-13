@@ -114,3 +114,36 @@ class TestDecimalBeforeScale(unittest.TestCase):
         # ("cinco mil", .5000) add to the million and multiply nothing
         self.assertEqual(extract_number("um milhão vírgula cinco mil",
                                         lang="pt-PT"), 1000000.5)
+
+    def test_a_half_scale_before_the_marker_keeps_its_fraction(self):
+        # half a thousand, then the decimal: 500 + 0.5
+        for text, lang in [("meio milhar vírgula cinco", "pt-PT"),
+                           ("meio mil vírgula cinco", "pt-PT"),
+                           ("medio mil coma cinco", "es-ES"),
+                           ("mezzo mille virgola cinque", "it-IT"),
+                           ("jumătate de mie virgulă cinci", "ro")]:
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang=lang), 500.5)
+
+    def test_a_compound_takes_only_the_places_below_its_head(self):
+        # tens take a unit, hundreds take a number below 100: "noventa e
+        # quinze" is two numbers, a price range
+        for text, digits in [
+                ("entre nove vírgula noventa e quinze euros",
+                 "entre 9.9 e 15 euros"),
+                ("entre nove vírgula noventa e doze euros",
+                 "entre 9.9 e 12 euros"),
+                ("de um vírgula cinquenta e vinte cêntimos",
+                 "de 1.5 e 20 cêntimos"),
+                ("entre um vírgula quinhentos e duzentos gramas",
+                 "entre 1.5 e 200 gramas"),
+                ("dois vírgula cento e vinte e três", "2.123")]:
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
+        self.assertEqual(extract_number("entre nove vírgula noventa e "
+                                        "quinze euros", lang="pt-PT"), 9.9)
+
+    def test_a_marker_with_no_number_after_it_ends_the_number(self):
+        # the integer part does not take number words after the marker
+        self.assertEqual(extract_number("dois vírgula muitos três",
+                                        lang="pt-PT"), 2)

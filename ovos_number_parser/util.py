@@ -1009,18 +1009,20 @@ class RomanceNumberExtractor:
                         decimal_str = "0" * zeros + str(int(tail_num))
                     else:
                         decimal_str = ''
-                if decimal_str and multiplier > 1:
-                    scaled = Decimal(f"{current}.{decimal_str}") * multiplier
-                    result = int(scaled) if scaled == int(scaled) else float(scaled)
+                if decimal_str:
+                    # summed as decimals: 7 + 0.94 is 7.94, not 7.9399999999999995
+                    number = Decimal(str(current)) + Decimal(f"0.{decimal_str}")
+                    if multiplier > 1:
+                        scaled = number * multiplier
+                        result = int(scaled) if scaled == int(scaled) \
+                            else float(scaled)
+                    else:
+                        result = float(Decimal(str(result)) + number)
                     current = 0
                     saw_number = True
                     break
-                if decimal_str:
-                    # summed as decimals: 7 + 0.94 is 7.94, not 7.9399999999999995
-                    result = float(Decimal(str(result))
-                                   + Decimal(f"{current}.{decimal_str}"))
-                    current = 0
-                    saw_number = True
+                if saw_number:
+                    # no number word after the marker: the number ends there
                     break
                 i += 1
                 continue
@@ -1040,12 +1042,18 @@ class RomanceNumberExtractor:
     def _joins_compound(self, before: List[str], after: List[str],
                         numbers_map: Dict[str, int]) -> bool:
         """True when a joiner between ``before`` and ``after`` builds one
-        compound: tens or hundreds, then a smaller number ("noventa e nove",
-        "cento e vinte"). "cinco e dois" is two numbers."""
+        compound: tens, then a unit ("noventa e nove"), or hundreds, then a
+        number below 100 ("cento e vinte"). "cinco e dois" and "noventa e
+        quinze" are two numbers."""
         head = numbers_map.get(before[-1]) if before else None
         nxt = numbers_map.get(after[0]) if after else None
-        return head is not None and nxt is not None and 20 <= head < 1000 \
-            and nxt < head
+        if head is None or nxt is None:
+            return False
+        if 20 <= head < 100 and head % 10 == 0:
+            return 1 <= nxt <= 9
+        if 100 <= head < 1000 and head % 100 == 0:
+            return 1 <= nxt <= 99
+        return False
 
     def numbers_to_digits(self,
                           utterance: str,
