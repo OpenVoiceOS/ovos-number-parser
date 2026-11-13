@@ -24,7 +24,11 @@ class TestNumbersToDigitsScaleAndAHalf(unittest.TestCase):
             ("menos um milhão e meio", "-1500000", "pt-PT"),
             ("um milhão e meio", "1500000", "pt-BR"),
             ("dois bilhões e meio", "2500000000", "pt-BR"),
-            ("mil e meio", "1500", "pt-BR")]
+            ("mil e meio", "1500", "pt-BR"),
+            ("mil e meia", "1500", "pt-PT"),
+            ("um milhão e meia", "1500000", "pt-BR"),
+            ("dois milhões e meio e mais nada",
+             "2500000 e mais nada", "pt-PT")]
 
     def test_half_of_the_scale(self):
         for text, expected, lang in self.ROWS:
@@ -74,6 +78,21 @@ class TestNumbersToDigitsScaleAndAHalf(unittest.TestCase):
                                 "2000000 e 1 quarto"),
                                ("dois milhões e quarto",
                                 "2000000 e quarto")]:
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, lang="pt"), expected)
+
+
+    def test_the_half_of_a_scale_needs_the_joiner(self):
+        for text, expected in [("um milhão meio", "1000000 meio"),
+                               ("um milhão mais meio", "1000000 mais meio")]:
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, lang="pt"), expected)
+
+    def test_a_half_before_a_noun_counts_that_noun(self):
+        # "meia dúzia" is half a dozen: a thousand and six eggs, not 1500
+        for text, expected in [
+                ("mil e meia dúzia de ovos", "1000 e meia dúzia de ovos"),
+                ("um milhão e meio quilo", "1000000 e meio quilo")]:
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="pt"), expected)
 

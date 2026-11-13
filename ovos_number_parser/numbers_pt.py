@@ -117,6 +117,7 @@ _PT_PT = NumberVocabulary(
     DIGIT_GROUP_MARK=".",
     MAX_SCALE_COUNT=10 ** 6,
     HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
+    HALF_OF_SCALE_FOLLOWERS=["de", "do", "da", "dos", "das"],
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
@@ -327,6 +328,7 @@ _PT_BR = NumberVocabulary(
     DIGIT_GROUP_MARK=".",
     MAX_SCALE_COUNT=10 ** 6,
     HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
+    HALF_OF_SCALE_FOLLOWERS=_PT_PT.HALF_OF_SCALE_FOLLOWERS,
     DIVIDED_BY_ZERO=_PT_PT.DIVIDED_BY_ZERO,
     DENOMINATOR_PARTICLE=_PT_PT.DENOMINATOR_PARTICLE,
     CARDINAL_DENOMINATORS=_PT_PT.CARDINAL_DENOMINATORS,
