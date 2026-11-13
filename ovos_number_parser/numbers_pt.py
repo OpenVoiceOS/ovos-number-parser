@@ -14,6 +14,17 @@ de milhões (10^12)", synonym "BILIÃO"; Priberam, "bilião", sense 2:
 "[Brasil] Mil milhões (10^9)". So "um bilhão" is 10^12 in pt-PT and
 "um bilião" is 10^9 in pt-BR. "Milhão" has one spelling.
 
+Fourteen. pt-BR writes "quatorze" and pt-PT "catorze"; both read both.
+Dicio, "Catorze ou quatorze" (Flávia Neves): "As duas palavras existem na
+língua portuguesa e estão corretas", and "Já no português falado em
+Portugal, a palavra quatorze está em desuso, sendo mais correto o uso da
+palavra catorze". Estratégia, "Catorze ou quatorze: entenda a diferença
+e o uso correto" (portal.estrategia.com/materias/portugues/
+catorze-ou-quatorze-entenda-a-diferenca-e-o-uso-correto/): "Ao
+considerarmos o uso no Brasil, "quatorze" é, sem dúvida, a forma mais comum
+e aceita pelas regras gramaticais vigentes". The fractions of pt-BR take its own spellings
+("dezesseis avos"), as its cardinals do.
+
 Sources for the rules in this module:
 
 Conjunction between classes. Cunha & Cintra, "Nova Gramática do Português
@@ -327,6 +338,7 @@ _PT_PT = PortugueseVocabulary(
     DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # pt-BR regionalisms
+        'quatorze': 14,
         'dezesseis': 16,
         'dezessete': 17,
         'dezenove': 19
@@ -417,12 +429,19 @@ _PT_BR = PortugueseVocabulary(
     UNITS=_PT_PT.UNITS,
     TENS={
         **_PT_PT.TENS,
+        14: 'quatorze',
         16: 'dezesseis',
         17: 'dezessete',
         19: 'dezenove'
     },
     HUNDREDS=_PT_PT.HUNDREDS,
-    FRACTION=_PT_PT.FRACTION,
+    FRACTION={
+        **_PT_PT.FRACTION,
+        14: 'quatorze avos',
+        16: 'dezesseis avos',
+        17: 'dezessete avos',
+        19: 'dezenove avos'
+    },
     FRACTION_FEMALE=_PT_PT.FRACTION_FEMALE,
     SHORT_SCALE={
         10 ** 303: "centilhão",
@@ -478,6 +497,7 @@ _PT_BR = PortugueseVocabulary(
     },
     ALT_SPELLINGS={
         # pt-PT regionalisms
+        'catorze': 14,
         'dezasseis': 16,
         'dezassete': 17,
         'dezanove': 19
