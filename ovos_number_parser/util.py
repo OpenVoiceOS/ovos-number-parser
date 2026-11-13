@@ -115,6 +115,25 @@ class ReplaceableNumber:
                                       t=self.tokens)
 
 
+# marks that end a spoken number when they follow its last word
+_NUMBER_END_MARKS = ",;:!?."
+# the token extract_number puts where such a mark was
+_NUMBER_END = "\x00"
+
+
+def _end_mark(words: List[str], k: int) -> str:
+    """The marks that end a number after ``words[k]``, or "".
+
+    A period alone ends it only at the end of the text or before a capital,
+    so an abbreviation stays a word: "dez." is dezembro in "3 dez. 2025".
+    """
+    word = words[k]
+    mark = word[len(word.rstrip(_NUMBER_END_MARKS)):]
+    if mark.strip(".") or k + 1 == len(words) or words[k + 1][:1].isupper():
+        return mark
+    return ""
+
+
 def word_tokenize(utterance: str) -> List[str]:
     """
     Splits a Portuguese text string into a list of tokens, separating words and punctuation.
@@ -749,7 +768,23 @@ class RomanceNumberExtractor:
         clean_text = re.sub(r"(?<=\S)-|-(?![.,]?\d)", " ", text.lower())
         # the joiner is kept: it is what tells "vinte e um" (21, one number)
         # apart from "tres e vinte" (3 and 20, two numbers)
-        tokens = clean_text.split()
+        # a comma or a sentence mark after a number word ends the number
+        # there ("vinte e dois, disse ele"); the mark is kept as a token of
+        # its own that no number crosses.  The cased words tell a sentence
+        # end from an abbreviation.
+        cased = re.sub(r"(?<=\S)-|-(?![.,]?\d)", " ", text).split()
+        lowered = clean_text.split()
+        if len(cased) != len(lowered):
+            cased = lowered
+        tokens = []
+        for k, tok in enumerate(lowered):
+            mark = _end_mark(cased, k)
+            stem = tok[:len(tok) - len(mark)]
+            if mark and (stem in numbers_map or stem in ordinals_map
+                         or self.is_fractional(stem) is not False):
+                tokens += [stem, _NUMBER_END]
+            else:
+                tokens.append(tok)
 
         # a digit token wins if it appears before any spoken number word
         group = self.vocab.DIGIT_GROUP_MARK
@@ -815,6 +850,11 @@ class RomanceNumberExtractor:
         i = 0
         while i < len(tokens):
             token = tokens[i]
+            if token == _NUMBER_END:
+                if saw_number:
+                    break
+                i += 1
+                continue
             if token in self.vocab.NEGATIVE_SIGN:
                 if self._signs(tokens, i, numbers_map):
                     if saw_number:
@@ -1023,6 +1063,15 @@ class RomanceNumberExtractor:
             and joiners & set(m.group().split("-")) else m.group(),
             utterance)
         words = word_tokenize(utterance)
+        # a comma or a sentence mark after a number word ends the number
+        # there; the mark goes back after the digits
+        marks = [""] * len(words)
+        for k, w in enumerate(list(words)):
+            mark = _end_mark(words, k)
+            stem = w[:len(w) - len(mark)]
+            if mark and (stem in numbers_map
+                         or self.is_fractional(stem) is not False):
+                words[k], marks[k] = stem, mark
         output = []
         i = 0
 
@@ -1058,7 +1107,8 @@ class RomanceNumberExtractor:
                 if words[i] in self.vocab.NEGATIVE_SIGN:
                     number_span_words.append(words[i])
                     j += 1
-                while j < len(words) and continues_span(j):
+                while j < len(words) and continues_span(j) \
+                        and not (j > i and marks[j - 1]):
                     if words[j] in self.vocab.JOIN_WORD and number_span_words \
                             and words[j] not in self.vocab.MULTIPLICATIVE_JOIN_WORD:
                         # the span only crosses a joiner when the value after
@@ -1086,7 +1136,8 @@ class RomanceNumberExtractor:
                         and number_span_words[-1] not in self.vocab.SCALE_NUMERALS \
                         and j + 1 < len(words) and words[j] in joiners \
                         and words[j + 1] in half_words \
-                        and (j + 2 == len(words) or words[j + 2] in joiners
+                        and (j + 2 == len(words) or marks[j + 1]
+                             or words[j + 2] in joiners
                              or words[j + 2] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
                     # a half right after a scale word that is not a numeral
                     # is half of that scale ("um milhão e meio" = 1500000),
@@ -1118,18 +1169,18 @@ class RomanceNumberExtractor:
 
                 if number_val is not False:
                     # If a valid number is found, add its digit representation to the output
-                    output.append(str(number_val))
+                    output.append(str(number_val) + marks[j - 1])
                     # Advance the main index 'i' past the entire span
                     i = j
                 else:
                     # If the span doesn't form a valid number, treat the first word as non-numeric
                     # and move to the next word. This handles cases like "e" at the beginning of a sentence.
-                    output.append(words[i])
+                    output.append(words[i] + marks[i])
                     i += 1
             else:
                 # If the current word is not a number word, add it to the output
                 # and move to the next word
-                output.append(words[i])
+                output.append(words[i] + marks[i])
                 i += 1
 
         return " ".join(output)
