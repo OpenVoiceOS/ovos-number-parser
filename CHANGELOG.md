@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.49a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.49a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.48a1...0.24.49a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): a half after "mil" is half of one [\#478](https://github.com/OpenVoiceOS/ovos-number-parser/pull/478) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.24.48a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.48a1) (2026-11-13)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.47a1...0.24.48a1)
@@ -376,10 +384,6 @@
 ## [0.24.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.0a1) (2026-10-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.23.2a1...0.24.0a1)
-
-**Merged pull requests:**
-
-- feat\(ar\): Saudi colloquial cardinals for lang="ars" and the spoken half نص [\#375](https://github.com/OpenVoiceOS/ovos-number-parser/pull/375) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.23.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.23.2a1) (2026-10-08)
 
