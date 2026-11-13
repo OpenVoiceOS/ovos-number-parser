@@ -57,9 +57,17 @@ one, as after any other numeral: "mil e meio" is 1000.5, as "dois e meio" is
 milhão vírgula cinco". Only the half is of the scale: "dois milhões e um
 quarto" adds a quarter of one.
 
+"Milhar" is a scale noun of 1000 (Priberam, "milhar", sense 1: "Grupo de mil
+unidades"), read but never written: "dois milhares" is 2000 and "um milhar e
+meio" is 1500. A plural scale word with no count before it names no number.
+Priberam, "milhar", sense 4: "[Figurado] Um grande número"; Priberam,
+"milhão", sense 2: "[Informal, Figurado] Número ou quantidade muito grande".
+So "milhares de pessoas" and "milhões de pessoas" read as no number, while
+"dois milhões de pessoas" is 2000000.
+
 Overview of the numerals: https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, Union, Optional, Tuple
 import warnings
@@ -117,6 +125,8 @@ def swap_gender_pt(word: str, gender: GrammaticalGender) -> str:
 def pluralize_pt(word: str):
     if word.endswith("ão"):
         return word[:-2] + "ões"
+    if word.endswith("r"):
+        return word + "es"
     if not word.endswith("s"):
         return word + "s"
     return word
@@ -129,6 +139,9 @@ class PortugueseVocabulary(NumberVocabulary):
 
     #: the ending of a scale word and its other spelling ("lião", "lhão")
     SCALE_ALT_ENDING: Tuple[str, str] = ("", "")
+    #: scale nouns that name a value the scale tables write with another
+    #: word ("um milhar" is "mil")
+    SCALE_NOUNS: Dict[str, int] = field(default_factory=dict)
 
     def get_number_strings(self, scale: Optional[Scale] = None) -> Dict[str, int]:
         numbers = super().get_number_strings(scale)
@@ -140,12 +153,16 @@ class PortugueseVocabulary(NumberVocabulary):
                 other = word[:-len(ending)] + alt
                 numbers.setdefault(other, value)
                 numbers.setdefault(self.pluralize(other), value)
+        for word, value in self.SCALE_NOUNS.items():
+            numbers.setdefault(word, value)
+            numbers.setdefault(self.pluralize(word), value)
         return numbers
 
 
 _PT_PT = PortugueseVocabulary(
     LANG="pt-PT",
     SCALE_ALT_ENDING=("lião", "lhão"),  # "bilhão" reads as "bilião"
+    SCALE_NOUNS={"milhar": 1000},  # "dois milhares" = 2000
 
     swap_gender=swap_gender_pt, # used for female forms
     pluralize=pluralize_pt, # use for plural forms
@@ -164,6 +181,7 @@ _PT_PT = PortugueseVocabulary(
     HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
     HALF_OF_SCALE_FOLLOWERS=["de", "do", "da", "dos", "das"],
     SCALE_NUMERALS=["mil"],  # "mil e meio" = 1000.5
+    PLURAL_SCALE_NEEDS_COUNT=True,  # "milhões de pessoas" is no number
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
@@ -369,6 +387,7 @@ _PT_PT = PortugueseVocabulary(
 _PT_BR = PortugueseVocabulary(
     LANG="pt-BR",
     SCALE_ALT_ENDING=("lhão", "lião"),  # "bilião" reads as "bilhão"
+    SCALE_NOUNS=_PT_PT.SCALE_NOUNS,
     swap_gender=swap_gender_pt,  # used for female forms
     pluralize=pluralize_pt,  # use for plural forms
     DEFAULT_SCALE=Scale.SHORT,
@@ -377,6 +396,7 @@ _PT_BR = PortugueseVocabulary(
     HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
     HALF_OF_SCALE_FOLLOWERS=_PT_PT.HALF_OF_SCALE_FOLLOWERS,
     SCALE_NUMERALS=_PT_PT.SCALE_NUMERALS,
+    PLURAL_SCALE_NEEDS_COUNT=_PT_PT.PLURAL_SCALE_NEEDS_COUNT,
     DIVIDED_BY_ZERO=_PT_PT.DIVIDED_BY_ZERO,
     DENOMINATOR_PARTICLE=_PT_PT.DENOMINATOR_PARTICLE,
     CARDINAL_DENOMINATORS=_PT_PT.CARDINAL_DENOMINATORS,
