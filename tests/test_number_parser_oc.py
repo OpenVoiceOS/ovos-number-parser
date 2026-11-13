@@ -6,7 +6,7 @@ Occitan numeral/ordinal entries and languagesandnumbers.com.
 """
 import unittest
 
-from ovos_number_parser.numbers_oc import OC
+from ovos_number_parser.numbers_oc import OC, pluralize_oc
 from ovos_number_parser.util import GrammaticalGender, Scale
 
 
@@ -153,7 +153,64 @@ class TestExtractOC(unittest.TestCase):
         self.assertEqual(OC.extract_number("nonanta nòu"), 99)
 
     def test_alt_spellings(self):
+        # variant spellings of 8 and 80 from issue #302
+        self.assertEqual(OC.extract_number("ueit"), 8)
+        self.assertEqual(OC.extract_number("uòch"), 8)
         self.assertEqual(OC.extract_number("ueitanta"), 80)
+        self.assertEqual(OC.extract_number("uechanta"), 80)
+        self.assertEqual(OC.extract_number("uòchanta"), 80)
+
+    def test_alt_spellings_named_by_the_native_reporter(self):
+        # issue #302: "8: uèch and uèit and locally uòch in Montpellier",
+        # "8th: ochen, uechen, ueiten, oiten", Montpellier "8th: uòchen",
+        # "80th: uòchanten"
+        self.assertEqual(OC.extract_number("uèit"), 8)
+        self.assertEqual(OC.extract_number("ai uèit cats"), 8)
+        for word in ("ochen", "uechen", "ueiten", "oiten", "uòchen"):
+            with self.subTest(word=word):
+                self.assertEqual(OC.is_ordinal(word), 8)
+                self.assertEqual(
+                    OC.extract_number(f"lo {word} jorn", ordinals=True), 8)
+        self.assertEqual(OC.is_ordinal("uòchanten"), 80)
+        self.assertEqual(OC.extract_number("la uòchena", ordinals=True), 8)
+
+    def test_alt_ordinal_spellings_take_the_feminine_and_plural(self):
+        # the variants inflect as the referential "ochen" does: "ochena",
+        # "los ochens" and "las ochenas" read 8 on dev
+        for text in ("los uechens", "las uechenas", "los ueitens",
+                     "los uòchens", "las uòchantenas"):
+            with self.subTest(text=text):
+                self.assertEqual(OC.extract_number(text, ordinals=True),
+                                 80 if "uòchanten" in text else 8)
+
+    def test_ueitena_and_oitena_read_as_the_feminine_8th(self):
+        # issue #302 lists "ueitena, oitena" beside the forms for 80; whether
+        # they are cardinals for 80 waits on the native speaker. Here they are
+        # the regular feminine of "ueiten" and "oiten", like "ochena".
+        for word in ("ueitena", "oitena"):
+            with self.subTest(word=word):
+                self.assertEqual(OC.extract_number(word, ordinals=True), 8)
+                self.assertIs(OC.extract_number(word), False)
+
+    def test_alt_ordinal_spellings_are_never_written(self):
+        self.assertEqual(OC.pronounce_number(8, ordinals=True), "ochen")
+        self.assertEqual(OC.pronounce_number(80, ordinals=True), "ochanten")
+
+    def test_pluralize_classes(self):
+        # noun classes per Ubaud (issue #302)
+        self.assertEqual(pluralize_oc("peis"), "peises")    # -is
+        self.assertEqual(pluralize_oc("serf"), "serfes")    # -f
+        self.assertEqual(pluralize_oc("text"), "textes")    # -xt
+        self.assertEqual(pluralize_oc("votz"), "voses")     # -tz
+        self.assertEqual(pluralize_oc("cinc"), "cincs")
+        self.assertEqual(pluralize_oc("ostal"), "ostals")
+
+    def test_half_words(self):
+        # bare half spellings from issue #302
+        self.assertEqual(OC.extract_number("mièg"), 0.5)
+        self.assertEqual(OC.extract_number("mièja"), 0.5)
+        self.assertEqual(OC.extract_number("mèg"), 0.5)
+        self.assertEqual(OC.extract_number("mèja"), 0.5)
 
     def test_analytic_hundreds(self):
         self.assertEqual(OC.extract_number("cent"), 100)

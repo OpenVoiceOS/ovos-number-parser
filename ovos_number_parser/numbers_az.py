@@ -13,11 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from decimal import Decimal
 import re
 from collections import OrderedDict
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, Token, ReplaceableNumber)
+from ovos_number_parser.util import (invert_dict, exact_int, convert_to_mixed_fraction, tokenize, look_for_fractions,
+                                     partition_list, is_numeric, numeric_value, Token, ReplaceableNumber, scientific_parts)
 
 _NUM_STRING_AZ = {
     0: 'sıfır',
@@ -136,9 +137,9 @@ _ORDINAL_BASE_AZ = {
     40: "qırxıncı",
     50: "əllinci",
     60: "altmışıncı",
-    70: "yetmışinci",
+    70: "yetmişinci",
     80: "səksəninci",
-    90: "doxsanınçı",
+    90: "doxsanıncı",
     1e2: "yüzüncü",
     1e3: "mininci"
 }
@@ -368,9 +369,7 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "mənfi sonsuzluq"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negatives of powers separately from the normal
@@ -415,7 +414,9 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
     num = abs(num)
 
     # check for a direct match
-    if num in number_names and not ordinals:
+    if num == 0 and ordinals:
+        result += "sıfır" + _get_ordinal_ak("sıfır")
+    elif num in number_names and not ordinals:
         if num > 1000:
             result += "bir "
         result += number_names[num]
@@ -432,12 +433,15 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                                       else "")
             else:
                 q, r = divmod(n, 100)
-                return (digits[q] + " " if q != 1 else "") + "yüz" + (
-                    " " + _sub_thousand(r, ordinals) if r else "")
+                if r:
+                    tail = " " + _sub_thousand(r, ordinals)
+                else:
+                    tail = _get_ordinal_ak("yüz") if ordinals else ""
+                return (digits[q] + " " if q != 1 else "") + "yüz" + tail
 
         def _short_scale(n):
             if n >= 999 * max(_SHORT_SCALE_AZ.keys()):
-                return "sonsuzluq"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -458,7 +462,9 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                     if ordi:
 
                         if 1000 ** i in _SHORT_ORDINAL_AZ:
-                            if z == 1:
+                            # "min" is said without "bir"; a larger scale
+                            # word drops it only when it stands alone
+                            if z == 1 and (i == 1 or n == 1000 ** i):
                                 number = _SHORT_ORDINAL_AZ[1000 ** i]
                             else:
                                 number += _SHORT_ORDINAL_AZ[1000 ** i]
@@ -488,7 +494,7 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
 
         def _long_scale(n):
             if n >= max(_LONG_SCALE_AZ.keys()):
-                return "sonsuzluq"
+                return ""
             ordi = ordinals
             if int(n) != n:
                 ordi = False
@@ -510,7 +516,7 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
 
                     if ordi:
                         if 1000000 ** i in _LONG_ORDINAL_AZ:
-                            if z == 1:
+                            if z == 1 and n == 1000000 ** i:
                                 number = _LONG_ORDINAL_AZ[1000000 ** i]
                             else:
                                 number += " " + _LONG_ORDINAL_AZ[1000000 ** i]
@@ -526,6 +532,7 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
 
                         number += " " + hundreds[i + 1]
                 res.append(number)
+                ordi = False
             return ", ".join(reversed(res))
 
         if short_scale:
@@ -533,15 +540,17 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_az(num, places, short_scale, scientific=True)
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "mənfi ") and num >= 1e6:
+        return result + pronounce_number_az(
+            num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "mənfi " or not result):
+        result += "sıfır"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "mənfi " or not result):
-            result += "sıfır"
+    if not num == int(num) and places > 0:
         result += " nöqtə"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
@@ -874,10 +883,7 @@ def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
         # is this word already a number ?
         if is_numeric(word):
             # print("b")
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?
@@ -1074,7 +1080,8 @@ def _initialize_number_data_az(short_scale, speech=True):
         else _STRING_LONG_ORDINAL_AZ
 
     string_num_scale_az = _SHORT_SCALE_AZ if short_scale else _LONG_SCALE_AZ
-    string_num_scale_az = invert_dict(string_num_scale_az)
+    string_num_scale_az = {word: exact_int(value)
+                           for value, word in string_num_scale_az.items()}
 
     return multiplies, string_num_ordinal_az, string_num_scale_az
 

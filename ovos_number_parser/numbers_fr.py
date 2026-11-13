@@ -162,6 +162,12 @@ _FR = NumberVocabulary(
 
     DECIMAL_MARKER=["virgule"],
     NEGATIVE_SIGN=["moins"],
+    NEGATIVE_IDIOMS=[("au", "moins"), ("du", "moins"), ("à", "moins", "que"),
+                     ("plus", "ou", "moins"), ("pour", "le", "moins"),
+                     ("tout", "le", "moins"),
+                     # clock time: "neuf heures moins le quart", "midi moins dix"
+                     ("heure", "moins"), ("heures", "moins"),
+                     ("midi", "moins"), ("minuit", "moins")],
     UNITS={
         0: 'zéro',
         1: 'un',
@@ -298,7 +304,14 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
     special-case, never 80s/90s), tens/units join with hyphens, 70-99 are
     vigesimal (60+teens, 4x20+teens), and 200-900 use MULTIPLY_HUNDREDS with
     a plural "-s" only on a bare round hundred.
+
+    ``decimal_tens`` holds the regional words that replace a vigesimal ten
+    ("septante" for 70); they compound like the tens 20-60.
     """
+
+    def __init__(self, vocab, decimal_tens=None):
+        super().__init__(vocab)
+        self.decimal_tens = decimal_tens or {}
 
     def _pronounce_1_99_fr(self, n):
         assert 0 <= n <= 99
@@ -309,6 +322,14 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
 
         ten, unit = divmod(n, 10)
         tens_word = ten * 10
+
+        if tens_word in self.decimal_tens:
+            word = self.decimal_tens[tens_word]
+            if unit == 0:
+                return word
+            if unit == 1:
+                return word + "-et-" + _NUM_STRING_FR[1]
+            return word + "-" + _NUM_STRING_FR[unit]
 
         if unit == 0:
             if tens_word == 70:
@@ -363,16 +384,17 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
     def pronounce_number(self, number, places=2, scale=None, ordinals=False,
                          digits=None,
                          gender=GrammaticalGender.MASCULINE,
-                         _force_hundreds_join=False, _under_higher_scale=False):
+                         _force_hundreds_join=False, _under_higher_scale=False,
+                         _fraction_digits=False):
         """French-specific top-level quirks that predate the shared engine.
 
         Kept as an override rather than a change to the shared engine: (1)
-        very large/small magnitudes and non-integer floats >= 1000 fall back
-        to a raw numeral, matching the legacy ``pronounce_number_fr`` bug
-        that never spoke decimals above 1000; (2) an integer-valued float
-        ("80.0") is normalised to ``int`` first so it never enters the
-        decimal branch, avoiding the shared engine's "quatre-vingts virgule
-        zéro" artifact for a value with no fractional part.
+        magnitudes from 10 ** 15 up fall back to a raw numeral, which
+        ``ovos_number_parser.pronounce_number`` reads scientifically; (2) an
+        integer-valued float ("80.0") is normalised to ``int`` first so it
+        never enters the decimal branch, avoiding the shared engine's
+        "quatre-vingts virgule zéro" artifact for a value with no fractional
+        part.
         """
         if digits is None:
             digits = DigitPronunciation.DIGIT_BY_DIGIT
@@ -380,25 +402,68 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
                 or (isinstance(number, float) and not math.isfinite(number)):
             return super().pronounce_number(number, places, scale, ordinals,
                                             digits, gender,
-                                            _force_hundreds_join, _under_higher_scale)
+                                            _force_hundreds_join, _under_higher_scale,
+                                            _fraction_digits)
 
         abs_n = abs(number)
-        if abs_n != 0 and (abs_n >= 10 ** 15 or abs_n < 1e-4):
+        if abs_n >= 10 ** 15:
             sign = "moins " if number < 0 else ""
             return sign + str(abs_n)
 
-        if isinstance(number, float):
-            if abs_n >= 1000 and int(abs_n) != abs_n:
-                sign = "moins " if number < 0 else ""
-                return sign + str(abs_n)
-            if number == int(number):
-                number = int(number)
+        if isinstance(number, float) and number == int(number):
+            number = int(number)
 
         result = super().pronounce_number(number, places, scale, ordinals,
                                           digits, gender,
                                           _force_hundreds_join,
-                                          _under_higher_scale)
-        return _fix_vingt_cent_plural_fr(result)
+                                          _under_higher_scale,
+                                          _fraction_digits)
+        result = _fix_vingt_cent_plural_fr(result)
+        # only the final "un" agrees with the noun; a count before "mille" or
+        # "million" keeps "un" (ICU RBNF fr spellout-cardinal-feminine)
+        if gender == GrammaticalGender.FEMININE and isinstance(number, int):
+            result = re.sub(r"\bun$", "une", result)
+        return result
+
+    def pronounce_ordinal(self, number, gender=GrammaticalGender.MASCULINE,
+                          scale=None):
+        """The ordinal is the cardinal with the suffix -ième on its last word.
+
+        TLFi "-ième": "-ième sert à former des adjectifs numéraux ordinaux
+        [...] : deuxième, troisième, centième, cent unième, deux cent
+        troisième". The final mute e drops ("quatre" -> "quatrième"), "cinq"
+        takes a u and "neuf" a v (TLFi "cinquième", "neuvième"), the plural -s
+        of "quatre-vingts", "cents" and "millions" drops (TLFi
+        "quatre-vingtième", "Qui occupe le rang marqué par le nombre
+        quatre-vingts"), and a final "un" gives "unième" (TLFi "unième":
+        "vingt et unième, quatre vingt-unième, cent unième"). Rank 1 is
+        "premier"/"première", and a round million or milliard takes no "un"
+        (TLFi "millionième": "Qui occupe le rang marqué par le nombre d'un
+        million")."""
+        if not isinstance(number, (int, float)) or int(number) == 0:
+            return super().pronounce_ordinal(number, gender, scale)
+        if number < 0:
+            return f"{self.vocab.NEGATIVE_SIGN[0]} " \
+                   f"{self.pronounce_ordinal(abs(number), gender, scale)}"
+        if int(number) == 1:
+            return "première" if gender == GrammaticalGender.FEMININE \
+                else "premier"
+        cardinal = self.pronounce_number(int(number), scale=scale)
+        if cardinal.startswith("un ") and " " not in cardinal[3:]:
+            cardinal = cardinal[3:]
+        if cardinal.endswith("s") and not cardinal.endswith("trois"):
+            cardinal = cardinal[:-1]
+        # "millionième" is a numeral adjective, not the noun "million", so a
+        # round "cents" or "quatre-vingts" before it loses its -s as before
+        # "mille" (see _VINGT_CENT_BEFORE_MILLE_FR)
+        cardinal = _VINGT_CENT_BEFORE_LAST_WORD_FR.sub(r"\1", cardinal)
+        if cardinal.endswith("cinq"):
+            return cardinal + "uième"
+        if cardinal.endswith("neuf"):
+            return cardinal[:-1] + "vième"
+        if cardinal.endswith("e"):
+            cardinal = cardinal[:-1]
+        return cardinal + "ième"
 
 
 #: "quatre-vingts" and "cents" lose their plural -s directly before "mille".
@@ -411,6 +476,7 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
 #: when the group is terminal or precedes a noun scale; this trims it back for
 #: the one case where it is wrong.
 _VINGT_CENT_BEFORE_MILLE_FR = re.compile(r"(quatre-vingt|cent)s(?= mille\b)")
+_VINGT_CENT_BEFORE_LAST_WORD_FR = re.compile(r"(quatre-vingt|cent)s(?= \S+$)")
 
 
 def _fix_vingt_cent_plural_fr(text: str) -> str:
@@ -418,6 +484,11 @@ def _fix_vingt_cent_plural_fr(text: str) -> str:
 
 
 FR = FrenchNumberExtractor(_FR)
+#: Belgian and Swiss French read 70 and 90 decimally, Swiss French 80 too
+#: (CLDR RBNF fr_BE and fr_CH spellout-cardinal)
+FR_BE = FrenchNumberExtractor(_FR, {70: "septante", 90: "nonante"})
+FR_CH = FrenchNumberExtractor(_FR, {70: "septante", 80: "huitante",
+                                    90: "nonante"})
 
 
 def pronounce_number_fr(number, places=2):
@@ -773,8 +844,8 @@ def _get_ordinal_fr(word):
     """
     if word:
         for ordinal in _ORDINAL_ENDINGS_FR:
-            if word[0].isdecimal() and ordinal in word:
-                result = word.replace(ordinal, "")
+            if word[0].isdecimal() and word.endswith(ordinal):
+                result = word[:-len(ordinal)]
                 if result.isdecimal():
                     return int(result)
 
@@ -896,6 +967,13 @@ def extract_number_fr(text, short_scale=True, ordinals=False):
     Returns:
         (int, float) or False: the extracted number, or False if none is found
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "fr", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     if not isinstance(text, str):
         return False
 

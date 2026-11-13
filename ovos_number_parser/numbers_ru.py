@@ -13,12 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import sys
+from fractions import Fraction
 import math
 from collections import OrderedDict
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, fits_str_limit, look_for_fractions, \
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, scientific_parts, \
+    round_half_up
+
+#: the last word of a cardinal that agrees with a feminine or neuter noun
+#: (ICU RBNF ru spellout-cardinal-feminine and -neuter); the scale words
+#: before it keep their own agreement ("одна тысяча")
+_GENDERED_LAST_WORD_RU = {
+    GrammaticalGender.FEMININE: {"один": "одна", "два": "две"},
+    GrammaticalGender.NEUTRAL: {"один": "одно"},
+}
 
 _NUM_STRING_RU = {
     0: 'ноль',
@@ -160,6 +171,11 @@ _LONG_SCALE_RU = OrderedDict([
     (1e114, "новемдециллион"),
     (1e120, "вигинтиллион"),
 ])
+
+# The scale words by the power of ten they name. The float keys above stop
+# being exact powers of ten past 10^22, so a lookup goes by the exponent.
+_SHORT_SCALE_POWERS_RU = {round(math.log10(k)): w for k, w in _SHORT_SCALE_RU.items()}
+_LONG_SCALE_POWERS_RU = {round(math.log10(k)): w for k, w in _LONG_SCALE_RU.items()}
 
 _ORDINAL_BASE_RU = {
     1: 'первый',
@@ -303,7 +319,7 @@ _DECIMAL_MARKER = {"целая", "целых", "точка", "запятая"}
 
 _STRING_NUM_RU = invert_dict(_NUM_STRING_RU)
 _STRING_NUM_RU.update({
-    "тысяч": 1e3,
+    "тысяч": 10 ** 3,
 })
 _STRING_NUM_RU.update(generate_plurals_ru(_STRING_NUM_RU))
 _STRING_NUM_RU.update({
@@ -413,7 +429,7 @@ def nice_number_ru(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -426,6 +442,7 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "first" instead of "one"
+        gender (GrammaticalGender): gender of the noun a cardinal counts
     Returns:
         (str): The pronounced number
     """
@@ -441,20 +458,9 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
     # plain "ноль" (never "минус ноль").
     if not scientific and isinstance(num, float) and math.isfinite(num) \
             and num != int(num):
-        num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
-                                               rounding=ROUND_HALF_UP)) or 0.0
+        num = float(round_half_up(Decimal(str(num)), places)) or 0.0
     if scientific:
-        try:
-            number = '%E' % num
-        except OverflowError:
-            # int larger than the float range: derive the mantissa and
-            # exponent from its digits so it still reads scientifically.
-            digits = str(abs(int(num)))
-            frac = digits[1:7].rstrip("0")
-            number = "%s%s%sE+%d" % ("-" if num < 0 else "", digits[0],
-                                     "." + frac if frac else "", len(digits) - 1)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negative powers separately from the normal
@@ -486,11 +492,6 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
 
     tens = [number_names[n] for n in range(10, 100, 10)]
 
-    if short_scale:
-        hundreds = [_SHORT_SCALE_RU[n] for n in _SHORT_SCALE_RU.keys()]
-    else:
-        hundreds = [_LONG_SCALE_RU[n] for n in _LONG_SCALE_RU.keys()]
-
     # deal with negative numbers
     result = ""
     if num < 0:
@@ -500,82 +501,20 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
     # check for a direct match
     if num in number_names and not ordinals:
         result += number_names[num]
+    elif ordinals and num == int(num) and \
+            (word := _ordinal_ru(int(num), short_scale)):
+        result += word
     else:
-        def _sub_thousand(n, ordinals=False):
+        def _sub_thousand(n):
             assert 0 <= n <= 999
-            if n in _SHORT_ORDINAL_RU and ordinals:
-                return _SHORT_ORDINAL_RU[n]
             if n <= 19:
                 return digits[n]
             elif n <= 99:
                 q, r = divmod(n, 10)
-                return tens[q - 1] + (" " + _sub_thousand(r, ordinals) if r
-                                      else "")
+                return tens[q - 1] + (" " + _sub_thousand(r) if r else "")
             else:
                 q, r = divmod(n, 100)
-                return _NUM_STRING_RU[q * 100] + (" " + _sub_thousand(r, ordinals) if r else "")
-
-        def _short_scale(n):
-            # A finite value above the largest named scale has no spoken name
-            # here; return "" so the caller falls back to a scientific reading.
-            # "бесконечность" is reserved for actual math.inf (handled above).
-            if n > max(_SHORT_SCALE_RU.keys()):
-                return ""
-            ordi = ordinals
-
-            if int(n) != n:
-                ordi = False
-            n = int(n)
-            assert 0 <= n
-            res = []
-            for i, z in enumerate(_split_by(n, 1000)):
-                if not z:
-                    continue
-                number = _sub_thousand(z, not i and ordi)
-
-                if i:
-                    if i >= len(hundreds):
-                        return ""
-                    if ordi:
-                        if i * 1000 in _SHORT_ORDINAL_RU:
-                            if z == 1:
-                                number = _SHORT_ORDINAL_RU[i * 1000]
-                            else:
-                                if z > 5:
-                                    number = number[:-1] + "и"
-                                number += _SHORT_ORDINAL_RU[i * 1000]
-                        else:
-                            if n not in _SHORT_SCALE_RU:
-                                num = int("1" + "0" * (len(str(n)) // 3 * 3))
-
-                                if number[-3:] == "два":
-                                    number = number[:-1] + "ух"
-                                elif number[-2:] == "ри" or number[-2:] == "ре":
-                                    number = number[:-1] + "ёх"
-                                elif number[-1:] == "ь":
-                                    number = number[:-1] + "и"
-
-                                number += _SHORT_SCALE_RU[num] + "ный"
-                            else:
-                                number = _SHORT_SCALE_RU[n] + "ный"
-                    elif z == 1:
-                        number = hundreds[i - 1]
-                    else:
-                        if i == 1:
-                            if z % 10 == 1 and z % 100 // 10 != 1:
-                                number = number[:-2] + "на"
-                            elif z % 10 == 2 and z % 100 // 10 != 1:
-                                number = number[:-1] + "е"
-                            number += " " + plural_ru(z, "тысяча", "тысячи", "тысяч")
-                        elif 1 <= z % 10 <= 4 and z % 100 // 10 != 1:
-                            number += " " + hundreds[i - 1] + "а"
-                        else:
-                            number += " " + hundreds[i - 1] + "ов"
-
-                res.append(number)
-                ordi = False
-
-            return " ".join(reversed(res))
+                return _NUM_STRING_RU[q * 100] + (" " + _sub_thousand(r) if r else "")
 
         def _split_by(n, split=1000):
             assert 0 <= n
@@ -585,82 +524,145 @@ def pronounce_number_ru(number, places=2, short_scale=True, scientific=False,
                 res.append(r)
             return res
 
-        def _long_scale(n):
-            # See _short_scale: a finite value beyond the largest named scale
-            # returns "" for a scientific fallback, never the infinity word.
-            if n >= max(_LONG_SCALE_RU.keys()):
-                return ""
-            ordi = ordinals
-            if int(n) != n:
-                ordi = False
-            n = int(n)
-            assert 0 <= n
+        def _scale_reading(n):
+            # Every group of three digits takes the scale word of its power of
+            # ten, in the plural form its count asks for. A group with no
+            # scale word returns "" so the caller falls back to a scientific
+            # reading; "бесконечность" is reserved for math.inf (handled above).
+            names = _SHORT_SCALE_POWERS_RU if short_scale else _LONG_SCALE_POWERS_RU
             res = []
-            for i, z in enumerate(_split_by(n, 1000000)):
+            for i, z in enumerate(_split_by(int(n), 1000)):
                 if not z:
                     continue
-                number = pronounce_number_ru(z, places, True, scientific,
-                                             ordinals=ordi and not i)
-                # strip off the comma after the thousand
+                number = _sub_thousand(z)
                 if i:
-                    if i >= len(hundreds):
+                    name = names.get(3 * i)
+                    if name is None:
                         return ""
-                    # plus one as we skip 'thousand'
-                    # (and 'hundred', but this is excluded by index value)
-                    number = number.replace(',', '')
-
-                    if ordi:
-                        if (i + 1) * 1000000 in _LONG_ORDINAL_RU:
-                            if z == 1:
-                                number = _LONG_ORDINAL_RU[
-                                    (i + 1) * 1000000]
-                            else:
-                                number += _LONG_ORDINAL_RU[
-                                    (i + 1) * 1000000]
-                        else:
-                            if n not in _LONG_SCALE_RU:
-                                num = int("1" + "0" * (len(str(n)) // 3 * 3))
-
-                                if number[-3:] == "два":
-                                    number = number[:-1] + "ух"
-                                elif number[-2:] == "ри" or number[-2:] == "ре":
-                                    number = number[:-1] + "ёх"
-                                elif number[-1:] == "ь":
-                                    number = number[:-1] + "и"
-
-                                number += _LONG_SCALE_RU[num] + "ный"
-                            else:
-                                number = " " + _LONG_SCALE_RU[n] + "ный"
-                    elif z == 1:
-                        number = hundreds[i]
-                    elif z <= 4:
-                        number += " " + hundreds[i] + "а"
+                    if i == 1:
+                        # тысяча is feminine: "одна тысяча", "две тысячи"
+                        if z % 10 == 1 and z % 100 != 11:
+                            number = number[:-2] + "на"
+                        elif z % 10 == 2 and z % 100 != 12:
+                            number = number[:-1] + "е"
+                        word = plural_ru(z, name, name[:-1] + "и", name[:-1])
                     else:
-                        number += " " + hundreds[i] + "ов"
-
+                        word = plural_ru(z, name, name + "а", name + "ов")
+                    number = word if z == 1 else f"{number} {word}"
                 res.append(number)
             return " ".join(reversed(res))
 
-        if short_scale:
-            result += _short_scale(num)
-        else:
-            result += _long_scale(num)
+        result += _scale_reading(num)
 
     # deal with a magnitude that has no spoken name: read it scientifically
     # (covers floats in "e" notation and very large ints alike) so a finite
     # value never returns an empty string.
-    if not result and abs(num) >= 1e6:
-        return pronounce_number_ru(num, places, short_scale, scientific=True)
+    if result in ("", "минус ") and num >= 1e6:
+        return result + pronounce_number_ru(
+            num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
         if abs(num) < 1.0 and (result == "минус " or not result):
             result += "ноль"
         result += " точка"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
+    elif not ordinals:
+        *head, last = result.split(" ")
+        last = _GENDERED_LAST_WORD_RU.get(gender, {}).get(last, last)
+        result = " ".join(head + [last])
+    else:
+        *head, last = result.split(" ")
+        result = " ".join(head + [_ordinal_gender_ru(last, gender)])
     return result
+
+
+# Stems that join a count to "-тысячный", "-миллионный": the words are
+# written as one (ru.wikipedia "Порядковое числительное":
+# "тридцативосьмимиллионный"; ru.wiktionary "двухтысячный", "стотысячный",
+# "двухсоттысячный", "сорокатысячный", "девяностотысячный",
+# "двадцатипятитысячный").
+_ORDINAL_STEM_UNITS_RU = ["", "одно", "двух", "трёх", "четырёх", "пяти",
+                          "шести", "семи", "восьми", "девяти"]
+_ORDINAL_STEM_TEENS_RU = ["десяти", "одиннадцати", "двенадцати",
+                          "тринадцати", "четырнадцати", "пятнадцати",
+                          "шестнадцати", "семнадцати", "восемнадцати",
+                          "девятнадцати"]
+_ORDINAL_STEM_TENS_RU = ["", "", "двадцати", "тридцати", "сорока",
+                         "пятидесяти", "шестидесяти", "семидесяти",
+                         "восьмидесяти", "девяносто"]
+_ORDINAL_STEM_HUNDREDS_RU = ["", "сто", "двухсот", "трёхсот", "четырёхсот",
+                             "пятисот", "шестисот", "семисот", "восьмисот",
+                             "девятисот"]
+
+
+def _ordinal_stem_ru(n):
+    hundreds, rest = divmod(n, 100)
+    tens, units = divmod(rest, 10)
+    if tens == 1:
+        return _ORDINAL_STEM_HUNDREDS_RU[hundreds] + _ORDINAL_STEM_TEENS_RU[units]
+    return _ORDINAL_STEM_HUNDREDS_RU[hundreds] + _ORDINAL_STEM_TENS_RU[tens] + \
+        _ORDINAL_STEM_UNITS_RU[units]
+
+
+def _ordinal_ru(n, short_scale=True):
+    """Masculine ordinal of a whole number: the groups before the last
+    non-zero group stay cardinal ("две тысячи пятый"). Return None when that
+    group has no scale name, or when the groups before it read
+    scientifically."""
+    if n == 0:
+        # CLDR RBNF ru spellout-ordinal-masculine: 0 "нулевой"
+        return "нулевой"
+    scale, group = 0, n
+    while group % 1000 == 0:
+        scale, group = scale + 1, group // 1000
+    head = (group - group % 1000) * 1000 ** scale
+    group %= 1000
+    if scale:
+        name = (_SHORT_SCALE_POWERS_RU if short_scale
+                else _LONG_SCALE_POWERS_RU).get(3 * scale)
+        if name is None:
+            return None
+        word = ("" if group == 1 else _ordinal_stem_ru(group)) + \
+            name.removesuffix("а") + "ный"
+    else:
+        hundreds, rest = divmod(group, 100)
+        if not rest:
+            word = _ORDINAL_BASE_RU[group]
+        else:
+            words = [_NUM_STRING_RU[hundreds * 100]] if hundreds else []
+            if rest in _ORDINAL_BASE_RU:
+                words.append(_ORDINAL_BASE_RU[rest])
+            else:
+                words += [_NUM_STRING_RU[rest - rest % 10],
+                          _ORDINAL_BASE_RU[rest % 10]]
+            word = " ".join(words)
+    if head:
+        head_words = pronounce_number_ru(head, short_scale=short_scale)
+        if head_words == pronounce_number_ru(head, short_scale=short_scale,
+                                               scientific=True):
+            return None
+        word = f"{head_words} {word}"
+    return word
+
+
+def _ordinal_gender_ru(word, gender):
+    """Inflect a masculine ordinal as an adjective: "первый" -> "первая",
+    "первое"; "второй" -> "вторая", "второе"; the soft "третий" -> "третья",
+    "третье" (ICU RBNF ru spellout-ordinal-feminine and -neuter)."""
+    if gender == GrammaticalGender.FEMININE:
+        if word.endswith("ий"):
+            return word[:-2] + "ья"
+        if word.endswith(("ый", "ой")):
+            return word[:-2] + "ая"
+    if gender == GrammaticalGender.NEUTRAL:
+        if word.endswith("ий"):
+            return word[:-2] + "ье"
+        if word.endswith(("ый", "ой")):
+            return word[:-2] + "ое"
+    return word
 
 
 def plural_ru(num: int, one: str, few: str, many: str):
@@ -693,6 +695,8 @@ def numbers_to_digits_ru(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_ru(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -945,6 +949,7 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
     next_val = None
     negative = False
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -975,6 +980,37 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
         # Normalize Russian inflection of numbers (один, одна, одно,...)
         if not ordinals:
             word = _text_ru_inflection_normalize(word, 1)
+            prev_word = _text_ru_inflection_normalize(prev_word, 1)
+
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts ("-0 1/2" = -0.5);
+        # any other fraction is a number of its own ("3.5 1/2" is 3.5, then
+        # 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 \
+                and val is not False and val is not None:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                whole = abs(int(val))
+                mixed = float(whole + Fraction(float(a_pieces[0]))
+                              / Fraction(float(a_pieces[1])))
+                # the float must keep both parts: from 2**52 on it cannot, so
+                # the whole number keeps its digits and the fraction is a
+                # number of its own ("9007199254740993 1/2")
+                if whole < mixed < whole + 1:
+                    negative_whole = val < 0 or \
+                        tokens[idx - 1].word.startswith("-")
+                    val = -mixed if negative_whole else mixed
+                    number_words.append(token)
+            break
 
         if word not in string_num_scale and \
                 word not in _STRING_NUM_RU and \
@@ -996,17 +1032,18 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
                 and not (ordinals and prev_word in string_num_ordinal) \
                 and prev_word not in _NEGATIVES:
             number_words = [token]
-        elif prev_word in _SUMS and word in _SUMS:
+        elif prev_word in _SUMS and word in _SUMS \
+                and not _STRING_NUM_RU.get(word, 100) < 100 <= _STRING_NUM_RU.get(prev_word, 0):
+            # two tens words are two numbers; a tens word after a
+            # hundreds word continues it ("триста сорок")
             number_words = [token]
         else:
             number_words.append(token)
 
+        number_end = idx
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?
@@ -1069,12 +1106,15 @@ def _extract_whole_number_with_text_ru(tokens, short_scale, ordinals):
         # per-token negation happens here
 
         # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            a_pieces = word.split('/')
-            if look_for_fractions(a_pieces):
-                val = float(a_pieces[0]) / float(a_pieces[1])
-        else:
+        # look for fractions like "2/3". A digit fraction is a value of its
+        # own: the value of a number before it ("5 1/2") must not block it
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces):
+            val = float(a_pieces[0]) / float(a_pieces[1])
+            if not val:
+                # a zero fraction is the number 0 ("0/2" reads as 0)
+                val = 0
+        elif val:
             if all([
                 prev_word in _SUMS,
                 word not in _SUMS,
@@ -1190,7 +1230,8 @@ def _initialize_number_data(short_scale):
         else _STRING_LONG_ORDINAL_RU
 
     string_num_scale_ru = _SHORT_SCALE_RU if short_scale else _LONG_SCALE_RU
-    string_num_scale_ru = invert_dict(string_num_scale_ru)
+    string_num_scale_ru = {word: exact_int(value)
+                           for value, word in string_num_scale_ru.items()}
     string_num_scale_ru.update(generate_plurals_ru(string_num_scale_ru))
     return multiplies, string_num_ordinal_ru, string_num_scale_ru
 

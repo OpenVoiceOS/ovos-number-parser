@@ -1,7 +1,10 @@
+import sys
+from fractions import Fraction
 from collections import OrderedDict
+from decimal import Decimal
 from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, Token, \
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, fits_str_limit, look_for_fractions, Token, \
     ReplaceableNumber, tokenize, partition_list, invert_dict
 
 _ARTICLES_FY = {'de', 'it'}
@@ -65,19 +68,19 @@ _LONG_SCALE_FY = OrderedDict([
     (100, 'hûndert'),
     (1000, 'tûzen'),
     (1000000, 'miljoen'),
-    (1e12, 'biljoen'),
-    (1e18, 'triljoen'),
+    (10 ** 12, 'biljoen'),
+    (10 ** 18, 'triljoen'),
 ])
 
 _SHORT_SCALE_FY = OrderedDict([
     (100, 'hûndert'),
     (1000, 'tûzen'),
     (1000000, 'miljoen'),
-    (1e9, 'miljard'),
-    (1e12, 'biljoen'),
-    (1e15, 'biljard'),
-    (1e18, 'triljoen'),
-    (1e21, 'triljard'),
+    (10 ** 9, 'miljard'),
+    (10 ** 12, 'biljoen'),
+    (10 ** 15, 'biljard'),
+    (10 ** 18, 'triljoen'),
+    (10 ** 21, 'triljard'),
 ])
 
 _ORDINAL_STRING_BASE_FY = {
@@ -229,7 +232,7 @@ def pronounce_number_fy(number, places=2, short_scale=True, scientific=False,
     Returns:
         (str): The pronounced number
     """
-    if ordinals:
+    if ordinals and number == int(number) and number >= 0:
         return pronounce_ordinal_fy(number)
 
     def pronounce_triplet_fy(num):
@@ -258,12 +261,8 @@ def pronounce_number_fy(number, places=2, short_scale=True, scientific=False,
     def pronounce_fractional_fy(num, places):
         # fixed number of places even with trailing zeros
         result = ""
-        num = round(num, places)
-        place = 10
-        while places > 0:
-            result += " " + _NUM_STRING_FY[int(num * place) % 10]
-            place *= 10
-            places -= 1
+        for digit in f"{Decimal(str(num)):f}".split(".")[1][:places].ljust(places, "0"):
+            result += " " + _NUM_STRING_FY[int(digit)]
         return result
 
     def pronounce_whole_number_fy(num, scale_level=0):
@@ -288,7 +287,7 @@ def pronounce_number_fy(number, places=2, short_scale=True, scientific=False,
             if scale_level >= 2:
                 result += " " + _NUM_POWERS_OF_TEN_FY[scale_level] + ' '
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_fy(num, scale_level) + result
 
@@ -298,18 +297,18 @@ def pronounce_number_fy(number, places=2, short_scale=True, scientific=False,
     elif number == 0:
         return str(_NUM_STRING_FY[0])
     elif number < 0:
-        return "min " + pronounce_number_fy(abs(number), places)
+        return "min " + pronounce_number_fy(abs(number), places,
+                                            ordinals=ordinals)
     else:
         if number == int(number):
             return pronounce_whole_number_fy(number)
         else:
             whole_number_part = floor(number)
-            fractional_part = number - whole_number_part
             result += pronounce_whole_number_fy(whole_number_part) or \
                 _NUM_STRING_FY[0]
             if places > 0:
                 result += " komma"
-                result += pronounce_fractional_fy(fractional_part, places)
+                result += pronounce_fractional_fy(number, places)
             return result
 
 
@@ -364,6 +363,8 @@ def numbers_to_digits_fy(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_fy(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -604,6 +605,7 @@ def _extract_whole_number_with_text_fy(tokens, short_scale, ordinals):
     prev_val = None
     next_val = None
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -618,13 +620,45 @@ def _extract_whole_number_with_text_fy(tokens, short_scale, ordinals):
         prev_word = tokens[idx - 1].word if idx > 0 else ""
         next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
 
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts ("-0 1/2" = -0.5);
+        # any other fraction is a number of its own ("3.5 1/2" is 3.5, then
+        # 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 \
+                and val is not False and val is not None:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                whole = abs(int(val))
+                mixed = float(whole + Fraction(float(a_pieces[0]))
+                              / Fraction(float(a_pieces[1])))
+                # the float must keep both parts: from 2**52 on it cannot, so
+                # the whole number keeps its digits and the fraction is a
+                # number of its own ("9007199254740993 1/2")
+                if whole < mixed < whole + 1:
+                    negative_whole = val < 0 or \
+                        tokens[idx - 1].word.startswith("-")
+                    val = -mixed if negative_whole else mixed
+                    number_words.append(token)
+            break
+
         if word not in string_num_scale and \
                 word not in _STRING_NUM_FY and \
                 word not in _SUMS_FY and \
                 word not in multiplies and \
                 not (ordinals and word in string_num_ordinal) and \
                 not is_numeric(word) and \
-                not is_fractional_fy(word, short_scale=short_scale) and \
+                not (is_fractional_fy(word, short_scale=short_scale) and
+                     (ordinals or
+                      not _is_ordinal_word_fy(word, short_scale))) and \
                 not look_for_fractions(word.split('/')):
             words_only = [token.word for token in number_words]
             if number_words and not all([w in _ARTICLES_FY |
@@ -645,12 +679,10 @@ def _extract_whole_number_with_text_fy(tokens, short_scale, ordinals):
         else:
             number_words.append(token)
 
+        number_end = idx
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?
@@ -686,9 +718,15 @@ def _extract_whole_number_with_text_fy(tokens, short_scale, ordinals):
             val = is_fractional_fy(word, short_scale=short_scale)
             current_val = val
 
-        # 2 fifths
+        # twa tredde
         if not ordinals:
             next_val = is_fractional_fy(next_word, short_scale=short_scale)
+            # an ordinal is the denominator of a proper fraction only:
+            # "ien tredde" is 1/3, "de tredde man" has no numerator
+            if next_val and _is_ordinal_word_fy(next_word, short_scale) \
+                    and not (val and val == int(val)
+                             and 0 < val < round(1 / next_val)):
+                next_val = None
             if next_val:
                 if not val:
                     val = 1
@@ -705,6 +743,9 @@ def _extract_whole_number_with_text_fy(tokens, short_scale, ordinals):
             aPieces = word.split('/')
             if look_for_fractions(aPieces):
                 val = float(aPieces[0]) / float(aPieces[1])
+                if not val:
+                    # a zero fraction is the number 0 ("0/2" reads as 0)
+                    val = 0
                 current_val = val
 
         else:
@@ -850,6 +891,17 @@ def extract_number_fy(text, short_scale=True, ordinals=False):
     text = _expand_compound_numbers_fy(text, short_scale)
     return _extract_number_with_text_fy(tokenize(text),
                                         short_scale, ordinals).value
+
+
+def _is_ordinal_word_fy(input_str, short_scale=True):
+    """True if the word is an ordinal name ("tredde", "fyfde").
+
+    Frisian spells a fraction denominator with the ordinal ("twa tredde"
+    = 2/3), but without a numerator the word is the ordinal: "de tredde man"
+    is no 0.333. "kwart" and "heal" are no ordinals.
+    """
+    table = _SHORT_ORDINAL_STRING_FY if short_scale else _LONG_ORDINAL_STRING_FY
+    return input_str.lower() in {name for num, name in table.items() if num > 2}
 
 
 def is_fractional_fy(input_str, short_scale=True):

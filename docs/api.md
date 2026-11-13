@@ -1,9 +1,11 @@
 # API reference
 
 All public functions live in the top-level `ovos_number_parser` package and
-take a BCP-47 language code (`lang`). Language dialects resolve by prefix, so
-`"pt-BR"`, `"pt-PT"` and `"pt"` all reach the Portuguese parser (with variant
-handling where it matters, e.g. Brazilian vs European Portuguese).
+take a BCP-47 language code (`lang`). The primary language subtag selects the
+parser and must match exactly, in any letter case and with `-` or `_` between
+subtags, so `"pt-BR"`, `"pt_PT"` and `"pt"` all reach the Portuguese parser
+(with variant handling where it matters, e.g. Brazilian vs European
+Portuguese), while `"fil"` (Filipino) does not reach the Finnish parser.
 
 All 40 supported languages provide every public function. Where a language has
 no hand-written implementation, a documented generic fallback fills in:
@@ -47,6 +49,13 @@ Convert a numeric value to its spoken form.
 - `digits`: `DigitPronunciation` enum for digit-by-digit reading styles.
 - `gender`: `GrammaticalGender` enum for languages whose numerals inflect
   (e.g. Portuguese `"uma hora"` vs `"um minuto"`).
+
+A whole number past the largest scale compound a language uses is read in
+scientific form. Romanian reads `10 ** 24` as `"un milion de trilioane"` and
+`10 ** 27` as `"unu virgulă zero ori zece la puterea douăzeci și șapte"`.
+Belgian and Swiss French (`fr-BE`, `fr-CH`) read 70 and 90 as `septante` and
+`nonante`, and Swiss French reads 80 as `huitante`. Their ordinals use the same
+words (`septantième`, `nonantième`, `huitantième`).
 
 ## `pronounce_ordinal(number, lang, short_scale=True, gender=...)`
 

@@ -1,5 +1,8 @@
-from ovos_number_parser.util import (convert_to_mixed_fraction)
-from math import floor, isfinite
+from decimal import Decimal, ROUND_HALF_UP
+from math import floor
+
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
+    scientific_parts
 _NUM_STRING_HU = {
     0: 'nulla',
     1: 'egy',
@@ -129,6 +132,58 @@ def nice_number_hu(number, speech=True, denominators=range(1, 21)):
     return return_string
 
 
+#: the fraction word of 10 ** n for n = 1 to 24: "tíz" or "száz" before the
+#: fraction word of a power of 1000 fills the places between them. 24 places
+#: is the most whose numerator the scale words of _NUM_POWERS_OF_TEN can read.
+_FRACTION_SUFFIXES_HU = ['tized', 'század'] + [
+    prefix + scale
+    for scale in ('ezred', 'milliomod', 'milliárdod', 'billiomod',
+                  'billiárdod', 'trilliomod', 'trilliárdod')
+    for prefix in ('', 'tíz', 'száz')] + ['kvadrilliomod']
+
+#: the multiplicative adverb of each digit, the "-szor" form that reads
+#: "times" (Wiktionary "Module:number list/data/hu")
+_ADVERBIAL_HU = {1: 'egyszer', 2: 'kétszer', 3: 'háromszor', 4: 'négyszer',
+                 5: 'ötször', 6: 'hatszor', 7: 'hétszer', 8: 'nyolcszor',
+                 9: 'kilencszer'}
+
+
+def pronounce_scientific_hu(mantissa, exponent):
+    """
+    Read a mantissa times a negative power of ten
+
+    The mantissa reads as the multiplicative adverb of a whole number: its
+    digits move into a whole number and the exponent shifts with them, so
+    1.5 and -25 read as fifteen times ten to the minus twenty-sixth. The
+    suffix "-szor" goes on a cardinal numeral (Wiktionary "-szor"); on a
+    fraction word such as "tized" it reads "for the tenth time". The adverb
+    of a compound replaces its last unit word with that unit's adverb
+    ("tizenkétszer", Wiktionary "Module:number list/data/hu").
+
+    The power reads as "tíz a b-ediken": the base, the article and the
+    exponent ordinal in the superessive, which takes "-on" after "-adik"
+    and "-odik" and "-en" after "-edik" and "-ödik".
+
+    Args:
+        mantissa (int or float): from 1 to below 10, with its sign
+        exponent (int): a negative power of ten
+    Returns:
+        (str): the reading, e.g. "hétszer tíz a mínusz harmincadikon" for
+            7 and -30
+    """
+    digits = Decimal(str(abs(mantissa))).normalize()
+    shift = digits.as_tuple().exponent
+    whole = int(digits.scaleb(-shift))
+    exponent += shift
+    ordinal = pronounce_ordinal_hu(-exponent)
+    ordinal += 'on' if ordinal.endswith(('adik', 'odik')) else 'en'
+    sign = 'mínusz ' if mantissa < 0 else ''
+    words = pronounce_number_hu(whole)
+    times = words[:-len(_NUM_STRING_HU[whole % 10])] + \
+        _ADVERBIAL_HU[whole % 10]
+    return f"{sign}{times} tíz a mínusz {ordinal}"
+
+
 def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
                         ordinals=False):
     """
@@ -218,7 +273,7 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             if scale_level > 0:
                 result += '-'
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_hu(num,
                                          scale_level) + result
@@ -235,19 +290,26 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             return pronounce_whole_number_hu(number).strip('-')
         else:
             whole_number_part = floor(number)
-            fractional_part = number - whole_number_part
             if whole_number_part == 0:
                 result += _NUM_STRING_HU[0]
-            result += pronounce_whole_number_hu(whole_number_part)
+            result += pronounce_whole_number_hu(whole_number_part).strip('-')
+            if places > len(_FRACTION_SUFFIXES_HU) and \
+                    number < 10 ** -len(_FRACTION_SUFFIXES_HU):
+                # finer than the smallest denominator: the mantissa keeps
+                # the digits ``places`` reads, as many as a whole number
+                # below 10 ** 24 holds
+                kept = places + Decimal(str(number)).adjusted()
+                return pronounce_scientific_hu(*scientific_parts(
+                    number, min(max(kept, 0), len(_FRACTION_SUFFIXES_HU) - 1)))
             if places > 0:
+                places = min(places, len(_FRACTION_SUFFIXES_HU))
                 result += " egész "
-                fraction = pronounce_whole_number_hu(
-                    round(fractional_part * 10 ** places))
-                result += fraction.replace(_NUM_STRING_HU[2], 'két')
-                fraction_suffixes = [
-                    'tized', 'század', 'ezred', 'tízezred', 'százezred']
-                if places <= len(fraction_suffixes):
-                    result += ' ' + fraction_suffixes[places - 1]
+                numerator = int(((Decimal(str(number)) - whole_number_part)
+                                 * 10 ** places).to_integral_value(ROUND_HALF_UP))
+                fraction = pronounce_whole_number_hu(numerator).strip('-')
+                result += fraction.replace(_NUM_STRING_HU[2], 'két') \
+                    or _NUM_STRING_HU[0]
+                result += ' ' + _FRACTION_SUFFIXES_HU[places - 1]
             return result
 
 
@@ -313,13 +375,8 @@ _STRING_SCALE_HU = {
     'trilliárd': 1000000000000000000000,
 }
 
-_DECIMAL_SUFFIXES_HU = {
-    'tized': 10,
-    'század': 100,
-    'ezred': 1000,
-    'tízezred': 10000,
-    'százezred': 100000,
-}
+_DECIMAL_SUFFIXES_HU = {word: 10 ** places for places, word
+                        in enumerate(_FRACTION_SUFFIXES_HU, start=1)}
 
 _STRING_FRACTION_HU = {word: val for val, word in _FRACTION_STRING_HU.items()}
 
@@ -432,14 +489,11 @@ def extract_number_hu(text, short_scale=True, ordinals=False):
 
         # digits, including comma decimals
         cleaned = token.replace(',', '.')
-        try:
-            val = float(cleaned)
-            if isfinite(val):
-                if val == int(val) and '.' not in cleaned:
-                    val = int(val)
-                return -val if negative else val
-        except ValueError:
-            pass
+        if is_numeric(cleaned):
+            val = numeric_value(cleaned)
+            if val == int(val) and '.' not in cleaned:
+                val = int(val)
+            return -val if negative else val
 
         if ordinals:
             val = is_ordinal_hu(token)
@@ -471,7 +525,8 @@ def extract_number_hu(text, short_scale=True, ordinals=False):
             frac_val = _parse_number_word_hu(tokens[idx + 2])
             if frac_val is not None and idx + 3 < len(tokens) and \
                     tokens[idx + 3] in _DECIMAL_SUFFIXES_HU:
-                val += frac_val / _DECIMAL_SUFFIXES_HU[tokens[idx + 3]]
+                val = float(Decimal(val) + Decimal(frac_val)
+                            / _DECIMAL_SUFFIXES_HU[tokens[idx + 3]])
             elif frac_val is not None:
                 # bare "egész" defaults to tenths
                 val += frac_val / 10

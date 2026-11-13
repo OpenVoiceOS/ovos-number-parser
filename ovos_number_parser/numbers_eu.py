@@ -1,5 +1,5 @@
 from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions,
-                                     is_numeric)
+                                     is_numeric, numeric_value)
 
 _NUM_STRING_EU = {
     "zero": 0,
@@ -450,7 +450,26 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
     Returns:
         (int) or (float): The value of extracted number, or False
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "eu", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     aWords = text.lower().split()
+    if ordinals:
+        # ordinals=True asks for the ordinal to be READ. is_ordinal_eu already
+        # knows the -garren suffix and the suppletive first (Euskaltzaindia
+        # Araua 18), and pronounce_ordinal_eu writes with the same table; this
+        # reads back exactly what that side writes, and adds no form of its
+        # own. Without this the flag was a no-op for Basque: the word loop
+        # below reads cardinals only, so a line never reached a second number
+        # span and the leftmost rule could not answer.
+        for word in aWords:
+            ordinal = is_ordinal_eu(word.strip(".,!?;:"))
+            if ordinal is not False:
+                return ordinal
     negative = False
     while aWords and aWords[0] in ('minus', 'ken'):
         negative = True
@@ -515,14 +534,14 @@ def extract_number_eu(text, short_scale=True, ordinals=False):
             idx += 1
             continue
 
-        if word.isdecimal():
+        if word.isdecimal() and is_numeric(word):
             current += int(word)
             got_number = True
             idx += 1
             continue
 
         if is_numeric(word):
-            result = float(word)
+            result = numeric_value(word)
             got_number = True
             idx += 1
             break

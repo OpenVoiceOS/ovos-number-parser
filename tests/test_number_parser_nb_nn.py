@@ -5,6 +5,8 @@ import unittest
 from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
                                 numbers_to_digits, pronounce_number,
                                 pronounce_ordinal)
+from ovos_number_parser.numbers_da import numbers_to_digits_da
+from ovos_number_parser.numbers_nb import numbers_to_digits_nb
 
 
 class TestBokmaal(unittest.TestCase):
@@ -107,6 +109,194 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(extract_number('١', lang=lang), 1)
             self.assertEqual(extract_number('٢', lang=lang), 2)
             self.assertEqual(extract_number('٣', lang=lang), 3)
+
+
+class TestOrdinalsFlagKeepsTheCardinal(unittest.TestCase):
+    """ordinals=True asks for ordinals to be read, not for cardinals to go.
+
+    nb and nn returned False for a bare cardinal under the flag, because
+    _extract_number returned False when no word in the line was an ordinal
+    instead of falling through to the cardinal. Sixteen of the eighteen
+    languages in this package never did that.
+    """
+
+    def test_a_bare_cardinal_survives_the_flag(self):
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number('fem', lang=lang), 5)
+                self.assertEqual(
+                    extract_number('fem', lang=lang, ordinals=True), 5,
+                    "ordinals=True dropped the cardinal")
+
+    def test_a_bare_ordinal_still_reads(self):
+        """The behaviour that must not regress."""
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    extract_number('femte', lang=lang, ordinals=True), 5)
+                # and without the flag an ordinal is still not a number
+                self.assertFalse(extract_number('femte', lang=lang))
+
+    def test_an_ordinal_wins_over_a_cardinal_in_the_same_line(self):
+        """The line that separates a fall-through from no preference at all.
+
+        A line holding both readings is the only instrument that tells a
+        dropped preference from a dropped cardinal: with the fall-through
+        alone and no ordinal loop, these would answer the cardinal.
+        """
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    extract_number('tre femte', lang=lang, ordinals=True), 5)
+                self.assertEqual(
+                    extract_number('femte tre', lang=lang, ordinals=True), 5)
+                self.assertEqual(
+                    extract_number('tre femte sju', lang=lang,
+                                   ordinals=True), 5)
+                # without the flag the same lines read their first cardinal
+                self.assertEqual(extract_number('tre femte', lang=lang), 3)
+
+    def test_other_languages_answer_the_same_way(self):
+        """The control: this is the fleet behaviour nb and nn deviated from."""
+        for lang, cardinal, ordinal in (("en", "five", "fifth"),
+                                        ("da", "fem", "femte"),
+                                        ("de", "fünf", "fünfte")):
+            with self.subTest(lang=lang):
+                self.assertEqual(
+                    extract_number(cardinal, lang=lang, ordinals=True), 5)
+                self.assertEqual(
+                    extract_number(ordinal, lang=lang, ordinals=True), 5)
+
+    def test_a_line_with_no_number_is_still_false(self):
+        """The fall-through must not invent a number."""
+        for lang in ("nb", "nn"):
+            with self.subTest(lang=lang):
+                self.assertFalse(
+                    extract_number('god morgen', lang=lang, ordinals=True))
+
+
+class TestOgCompoundsUnderTheFlag(unittest.TestCase):
+    """An "og"-inverted compound ("en og tjuende") is one ordinal, not two.
+
+    "en og tjuende" is the spoken twenty-first in the "og"-inverted counting
+    tradition: the smaller unit ("en") is named before the larger ordinal
+    tens word ("tjuende"), the same arithmetic `_is_ordinal` already gives
+    the glued spelling "enogtjuende" (1 + 20 = 21). Before the fix, the
+    ordinal scan answered the ordinal word alone (20), the
+    leftmost-separated rule's span-growth probe read that as a cardinal and
+    an unrelated ordinal in one line, the line reached two spans, and the
+    leftmost one, the cardinal, won (1). nb, nn and da share the inverted
+    spelling and the fix; the other rows below are a different, wider
+    compound shape (a cardinal of any size before "og" before an ordinal
+    remainder, inverted or not) that the fix does not touch, and they keep
+    the leftmost-separated reading unchanged.
+    """
+
+    #: line, the reading under ordinals=True, the reading with the flag off
+    NB = [("hundre og femte", 100, 100),
+          ("hundre og første", 100, 100),
+          ("tjue og tredje", 20, 20),
+          ("to hundre og tredje", 200, 200),
+          ("tusen og andre", 1000, 1000),
+          ("en og tjuende", 21, False),
+          ("fem og tjuende", 25, 5),
+          ("ni og nittiende", 99, 9),
+          # only a unit before an ordinal ten folds (Store norske leksikon,
+          # "den gamle tellemåten": "enerleddet først, deretter og, og så
+          # tierleddet"); "two and third" is two numbers, the leftmost wins
+          ("to og tredje", 2, 2),
+          ("to og hundrede", 2, 2)]
+
+    NN = [("hundre og femte", 100, 100),
+          ("ein og tjuande", 21, False)]
+
+    #: the fraction shape: a cardinal followed by its denominator is one
+    #: number, so with the flag on or off the fraction answers, as it does in
+    #: da and de ("en halv", "ein halb"). Behind a whole number the fraction
+    #: is a second span, and with the flag on the leading cardinal answers.
+    FRACTIONS_NB = [("en halv", 0.5, 0.5),
+                    ("en kvart", 0.25, 0.25),
+                    ("tre en halv", 3, 3.5)]
+
+    def _assert_rows(self, lang, rows):
+        for line, under_flag, flag_off in rows:
+            with self.subTest(lang=lang, line=line):
+                self.assertEqual(
+                    extract_number(line, lang=lang, ordinals=True),
+                    under_flag)
+                self.assertEqual(extract_number(line, lang=lang), flag_off)
+
+    def test_nb_og_compounds(self):
+        self._assert_rows("nb", self.NB)
+
+    def test_nn_og_compounds(self):
+        self._assert_rows("nn", self.NN)
+
+    def test_a_fraction_line_answers_its_leading_cardinal_under_the_flag(self):
+        self._assert_rows("nb", self.FRACTIONS_NB)
+        self.assertEqual(extract_number('ein halv', lang="nn",
+                                        ordinals=True), 0.5)
+        self.assertEqual(extract_number('ein halv', lang="nn"), 0.5)
+
+    def test_da_og_inverted_compound_joins_the_family(self):
+        """da now reads its own og-inverted spelling the same way nb does.
+
+        "hundrede og femte" is not changed: it is not an inverted compound
+        (the cardinal "hundrede" is larger than the ordinal remainder
+        "femte"), so it keeps the leftmost-separated reading, 100.
+        """
+        self.assertEqual(extract_number('en og tyvende', lang="da",
+                                        ordinals=True), 21)
+        self.assertEqual(extract_number('hundrede og femte', lang="da",
+                                        ordinals=True), 100)
+        self.assertEqual(extract_number('fem og tyvende', lang="da",
+                                        ordinals=True), 25)
+        self.assertEqual(extract_number('to og tredje', lang="da",
+                                        ordinals=True), 2)
+        # 42nd: is_ordinal_da reads the vigesimal "fyrretyvende" as 40
+        self.assertEqual(extract_number('to og fyrretyvende', lang="da",
+                                        ordinals=True), 42)
+        # an ordinal below 20 is not a ten: "toogtiende" would read 12
+        self.assertEqual(extract_number('to og tiende', lang="da",
+                                        ordinals=True), 2)
+        self.assertEqual(numbers_to_digits_da('to og tiende', ordinals=True),
+                         "2 10")
+
+    def test_numbers_to_digits_folds_the_compound(self):
+        """The converters reach the fold through their own helper path."""
+        self.assertEqual(
+            numbers_to_digits_nb("hun kom på en og tjuende plass",
+                                 ordinals=True),
+            "hun kom på 21 plass")
+        self.assertEqual(
+            numbers_to_digits_da("han kom på en og tyvende plads",
+                                 ordinals=True),
+            "han kom på 21 plads")
+        self.assertEqual(
+            numbers_to_digits_da("han kom på to og fyrretyvende plads",
+                                 ordinals=True),
+            "han kom på 42 plads")
+
+    def test_de_glued_compound_is_unaffected(self):
+        """German never reaches this fix: a spaced "und" stays two numbers.
+
+        `numbers_de._NUMBER_CONNECTORS` is empty by design (see the comment
+        there): German folds a written compound into one word before
+        tokenization runs, so "einundzwanzigste" already reads 21, and a
+        spaced "ein und zwanzigste" is the same conjunction as English "and"
+        and is left as two numbers, same as "hundert und fünfte" staying
+        the leftmost reading, 100.
+        """
+        self.assertEqual(extract_number('einundzwanzigste', lang="de",
+                                        ordinals=True), 21)
+        self.assertEqual(extract_number('hundert und fünfte', lang="de",
+                                        ordinals=True), 100)
+
+    def test_the_flag_off_reading_of_a_fraction_is_untouched(self):
+        """The regression guard: nothing moves with the flag off."""
+        for lang, half in (("nb", 'en halv'), ("nn", 'ein halv')):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number(half, lang=lang), 0.5)
 
 
 if __name__ == "__main__":

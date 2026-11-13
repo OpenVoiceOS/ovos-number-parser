@@ -1,0 +1,116 @@
+"""Gulf and Saudi number joins: the construct hundred ميت, a proclitic
+written onto a number word, and او, which is "or" and joins nothing."""
+import unittest
+
+from ovos_number_parser import extract_number, numbers_to_digits
+from ovos_number_parser.numbers_ar import extract_numbers_ar
+
+
+def extract_number_ar(text):
+    return extract_number(text, lang="ar")
+
+
+class TestArabicGulfNumberJoins(unittest.TestCase):
+    def test_transcript_rows(self):
+        rows = {
+            "الف وميت ريال": 1100,
+            "بالفين وستة وعشرين": 2026,
+        }
+        for text, value in rows.items():
+            self.assertEqual(extract_number_ar(text), value, text)
+
+    def test_or_is_or(self):
+        # "six hundred or ten thousand": two numbers
+        self.assertEqual(extract_number_ar("ست مية او عشرة الف"), 600)
+        self.assertEqual(extract_numbers_ar("ست مية او عشرة الف"), [600, 10000])
+        self.assertEqual(extract_numbers_ar("ست مية او عشرة الف وميتين"),
+                         [600, 10200])
+        self.assertEqual(extract_numbers_ar("خمسمية او عشرين الف"),
+                         [500, 20000])
+
+    def test_or_between_equal_magnitudes_stays_or(self):
+        self.assertEqual(extract_number_ar("الف او الفين"), 1000)
+        self.assertEqual(extract_number_ar("ثلاثة او اربعة"), 3)
+        # مية before او has nothing that makes it a number and stays a word;
+        # the second one starts "مية وخمسين"
+        self.assertEqual(extract_numbers_ar("مية او مية وخمسين"), [150])
+        self.assertEqual(extract_number_ar("عشرين او ثلاثين"), 20)
+        self.assertEqual(extract_number_ar("ثلاثمية او اربعمية"), 300)
+
+    def test_or_after_a_hundred_stays_or(self):
+        # "a hundred or two", "a hundred or twenty": two amounts
+        # او is "or" and does not make مية a number: مية stays a word
+        self.assertEqual(extract_numbers_ar("مية او اثنين"), [2])
+        self.assertEqual(extract_numbers_ar("مية او عشرين"), [20])
+
+    def test_or_between_scales_stays_or(self):
+        # "two or three thousand"
+        self.assertEqual(extract_number_ar("الفين او ثلاث الاف"), 2000)
+
+    def test_or_after_a_scale_word_stays_or(self):
+        # two price options, and "two or three thousand"
+        self.assertEqual(extract_number_ar("الف او خمسمية"), 1000)
+        self.assertEqual(extract_number_ar("الفين او ثلاثة"), 2000)
+
+    def test_construct_hundred_after_the_conjunction(self):
+        self.assertEqual(extract_number_ar("الفين وميت"), 2100)
+        self.assertEqual(extract_number_ar("الف وميتين"), 1200)
+
+    def test_construct_hundred_in_numbers_to_digits(self):
+        # numbers_to_digits reads the span as extract_number does
+        self.assertEqual(numbers_to_digits("الف وميت ريال", lang="ar"),
+                         "1100 ريال")
+        self.assertEqual(numbers_to_digits("الف و ميت ريال", lang="ar"),
+                         "1100 ريال")
+        self.assertEqual(numbers_to_digits("دفعت الفين وميت", lang="ar"),
+                         "دفعت 2100")
+        # "alive and dead"; and two homographs with nothing else to make
+        # either a number stay as written
+        self.assertEqual(numbers_to_digits("حي وميت", lang="ar"), "حي وميت")
+        self.assertEqual(numbers_to_digits("مية وميت", lang="ar"),
+                         "مية وميت")
+
+    def test_construct_hundred_alone_is_no_number(self):
+        self.assertFalse(extract_number_ar("رجل ميت"))
+        self.assertFalse(extract_number_ar("حي وميت"))
+
+    def test_proclitic_on_a_number_word(self):
+        self.assertEqual(extract_number_ar("بخمسمية"), 500)
+        self.assertEqual(extract_number_ar("بمية"), 100)
+        self.assertEqual(extract_number_ar("بمية ريال"), 100)
+        self.assertEqual(extract_number_ar("لالف"), 1000)
+        self.assertEqual(extract_number_ar("للالف"), 1000)
+        self.assertEqual(extract_number_ar("فخمسة"), 5)
+        self.assertEqual(extract_number_ar("والفين"), 2000)
+
+    def test_proclitic_leaves_ordinary_words_alone(self):
+        for word in ("ليرة", "بيت", "فلوس", "ولد", "لست", "بثمن"):
+            self.assertFalse(extract_number_ar(word), word)
+
+    def test_proclitic_leaves_water_and_per_cent_alone(self):
+        # ميه is "water" as well as the hundred: بميه inside text is "with water"
+        self.assertEqual(extract_numbers_ar("اغسله بميه سخنة"), [])
+        # the hundred with the article after ب is "per cent"
+        self.assertEqual(extract_numbers_ar("عشرة بالمية"), [10])
+        self.assertEqual(extract_numbers_ar("عشرة بالمئة"), [10])
+
+    def test_proclitic_stays_on_the_digits(self):
+        self.assertEqual(numbers_to_digits("دفعت بالفين", lang="ar"),
+                         "دفعت ب2000")
+        self.assertEqual(numbers_to_digits("ما جاء لاحد", lang="ar"),
+                         "ما جاء لاحد")
+
+    def test_controls_keep_their_result(self):
+        self.assertEqual(extract_number_ar("مية واربعين الف وسبعمية"),
+                         140700)
+        self.assertEqual(extract_number_ar("اربعمية الف"), 400000)
+
+    def test_or_before_millions_stays_or(self):
+        # "nine hundred or ten million", "a hundred or two million"
+        self.assertEqual(extract_number_ar("تسعمية او عشرة ملايين"), 900)
+        self.assertEqual(extract_numbers_ar("مية او اثنين مليون"), [2000000])
+        self.assertEqual(extract_number_ar("خمسمية او ثلاثة مليار"), 500)
+
+
+if __name__ == "__main__":
+    unittest.main()
