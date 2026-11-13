@@ -85,6 +85,24 @@ class TestBarePluralScale(unittest.TestCase):
                 with self.subTest(text=text, lang=lang):
                     self.assertEqual(extract_number(text, lang=lang), value)
 
+    def test_a_plural_with_no_count_counts_nothing_after_it(self):
+        # the scale word before "de" must itself have a count
+        for text, lang in [("milhares de milhões de euros", "pt-PT"),
+                           ("milhões de milhões de pessoas", "pt-PT"),
+                           ("milhares de milhares de pessoas", "pt-PT"),
+                           ("milhões de bilhões", "pt-BR"),
+                           ("milhares de bilhões de reais", "pt-BR")]:
+            with self.subTest(text=text, lang=lang):
+                self.assertIs(extract_number(text, lang=lang), False)
+                self.assertEqual(numbers_to_digits(text, lang=lang), text)
+
+    def test_digits_after_a_bare_plural_are_read(self):
+        for text, value in [("milhares de pessoas morreram em 2020", 2020),
+                            ("milhões de pessoas viram 2 golos", 2)]:
+            for lang in LANGS:
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(extract_number(text, lang=lang), value)
+
     def test_numbers_to_digits_keeps_a_plural_after_a_joiner(self):
         for lang in LANGS:
             with self.subTest(lang=lang):

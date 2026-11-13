@@ -755,7 +755,13 @@ class RomanceNumberExtractor:
         group = self.vocab.DIGIT_GROUP_MARK
         # a group number never starts with 0 ("0.500" is a decimal)
         grouped = re.compile(rf"-?[1-9]\d{{0,2}}(?:{re.escape(group)}\d{{3}})+(?:,\d+)?")
+        # plural scale words that need a count right before them ("milhões")
+        bare_plurals = self._plural_scales(numbers_map)
         for idx, tok in enumerate(tokens):
+            if tok in bare_plurals:
+                # a plural before any number has no count: "milhares de
+                # pessoas morreram em 2020" reads the digits after it
+                continue
             # a leading decimal separator belongs to the number (".5")
             t = tok.rstrip(".,!?;:").lstrip("!?;:")
             if group and grouped.fullmatch(t):
@@ -786,7 +792,6 @@ class RomanceNumberExtractor:
         # cardinal ("tres cuartos" = 3/4), singular ones add ("dois e meio" = 2.5)
         singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
         scales_words = {w for w, v in numbers_map.items() if v >= 1000}
-        bare_plurals = self._plural_scales(numbers_map)
         plural_fractions = {self.vocab.pluralize(w) for w in singular_fractions} - singular_fractions
         particle = self.vocab.DENOMINATOR_PARTICLE
         cardinal_denominators = self.vocab.CARDINAL_DENOMINATORS
@@ -799,6 +804,8 @@ class RomanceNumberExtractor:
         trailing_scale = 0
         # the last scale word read, which decides what a half after it halves
         last_scale_word = None
+        # the index of the last token read as a number
+        last_read = None
         saw_number = False
         is_negative = False
         # the value of ``current`` where a second cardinal follows a cardinal
@@ -837,8 +844,8 @@ class RomanceNumberExtractor:
 
             val = numbers_map.get(token)
             if token in bare_plurals and not (
-                    i and tokens[i - 1] in numbers_map
-                    or i > 1 and tokens[i - 2] in scales_words
+                    last_read == i - 1
+                    or last_read == i - 2 and tokens[i - 2] in scales_words
                     and tokens[i - 1] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
                 # a plural takes its count from the number word right before
                 # it ("dois milhões"), or from a scale word and a preposition
@@ -847,6 +854,7 @@ class RomanceNumberExtractor:
                 val = None
             if val is not None:
                 saw_number = True
+                last_read = i
                 if val >= 1000:
                     after_scale = i and tokens[i - 1] in scales_words
                     trailing_scale = (trailing_scale if after_scale else 1) * val
