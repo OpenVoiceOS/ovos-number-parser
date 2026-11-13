@@ -40,10 +40,22 @@ iguais em que se divide um todo." Priberam, "avo": "doze vinte e cinco avos
 Ordinals of thousands. Teyssier, "Manual de Língua Portuguesa", p. 183,
 writes 2000.º as "dois milésimo": the count before "milésimo" is cardinal.
 
-"Um milhão e meio" is half of the scale, 1500000. A decimal needs the decimal
-marker: 1000000.5 is "um milhão vírgula cinco". extract_number and
-numbers_to_digits both read it so ("mil e meio" is 1500). Only the half is
-of the scale: "dois milhões e um quarto" adds a quarter of one.
+Halves. A half counts the unit before it. Dicio, "Meio-dia e meio ou
+meio-dia e meia" (Flávia Neves): "A palavra meia é um numeral fracionário e
+se refere à metade de um todo, de uma unidade. Sendo um numeral fracionário,
+deverá estabelecer concordância com a unidade fracionada"; in "meio-dia e
+meia" the unit is the hour, "meio-dia e meia hora". "Milhão" and "milhar"
+are masculine nouns, and "mil" is a numeral, not a noun (Dad Squarisi,
+"Milhão, milhar e mil — concordância", Correio Braziliense: "Milhar, também
+substantivo masculino, segue regra idêntica a milhão"; "O numeral mil, por
+não ser substantivo, recebe tratamento diferente").
+
+This module reads the rule so: after a scale noun the unit is that noun, and
+"um milhão e meio" is 1500000. "Mil" names no unit, so after it the unit is
+one, as after any other numeral: "mil e meio" is 1000.5, as "dois e meio" is
+2.5. A decimal after a scale noun needs the decimal marker: 1000000.5 is "um
+milhão vírgula cinco". Only the half is of the scale: "dois milhões e um
+quarto" adds a quarter of one.
 
 Overview of the numerals: https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
 """
@@ -151,6 +163,7 @@ _PT_PT = PortugueseVocabulary(
     MAX_SCALE_COUNT=10 ** 6,
     HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
     HALF_OF_SCALE_FOLLOWERS=["de", "do", "da", "dos", "das"],
+    SCALE_NUMERALS=["mil"],  # "mil e meio" = 1000.5
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
@@ -363,6 +376,7 @@ _PT_BR = PortugueseVocabulary(
     MAX_SCALE_COUNT=10 ** 6,
     HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
     HALF_OF_SCALE_FOLLOWERS=_PT_PT.HALF_OF_SCALE_FOLLOWERS,
+    SCALE_NUMERALS=_PT_PT.SCALE_NUMERALS,
     DIVIDED_BY_ZERO=_PT_PT.DIVIDED_BY_ZERO,
     DENOMINATOR_PARTICLE=_PT_PT.DENOMINATOR_PARTICLE,
     CARDINAL_DENOMINATORS=_PT_PT.CARDINAL_DENOMINATORS,

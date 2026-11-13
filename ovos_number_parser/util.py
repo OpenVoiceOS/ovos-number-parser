@@ -520,10 +520,13 @@ class NumberVocabulary:
     # of one; a decimal reading needs the decimal marker ("um milhão vírgula
     # cinco" = 1000000.5)
     HALF_OF_SCALE: bool = False
+    #: scale words that are numerals, not nouns: a half after one of them is
+    #: half of one, as after any other numeral ("mil e meio" = 1000.5)
+    SCALE_NUMERALS: List[str] = field(default_factory=list)
     #: words that may follow such a half in numbers_to_digits, besides the end
     #: of the text and a joiner: a preposition that opens what is counted ("um
     #: milhão e meio de discos"). Any other word is a noun the half counts
-    #: itself ("mil e meia dúzia" is a thousand and half a dozen)
+    #: itself ("um milhão e meia dúzia" is a million and half a dozen)
     HALF_OF_SCALE_FOLLOWERS: List[str] = field(default_factory=list)
 
     # full spelling of "one <scale>" groups when they use an article or a
@@ -782,6 +785,8 @@ class RomanceNumberExtractor:
         # the value of the run of scale words just read ("mil milhões" =
         # 10 ** 9), 0 once another number word follows
         trailing_scale = 0
+        # the last scale word read, which decides what a half after it halves
+        last_scale_word = None
         saw_number = False
         is_negative = False
         # the value of ``current`` where a second cardinal follows a cardinal
@@ -824,6 +829,7 @@ class RomanceNumberExtractor:
                 if val >= 1000:
                     after_scale = i and tokens[i - 1] in scales_words
                     trailing_scale = (trailing_scale if after_scale else 1) * val
+                    last_scale_word = token
                 else:
                     trailing_scale = 0
                 if val >= 1000:
@@ -887,7 +893,8 @@ class RomanceNumberExtractor:
                         # counts its parts ("um quinto" = 1/5), and only a
                         # joiner makes the fraction add ("dois e meio" = 2.5)
                         result += current - count + count * fraction
-                    elif self.vocab.HALF_OF_SCALE and trailing_scale and fraction == 0.5:
+                    elif self.vocab.HALF_OF_SCALE and trailing_scale and fraction == 0.5 \
+                            and last_scale_word not in self.vocab.SCALE_NUMERALS:
                         part = fraction * trailing_scale
                         result += current + (int(part) if part == int(part) else part)
                     else:
@@ -1043,12 +1050,14 @@ class RomanceNumberExtractor:
 
                 if self.vocab.HALF_OF_SCALE and number_span_words \
                         and numbers_map.get(number_span_words[-1], 0) >= 1000 \
+                        and number_span_words[-1] not in self.vocab.SCALE_NUMERALS \
                         and j + 1 < len(words) and words[j] in joiners \
                         and words[j + 1] in half_words \
                         and (j + 2 == len(words) or words[j + 2] in joiners
                              or words[j + 2] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
-                    # a half right after a scale word is half of that scale
-                    # ("um milhão e meio" = 1500000), as extract_number reads it
+                    # a half right after a scale word that is not a numeral
+                    # is half of that scale ("um milhão e meio" = 1500000),
+                    # as extract_number reads it
                     number_span_words += words[j:j + 2]
                     j += 2
 
