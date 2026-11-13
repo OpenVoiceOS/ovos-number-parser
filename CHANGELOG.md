@@ -1,12 +1,19 @@
 # Changelog
 
+## [0.24.51a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.51a1) (2026-11-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.50a1...0.24.51a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): pt-BR writes "quatorze", and both variants read both forms [\#481](https://github.com/OpenVoiceOS/ovos-number-parser/pull/481) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.24.50a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.50a1) (2026-11-13)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.49a1...0.24.50a1)
 
 **Merged pull requests:**
 
-- fix\(pt\): pt-BR writes "quatorze", and both variants read both forms [\#481](https://github.com/OpenVoiceOS/ovos-number-parser/pull/481) ([JarbasAl](https://github.com/JarbasAl))
 - fix\(pt\): read "milhar", and a bare plural scale word as no number [\#480](https://github.com/OpenVoiceOS/ovos-number-parser/pull/480) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.24.49a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.49a1) (2026-11-13)
@@ -369,10 +376,6 @@
 ## [0.24.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.2a1) (2026-10-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.1a1...0.24.2a1)
-
-**Merged pull requests:**
-
-- fix\(ar\): numbers\_to\_digits converts the literary 11 and 12 and keeps dual nouns [\#380](https://github.com/OpenVoiceOS/ovos-number-parser/pull/380) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.24.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.1a1) (2026-10-19)
 
