@@ -18,9 +18,11 @@ Fourteen. pt-BR writes "quatorze" and pt-PT "catorze"; both read both.
 Dicio, "Catorze ou quatorze" (Flávia Neves): "As duas palavras existem na
 língua portuguesa e estão corretas", and "Já no português falado em
 Portugal, a palavra quatorze está em desuso, sendo mais correto o uso da
-palavra catorze". Estratégia, "Catorze ou quatorze": "Ao considerarmos o uso
-no Brasil, "quatorze" é, sem dúvida, a forma mais comum e aceita pelas
-regras gramaticais vigentes". The fractions of pt-BR take its own spellings
+palavra catorze". Estratégia, "Catorze ou quatorze: entenda a diferença
+e o uso correto" (portal.estrategia.com/materias/portugues/
+catorze-ou-quatorze-entenda-a-diferenca-e-o-uso-correto/): "Ao
+considerarmos o uso no Brasil, "quatorze" é, sem dúvida, a forma mais comum
+e aceita pelas regras gramaticais vigentes". The fractions of pt-BR take its own spellings
 ("dezesseis avos"), as its cardinals do.
 
 Sources for the rules in this module:
