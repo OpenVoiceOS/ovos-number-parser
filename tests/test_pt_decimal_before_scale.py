@@ -161,3 +161,12 @@ class TestDecimalBeforeScale(unittest.TestCase):
         self.assertEqual(numbers_to_digits(
             "entre unu virgulă douăzeci și două sute euros", lang="ro-RO"),
             "entre 1.2 și 200 euros")
+
+    def test_an_article_that_spells_one_stays_in_the_decimal(self):
+        # Romanian says one hundred and one thousand with the article "o":
+        # "o sută" is 100 and "o mie" is 1000, so ".o sută și unu" is .101
+        for text, value in [("entre unu virgulă o sută și unu euros", 1.101),
+                            ("doi virgulă o sută", 2.1),
+                            ("doi virgulă o mie", 2.1)]:
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="ro-RO"), value)

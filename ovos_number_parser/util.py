@@ -952,10 +952,14 @@ class RomanceNumberExtractor:
                 # joiner stays in it only inside a compound ("noventa e
                 # nove"), and a preposition only between two scale words
                 # ("milhões de biliões")
+                # an article that spells "one" before a scale word stays in
+                # it too ("virgulă o sută")
+                scale_one = {tuple(v.split()) for v in self.vocab.SCALE_ONE.values()}
                 tail = []
                 for n in range(i + 1, len(tokens)):
                     t = tokens[n]
                     if t in numbers_map \
+                            or tuple(tokens[n:n + 2]) in scale_one \
                             or t in self.vocab.JOIN_WORD \
                             and self._joins_compound(tail, tokens[n + 1:n + 3],
                                                      numbers_map) \
@@ -973,7 +977,7 @@ class RomanceNumberExtractor:
                 if not result and current < 1000:
                     k = next((n for n, t in enumerate(tail)
                               if numbers_map.get(t, 0) >= 1000), None)
-                    if k:
+                    if k and any(t in numbers_map for t in tail[:k]):
                         # the scale run, also across a preposition between
                         # two scale words ("milhões de biliões")
                         run, n = [], k
