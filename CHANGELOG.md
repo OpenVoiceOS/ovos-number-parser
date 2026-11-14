@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.55a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.55a1) (2026-11-14)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.54a1...0.24.55a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): read dezena, dúzia and centena as counted groups [\#486](https://github.com/OpenVoiceOS/ovos-number-parser/pull/486) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.54a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.54a1) (2026-11-14)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.53a1...0.24.54a1)
@@ -371,10 +379,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.5a1...0.24.6a1)
 
-**Merged pull requests:**
-
-- fix\(de, fr, da, sv, nb\): honour gender= in cardinals [\#388](https://github.com/OpenVoiceOS/ovos-number-parser/pull/388) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.5a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.5a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.4a1...0.24.5a1)
@@ -382,10 +386,6 @@
 ## [0.24.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.4a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.3a1...0.24.4a1)
-
-**Merged pull requests:**
-
-- fix\(ru, uk, pl, cs\): honour gender= in cardinals and ordinals [\#387](https://github.com/OpenVoiceOS/ovos-number-parser/pull/387) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.3a1) (2026-10-19)
 
