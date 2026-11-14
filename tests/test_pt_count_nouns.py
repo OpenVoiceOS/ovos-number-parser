@@ -144,6 +144,14 @@ class TestDecimalBeforeCountNoun(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
 
+    def test_de_after_a_decimal_scale_stays_text(self):
+        # the noun after "de" is not read here, so "de" stays with it
+        for text in ("dois vírgula cinco milhões de dúzias",
+                     "três vírgula dois milhares de dúzias"):
+            with self.subTest(text=text):
+                self.assertTrue(numbers_to_digits(text, lang="pt-PT")
+                                .endswith(" de dúzias"))
+
     def test_a_marker_before_a_collective_noun_stays_text(self):
         # no number word follows the marker, so no decimal starts there
         self.assertEqual(
@@ -270,9 +278,6 @@ class TestNounEndsNumber(unittest.TestCase):
         ("comprei duas dúzias e uma meia dúzia",
          [(2 * 12, "duas dúzias"), (12 // 2, "uma meia dúzia")],
          "comprei 24 e 6"),
-        ("duas dezenas de milhar e três dúzias",
-         [(2 * 10 * 1000, "duas dezenas de milhar"), (3 * 12, "três dúzias")],
-         "20000 e 36"),
         ("uma dúzia e duas dezenas de milhar",
          [(12, "uma dúzia"), (2 * 10 * 1000, "duas dezenas de milhar")],
          "12 e 20000"),
@@ -286,9 +291,14 @@ class TestNounEndsNumber(unittest.TestCase):
         ("mil milhões de dúzias e dois milhões",
          [(10 ** 9 * 12, "mil milhões de dúzias"),
           (2 * 10 ** 6, "dois milhões")], "12000000000 e 2000000"),
-        ("duas dezenas de milhar e um milhão",
-         [(2 * 10 * 1000, "duas dezenas de milhar"), (10 ** 6, "um milhão")],
-         "20000 e 1000000")]
+        # a half after "e" is half a group only when no number word follows
+        ("duas dúzias e meio milhão",
+         [(2 * 12, "duas dúzias"), (10 ** 6 // 2, "meio milhão")],
+         "24 e 500000"),
+        ("uma dúzia e meio milhar de euros",
+         [(12, "uma dúzia"), (1000 // 2, "meio milhar")], "12 e 500 de euros"),
+        ("duas dúzias e meia dúzia",
+         [(2 * 12, "duas dúzias"), (12 // 2, "meia dúzia")], "24 e 6")]
 
     def test_extract_number_gives_the_first_number(self):
         for lang in ("pt-PT", "pt-BR"):
@@ -321,8 +331,30 @@ class TestNounBeforeMilhar(unittest.TestCase):
                      "300000 de euros"),
                     ("meia dúzia de milhar", 6 * 1000, "6000"),
                     ("duas dezenas de milhar de dúzias", 2 * 10 * 1000 * 12,
-                     "240000")]:
+                     "240000"),
+                    # a plural scale noun takes the counted groups too
+                    ("três centenas de milhões de pessoas", 3 * 100 * 10 ** 6,
+                     "300000000 de pessoas"),
+                    ("duas dezenas de milhões", 2 * 10 * 10 ** 6, "20000000"),
+                    ("duas dúzias de milhões de euros", 2 * 12 * 10 ** 6,
+                     "24000000 de euros")]:
                 with self.subTest(lang=lang, text=text):
+                    self.assertEqual(extract_number(text, lang=lang), value)
+                    self.assertEqual(numbers_to_digits(text, lang=lang), digits)
+
+    def test_a_scale_noun_after_the_noun_keeps_the_number_open(self):
+        # "milhar" is a noun like "milhão", so "e" after it goes on with the
+        # number, as in "um milhão e duas dúzias"
+        for lang in ("pt-PT", "pt-BR"):
+            for text, surface, value, digits in [
+                    ("duas centenas de milhar e quinhentos euros",
+                     "duas centenas de milhar e quinhentos",
+                     2 * 100 * 1000 + 500, "200500 euros"),
+                    ("duas dezenas de milhar e três dúzias",
+                     "duas dezenas de milhar e três dúzias",
+                     2 * 10 * 1000 + 3 * 12, "20036")]:
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(spans(text, lang), [(value, surface)])
                     self.assertEqual(extract_number(text, lang=lang), value)
                     self.assertEqual(numbers_to_digits(text, lang=lang), digits)
 

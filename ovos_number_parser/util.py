@@ -938,9 +938,12 @@ class RomanceNumberExtractor:
                     break
                 # a collective noun ends its number, so a new number starts
                 # after the joiner ("uma dúzia e duas mil dúzias" is 12 and
-                # 24000), unless half a group follows ("duas dúzias e meia")
-                if noun_read and not (i + 1 < len(tokens) and self.is_fractional(
-                        tokens[i + 1]) is not False):
+                # 24000), unless half a group follows ("duas dúzias e meia",
+                # but not "duas dúzias e meio milhão")
+                if noun_read and not (
+                        i + 1 < len(tokens)
+                        and self.is_fractional(tokens[i + 1]) is not False
+                        and (i + 2 == len(tokens) or tokens[i + 2] not in numbers_map)):
                     break
                 i += 1
                 continue
@@ -948,11 +951,13 @@ class RomanceNumberExtractor:
             val = numbers_map.get(token)
             if token in bare_plurals and not (
                     last_read == i - 1
-                    or last_read == i - 2 and tokens[i - 2] in scales_words
+                    or last_read == i - 2
+                    and (tokens[i - 2] in scales_words or tokens[i - 2] in count_nouns)
                     and tokens[i - 1] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
                 # a plural takes its count from the number word right before
-                # it ("dois milhões"), or from a scale word and a preposition
-                # ("milhões de biliões"); alone it is no number ("milhões de
+                # it ("dois milhões"), or from a scale word or a collective
+                # noun and a preposition ("milhões de biliões", "três
+                # centenas de milhões"); alone it is no number ("milhões de
                 # pessoas", "dois golos perante milhares de adeptos")
                 val = None
             if val is not None:
@@ -969,10 +974,16 @@ class RomanceNumberExtractor:
                 else:
                     trailing_scale = 0
                 if val >= 1000:
-                    # scale multiplier (mil, milhão, ...)
-                    if val == 1000:
+                    # scale multiplier (mil, milhão, ...); a collective noun
+                    # before it no longer ends the number ("duas centenas de
+                    # milhar e quinhentos" = 200500)
+                    noun_read = False
+                    if val == 1000 and (not self.vocab.SCALE_NUMERALS
+                                        or token in self.vocab.SCALE_NUMERALS):
                         # thousand-level: keep accumulating so a bigger scale
-                        # (e.g. milhão) can still multiply the whole group
+                        # (e.g. milhão) can still multiply the whole group;
+                        # where only some thousand words are numerals, the
+                        # others are nouns ("milhar") and close their group
                         current = (current or 1) * 1000
                     elif val > largest_scale:
                         # a scale word above every scale before it
@@ -1352,12 +1363,16 @@ class RomanceNumberExtractor:
                         # it is smaller than the value before it ("vinte e um").
                         # An ascending pair is two numbers, not one, and the
                         # span has to end so the tail survives ("tres y veinte").
-                        if count_nouns & set(number_span_words):
+                        nouns = [x for x in number_span_words if x in count_nouns
+                                 or numbers_map.get(x, 0) >= 1000
+                                 and x not in self.vocab.SCALE_NUMERALS]
+                        if nouns and nouns[-1] in count_nouns:
                             # a collective noun ends its number, so a new
                             # number starts after the joiner ("uma dúzia e
-                            # duas mil dúzias" is 12 and 24000); a half
-                            # after it joins the span below ("duas dúzias e
-                            # meia")
+                            # duas mil dúzias" is 12 and 24000), unless a
+                            # scale noun follows it ("duas centenas de milhar
+                            # e quinhentos"); a half after it joins the span
+                            # below ("duas dúzias e meia")
                             break
                         nxt = numbers_map.get(next_word(j))
                         if j + 1 < len(words) and half_of(j + 1) is not None:
@@ -1382,7 +1397,9 @@ class RomanceNumberExtractor:
 
                 # a joiner at the end of the span belongs to the surrounding
                 # text ("trei de mere" -> "3 de mere"), not to the number
-                while number_span_words and number_span_words[-1] in self.vocab.JOIN_WORD:
+                while number_span_words and (
+                        number_span_words[-1] in self.vocab.JOIN_WORD
+                        or number_span_words[-1] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
                     number_span_words.pop()
                     j -= 1
 
