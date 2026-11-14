@@ -2,8 +2,10 @@
 
 Priberam: "dezena" is "Grupo de dez.", "dúzia" is "Conjunto de doze." and
 "meia dúzia" is "Conjunto de seis.", "centena" is "Conjunto de 100
-elementos.". The numbers_pt module docstring holds the quotes. Expected
-values are hand arithmetic: the count times the group size.
+elementos.". The whole cardinal before the noun counts it, as "mil e uma"
+counts "artimanhas" in Priberam, "mil e um": "Grande quantidade (ex.: ele
+tem mil e uma artimanhas)". The numbers_pt module docstring holds the
+quotes. Expected values are hand arithmetic: the count times the group size.
 """
 import unittest
 
@@ -19,7 +21,13 @@ class TestCountNouns(unittest.TestCase):
             ("duas dúzias e meia", 2 * 12 + 12 // 2),
             ("doze dúzias", 12 * 12),
             ("cento e vinte dúzias", 120 * 12),
-            ("mil e duas dúzias", 1000 + 2 * 12),
+            ("mil e duas dúzias", (1000 + 2) * 12),
+            ("duas mil e duzentas dúzias", 2200 * 12),
+            ("mil duzentas dúzias", 1200 * 12),
+            ("três mil e quinhentas centenas", 3500 * 100),
+            # a scale noun ends a count: only the cardinal after it counts
+            ("um milhão e duas dúzias", 10 ** 6 + 2 * 12),
+            ("um milhão e mil e duas dúzias", 10 ** 6 + 1002 * 12),
             ("uma dúzia e três", 12 + 3),
             ("um milhão e meia dúzia", 10 ** 6 + 12 // 2),
             ("meio milhão e meia dúzia", 10 ** 6 // 2 + 12 // 2),
@@ -144,9 +152,7 @@ class TestCountNounAfterScale(unittest.TestCase):
                     ("um milhão de dúzias", 10 ** 6 * 12),
                     ("dois milhões de dúzias", 2 * 10 ** 6 * 12),
                     ("meio milhão de dúzias", 10 ** 6 // 2 * 12),
-                    ("um milhão duzentos mil dúzias", 1200000 * 12),
-                    # a count after the scale word counts only itself
-                    ("mil e duas dúzias", 1000 + 2 * 12)]:
+                    ("um milhão duzentos mil dúzias", 1200000 * 12)]:
                 with self.subTest(lang=lang, text=text):
                     self.assertEqual(extract_number(text, lang=lang), value)
 

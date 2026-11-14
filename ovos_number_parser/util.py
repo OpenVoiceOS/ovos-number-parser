@@ -967,12 +967,12 @@ class RomanceNumberExtractor:
                         current = 0
                     largest_scale = max(largest_scale, val)
                 elif token in count_nouns:
-                    # a collective noun counts groups of its size: the count
-                    # since the last scale word multiplies it ("mil e duas
-                    # dúzias" = 1024, "meia dúzia" = 6); a fraction right
-                    # before it counts only itself ("cem e meia dúzia" = 106),
-                    # and "uma" right before that fraction is its article
-                    # ("uma meia dúzia" = 6)
+                    # a collective noun counts groups of its size: the whole
+                    # cardinal before it multiplies it ("mil e duas dúzias" =
+                    # 1002 * 12); a fraction right before it counts only
+                    # itself ("cem e meia dúzia" = 106), and "uma" right
+                    # before that fraction is its article ("uma meia dúzia" =
+                    # 6)
                     if i and self.is_fractional(tokens[i - 1]) is not False:
                         below = current % 1
                         if i > 1 and numbers_map.get(tokens[i - 2]) == 1:
@@ -988,8 +988,10 @@ class RomanceNumberExtractor:
                         result *= val
                         current *= val
                     else:
-                        below = current % 1000
-                        current = current - below + (below or 1) * val
+                        # a scale noun ("milhão") ends a count, so only the
+                        # cardinal after it counts ("um milhão e duas
+                        # dúzias" = 1000024)
+                        current = (current or 1) * val
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
                     # ("două sute" = 200, "dos cents" = 200), leaving higher
