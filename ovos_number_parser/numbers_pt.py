@@ -68,6 +68,15 @@ one, as after any other numeral: "mil e meio" is 1000.5, as "dois e meio" is
 milhão vírgula cinco". Only the half is of the scale: "dois milhões e um
 quarto" adds a quarter of one.
 
+A decimal before a scale word counts that scale: "dois vírgula cinco
+milhões" is 2,5 milhões, 2500000. Só Matemática, "Como ler números grandes
+(acima de 1 milhão)" (https://www.somatematica.com.br/faq/numerosGrandes.php):
+"o correto é 1,4 milhão", and "se escrevermos esse
+número por extenso, teremos "um milhão e quatrocentos mil""; "Somente a
+partir de 2 é que a concordância é feita no plural: 2,5 milhões". CLDR 49
+writes the same values with its long compact patterns "0 milhão" and
+"0 milhões" ("2,5 milhões").
+
 "Milhar" is a scale noun of 1000 (Priberam, "milhar", sense 1: "Grupo de mil
 unidades"), read but never written: "dois milhares" is 2000 and "um milhar e
 meio" is 1500. A plural scale word with no count before it names no number.
@@ -75,6 +84,17 @@ Priberam, "milhar", sense 4: "[Figurado] Um grande número"; Priberam,
 "milhão", sense 2: "[Informal, Figurado] Número ou quantidade muito grande".
 So "milhares de pessoas" and "milhões de pessoas" read as no number, while
 "dois milhões de pessoas" is 2000000.
+
+"Dezena", "dúzia" and "centena" are collective nouns that count groups of a
+fixed size. Priberam, "dezena", sense 1: "Grupo de dez."
+(https://dicionario.priberam.org/dezena); Priberam, "dúzia", sense 1:
+"Conjunto de doze.", and "meia dúzia": "Conjunto de seis."
+(https://dicionario.priberam.org/dúzia); Priberam, "centena", sense 3:
+"Conjunto de 100 elementos." (https://dicionario.priberam.org/centena). The
+count before one multiplies it: "duas dúzias" is 24, "meia dúzia" is 6, and
+a half after one is half a group, as after a scale noun: "dúzia e meia" is 18.
+A plural with no count names no number, as "milhares" does: "dúzias de ovos"
+and "centenas de pessoas" read as no number.
 
 Overview of the numerals: https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
 """
@@ -174,6 +194,7 @@ _PT_PT = PortugueseVocabulary(
     LANG="pt-PT",
     SCALE_ALT_ENDING=("lião", "lhão"),  # "bilhão" reads as "bilião"
     SCALE_NOUNS={"milhar": 1000},  # "dois milhares" = 2000
+    COUNT_NOUNS={"dezena": 10, "dúzia": 12, "centena": 100},  # "duas dúzias" = 24
 
     swap_gender=swap_gender_pt, # used for female forms
     pluralize=pluralize_pt, # use for plural forms
@@ -400,6 +421,7 @@ _PT_BR = PortugueseVocabulary(
     LANG="pt-BR",
     SCALE_ALT_ENDING=("lhão", "lião"),  # "bilião" reads as "bilhão"
     SCALE_NOUNS=_PT_PT.SCALE_NOUNS,
+    COUNT_NOUNS=_PT_PT.COUNT_NOUNS,
     swap_gender=swap_gender_pt,  # used for female forms
     pluralize=pluralize_pt,  # use for plural forms
     DEFAULT_SCALE=Scale.SHORT,

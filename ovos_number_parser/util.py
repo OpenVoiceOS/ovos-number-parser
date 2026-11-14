@@ -526,6 +526,10 @@ class NumberVocabulary:
     #: a plural scale word needs a count before it to be a number: alone it
     #: is "a great many" ("milhões de pessoas"), and reads as no number
     PLURAL_SCALE_NEEDS_COUNT: bool = False
+    #: collective nouns that count groups of a fixed size: the count before
+    #: one multiplies it ("duas dúzias" = 24, "meia dúzia" = 6), and a plural
+    #: with no count is no number ("dúzias de ovos")
+    COUNT_NOUNS: Dict[str, int] = field(default_factory=dict)
     #: words that may follow such a half in numbers_to_digits, besides the end
     #: of the text and a joiner: a preposition that opens what is counted ("um
     #: milhão e meio de discos"). Any other word is a noun the half counts
@@ -603,7 +607,9 @@ class NumberVocabulary:
             **male,
             **female,
             **dict({self.HUNDRED_PARTICLE: 100} if self.HUNDRED_PARTICLE else {}),
-            **plural
+            **plural,
+            **self.COUNT_NOUNS,
+            **{self.pluralize(k): v for k, v in self.COUNT_NOUNS.items()},
         }
 
     def get_ordinal_strings(self, scale: Optional[Scale] = None) -> Dict[str, int]:
@@ -715,7 +721,13 @@ class RomanceNumberExtractor:
         if not self.vocab.PLURAL_SCALE_NEEDS_COUNT:
             return set()
         scales = {w for w, v in numbers_map.items() if v >= 1000}
-        return {p for w in scales if (p := self.vocab.pluralize(w)) != w} & scales
+        return {p for w in scales if (p := self.vocab.pluralize(w)) != w} & scales \
+            | {self.vocab.pluralize(w) for w in self.vocab.COUNT_NOUNS}
+
+    def _count_nouns(self) -> Set[str]:
+        """The collective nouns and their plurals ("dúzia", "dúzias")."""
+        return {w for n in self.vocab.COUNT_NOUNS
+                for w in (n, self.vocab.pluralize(n))}
 
     def extract_number(self,
                        text: str,
@@ -757,6 +769,7 @@ class RomanceNumberExtractor:
         grouped = re.compile(rf"-?[1-9]\d{{0,2}}(?:{re.escape(group)}\d{{3}})+(?:,\d+)?")
         # plural scale words that need a count right before them ("milhões")
         bare_plurals = self._plural_scales(numbers_map)
+        count_nouns = self._count_nouns()
         for idx, tok in enumerate(tokens):
             if tok in bare_plurals:
                 # a plural before any number has no count: "milhares de
@@ -859,6 +872,10 @@ class RomanceNumberExtractor:
                     after_scale = i and tokens[i - 1] in scales_words
                     trailing_scale = (trailing_scale if after_scale else 1) * val
                     last_scale_word = token
+                elif token in count_nouns:
+                    # a half after it is half a group ("dúzia e meia" = 18)
+                    trailing_scale = val
+                    last_scale_word = token
                 else:
                     trailing_scale = 0
                 if val >= 1000:
@@ -878,6 +895,12 @@ class RomanceNumberExtractor:
                         result += current
                         current = 0
                     largest_scale = max(largest_scale, val)
+                elif token in count_nouns:
+                    # a collective noun counts groups of its size: the count
+                    # since the last scale word multiplies it ("mil e duas
+                    # dúzias" = 1024, "meia dúzia" = 6)
+                    below = current % 1000
+                    current = current - below + (below or 1) * val
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
                     # ("două sute" = 200, "dos cents" = 200), leaving higher
@@ -888,6 +911,12 @@ class RomanceNumberExtractor:
                     if i and val < 1000 and numbers_map.get(tokens[i - 1], 1000) < 1000:
                         numerator = current
                     current += val
+                # a half of a group or a scale is a whole number of units
+                # ("meio milhar" = 500, "meia dúzia" = 6)
+                if isinstance(current, float) and current.is_integer():
+                    current = int(current)
+                if isinstance(result, float) and result.is_integer():
+                    result = int(result)
                 i += 1
                 continue
 
@@ -908,7 +937,7 @@ class RomanceNumberExtractor:
                 next_token = tokens[nxt_i] if nxt_i < len(tokens) else None
                 next_val = numbers_map.get(next_token) if next_token else None
                 if token not in plural_fractions and next_val is not None \
-                        and next_val >= 1000:
+                        and (next_val >= 1000 or next_token in count_nouns):
                     # a singular fraction before a scale word multiplies that
                     # scale ("meio milhão" = 500000, "medio millón" = 500000),
                     # so leave it pending for the scale branch to multiply
@@ -947,7 +976,58 @@ class RomanceNumberExtractor:
                 continue
 
             if token in self.vocab.DECIMAL_MARKER:
-                tail = tokens[i + 1:]
+                # the decimal part is the run of number words right after
+                # the marker: "dois vírgula cinco quilos e três" is 2.5; a
+                # joiner stays in it only inside a compound ("noventa e
+                # nove"), and a preposition only between two scale words
+                # ("milhões de biliões")
+                # an article that spells "one" before a scale word stays in
+                # it too ("virgulă o sută")
+                scale_one = {tuple(v.split()) for v in self.vocab.SCALE_ONE.values()}
+                tail = []
+                for n in range(i + 1, len(tokens)):
+                    t = tokens[n]
+                    if t in numbers_map \
+                            or tuple(tokens[n:n + 2]) in scale_one \
+                            or t in self.vocab.JOIN_WORD \
+                            and self._joins_compound(tail, tokens[n + 1:n + 3],
+                                                     numbers_map) \
+                            or t in self.vocab.HALF_OF_SCALE_FOLLOWERS \
+                            and numbers_map.get(tokens[n - 1], 0) >= 1000 \
+                            and n + 1 < len(tokens) \
+                            and numbers_map.get(tokens[n + 1], 0) >= 1000:
+                        tail.append(t)
+                    else:
+                        break
+                # a scale word right after the decimal digits multiplies the
+                # whole decimal ("dois vírgula cinco milhões" = 2500000), when
+                # no scale word came before the marker; the number ends there
+                multiplier = 1
+                if not result and current < 1000:
+                    k = next((n for n, t in enumerate(tail)
+                              if numbers_map.get(t, 0) >= 1000
+                              or t in count_nouns), None)
+                    if k and any(t in numbers_map for t in tail[:k]):
+                        # the scale run, also across a preposition between
+                        # two scale words ("milhões de biliões")
+                        run, n = [], k
+                        while n < len(tail):
+                            if numbers_map.get(tail[n], 0) >= 1000 \
+                                    or tail[n] in count_nouns:
+                                run.append(numbers_map[tail[n]])
+                                n += 1
+                            elif tail[n] in self.vocab.HALF_OF_SCALE_FOLLOWERS \
+                                    and n + 1 < len(tail) \
+                                    and numbers_map.get(tail[n + 1], 0) >= 1000:
+                                n += 1
+                            else:
+                                break
+                        multiplier = math.prod(run)
+                        tail = tail[:k]
+                # a collective noun that multiplies nothing is no decimal
+                # digit: the number ends before it
+                tail = tail[:next((n for n, t in enumerate(tail)
+                                   if t in count_nouns), len(tail))]
                 tail_vals = [numbers_map[t] for t in tail if t in numbers_map]
                 if tail_vals and all(
                         0 <= v <= 9 and float(v) == int(v)
@@ -969,9 +1049,19 @@ class RomanceNumberExtractor:
                     else:
                         decimal_str = ''
                 if decimal_str:
-                    result += current + float(f"0.{decimal_str}")
+                    # summed as decimals: 7 + 0.94 is 7.94, not 7.9399999999999995
+                    number = Decimal(str(current)) + Decimal(f"0.{decimal_str}")
+                    if multiplier > 1:
+                        scaled = number * multiplier
+                        result = int(scaled) if scaled == int(scaled) \
+                            else float(scaled)
+                    else:
+                        result = float(Decimal(str(result)) + number)
                     current = 0
                     saw_number = True
+                    break
+                if saw_number:
+                    # no number word after the marker: the number ends there
                     break
                 i += 1
                 continue
@@ -987,6 +1077,26 @@ class RomanceNumberExtractor:
         if is_negative:
             result = -result
         return result
+
+    def _joins_compound(self, before: List[str], after: List[str],
+                        numbers_map: Dict[str, int]) -> bool:
+        """True when a joiner between ``before`` and ``after`` builds one
+        compound: tens, then a unit ("noventa e nove"), or hundreds, then a
+        number below 100 ("cento e vinte"). "cinco e dois" and "noventa e
+        quinze" are two numbers, and so is a unit that counts the hundreds
+        word after it ("vint i dos-cents"). A collective noun counts the
+        whole compound ("vinte e cinco centenas")."""
+        head = numbers_map.get(before[-1]) if before else None
+        nxt = numbers_map.get(after[0]) if after else None
+        if head is None or nxt is None \
+                or len(after) > 1 and numbers_map.get(after[1]) == 100 \
+                and after[1] not in self._count_nouns():
+            return False
+        if 20 <= head < 100 and head % 10 == 0:
+            return 1 <= nxt <= 9
+        if 100 <= head < 1000 and head % 100 == 0:
+            return 1 <= nxt <= 99
+        return False
 
     def numbers_to_digits(self,
                           utterance: str,
@@ -1015,6 +1125,7 @@ class RomanceNumberExtractor:
         joiners = set(self.vocab.JOIN_WORD) - set(self.vocab.MULTIPLICATIVE_JOIN_WORD)
         half_words = {self.vocab.FRACTION.get(2), self.vocab.FRACTION_FEMALE.get(2)} - {None}
         bare_plurals = self._plural_scales(numbers_map)
+        count_nouns = self._count_nouns()
         utterance = re.sub(
             r"[^\W\d_]+(?:-[^\W\d_]+)+",
             lambda m: m.group().replace("-", " ") if all(
@@ -1029,19 +1140,31 @@ class RomanceNumberExtractor:
         def next_word(idx):
             return words[idx + 1] if idx + 1 < len(words) else None
 
+        def half_of(idx):
+            # a half before a collective noun or a scale noun is half of
+            # it ("meia dúzia" = 6, "meio milhar" = 500), or None
+            nxt = next_word(idx)
+            if words[idx] in half_words and (
+                    nxt in count_nouns or numbers_map.get(nxt, 0) >= 1000
+                    and nxt not in self.vocab.SCALE_NUMERALS):
+                return numbers_map[nxt] / 2
+            return None
+
         def continues_span(idx):
             w = words[idx]
-            if w in numbers_map or w in self.vocab.JOIN_WORD:
+            if w in numbers_map or w in self.vocab.JOIN_WORD \
+                    or half_of(idx) is not None:
                 return True
             # a decimal marker only extends a span if it is immediately
             # followed by a number word ("tres coma catorze")
             if w in self.vocab.DECIMAL_MARKER:
-                return next_word(idx) in numbers_map
+                return next_word(idx) in numbers_map \
+                    and next_word(idx) not in count_nouns
             return False
 
         def starts_span(idx):
             w = words[idx]
-            if w in numbers_map:
+            if w in numbers_map or half_of(idx) is not None:
                 return True
             # a sign word opens a span before a number word ("menos vinte")
             if w in self.vocab.NEGATIVE_SIGN:
@@ -1059,6 +1182,13 @@ class RomanceNumberExtractor:
                     number_span_words.append(words[i])
                     j += 1
                 while j < len(words) and continues_span(j):
+                    if words[j] in count_nouns \
+                            and set(number_span_words) & set(self.vocab.DECIMAL_MARKER) \
+                            and self.extract_number(" ".join(number_span_words + [words[j]])) \
+                            == self.extract_number(" ".join(number_span_words)):
+                        # a collective noun that the decimal does not count
+                        # stays text ("um milhão vírgula cinco dúzias")
+                        break
                     if words[j] in self.vocab.JOIN_WORD and number_span_words \
                             and words[j] not in self.vocab.MULTIPLICATIVE_JOIN_WORD:
                         # the span only crosses a joiner when the value after
@@ -1066,8 +1196,19 @@ class RomanceNumberExtractor:
                         # An ascending pair is two numbers, not one, and the
                         # span has to end so the tail survives ("tres y veinte").
                         nxt = numbers_map.get(next_word(j))
+                        if j + 1 < len(words) and half_of(j + 1) is not None:
+                            nxt = half_of(j + 1)
                         sofar = self.extract_number(" ".join(number_span_words))
-                        if nxt is None or sofar is False or nxt >= sofar \
+                        if set(number_span_words) & set(self.vocab.DECIMAL_MARKER):
+                            # after the marker a joiner only builds a
+                            # compound of the decimal part ("vírgula
+                            # noventa e nove")
+                            if not self._joins_compound(number_span_words,
+                                                        [next_word(j),
+                                                         next_word(j + 1)],
+                                                        numbers_map):
+                                break
+                        elif nxt is None or sofar is False or nxt >= sofar \
                                 or next_word(j) in bare_plurals:
                             # a plural scale word after a joiner has no count
                             # ("dois milhões e milhares de pessoas")
@@ -1082,7 +1223,8 @@ class RomanceNumberExtractor:
                     j -= 1
 
                 if self.vocab.HALF_OF_SCALE and number_span_words \
-                        and numbers_map.get(number_span_words[-1], 0) >= 1000 \
+                        and (numbers_map.get(number_span_words[-1], 0) >= 1000
+                             or number_span_words[-1] in count_nouns) \
                         and number_span_words[-1] not in self.vocab.SCALE_NUMERALS \
                         and j + 1 < len(words) and words[j] in joiners \
                         and words[j + 1] in half_words \

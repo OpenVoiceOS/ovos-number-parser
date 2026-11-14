@@ -99,7 +99,7 @@ class TestNumbersToDigitsScaleAndAHalf(unittest.TestCase):
     def test_a_half_before_a_noun_counts_that_noun(self):
         # "meia dúzia" is half a dozen: a thousand and six eggs, not 1500
         for text, expected in [
-                ("mil e meia dúzia de ovos", "1000 e meia dúzia de ovos"),
+                ("mil e meia dúzia de ovos", "1006 de ovos"),
                 ("um milhão e meio quilo", "1000000 e meio quilo")]:
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="pt"), expected)
