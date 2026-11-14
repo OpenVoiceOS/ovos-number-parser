@@ -805,6 +805,7 @@ class RomanceNumberExtractor:
         # plural scale words that need a count right before them ("milhões")
         bare_plurals = self._plural_scales(numbers_map)
         count_nouns = self._count_nouns()
+        half_words = {self.vocab.FRACTION.get(2), self.vocab.FRACTION_FEMALE.get(2)} - {None}
         for idx, tok in enumerate(tokens):
             if tok in bare_plurals:
                 # a plural before any number has no count: "milhares de
@@ -828,6 +829,36 @@ class RomanceNumberExtractor:
                     sign = -1
                 else:
                     sign = 1
+                # the digits count the scale words right after them ("2
+                # milhões" = 2000000, "2,5 mil milhões" = 2500000000), also
+                # across a multiplicative joiner ("25 de mii")
+                marked = tok[-1:] in _NUMBER_END_MARKS
+                multiplier = 1
+                k = idx + 1
+                while not marked:
+                    nxt = k + (k < len(tokens)
+                               and tokens[k] in self.vocab.MULTIPLICATIVE_JOIN_WORD)
+                    if numbers_map.get(tokens[nxt] if nxt < len(tokens) else None, 0) < 1000:
+                        break
+                    multiplier *= numbers_map[tokens[nxt]]
+                    k = nxt + 1
+                # a half after the count is read as in words: half of the
+                # scale noun before it ("2 milhões e meio" = 2500000), else
+                # half of one ("2 e meio" = 2.5, "2 mil e meio" = 2000.5)
+                half = None
+                if not marked and k + 1 < len(tokens) \
+                        and tokens[k] in self.vocab.JOIN_WORD \
+                        and tokens[k] not in self.vocab.MULTIPLICATIVE_JOIN_WORD \
+                        and tokens[k + 1] in half_words:
+                    half = Decimal(multiplier) / 2 if multiplier > 1 \
+                        and self.vocab.HALF_OF_SCALE \
+                        and tokens[k - 1] not in self.vocab.SCALE_NUMERALS \
+                        else Decimal("0.5")
+                if multiplier > 1 or half:
+                    scaled = sign * Decimal(t) * multiplier
+                    if half:
+                        scaled += -half if scaled < 0 else half
+                    return int(scaled) if scaled == int(scaled) else float(scaled)
                 if val == int(val):
                     # a whole float rounds the digit string; above 2 ** 53
                     # it also drops digits of the whole part
@@ -1190,6 +1221,7 @@ class RomanceNumberExtractor:
                          or self.is_fractional(stem) is not False):
                 words[k], marks[k] = stem, mark
         output = []
+        digit_number = re.compile(r"-?\d+(?:[.,]\d+)*")
         i = 0
 
         def next_word(idx):
@@ -1229,6 +1261,33 @@ class RomanceNumberExtractor:
             return False
 
         while i < len(words):
+            # digits before a run of scale words are one number ("2 milhões"),
+            # as extract_number reads them; a mark ends the run
+            k = i + 1
+            while not marks[k - 1]:
+                nxt = k + (k < len(words)
+                           and words[k] in self.vocab.MULTIPLICATIVE_JOIN_WORD)
+                if numbers_map.get(words[nxt] if nxt < len(words) else None, 0) < 1000:
+                    break
+                k = nxt + 1
+            if self.vocab.HALF_OF_SCALE and k > i + 1 and not marks[k - 1] \
+                    and words[k - 1] not in self.vocab.SCALE_NUMERALS \
+                    and k + 1 < len(words) and words[k] in joiners \
+                    and words[k + 1] in half_words \
+                    and (k + 2 == len(words) or marks[k + 1]
+                         or words[k + 2] in joiners
+                         or words[k + 2] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
+                # half of the scale noun, as after a count in words
+                k += 2
+            # a digit string that is no number ("10.0.0.1") or that is one
+            # group of a spaced number ("10 000 milhões") starts no run
+            if k > i + 1 and digit_number.fullmatch(words[i]) \
+                    and self.extract_number(words[i]) is not False \
+                    and not (i and digit_number.fullmatch(words[i - 1])):
+                output.append(str(self.extract_number(" ".join(words[i:k])))
+                              + marks[k - 1])
+                i = k
+                continue
             # Look for the start of a number span
             if starts_span(i):
                 # Start a new span

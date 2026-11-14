@@ -96,6 +96,11 @@ a half after one is half a group, as after a scale noun: "dúzia e meia" is 18.
 A plural with no count names no number, as "milhares" does: "dúzias de ovos"
 and "centenas de pessoas" read as no number.
 
+Digits before a scale word. The digits count the scale, as a count in words
+does: "2 milhões" is 2000000 and "2,5 mil milhões" is 2500000000. CLDR 47
+writes large numbers in this form with its long compact decimal patterns:
+"0 mil", "0 milhões" and "0 mil milhões" for pt-PT, "0 bilhões" for pt-BR.
+
 Overview of the numerals: https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
 """
 from dataclasses import dataclass, field
