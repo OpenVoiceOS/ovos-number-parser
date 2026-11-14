@@ -938,8 +938,10 @@ class RomanceNumberExtractor:
                 elif token in count_nouns:
                     # a collective noun counts groups of its size: the count
                     # since the last scale word multiplies it ("mil e duas
-                    # dúzias" = 1024, "meia dúzia" = 6)
-                    below = current % 1000
+                    # dúzias" = 1024, "meia dúzia" = 6); a fraction right
+                    # before it counts only itself ("cem e meia dúzia" = 106)
+                    below = current % 1 if i and self.is_fractional(tokens[i - 1]) is not False \
+                        else current % 1000
                     current = current - below + (below or 1) * val
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
@@ -953,10 +955,8 @@ class RomanceNumberExtractor:
                     current += val
                 # a half of a group or a scale is a whole number of units
                 # ("meio milhar" = 500, "meia dúzia" = 6)
-                if isinstance(current, float) and current.is_integer():
-                    current = int(current)
-                if isinstance(result, float) and result.is_integer():
-                    result = int(result)
+                current = exact_int(current)
+                result = exact_int(result)
                 i += 1
                 continue
 

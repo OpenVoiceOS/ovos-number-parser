@@ -23,6 +23,10 @@ class TestCountNouns(unittest.TestCase):
             ("uma dúzia e três", 12 + 3),
             ("um milhão e meia dúzia", 10 ** 6 + 12 // 2),
             ("meio milhão e meia dúzia", 10 ** 6 // 2 + 12 // 2),
+            # a half before the noun halves only the group
+            ("cem e meia dúzia de ovos", 100 + 12 // 2),
+            ("vinte e meia dúzia", 20 + 12 // 2),
+            ("um e meia dúzia", 1 + 12 // 2),
             ("uma dezena de dias", 10),
             ("três dezenas", 3 * 10),
             ("uma centena de pessoas", 100),
@@ -49,6 +53,7 @@ class TestCountNouns(unittest.TestCase):
                              ("dúzia e meia de ovos", "18 de ovos"),
                              ("duas dúzias e meia", "30"),
                              ("um milhão e meia dúzia", "1000006"),
+                             ("cem e meia dúzia de ovos", "106 de ovos"),
                              ("três dezenas de carros", "30 de carros")]:
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
@@ -60,6 +65,17 @@ class TestCountNouns(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
                 self.assertIsInstance(extract_number(text, lang="pt-PT"), int)
+
+    def test_a_half_of_a_large_scale_is_exact(self):
+        # half of 10 ** 24 is 5 * 10 ** 23; the float 5e+23 cast with int()
+        # gives 499999999999999991611392
+        for lang, text in [("pt-PT", "meio quatrilião"), ("es-ES", "medio cuatrillón"),
+                           ("it-IT", "mezzo quadrilione")]:
+            with self.subTest(lang=lang, text=text):
+                self.assertEqual(extract_number(text, lang=lang, short_scale=False),
+                                 5 * 10 ** 23)
+        self.assertEqual(numbers_to_digits("meio quatrilião de euros", lang="pt-PT"),
+                         f"{5 * 10 ** 23} de euros")
 
 
 class TestDecimalBeforeCountNoun(unittest.TestCase):
