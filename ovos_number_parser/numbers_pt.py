@@ -85,6 +85,11 @@ Priberam, "milhar", sense 4: "[Figurado] Um grande número"; Priberam,
 So "milhares de pessoas" and "milhões de pessoas" read as no number, while
 "dois milhões de pessoas" is 2000000.
 
+Digits before a scale word. The digits count the scale, as a count in words
+does: "2 milhões" is 2000000 and "2,5 mil milhões" is 2500000000. CLDR 47
+writes large numbers in this form with its long compact decimal patterns:
+"0 mil", "0 milhões" and "0 mil milhões" for pt-PT, "0 bilhões" for pt-BR.
+
 Overview of the numerals: https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
 """
 from dataclasses import dataclass, field

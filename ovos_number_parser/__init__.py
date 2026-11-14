@@ -604,11 +604,13 @@ def _keep_digit_strings(original: str, converted: str, lang: str,
 
 
 def _is_number_word(word: str, lang: str, scale: Optional[Scale]) -> bool:
-    """Whether a word reads as a number, or joins two digits into one
-    decimal ("point" in "2 point 5")."""
+    """Whether a word reads as a number, joins two digits into one decimal
+    ("point" in "2 point 5"), or counts the digits before it ("milhões" in
+    "2 milhões")."""
     word = word.strip(_SPAN_PUNCTUATION)
     return _numeric_value(word, lang, None, True, scale) is not None or \
-        _numeric_value(f"2 {word} 5", lang, None, False, scale) == 2.5
+        _numeric_value(f"2 {word} 5", lang, None, False, scale) == 2.5 or \
+        _numeric_value(f"2 {word}", lang, None, False, scale) not in (None, 2)
 
 
 def _number_words_to_digits(utterance: str, lang: str,
