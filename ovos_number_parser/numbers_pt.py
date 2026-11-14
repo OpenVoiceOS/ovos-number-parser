@@ -68,6 +68,15 @@ one, as after any other numeral: "mil e meio" is 1000.5, as "dois e meio" is
 milhão vírgula cinco". Only the half is of the scale: "dois milhões e um
 quarto" adds a quarter of one.
 
+A decimal before a scale word counts that scale: "dois vírgula cinco
+milhões" is 2,5 milhões, 2500000. Só Matemática, "Como ler números grandes
+(acima de 1 milhão)" (https://www.somatematica.com.br/faq/numerosGrandes.php):
+"o correto é 1,4 milhão", and "se escrevermos esse
+número por extenso, teremos "um milhão e quatrocentos mil""; "Somente a
+partir de 2 é que a concordância é feita no plural: 2,5 milhões". CLDR 49
+writes the same values with its long compact patterns "0 milhão" and
+"0 milhões" ("2,5 milhões").
+
 "Milhar" is a scale noun of 1000 (Priberam, "milhar", sense 1: "Grupo de mil
 unidades"), read but never written: "dois milhares" is 2000 and "um milhar e
 meio" is 1500. A plural scale word with no count before it names no number.

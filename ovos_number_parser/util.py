@@ -1017,7 +1017,52 @@ class RomanceNumberExtractor:
                 continue
 
             if token in self.vocab.DECIMAL_MARKER:
-                tail = tokens[i + 1:]
+                # the decimal part is the run of number words right after
+                # the marker: "dois vírgula cinco quilos e três" is 2.5; a
+                # joiner stays in it only inside a compound ("noventa e
+                # nove"), and a preposition only between two scale words
+                # ("milhões de biliões")
+                # an article that spells "one" before a scale word stays in
+                # it too ("virgulă o sută")
+                scale_one = {tuple(v.split()) for v in self.vocab.SCALE_ONE.values()}
+                tail = []
+                for n in range(i + 1, len(tokens)):
+                    t = tokens[n]
+                    if t in numbers_map \
+                            or tuple(tokens[n:n + 2]) in scale_one \
+                            or t in self.vocab.JOIN_WORD \
+                            and self._joins_compound(tail, tokens[n + 1:n + 3],
+                                                     numbers_map) \
+                            or t in self.vocab.HALF_OF_SCALE_FOLLOWERS \
+                            and numbers_map.get(tokens[n - 1], 0) >= 1000 \
+                            and n + 1 < len(tokens) \
+                            and numbers_map.get(tokens[n + 1], 0) >= 1000:
+                        tail.append(t)
+                    else:
+                        break
+                # a scale word right after the decimal digits multiplies the
+                # whole decimal ("dois vírgula cinco milhões" = 2500000), when
+                # no scale word came before the marker; the number ends there
+                multiplier = 1
+                if not result and current < 1000:
+                    k = next((n for n, t in enumerate(tail)
+                              if numbers_map.get(t, 0) >= 1000), None)
+                    if k and any(t in numbers_map for t in tail[:k]):
+                        # the scale run, also across a preposition between
+                        # two scale words ("milhões de biliões")
+                        run, n = [], k
+                        while n < len(tail):
+                            if numbers_map.get(tail[n], 0) >= 1000:
+                                run.append(numbers_map[tail[n]])
+                                n += 1
+                            elif tail[n] in self.vocab.HALF_OF_SCALE_FOLLOWERS \
+                                    and n + 1 < len(tail) \
+                                    and numbers_map.get(tail[n + 1], 0) >= 1000:
+                                n += 1
+                            else:
+                                break
+                        multiplier = math.prod(run)
+                        tail = tail[:k]
                 tail_vals = [numbers_map[t] for t in tail if t in numbers_map]
                 if tail_vals and all(
                         0 <= v <= 9 and float(v) == int(v)
@@ -1039,9 +1084,19 @@ class RomanceNumberExtractor:
                     else:
                         decimal_str = ''
                 if decimal_str:
-                    result += current + float(f"0.{decimal_str}")
+                    # summed as decimals: 7 + 0.94 is 7.94, not 7.9399999999999995
+                    number = Decimal(str(current)) + Decimal(f"0.{decimal_str}")
+                    if multiplier > 1:
+                        scaled = number * multiplier
+                        result = int(scaled) if scaled == int(scaled) \
+                            else float(scaled)
+                    else:
+                        result = float(Decimal(str(result)) + number)
                     current = 0
                     saw_number = True
+                    break
+                if saw_number:
+                    # no number word after the marker: the number ends there
                     break
                 i += 1
                 continue
@@ -1057,6 +1112,24 @@ class RomanceNumberExtractor:
         if is_negative:
             result = -result
         return result
+
+    def _joins_compound(self, before: List[str], after: List[str],
+                        numbers_map: Dict[str, int]) -> bool:
+        """True when a joiner between ``before`` and ``after`` builds one
+        compound: tens, then a unit ("noventa e nove"), or hundreds, then a
+        number below 100 ("cento e vinte"). "cinco e dois" and "noventa e
+        quinze" are two numbers, and so is a unit that counts the hundreds
+        word after it ("vint i dos-cents")."""
+        head = numbers_map.get(before[-1]) if before else None
+        nxt = numbers_map.get(after[0]) if after else None
+        if head is None or nxt is None \
+                or len(after) > 1 and numbers_map.get(after[1]) == 100:
+            return False
+        if 20 <= head < 100 and head % 10 == 0:
+            return 1 <= nxt <= 9
+        if 100 <= head < 1000 and head % 100 == 0:
+            return 1 <= nxt <= 99
+        return False
 
     def numbers_to_digits(self,
                           utterance: str,
@@ -1171,7 +1244,16 @@ class RomanceNumberExtractor:
                         # span has to end so the tail survives ("tres y veinte").
                         nxt = numbers_map.get(next_word(j))
                         sofar = self.extract_number(" ".join(number_span_words))
-                        if nxt is None or sofar is False or nxt >= sofar \
+                        if set(number_span_words) & set(self.vocab.DECIMAL_MARKER):
+                            # after the marker a joiner only builds a
+                            # compound of the decimal part ("vírgula
+                            # noventa e nove")
+                            if not self._joins_compound(number_span_words,
+                                                        [next_word(j),
+                                                         next_word(j + 1)],
+                                                        numbers_map):
+                                break
+                        elif nxt is None or sofar is False or nxt >= sofar \
                                 or next_word(j) in bare_plurals:
                             # a plural scale word after a joiner has no count
                             # ("dois milhões e milhares de pessoas")
