@@ -883,6 +883,17 @@ class RomanceNumberExtractor:
 
         result = 0
         current = 0
+        # the value of ``result`` when a scale word last wrote it: a count
+        # noun counts it only while nothing else was added since
+        scale_result = None
+        # the part of ``current`` a collective noun counted before an
+        # additive joiner: a later noun or "mil" counts only what follows it
+        counted = 0
+        # a collective noun was read and no additive joiner followed it yet
+        noun_read = False
+        # counts that collective nouns finished before a later scale word:
+        # the scale word and a noun after it count none of them
+        finished = 0
         largest_scale = 0
         # the value of the run of scale words just read ("mil milhões" =
         # 10 ** 9), 0 once another number word follows
@@ -929,6 +940,9 @@ class RomanceNumberExtractor:
                 pending = current or result
                 if saw_number and nxt is not None and pending and nxt >= pending:
                     break
+                if noun_read:
+                    counted = current
+                    noun_read = False
                 i += 1
                 continue
 
@@ -959,43 +973,45 @@ class RomanceNumberExtractor:
                     # scale multiplier (mil, milhão, ...)
                     if val == 1000:
                         # thousand-level: keep accumulating so a bigger scale
-                        # (e.g. milhão) can still multiply the whole group
-                        current = (current or 1) * 1000
+                        # (e.g. milhão) can still multiply the whole group; a
+                        # number a collective noun counted stays as it is
+                        current = counted + ((current - counted) or 1) * 1000
                     elif val > largest_scale:
                         # a scale word above every scale before it
                         # multiplies the whole number so far ("dotze milions
                         # bilions" = 12 * 10 ** 6 * 10 ** 12)
+                        finished += counted
+                        current -= counted
                         result = (result + current or 1) * val
-                        current = 0
+                        current = counted = 0
+                        scale_result = result
                     else:
+                        finished += counted
+                        current -= counted
                         current = (current or 1) * val
                         result += current
-                        current = 0
+                        current = counted = 0
+                        scale_result = result
                     largest_scale = max(largest_scale, val)
                 elif token in count_nouns:
-                    # a collective noun counts groups of its size: the count
-                    # since the last scale word multiplies it ("mil e duas
-                    # dúzias" = 1024, "meia dúzia" = 6); a fraction right
-                    # before it counts only itself ("cem e meia dúzia" = 106),
-                    # and "uma" right before that fraction is its article
-                    # ("uma meia dúzia" = 6)
+                    # a collective noun counts groups of its size: the whole
+                    # cardinal before it multiplies it ("mil e duas dúzias" =
+                    # 1002 * 12, "dois milhões de dúzias" = 24000000); a
+                    # fraction right before it counts only itself ("cem e
+                    # meia dúzia" = 106), and "uma" right before that
+                    # fraction is its article ("uma meia dúzia" = 6)
                     if i and self.is_fractional(tokens[i - 1]) is not False:
                         below = current % 1
                         if i > 1 and numbers_map.get(tokens[i - 2]) == 1:
                             current -= 1
                         current = current - below + below * val
-                    elif i and (
-                            tokens[i - 1] in scales_words
-                            or i > 1 and tokens[i - 2] in scales_words
-                            and tokens[i - 1] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
-                        # right after a scale word it counts the whole number
-                        # ("duas mil dúzias" = 24000, "dois milhões de
-                        # dúzias" = 24000000)
-                        result *= val
-                        current *= val
                     else:
-                        below = current % 1000
-                        current = current - below + (below or 1) * val
+                        if result == scale_result and not counted:
+                            current = (result + current or 1) * val
+                            result = 0
+                        else:
+                            current = counted + ((current - counted) or 1) * val
+                    noun_read = True
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
                     # ("două sute" = 200, "dos cents" = 200), leaving higher
@@ -1050,7 +1066,7 @@ class RomanceNumberExtractor:
                         result += current + (int(part) if part == int(part) else part)
                     else:
                         result += current + fraction
-                    current = 0
+                    current = counted = 0
                     numerator = None
                 trailing_scale = 0
                 i += 1
@@ -1062,7 +1078,7 @@ class RomanceNumberExtractor:
             if token == particle and cardinal_denominators and denominator > 10 \
                     and i and tokens[i - 1] in numbers_map:
                 result += (1 if numerator is None else numerator) / denominator
-                current = 0
+                current = counted = 0
                 numerator = None
                 saw_number = True
                 i += 1
@@ -1162,7 +1178,7 @@ class RomanceNumberExtractor:
             trailing_scale = 0
             i += 1
 
-        result += current
+        result += current + finished
 
         if not saw_number:
             return False
