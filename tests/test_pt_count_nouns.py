@@ -31,6 +31,12 @@ class TestCountNouns(unittest.TestCase):
             ("uma meia dúzia de ovos", 12 // 2),
             ("uma meia dezena", 10 // 2),
             ("uma meia centena", 100 // 2),
+            # the article drops only itself: the number before it stays
+            ("mil e uma meia dúzia", 1000 + 12 // 2),
+            ("vinte e uma meia dúzia", 20 + 12 // 2),
+            ("comprei duas dúzias e uma meia dúzia", 2 * 12 + 12 // 2),
+            # "uma" after the group is a count of its own
+            ("meia dúzia e uma", 12 // 2 + 1),
             ("uma dezena de dias", 10),
             ("três dezenas", 3 * 10),
             ("uma centena de pessoas", 100),
