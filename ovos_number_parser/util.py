@@ -886,6 +886,9 @@ class RomanceNumberExtractor:
         # the value of ``result`` when a scale word last wrote it: a count
         # noun counts it only while nothing else was added since
         scale_result = None
+        # the part of ``current`` a collective noun already counted: a later
+        # noun counts only what was added after it
+        counted = 0
         largest_scale = 0
         # the value of the run of scale words just read ("mil milhões" =
         # 10 ** 9), 0 once another number word follows
@@ -962,19 +965,20 @@ class RomanceNumberExtractor:
                     # scale multiplier (mil, milhão, ...)
                     if val == 1000:
                         # thousand-level: keep accumulating so a bigger scale
-                        # (e.g. milhão) can still multiply the whole group
-                        current = (current or 1) * 1000
+                        # (e.g. milhão) can still multiply the whole group; a
+                        # number a collective noun counted stays as it is
+                        current = counted + ((current - counted) or 1) * 1000
                     elif val > largest_scale:
                         # a scale word above every scale before it
                         # multiplies the whole number so far ("dotze milions
                         # bilions" = 12 * 10 ** 6 * 10 ** 12)
                         result = (result + current or 1) * val
-                        current = 0
+                        current = counted = 0
                         scale_result = result
                     else:
                         current = (current or 1) * val
                         result += current
-                        current = 0
+                        current = counted = 0
                         scale_result = result
                     largest_scale = max(largest_scale, val)
                 elif token in count_nouns:
@@ -990,11 +994,12 @@ class RomanceNumberExtractor:
                             current -= 1
                         current = current - below + below * val
                     else:
-                        if result == scale_result:
+                        if result == scale_result and not counted:
                             current = (result + current or 1) * val
                             result = 0
                         else:
-                            current = (current or 1) * val
+                            current = counted + ((current - counted) or 1) * val
+                    counted = current
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
                     # ("două sute" = 200, "dos cents" = 200), leaving higher
@@ -1049,7 +1054,7 @@ class RomanceNumberExtractor:
                         result += current + (int(part) if part == int(part) else part)
                     else:
                         result += current + fraction
-                    current = 0
+                    current = counted = 0
                     numerator = None
                 trailing_scale = 0
                 i += 1
@@ -1061,7 +1066,7 @@ class RomanceNumberExtractor:
             if token == particle and cardinal_denominators and denominator > 10 \
                     and i and tokens[i - 1] in numbers_map:
                 result += (1 if numerator is None else numerator) / denominator
-                current = 0
+                current = counted = 0
                 numerator = None
                 saw_number = True
                 i += 1

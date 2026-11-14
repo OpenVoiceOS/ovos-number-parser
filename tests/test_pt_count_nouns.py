@@ -242,3 +242,33 @@ class TestFinishedNumberIsNotCounted(unittest.TestCase):
                      12 + 12 // 2 + 2 * 12)]:
                 with self.subTest(lang=lang, text=text):
                     self.assertEqual(extract_number(text, lang=lang), value)
+
+
+class TestNounAfterNoun(unittest.TestCase):
+    """A later collective noun counts only the number after the earlier one."""
+
+    def test_each_noun_counts_its_own_number(self):
+        for lang in ("pt-PT", "pt-BR"):
+            for text, value in [
+                    ("duas mil dúzias e duas dúzias", 2000 * 12 + 2 * 12),
+                    ("duas mil dúzias de ovos e duas dúzias de pães",
+                     2000 * 12 + 2 * 12),
+                    ("um milhão de dúzias e duas dúzias", 10 ** 6 * 12 + 2 * 12),
+                    ("três mil dezenas e duas dezenas", 3000 * 10 + 2 * 10),
+                    ("mil dúzias e três centenas", 1000 * 12 + 3 * 100),
+                    ("um milhão e meia dúzia e duas dúzias",
+                     10 ** 6 + 12 // 2 + 2 * 12),
+                    ("duas dúzias e três dúzias", 2 * 12 + 3 * 12),
+                    ("uma dúzia e uma dúzia", 12 + 12),
+                    # "mil" multiplies only the number after the earlier noun
+                    ("uma dúzia e duas mil dúzias", 12 + 2000 * 12),
+                    ("um milhão e duas dúzias e mil dúzias",
+                     (10 ** 6 + 2) * 12 + 1000 * 12)]:
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(extract_number(text, lang=lang), value)
+
+    def test_numbers_to_digits_writes_the_sum(self):
+        for lang in ("pt-PT", "pt-BR"):
+            with self.subTest(lang=lang):
+                self.assertEqual(numbers_to_digits(
+                    "duas mil dúzias e duas dúzias", lang=lang), "24024")
