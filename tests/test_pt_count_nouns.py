@@ -27,6 +27,10 @@ class TestCountNouns(unittest.TestCase):
             ("cem e meia dúzia de ovos", 100 + 12 // 2),
             ("vinte e meia dúzia", 20 + 12 // 2),
             ("um e meia dúzia", 1 + 12 // 2),
+            # "uma" right before the half is its article
+            ("uma meia dúzia de ovos", 12 // 2),
+            ("uma meia dezena", 10 // 2),
+            ("uma meia centena", 100 // 2),
             ("uma dezena de dias", 10),
             ("três dezenas", 3 * 10),
             ("uma centena de pessoas", 100),
@@ -54,6 +58,7 @@ class TestCountNouns(unittest.TestCase):
                              ("duas dúzias e meia", "30"),
                              ("um milhão e meia dúzia", "1000006"),
                              ("cem e meia dúzia de ovos", "106 de ovos"),
+                             ("uma meia dúzia de ovos", "6 de ovos"),
                              ("três dezenas de carros", "30 de carros")]:
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
