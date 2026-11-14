@@ -979,9 +979,19 @@ class RomanceNumberExtractor:
                         below = current % 1
                         if i > 1 and numbers_map.get(tokens[i - 2]) == 1:
                             current -= 1
+                        current = current - below + below * val
+                    elif i and (
+                            tokens[i - 1] in scales_words
+                            or i > 1 and tokens[i - 2] in scales_words
+                            and tokens[i - 1] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
+                        # right after a scale word it counts the whole number
+                        # ("duas mil dúzias" = 24000, "dois milhões de
+                        # dúzias" = 24000000)
+                        result *= val
+                        current *= val
                     else:
                         below = current % 1000
-                    current = current - below + (below or 1) * val
+                        current = current - below + (below or 1) * val
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
                     # ("două sute" = 200, "dos cents" = 200), leaving higher

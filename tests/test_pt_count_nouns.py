@@ -31,6 +31,12 @@ class TestCountNouns(unittest.TestCase):
             ("uma meia dúzia de ovos", 12 // 2),
             ("uma meia dezena", 10 // 2),
             ("uma meia centena", 100 // 2),
+            # the article drops only itself: the number before it stays
+            ("mil e uma meia dúzia", 1000 + 12 // 2),
+            ("vinte e uma meia dúzia", 20 + 12 // 2),
+            ("comprei duas dúzias e uma meia dúzia", 2 * 12 + 12 // 2),
+            # "uma" after the group is a count of its own
+            ("meia dúzia e uma", 12 // 2 + 1),
             ("uma dezena de dias", 10),
             ("três dezenas", 3 * 10),
             ("uma centena de pessoas", 100),
@@ -145,7 +151,10 @@ class TestDigitsBeforeCountNoun(unittest.TestCase):
                     # a mark after the noun stays in the text
                     ("2 dúzias, disse", 2 * 12, "24, disse"),
                     # after a scale word the noun counts the whole number
-                    ("2 mil dúzias", 2 * 1000 * 12, "24000")]:
+                    ("2 mil dúzias", 2 * 1000 * 12, "24000"),
+                    # a half after the noun is half a group there too
+                    ("2 mil dúzias e meia", 2 * 1000 * 12 + 12 // 2, "24006"),
+                    ("2 mil dezenas e meia", 2 * 1000 * 10 + 10 // 2, "20005")]:
                 with self.subTest(lang=lang, text=text):
                     got = extract_number(text, lang=lang)
                     self.assertEqual(got, value)
@@ -156,3 +165,26 @@ class TestDigitsBeforeCountNoun(unittest.TestCase):
         self.assertEqual(extract_number("nota 2, dúzias de vezes", lang="pt-PT"), 2)
         self.assertEqual(numbers_to_digits("nota 2, dúzias de vezes", lang="pt-PT"),
                          "nota 2, dúzias de vezes")
+
+
+class TestCountNounAfterScale(unittest.TestCase):
+    """Right after a scale word a collective noun counts the whole number."""
+
+    def test_the_noun_multiplies_the_whole_number(self):
+        for lang in ("pt-PT", "pt-BR"):
+            for text, value in [
+                    ("mil dúzias", 1000 * 12),
+                    ("duas mil dúzias", 2000 * 12),
+                    ("cem mil dúzias de ovos", 100000 * 12),
+                    ("um milhão de dúzias", 10 ** 6 * 12),
+                    ("dois milhões de dúzias", 2 * 10 ** 6 * 12),
+                    ("meio milhão de dúzias", 10 ** 6 // 2 * 12),
+                    ("um milhão duzentos mil dúzias", 1200000 * 12),
+                    # a count after the scale word counts only itself
+                    ("mil e duas dúzias", 1000 + 2 * 12)]:
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(extract_number(text, lang=lang), value)
+
+    def test_numbers_to_digits_writes_the_whole_number(self):
+        self.assertEqual(numbers_to_digits("duas mil dúzias de ovos", lang="pt-PT"),
+                         "24000 de ovos")
