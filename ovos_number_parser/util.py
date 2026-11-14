@@ -1142,9 +1142,10 @@ class RomanceNumberExtractor:
 
         def half_of(idx):
             # a half before a collective noun or a scale noun is half of
-            # it ("meia dúzia" = 6, "meio milhar" = 500), or None
+            # it ("meia dúzia" = 6, "meio milhar" = 500), or None; a plural
+            # is no group to halve ("meio milhões")
             nxt = next_word(idx)
-            if words[idx] in half_words and (
+            if words[idx] in half_words and nxt not in bare_plurals and (
                     nxt in count_nouns or numbers_map.get(nxt, 0) >= 1000
                     and nxt not in self.vocab.SCALE_NUMERALS):
                 return numbers_map[nxt] / 2

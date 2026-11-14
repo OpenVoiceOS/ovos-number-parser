@@ -88,6 +88,16 @@ class TestDecimalBeforeCountNoun(unittest.TestCase):
                 self.assertEqual(extract_number(text, lang="pt-PT"), value)
                 self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
 
+    def test_a_half_before_a_plural_stays_text(self):
+        # a half halves one group, so before a plural it builds no number
+        for text, digits in [
+                ("meio milhões de pessoas", "meio milhões de pessoas"),
+                ("dois e meio milhares de pessoas",
+                 "2 e meio milhares de pessoas"),
+                ("meias dúzias de ovos", "meias dúzias de ovos")]:
+            with self.subTest(text=text):
+                self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
+
     def test_a_marker_before_a_collective_noun_stays_text(self):
         # no number word follows the marker, so no decimal starts there
         self.assertEqual(
