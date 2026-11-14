@@ -975,29 +975,18 @@ class RomanceNumberExtractor:
                 elif token in count_nouns:
                     # a collective noun counts groups of its size: the whole
                     # cardinal before it multiplies it ("mil e duas dúzias" =
-                    # 1002 * 12); a fraction right before it counts only
-                    # itself ("cem e meia dúzia" = 106), and "uma" right
-                    # before that fraction is its article ("uma meia dúzia" =
-                    # 6)
+                    # 1002 * 12, "dois milhões de dúzias" = 24000000); a
+                    # fraction right before it counts only itself ("cem e
+                    # meia dúzia" = 106), and "uma" right before that
+                    # fraction is its article ("uma meia dúzia" = 6)
                     if i and self.is_fractional(tokens[i - 1]) is not False:
                         below = current % 1
                         if i > 1 and numbers_map.get(tokens[i - 2]) == 1:
                             current -= 1
                         current = current - below + below * val
-                    elif i and (
-                            tokens[i - 1] in scales_words
-                            or i > 1 and tokens[i - 2] in scales_words
-                            and tokens[i - 1] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
-                        # right after a scale word it counts the whole number
-                        # ("duas mil dúzias" = 24000, "dois milhões de
-                        # dúzias" = 24000000)
-                        result *= val
-                        current *= val
                     else:
-                        # a scale noun ("milhão") ends a count, so only the
-                        # cardinal after it counts ("um milhão e duas
-                        # dúzias" = 1000024)
-                        current = (current or 1) * val
+                        current = (result + current or 1) * val
+                        result = 0
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
                     # ("două sute" = 200, "dos cents" = 200), leaving higher

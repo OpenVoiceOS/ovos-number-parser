@@ -25,9 +25,10 @@ class TestCountNouns(unittest.TestCase):
             ("duas mil e duzentas dúzias", 2200 * 12),
             ("mil duzentas dúzias", 1200 * 12),
             ("três mil e quinhentas centenas", 3500 * 100),
-            # a scale noun ends a count: only the cardinal after it counts
-            ("um milhão e duas dúzias", 10 ** 6 + 2 * 12),
-            ("um milhão e mil e duas dúzias", 10 ** 6 + 1002 * 12),
+            ("um milhão e duas dúzias", (10 ** 6 + 2) * 12),
+            ("um milhão e duzentas mil dúzias", 1200000 * 12),
+            ("um milhão e duzentas mil e duas dúzias", 1200002 * 12),
+            ("dois milhões e quinhentas mil e uma dúzias", 2500001 * 12),
             ("uma dúzia e três", 12 + 3),
             ("um milhão e meia dúzia", 10 ** 6 + 12 // 2),
             ("meio milhão e meia dúzia", 10 ** 6 // 2 + 12 // 2),

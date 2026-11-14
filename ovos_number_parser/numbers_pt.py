@@ -96,9 +96,9 @@ a half after one is half a group, as after a scale noun: "dúzia e meia" is 18.
 The whole cardinal counts the noun, as in Priberam, "mil", locution "mil e
 um": "Grande quantidade (ex.: ele tem mil e uma artimanhas)"
 (https://dicionario.priberam.org/mil), where "mil e uma" counts
-"artimanhas". So "mil e duas dúzias" is 1002 dozens and "duas mil e duzentas
-dúzias" is 2200 dozens. "Meia dúzia" is a group of its own, so "cem e meia
-dúzia" is 100 and 6.
+"artimanhas". So "mil e duas dúzias" is 1002 dozens, "duas mil e duzentas
+dúzias" is 2200 dozens and "um milhão e duas dúzias" is 1000002 dozens.
+"Meia dúzia" is a group of its own, so "cem e meia dúzia" is 100 and 6.
 A plural with no count names no number, as "milhares" does: "dúzias de ovos"
 and "centenas de pessoas" read as no number.
 
