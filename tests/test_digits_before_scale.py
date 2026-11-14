@@ -55,6 +55,24 @@ class TestDigitsBeforeScale(unittest.TestCase):
             with self.subTest(lang=lang, text=text):
                 self.assertEqual(numbers_to_digits(text, lang=lang), digits)
 
+    def test_a_half_after_the_digits_reads_as_in_words(self):
+        # after a scale noun the half is half of it, after "mil" or no scale
+        # word it is half of one ("dois mil e meio" is 2000.5)
+        for text, value, digits in [
+                ("2 milhões e meio de euros", 2500000, "2500000 de euros"),
+                ("-2 milhões e meio", -2500000, "-2500000"),
+                ("2 mil milhões e meio", 2500000000, "2500000000"),
+                ("custou 2 milhões e meio.", 2500000, "custou 2500000."),
+                ("2 mil e meio", 2000.5, "2000 e meio"),
+                ("teste numero 1 e meio", 1.5, "teste numero 1 e meio"),
+                # numbers_to_digits keeps a half that a noun follows, as in
+                # words ("dois milhões e meio quilos")
+                ("2 milhões e meio quilos", 2500000, "2000000 e meio quilos"),
+                ("2, e meio", 2, "2, e meio")]:
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang="pt-PT"), value)
+                self.assertEqual(numbers_to_digits(text, lang="pt-PT"), digits)
+
     def test_digits_with_no_scale_word_are_unchanged(self):
         for lang, text, value, digits in [
                 ("pt-PT", "2 euros", 2, "2 euros"),

@@ -792,6 +792,7 @@ class RomanceNumberExtractor:
         grouped = re.compile(rf"-?[1-9]\d{{0,2}}(?:{re.escape(group)}\d{{3}})+(?:,\d+)?")
         # plural scale words that need a count right before them ("milhões")
         bare_plurals = self._plural_scales(numbers_map)
+        half_words = {self.vocab.FRACTION.get(2), self.vocab.FRACTION_FEMALE.get(2)} - {None}
         for idx, tok in enumerate(tokens):
             if tok in bare_plurals:
                 # a plural before any number has no count: "milhares de
@@ -827,8 +828,22 @@ class RomanceNumberExtractor:
                         break
                     multiplier *= numbers_map[tokens[nxt]]
                     k = nxt + 1
-                if multiplier > 1:
+                # a half after the count is read as in words: half of the
+                # scale noun before it ("2 milhões e meio" = 2500000), else
+                # half of one ("2 e meio" = 2.5, "2 mil e meio" = 2000.5)
+                half = None
+                if tok[-1:] not in ".,!?;:" and k + 1 < len(tokens) \
+                        and tokens[k] in self.vocab.JOIN_WORD \
+                        and tokens[k] not in self.vocab.MULTIPLICATIVE_JOIN_WORD \
+                        and tokens[k + 1] in half_words:
+                    half = Decimal(multiplier) / 2 if multiplier > 1 \
+                        and self.vocab.HALF_OF_SCALE \
+                        and tokens[k - 1] not in self.vocab.SCALE_NUMERALS \
+                        else Decimal("0.5")
+                if multiplier > 1 or half:
                     scaled = sign * Decimal(t) * multiplier
+                    if half:
+                        scaled += -half if scaled < 0 else half
                     return int(scaled) if scaled == int(scaled) else float(scaled)
                 if val == int(val):
                     # a whole float rounds the digit string; above 2 ** 53
@@ -1124,6 +1139,15 @@ class RomanceNumberExtractor:
                 if numbers_map.get(words[nxt] if nxt < len(words) else None, 0) < 1000:
                     break
                 k = nxt + 1
+            if self.vocab.HALF_OF_SCALE and k > i + 1 and not marks[k - 1] \
+                    and words[k - 1] not in self.vocab.SCALE_NUMERALS \
+                    and k + 1 < len(words) and words[k] in joiners \
+                    and words[k + 1] in half_words \
+                    and (k + 2 == len(words) or marks[k + 1]
+                         or words[k + 2] in joiners
+                         or words[k + 2] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
+                # half of the scale noun, as after a count in words
+                k += 2
             if k > i + 1 and digit_number.fullmatch(words[i]):
                 output.append(str(self.extract_number(" ".join(words[i:k])))
                               + marks[k - 1])
