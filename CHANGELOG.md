@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.24.53a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.53a1) (2026-11-14)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.52a1...0.24.53a1)
+
+**Merged pull requests:**
+
+- fix: a comma or a sentence mark ends a spoken number [\#485](https://github.com/OpenVoiceOS/ovos-number-parser/pull/485) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.24.52a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.52a1) (2026-11-14)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.51a1...0.24.52a1)
+
+**Merged pull requests:**
+
+- fix: a decimal before a scale word counts that scale [\#484](https://github.com/OpenVoiceOS/ovos-number-parser/pull/484) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.51a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.51a1) (2026-11-13)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.50a1...0.24.51a1)
