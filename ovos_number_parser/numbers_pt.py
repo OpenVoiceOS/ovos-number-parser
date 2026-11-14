@@ -85,6 +85,17 @@ Priberam, "milhar", sense 4: "[Figurado] Um grande número"; Priberam,
 So "milhares de pessoas" and "milhões de pessoas" read as no number, while
 "dois milhões de pessoas" is 2000000.
 
+"Dezena", "dúzia" and "centena" are collective nouns that count groups of a
+fixed size. Priberam, "dezena", sense 1: "Grupo de dez."
+(https://dicionario.priberam.org/dezena); Priberam, "dúzia", sense 1:
+"Conjunto de doze.", and "meia dúzia": "Conjunto de seis."
+(https://dicionario.priberam.org/dúzia); Priberam, "centena", sense 3:
+"Conjunto de 100 elementos." (https://dicionario.priberam.org/centena). The
+count before one multiplies it: "duas dúzias" is 24, "meia dúzia" is 6, and
+a half after one is half a group, as after a scale noun: "dúzia e meia" is 18.
+A plural with no count names no number, as "milhares" does: "dúzias de ovos"
+and "centenas de pessoas" read as no number.
+
 Digits before a scale word. The digits count the scale, as a count in words
 does: "2 milhões" is 2000000 and "2,5 mil milhões" is 2500000000. CLDR 47
 writes large numbers in this form with its long compact decimal patterns:
@@ -188,6 +199,7 @@ _PT_PT = PortugueseVocabulary(
     LANG="pt-PT",
     SCALE_ALT_ENDING=("lião", "lhão"),  # "bilhão" reads as "bilião"
     SCALE_NOUNS={"milhar": 1000},  # "dois milhares" = 2000
+    COUNT_NOUNS={"dezena": 10, "dúzia": 12, "centena": 100},  # "duas dúzias" = 24
 
     swap_gender=swap_gender_pt, # used for female forms
     pluralize=pluralize_pt, # use for plural forms
@@ -414,6 +426,7 @@ _PT_BR = PortugueseVocabulary(
     LANG="pt-BR",
     SCALE_ALT_ENDING=("lhão", "lião"),  # "bilião" reads as "bilhão"
     SCALE_NOUNS=_PT_PT.SCALE_NOUNS,
+    COUNT_NOUNS=_PT_PT.COUNT_NOUNS,
     swap_gender=swap_gender_pt,  # used for female forms
     pluralize=pluralize_pt,  # use for plural forms
     DEFAULT_SCALE=Scale.SHORT,
