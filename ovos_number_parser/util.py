@@ -957,7 +957,7 @@ class RomanceNumberExtractor:
                     t = tokens[n]
                     if t in numbers_map \
                             or t in self.vocab.JOIN_WORD \
-                            and self._joins_compound(tail, tokens[n + 1:n + 2],
+                            and self._joins_compound(tail, tokens[n + 1:n + 3],
                                                      numbers_map) \
                             or t in self.vocab.HALF_OF_SCALE_FOLLOWERS \
                             and numbers_map.get(tokens[n - 1], 0) >= 1000 \
@@ -1044,10 +1044,12 @@ class RomanceNumberExtractor:
         """True when a joiner between ``before`` and ``after`` builds one
         compound: tens, then a unit ("noventa e nove"), or hundreds, then a
         number below 100 ("cento e vinte"). "cinco e dois" and "noventa e
-        quinze" are two numbers."""
+        quinze" are two numbers, and so is a unit that counts the hundreds
+        word after it ("vint i dos-cents")."""
         head = numbers_map.get(before[-1]) if before else None
         nxt = numbers_map.get(after[0]) if after else None
-        if head is None or nxt is None:
+        if head is None or nxt is None \
+                or len(after) > 1 and numbers_map.get(after[1]) == 100:
             return False
         if 20 <= head < 100 and head % 10 == 0:
             return 1 <= nxt <= 9
@@ -1139,7 +1141,8 @@ class RomanceNumberExtractor:
                             # compound of the decimal part ("vírgula
                             # noventa e nove")
                             if not self._joins_compound(number_span_words,
-                                                        [next_word(j)],
+                                                        [next_word(j),
+                                                         next_word(j + 1)],
                                                         numbers_map):
                                 break
                         elif nxt is None or sofar is False or nxt >= sofar \

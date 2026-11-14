@@ -147,3 +147,17 @@ class TestDecimalBeforeScale(unittest.TestCase):
         # the integer part does not take number words after the marker
         self.assertEqual(extract_number("dois vírgula muitos três",
                                         lang="pt-PT"), 2)
+
+    def test_a_unit_that_counts_a_hundreds_word_is_a_second_number(self):
+        # "vint i dos-cents": "dos" counts the hundreds, so the range is
+        # 1.2 to 200 and not 1.22
+        for text, lang in [("entre un coma vint i dos-cents euros", "ca-ES"),
+                           ("entre unu virgulă douăzeci și două sute euros",
+                            "ro-RO"),
+                           ("entre uno virgola venti e duecento euros",
+                            "it-IT")]:
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, lang=lang), 1.2)
+        self.assertEqual(numbers_to_digits(
+            "entre unu virgulă douăzeci și două sute euros", lang="ro-RO"),
+            "entre 1.2 și 200 euros")
