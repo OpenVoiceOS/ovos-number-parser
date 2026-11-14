@@ -150,5 +150,28 @@ class TestNumberSpansDE(SpanAssertions):
         self.assertEqual(spans[0].start, 2)
 
 
+
+class TestPhraseReadingAnEarlierValue(SpanAssertions):
+    """A longer phrase may read the value of a shorter one. The phrase ends
+    at the shorter one only when numbers_to_digits writes it as that number
+    and more."""
+
+    def test_a_new_number_after_a_finished_one_is_cut_off(self):
+        self.assertSpans("duas dúzias e meio milhão", "pt-PT",
+                         [("duas dúzias", 24), ("meio milhão", 500000)])
+
+    def test_a_fragment_that_reads_an_earlier_value_is_not_cut(self):
+        # the extractor reads "twenty one twenty" as 20, but
+        # numbers_to_digits writes "21 20"
+        self.assertSpans("twenty one twenty", "en",
+                         [("twenty one", 21), ("twenty", 20)])
+
+    def test_a_split_numbers_to_digits_makes_no_cut(self):
+        # numbers_to_digits writes "сто и петдесет" as more than one
+        # number, so it says nothing about where the span ends
+        self.assertSpans("сто и петдесет сто и едно", "bg",
+                         [("сто и петдесет", 150), ("сто и едно", 101)])
+
+
 if __name__ == "__main__":
     unittest.main()
