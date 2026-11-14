@@ -852,7 +852,11 @@ class RomanceNumberExtractor:
                         and tokens[k] in self.vocab.JOIN_WORD \
                         and tokens[k] not in self.vocab.MULTIPLICATIVE_JOIN_WORD \
                         and tokens[k + 1] in half_words:
-                    half = Decimal(multiplier) / 2 if multiplier > 1 \
+                    # half of the collective noun or of the scale noun the
+                    # run ends in
+                    unit = numbers_map[tokens[k - 1]] if tokens[k - 1] in count_nouns \
+                        else multiplier
+                    half = Decimal(unit) / 2 if multiplier > 1 \
                         and self.vocab.HALF_OF_SCALE \
                         and tokens[k - 1] not in self.vocab.SCALE_NUMERALS \
                         else Decimal("0.5")
