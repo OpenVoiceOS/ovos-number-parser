@@ -831,16 +831,18 @@ class RomanceNumberExtractor:
                     sign = 1
                 # the digits count the scale words right after them ("2
                 # milhões" = 2000000, "2,5 mil milhões" = 2500000000), also
-                # across a multiplicative joiner ("25 de mii")
+                # across a multiplicative joiner ("25 de mii"), and the
+                # collective nouns among them ("2 dúzias" = 24)
                 marked = tok[-1:] in _NUMBER_END_MARKS
                 multiplier = 1
                 k = idx + 1
                 while not marked:
                     nxt = k + (k < len(tokens)
                                and tokens[k] in self.vocab.MULTIPLICATIVE_JOIN_WORD)
-                    if numbers_map.get(tokens[nxt] if nxt < len(tokens) else None, 0) < 1000:
+                    word = tokens[nxt] if nxt < len(tokens) else None
+                    if numbers_map.get(word, 0) < 1000 and word not in count_nouns:
                         break
-                    multiplier *= numbers_map[tokens[nxt]]
+                    multiplier *= numbers_map[word]
                     k = nxt + 1
                 # a half after the count is read as in words: half of the
                 # scale noun before it ("2 milhões e meio" = 2500000), else
@@ -850,7 +852,11 @@ class RomanceNumberExtractor:
                         and tokens[k] in self.vocab.JOIN_WORD \
                         and tokens[k] not in self.vocab.MULTIPLICATIVE_JOIN_WORD \
                         and tokens[k + 1] in half_words:
-                    half = Decimal(multiplier) / 2 if multiplier > 1 \
+                    # half of the collective noun or of the scale noun the
+                    # run ends in
+                    unit = numbers_map[tokens[k - 1]] if tokens[k - 1] in count_nouns \
+                        else multiplier
+                    half = Decimal(unit) / 2 if multiplier > 1 \
                         and self.vocab.HALF_OF_SCALE \
                         and tokens[k - 1] not in self.vocab.SCALE_NUMERALS \
                         else Decimal("0.5")
@@ -1273,13 +1279,15 @@ class RomanceNumberExtractor:
             return False
 
         while i < len(words):
-            # digits before a run of scale words are one number ("2 milhões"),
-            # as extract_number reads them; a mark ends the run
+            # digits before a run of scale words, or before a collective
+            # noun, are one number ("2 milhões", "2 dúzias"), as
+            # extract_number reads them; a mark ends the run
             k = i + 1
             while not marks[k - 1]:
                 nxt = k + (k < len(words)
                            and words[k] in self.vocab.MULTIPLICATIVE_JOIN_WORD)
-                if numbers_map.get(words[nxt] if nxt < len(words) else None, 0) < 1000:
+                word = words[nxt] if nxt < len(words) else None
+                if numbers_map.get(word, 0) < 1000 and word not in count_nouns:
                     break
                 k = nxt + 1
             if self.vocab.HALF_OF_SCALE and k > i + 1 and not marks[k - 1] \

@@ -140,6 +140,41 @@ class TestDecimalBeforeCountNoun(unittest.TestCase):
             "custou 2 vírgula dúzias de ovos")
 
 
+class TestDigitsBeforeCountNoun(unittest.TestCase):
+    """Digits count a collective noun right after them, as a count in words."""
+
+    def test_the_digits_count_the_group(self):
+        for lang in ("pt-PT", "pt-BR"):
+            for text, value, digits in [
+                    ("2 dúzias de ovos", 2 * 12, "24 de ovos"),
+                    ("1 dúzia", 12, "12"),
+                    ("3 dezenas", 3 * 10, "30"),
+                    ("5 centenas de pessoas", 5 * 100, "500 de pessoas"),
+                    ("12 dúzias", 12 * 12, "144"),
+                    ("-2 dúzias", -2 * 12, "-24"),
+                    ("2,5 dúzias", 30, "30"),
+                    # a half after the noun is half a group
+                    ("2 dúzias e meia", 2 * 12 + 12 // 2, "30"),
+                    ("1 dúzia e meia de ovos", 12 + 12 // 2, "18 de ovos"),
+                    # a mark after the noun stays in the text
+                    ("2 dúzias, disse", 2 * 12, "24, disse"),
+                    # after a scale word the noun counts the whole number
+                    ("2 mil dúzias", 2 * 1000 * 12, "24000"),
+                    # a half after the noun is half a group there too
+                    ("2 mil dúzias e meia", 2 * 1000 * 12 + 12 // 2, "24006"),
+                    ("2 mil dezenas e meia", 2 * 1000 * 10 + 10 // 2, "20005")]:
+                with self.subTest(lang=lang, text=text):
+                    got = extract_number(text, lang=lang)
+                    self.assertEqual(got, value)
+                    self.assertIsInstance(got, int)
+                    self.assertEqual(numbers_to_digits(text, lang=lang), digits)
+
+    def test_a_mark_after_the_digits_ends_the_count(self):
+        self.assertEqual(extract_number("nota 2, dúzias de vezes", lang="pt-PT"), 2)
+        self.assertEqual(numbers_to_digits("nota 2, dúzias de vezes", lang="pt-PT"),
+                         "nota 2, dúzias de vezes")
+
+
 class TestCountNounAfterScale(unittest.TestCase):
     """Right after a scale word a collective noun counts the whole number."""
 
