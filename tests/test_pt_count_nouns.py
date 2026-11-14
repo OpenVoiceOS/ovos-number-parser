@@ -130,3 +130,26 @@ class TestDecimalBeforeCountNoun(unittest.TestCase):
         self.assertEqual(
             numbers_to_digits("custou dois vírgula dúzias de ovos", lang="pt-PT"),
             "custou 2 vírgula dúzias de ovos")
+
+
+class TestCountNounAfterScale(unittest.TestCase):
+    """Right after a scale word a collective noun counts the whole number."""
+
+    def test_the_noun_multiplies_the_whole_number(self):
+        for lang in ("pt-PT", "pt-BR"):
+            for text, value in [
+                    ("mil dúzias", 1000 * 12),
+                    ("duas mil dúzias", 2000 * 12),
+                    ("cem mil dúzias de ovos", 100000 * 12),
+                    ("um milhão de dúzias", 10 ** 6 * 12),
+                    ("dois milhões de dúzias", 2 * 10 ** 6 * 12),
+                    ("meio milhão de dúzias", 10 ** 6 // 2 * 12),
+                    ("um milhão duzentos mil dúzias", 1200000 * 12),
+                    # a count after the scale word counts only itself
+                    ("mil e duas dúzias", 1000 + 2 * 12)]:
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(extract_number(text, lang=lang), value)
+
+    def test_numbers_to_digits_writes_the_whole_number(self):
+        self.assertEqual(numbers_to_digits("duas mil dúzias de ovos", lang="pt-PT"),
+                         "24000 de ovos")
