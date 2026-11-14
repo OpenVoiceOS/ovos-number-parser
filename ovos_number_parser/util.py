@@ -819,9 +819,10 @@ class RomanceNumberExtractor:
                 # the digits count the scale words right after them ("2
                 # milhões" = 2000000, "2,5 mil milhões" = 2500000000), also
                 # across a multiplicative joiner ("25 de mii")
+                marked = tok[-1:] in _NUMBER_END_MARKS
                 multiplier = 1
                 k = idx + 1
-                while tok[-1:] not in ".,!?;:":
+                while not marked:
                     nxt = k + (k < len(tokens)
                                and tokens[k] in self.vocab.MULTIPLICATIVE_JOIN_WORD)
                     if numbers_map.get(tokens[nxt] if nxt < len(tokens) else None, 0) < 1000:
@@ -832,7 +833,7 @@ class RomanceNumberExtractor:
                 # scale noun before it ("2 milhões e meio" = 2500000), else
                 # half of one ("2 e meio" = 2.5, "2 mil e meio" = 2000.5)
                 half = None
-                if tok[-1:] not in ".,!?;:" and k + 1 < len(tokens) \
+                if not marked and k + 1 < len(tokens) \
                         and tokens[k] in self.vocab.JOIN_WORD \
                         and tokens[k] not in self.vocab.MULTIPLICATIVE_JOIN_WORD \
                         and tokens[k + 1] in half_words:
@@ -1221,7 +1222,11 @@ class RomanceNumberExtractor:
                          or words[k + 2] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
                 # half of the scale noun, as after a count in words
                 k += 2
-            if k > i + 1 and digit_number.fullmatch(words[i]):
+            # a digit string that is no number ("10.0.0.1") or that is one
+            # group of a spaced number ("10 000 milhões") starts no run
+            if k > i + 1 and digit_number.fullmatch(words[i]) \
+                    and self.extract_number(words[i]) is not False \
+                    and not (i and digit_number.fullmatch(words[i - 1])):
                 output.append(str(self.extract_number(" ".join(words[i:k])))
                               + marks[k - 1])
                 i = k

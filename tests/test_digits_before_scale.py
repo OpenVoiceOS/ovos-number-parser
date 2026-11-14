@@ -85,6 +85,18 @@ class TestDigitsBeforeScale(unittest.TestCase):
                 self.assertEqual(extract_number(text, lang=lang), value)
                 self.assertEqual(numbers_to_digits(text, lang=lang), digits)
 
+    def test_a_digit_string_that_opens_no_count_keeps_its_digits(self):
+        # CLDR groups pt-PT digits with a no-break space ("10\u00a0000"); a
+        # group after another digit string is no count of the scale word
+        for lang, text, digits in [
+                ("pt-PT", "10 000 milhões de euros", "10 000 milhões de euros"),
+                ("pt-PT", "10\u00a0000 milhões de euros", "10 000 milhões de euros"),
+                ("pt-PT", "10\u202f000 milhões de euros", "10 000 milhões de euros"),
+                ("pt-BR", "2 500 milhões", "2 500 milhões"),
+                # no number: the scale word is read alone, as on its own
+                ("pt-PT", "o ip 10.0.0.1 mil", "o ip 10.0.0.1 1000")]:
+            with self.subTest(lang=lang, text=text):
+                self.assertEqual(numbers_to_digits(text, lang=lang), digits)
 
 if __name__ == "__main__":
     unittest.main()
