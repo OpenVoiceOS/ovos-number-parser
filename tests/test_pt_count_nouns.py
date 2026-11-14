@@ -292,3 +292,23 @@ class TestNounBeforeMilhar(unittest.TestCase):
                      1002 * 12 + 1003 * 12)]:
                 with self.subTest(lang=lang, text=text):
                     self.assertEqual(extract_number(text, lang=lang), value)
+
+
+class TestScaleAfterNoun(unittest.TestCase):
+    """A scale word after "e" counts only the number after the joiner: the
+    count an earlier noun finished stays as it is."""
+
+    def test_a_later_scale_word_leaves_the_earlier_count(self):
+        for lang in ("pt-PT", "pt-BR"):
+            for text, value in [
+                    ("dois milhões de dúzias e três milhões",
+                     2 * 10 ** 6 * 12 + 3 * 10 ** 6),
+                    ("um milhão de dúzias e dois milhões de dúzias",
+                     10 ** 6 * 12 + 2 * 10 ** 6 * 12),
+                    ("mil milhões de dúzias e dois milhões",
+                     10 ** 9 * 12 + 2 * 10 ** 6),
+                    ("duas dúzias e um milhão de dúzias", 2 * 12 + 10 ** 6 * 12),
+                    ("duas dezenas de milhar e um milhão",
+                     2 * 10 * 1000 + 10 ** 6)]:
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(extract_number(text, lang=lang), value)

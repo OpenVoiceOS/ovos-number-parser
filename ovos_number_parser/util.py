@@ -891,6 +891,9 @@ class RomanceNumberExtractor:
         counted = 0
         # a collective noun was read and no additive joiner followed it yet
         noun_read = False
+        # counts that collective nouns finished before a later scale word:
+        # the scale word and a noun after it count none of them
+        finished = 0
         largest_scale = 0
         # the value of the run of scale words just read ("mil milhões" =
         # 10 ** 9), 0 once another number word follows
@@ -977,15 +980,17 @@ class RomanceNumberExtractor:
                         # a scale word above every scale before it
                         # multiplies the whole number so far ("dotze milions
                         # bilions" = 12 * 10 ** 6 * 10 ** 12)
+                        finished += counted
+                        current -= counted
                         result = (result + current or 1) * val
                         current = counted = 0
-                        noun_read = False
                         scale_result = result
                     else:
+                        finished += counted
+                        current -= counted
                         current = (current or 1) * val
                         result += current
                         current = counted = 0
-                        noun_read = False
                         scale_result = result
                     largest_scale = max(largest_scale, val)
                 elif token in count_nouns:
@@ -1062,7 +1067,6 @@ class RomanceNumberExtractor:
                     else:
                         result += current + fraction
                     current = counted = 0
-                    noun_read = False
                     numerator = None
                 trailing_scale = 0
                 i += 1
@@ -1075,7 +1079,6 @@ class RomanceNumberExtractor:
                     and i and tokens[i - 1] in numbers_map:
                 result += (1 if numerator is None else numerator) / denominator
                 current = counted = 0
-                noun_read = False
                 numerator = None
                 saw_number = True
                 i += 1
@@ -1175,7 +1178,7 @@ class RomanceNumberExtractor:
             trailing_scale = 0
             i += 1
 
-        result += current
+        result += current + finished
 
         if not saw_number:
             return False
