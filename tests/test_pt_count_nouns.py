@@ -272,3 +272,23 @@ class TestNounAfterNoun(unittest.TestCase):
             with self.subTest(lang=lang):
                 self.assertEqual(numbers_to_digits(
                     "duas mil dúzias e duas dúzias", lang=lang), "24024")
+
+
+class TestNounBeforeMilhar(unittest.TestCase):
+    """"N dezenas de milhar" counts tens of thousands; only an additive "e"
+    ends the count a noun made."""
+
+    def test_milhar_multiplies_the_noun_before_it(self):
+        for lang in ("pt-PT", "pt-BR"):
+            for text, value in [
+                    ("duas dezenas de milhar", 2 * 10 * 1000),
+                    ("três centenas de milhar de euros", 3 * 100 * 1000),
+                    ("meia dúzia de milhar", 6 * 1000),
+                    ("duas dezenas de milhar de dúzias", 2 * 10 * 1000 * 12),
+                    ("duas dezenas de milhar e três dúzias",
+                     2 * 10 * 1000 + 3 * 12),
+                    ("uma dúzia e duas dezenas de milhar", 12 + 2 * 10 * 1000),
+                    ("mil e duas dúzias e mil e três dúzias",
+                     1002 * 12 + 1003 * 12)]:
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(extract_number(text, lang=lang), value)

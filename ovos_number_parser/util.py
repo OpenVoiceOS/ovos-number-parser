@@ -886,9 +886,11 @@ class RomanceNumberExtractor:
         # the value of ``result`` when a scale word last wrote it: a count
         # noun counts it only while nothing else was added since
         scale_result = None
-        # the part of ``current`` a collective noun already counted: a later
-        # noun counts only what was added after it
+        # the part of ``current`` a collective noun counted before an
+        # additive joiner: a later noun or "mil" counts only what follows it
         counted = 0
+        # a collective noun was read and no additive joiner followed it yet
+        noun_read = False
         largest_scale = 0
         # the value of the run of scale words just read ("mil milhões" =
         # 10 ** 9), 0 once another number word follows
@@ -935,6 +937,9 @@ class RomanceNumberExtractor:
                 pending = current or result
                 if saw_number and nxt is not None and pending and nxt >= pending:
                     break
+                if noun_read:
+                    counted = current
+                    noun_read = False
                 i += 1
                 continue
 
@@ -974,11 +979,13 @@ class RomanceNumberExtractor:
                         # bilions" = 12 * 10 ** 6 * 10 ** 12)
                         result = (result + current or 1) * val
                         current = counted = 0
+                        noun_read = False
                         scale_result = result
                     else:
                         current = (current or 1) * val
                         result += current
                         current = counted = 0
+                        noun_read = False
                         scale_result = result
                     largest_scale = max(largest_scale, val)
                 elif token in count_nouns:
@@ -999,7 +1006,7 @@ class RomanceNumberExtractor:
                             result = 0
                         else:
                             current = counted + ((current - counted) or 1) * val
-                    counted = current
+                    noun_read = True
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
                     # ("două sute" = 200, "dos cents" = 200), leaving higher
@@ -1055,6 +1062,7 @@ class RomanceNumberExtractor:
                     else:
                         result += current + fraction
                     current = counted = 0
+                    noun_read = False
                     numerator = None
                 trailing_scale = 0
                 i += 1
@@ -1067,6 +1075,7 @@ class RomanceNumberExtractor:
                     and i and tokens[i - 1] in numbers_map:
                 result += (1 if numerator is None else numerator) / denominator
                 current = counted = 0
+                noun_read = False
                 numerator = None
                 saw_number = True
                 i += 1
