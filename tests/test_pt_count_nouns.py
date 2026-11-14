@@ -9,7 +9,8 @@ quotes. Expected values are hand arithmetic: the count times the group size.
 """
 import unittest
 
-from ovos_number_parser import extract_number, numbers_to_digits
+from ovos_number_parser import (extract_number, extract_number_spans,
+                                 numbers_to_digits)
 
 
 class TestCountNouns(unittest.TestCase):
@@ -192,6 +193,52 @@ class TestCountNounAfterScale(unittest.TestCase):
                 with self.subTest(lang=lang, text=text):
                     self.assertEqual(extract_number(text, lang=lang), value)
 
+    def test_a_smaller_scale_after_a_larger_one_is_counted(self):
+        # pt-PT "bilião" is 10 ** 12, pt-BR "bilhão" is 10 ** 9
+        for lang, text, value in [
+                ("pt-PT", "um bilião e dois milhões de dúzias",
+                 (10 ** 12 + 2 * 10 ** 6) * 12),
+                ("pt-BR", "um bilhão e dois milhões de dúzias",
+                 (10 ** 9 + 2 * 10 ** 6) * 12)]:
+            with self.subTest(lang=lang, text=text):
+                self.assertEqual(extract_number(text, lang=lang), value)
+
     def test_numbers_to_digits_writes_the_whole_number(self):
         self.assertEqual(numbers_to_digits("duas mil dúzias de ovos", lang="pt-PT"),
                          "24000 de ovos")
+
+
+class TestFinishedNumberIsNotCounted(unittest.TestCase):
+    """A number that a half or a noun already finished is no part of the
+    cardinal before a later collective noun."""
+
+    def test_each_count_keeps_its_own_value(self):
+        for lang in ("pt-PT", "pt-BR"):
+            for text, spans in [
+                    ("uma dúzia e meia de ovos e duas dúzias de pães",
+                     [(12 + 12 // 2, "uma dúzia e meia"),
+                      (2 * 12, "duas dúzias")]),
+                    ("duas dúzias e meia de ovos e três dúzias de pães",
+                     [(2 * 12 + 12 // 2, "duas dúzias e meia"),
+                      (3 * 12, "três dúzias")]),
+                    ("um milhão e meio e duas dúzias",
+                     [(10 ** 6 + 10 ** 6 // 2, "um milhão e meio"),
+                      (2 * 12, "duas dúzias")])]:
+                with self.subTest(lang=lang, text=text):
+                    got = [(sp.value, text[sp.start:sp.end])
+                           for sp in extract_number_spans(text, lang=lang)]
+                    self.assertEqual(got, spans)
+
+    def test_the_noun_counts_only_its_own_cardinal(self):
+        for lang in ("pt-PT", "pt-BR"):
+            for text, value in [
+                    ("um milhão e meio e duas dúzias",
+                     10 ** 6 + 10 ** 6 // 2 + 2 * 12),
+                    ("dois milhões e meio e duas dúzias",
+                     2 * 10 ** 6 + 10 ** 6 // 2 + 2 * 12),
+                    ("cinco dúzias e meia e duas dúzias",
+                     5 * 12 + 12 // 2 + 2 * 12),
+                    ("uma dúzia e meia de ovos e duas dúzias de pães",
+                     12 + 12 // 2 + 2 * 12)]:
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(extract_number(text, lang=lang), value)

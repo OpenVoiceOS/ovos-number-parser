@@ -883,6 +883,9 @@ class RomanceNumberExtractor:
 
         result = 0
         current = 0
+        # the value of ``result`` when a scale word last wrote it: a count
+        # noun counts it only while nothing else was added since
+        scale_result = None
         largest_scale = 0
         # the value of the run of scale words just read ("mil milhões" =
         # 10 ** 9), 0 once another number word follows
@@ -967,10 +970,12 @@ class RomanceNumberExtractor:
                         # bilions" = 12 * 10 ** 6 * 10 ** 12)
                         result = (result + current or 1) * val
                         current = 0
+                        scale_result = result
                     else:
                         current = (current or 1) * val
                         result += current
                         current = 0
+                        scale_result = result
                     largest_scale = max(largest_scale, val)
                 elif token in count_nouns:
                     # a collective noun counts groups of its size: the whole
@@ -985,8 +990,11 @@ class RomanceNumberExtractor:
                             current -= 1
                         current = current - below + below * val
                     else:
-                        current = (result + current or 1) * val
-                        result = 0
+                        if result == scale_result:
+                            current = (result + current or 1) * val
+                            result = 0
+                        else:
+                            current = (current or 1) * val
                 elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
                     # the hundreds word multiplies the preceding units
                     # ("două sute" = 200, "dos cents" = 200), leaving higher
