@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.58a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.58a1) (2026-11-14)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.57a1...0.24.58a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): a collective noun counts the whole cardinal before it [\#497](https://github.com/OpenVoiceOS/ovos-number-parser/pull/497) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.57a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.57a1) (2026-11-14)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.56a1...0.24.57a1)
@@ -367,17 +375,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.10a1...0.24.11a1)
 
-**Merged pull requests:**
-
-- fix: spell ru, uk, pl and cs ordinals of round scales correctly [\#395](https://github.com/OpenVoiceOS/ovos-number-parser/pull/395) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.10a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.10a1) (2026-11-06)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.9a1...0.24.10a1)
-
-**Merged pull requests:**
-
-- fix: spell Belarusian ordinals 3, 4, 50, 60, 70, 200 and 600 as Wiktionary does [\#396](https://github.com/OpenVoiceOS/ovos-number-parser/pull/396) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.9a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.9a1) (2026-11-06)
 
