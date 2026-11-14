@@ -2,15 +2,25 @@
 
 Priberam: "dezena" is "Grupo de dez.", "dúzia" is "Conjunto de doze." and
 "meia dúzia" is "Conjunto de seis.", "centena" is "Conjunto de 100
-elementos.". The whole cardinal before the noun counts it, as "mil e uma"
-counts "artimanhas" in Priberam, "mil e um": "Grande quantidade (ex.: ele
-tem mil e uma artimanhas)". The numbers_pt module docstring holds the
-quotes. Expected values are hand arithmetic: the count times the group size.
+elementos.". "mil" is a numeral, so the whole cardinal it is part of counts
+the noun, as "mil e uma" counts "artimanhas" in Priberam, "mil e um": "Grande
+quantidade (ex.: ele tem mil e uma artimanhas)". "milhão" is a noun
+(Priberam: "nome masculino", "Mil vezes mil"), so a collective noun after it
+counts only the cardinal after it, and counts the "milhão" itself only right
+after it, through "de". A collective noun ends its number: after "e" a new
+number starts, unless half a group follows. The numbers_pt module docstring
+holds the quotes. Expected values are hand arithmetic: the count times the
+group size.
 """
 import unittest
 
 from ovos_number_parser import (extract_number, extract_number_spans,
                                  numbers_to_digits)
+
+
+def spans(text, lang):
+    return [(sp.value, text[sp.start:sp.end])
+            for sp in extract_number_spans(text, lang=lang)]
 
 
 class TestCountNouns(unittest.TestCase):
@@ -26,11 +36,13 @@ class TestCountNouns(unittest.TestCase):
             ("duas mil e duzentas dúzias", 2200 * 12),
             ("mil duzentas dúzias", 1200 * 12),
             ("três mil e quinhentas centenas", 3500 * 100),
-            ("um milhão e duas dúzias", (10 ** 6 + 2) * 12),
-            ("um milhão e duzentas mil dúzias", 1200000 * 12),
-            ("um milhão e duzentas mil e duas dúzias", 1200002 * 12),
-            ("dois milhões e quinhentas mil e uma dúzias", 2500001 * 12),
-            ("uma dúzia e três", 12 + 3),
+            # after "milhão" the noun counts only the cardinal after it
+            ("um milhão e duas dúzias", 10 ** 6 + 2 * 12),
+            ("um milhão e duzentas mil dúzias", 10 ** 6 + 200000 * 12),
+            ("um milhão e duzentas mil e duas dúzias",
+             10 ** 6 + 200002 * 12),
+            ("dois milhões e quinhentas mil e uma dúzias",
+             2 * 10 ** 6 + 500001 * 12),
             ("um milhão e meia dúzia", 10 ** 6 + 12 // 2),
             ("meio milhão e meia dúzia", 10 ** 6 // 2 + 12 // 2),
             # a half before the noun halves only the group
@@ -44,9 +56,6 @@ class TestCountNouns(unittest.TestCase):
             # the article drops only itself: the number before it stays
             ("mil e uma meia dúzia", 1000 + 12 // 2),
             ("vinte e uma meia dúzia", 20 + 12 // 2),
-            ("comprei duas dúzias e uma meia dúzia", 2 * 12 + 12 // 2),
-            # "uma" after the group is a count of its own
-            ("meia dúzia e uma", 12 // 2 + 1),
             ("uma dezena de dias", 10),
             ("três dezenas", 3 * 10),
             ("uma centena de pessoas", 100),
@@ -189,17 +198,17 @@ class TestCountNounAfterScale(unittest.TestCase):
                     ("um milhão de dúzias", 10 ** 6 * 12),
                     ("dois milhões de dúzias", 2 * 10 ** 6 * 12),
                     ("meio milhão de dúzias", 10 ** 6 // 2 * 12),
-                    ("um milhão duzentos mil dúzias", 1200000 * 12)]:
+                    ("um milhão duzentos mil dúzias", 10 ** 6 + 200000 * 12)]:
                 with self.subTest(lang=lang, text=text):
                     self.assertEqual(extract_number(text, lang=lang), value)
 
-    def test_a_smaller_scale_after_a_larger_one_is_counted(self):
+    def test_after_a_smaller_scale_the_noun_counts_only_its_group(self):
         # pt-PT "bilião" is 10 ** 12, pt-BR "bilhão" is 10 ** 9
         for lang, text, value in [
                 ("pt-PT", "um bilião e dois milhões de dúzias",
-                 (10 ** 12 + 2 * 10 ** 6) * 12),
+                 10 ** 12 + 2 * 10 ** 6 * 12),
                 ("pt-BR", "um bilhão e dois milhões de dúzias",
-                 (10 ** 9 + 2 * 10 ** 6) * 12)]:
+                 10 ** 9 + 2 * 10 ** 6 * 12)]:
             with self.subTest(lang=lang, text=text):
                 self.assertEqual(extract_number(text, lang=lang), value)
 
@@ -208,107 +217,125 @@ class TestCountNounAfterScale(unittest.TestCase):
                          "24000 de ovos")
 
 
-class TestFinishedNumberIsNotCounted(unittest.TestCase):
-    """A number that a half or a noun already finished is no part of the
-    cardinal before a later collective noun."""
+class TestNounEndsNumber(unittest.TestCase):
+    """A collective noun ends its number: after "e" a new number starts.
+    extract_number gives the first number, extract_number_spans each one."""
 
-    def test_each_count_keeps_its_own_value(self):
+    #: text, spans, digits
+    ROWS = [
+        ("mil e duas dúzias", [(1002 * 12, "mil e duas dúzias")], "12024"),
+        ("um milhão e duas dúzias",
+         [(10 ** 6 + 2 * 12, "um milhão e duas dúzias")], "1000024"),
+        ("uma dúzia e duas mil dúzias",
+         [(12, "uma dúzia"), (2000 * 12, "duas mil dúzias")], "12 e 24000"),
+        ("duas dúzias e um milhão de dúzias",
+         [(2 * 12, "duas dúzias"), (10 ** 6 * 12, "um milhão de dúzias")],
+         "24 e 12000000"),
+        ("comprou duas dúzias de ovos e ganhou um milhão de euros",
+         [(2 * 12, "duas dúzias"), (10 ** 6, "um milhão")],
+         "comprou 24 de ovos e ganhou 1000000 de euros"),
+        ("dois milhões de dúzias e três milhões",
+         [(2 * 10 ** 6 * 12, "dois milhões de dúzias"),
+          (3 * 10 ** 6, "três milhões")], "24000000 e 3000000"),
+        ("uma dúzia e três", [(12, "uma dúzia"), (3, "três")], "12 e 3"),
+        ("meia dúzia e uma", [(12 // 2, "meia dúzia"), (1, "uma")], "6 e 1"),
+        ("duas dúzias e três dúzias",
+         [(2 * 12, "duas dúzias"), (3 * 12, "três dúzias")], "24 e 36"),
+        ("uma dúzia e uma dúzia",
+         [(12, "uma dúzia"), (12, "uma dúzia")], "12 e 12"),
+        ("duas mil dúzias e duas dúzias",
+         [(2000 * 12, "duas mil dúzias"), (2 * 12, "duas dúzias")],
+         "24000 e 24"),
+        ("um milhão de dúzias e duas dúzias",
+         [(10 ** 6 * 12, "um milhão de dúzias"), (2 * 12, "duas dúzias")],
+         "12000000 e 24"),
+        ("três mil dezenas e duas dezenas",
+         [(3000 * 10, "três mil dezenas"), (2 * 10, "duas dezenas")],
+         "30000 e 20"),
+        ("mil dúzias e três centenas",
+         [(1000 * 12, "mil dúzias"), (3 * 100, "três centenas")],
+         "12000 e 300"),
+        ("um milhão e meia dúzia e duas dúzias",
+         [(10 ** 6 + 12 // 2, "um milhão e meia dúzia"),
+          (2 * 12, "duas dúzias")], "1000006 e 24"),
+        ("um milhão e duas dúzias e mil dúzias",
+         [(10 ** 6 + 2 * 12, "um milhão e duas dúzias"),
+          (1000 * 12, "mil dúzias")], "1000024 e 12000"),
+        ("cinco dúzias e meia e duas dúzias",
+         [(5 * 12 + 12 // 2, "cinco dúzias e meia"), (2 * 12, "duas dúzias")],
+         "66 e 24"),
+        ("uma dúzia e meia de ovos e duas dúzias de pães",
+         [(12 + 12 // 2, "uma dúzia e meia"), (2 * 12, "duas dúzias")],
+         "18 de ovos e 24 de pães"),
+        ("comprei duas dúzias e uma meia dúzia",
+         [(2 * 12, "duas dúzias"), (12 // 2, "uma meia dúzia")],
+         "comprei 24 e 6"),
+        ("duas dezenas de milhar e três dúzias",
+         [(2 * 10 * 1000, "duas dezenas de milhar"), (3 * 12, "três dúzias")],
+         "20000 e 36"),
+        ("uma dúzia e duas dezenas de milhar",
+         [(12, "uma dúzia"), (2 * 10 * 1000, "duas dezenas de milhar")],
+         "12 e 20000"),
+        ("mil e duas dúzias e mil e três dúzias",
+         [(1002 * 12, "mil e duas dúzias"), (1003 * 12, "mil e três dúzias")],
+         "12024 e 12036"),
+        ("um milhão de dúzias e dois milhões de dúzias",
+         [(10 ** 6 * 12, "um milhão de dúzias"),
+          (2 * 10 ** 6 * 12, "dois milhões de dúzias")],
+         "12000000 e 24000000"),
+        ("mil milhões de dúzias e dois milhões",
+         [(10 ** 9 * 12, "mil milhões de dúzias"),
+          (2 * 10 ** 6, "dois milhões")], "12000000000 e 2000000"),
+        ("duas dezenas de milhar e um milhão",
+         [(2 * 10 * 1000, "duas dezenas de milhar"), (10 ** 6, "um milhão")],
+         "20000 e 1000000")]
+
+    def test_extract_number_gives_the_first_number(self):
         for lang in ("pt-PT", "pt-BR"):
-            for text, spans in [
-                    ("uma dúzia e meia de ovos e duas dúzias de pães",
-                     [(12 + 12 // 2, "uma dúzia e meia"),
-                      (2 * 12, "duas dúzias")]),
-                    ("duas dúzias e meia de ovos e três dúzias de pães",
-                     [(2 * 12 + 12 // 2, "duas dúzias e meia"),
-                      (3 * 12, "três dúzias")]),
-                    ("um milhão e meio e duas dúzias",
-                     [(10 ** 6 + 10 ** 6 // 2, "um milhão e meio"),
-                      (2 * 12, "duas dúzias")])]:
-                with self.subTest(lang=lang, text=text):
-                    got = [(sp.value, text[sp.start:sp.end])
-                           for sp in extract_number_spans(text, lang=lang)]
-                    self.assertEqual(got, spans)
+            for text, expected, _ in self.ROWS:
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(extract_number(text, lang=lang),
+                                     expected[0][0])
 
-    def test_the_noun_counts_only_its_own_cardinal(self):
+    def test_each_number_is_a_span(self):
         for lang in ("pt-PT", "pt-BR"):
-            for text, value in [
-                    ("um milhão e meio e duas dúzias",
-                     10 ** 6 + 10 ** 6 // 2 + 2 * 12),
-                    ("dois milhões e meio e duas dúzias",
-                     2 * 10 ** 6 + 10 ** 6 // 2 + 2 * 12),
-                    ("cinco dúzias e meia e duas dúzias",
-                     5 * 12 + 12 // 2 + 2 * 12),
-                    ("uma dúzia e meia de ovos e duas dúzias de pães",
-                     12 + 12 // 2 + 2 * 12)]:
-                with self.subTest(lang=lang, text=text):
-                    self.assertEqual(extract_number(text, lang=lang), value)
+            for text, expected, _ in self.ROWS:
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(spans(text, lang), expected)
 
-
-class TestNounAfterNoun(unittest.TestCase):
-    """A later collective noun counts only the number after the earlier one."""
-
-    def test_each_noun_counts_its_own_number(self):
+    def test_numbers_to_digits_writes_each_number(self):
         for lang in ("pt-PT", "pt-BR"):
-            for text, value in [
-                    ("duas mil dúzias e duas dúzias", 2000 * 12 + 2 * 12),
-                    ("duas mil dúzias de ovos e duas dúzias de pães",
-                     2000 * 12 + 2 * 12),
-                    ("um milhão de dúzias e duas dúzias", 10 ** 6 * 12 + 2 * 12),
-                    ("três mil dezenas e duas dezenas", 3000 * 10 + 2 * 10),
-                    ("mil dúzias e três centenas", 1000 * 12 + 3 * 100),
-                    ("um milhão e meia dúzia e duas dúzias",
-                     10 ** 6 + 12 // 2 + 2 * 12),
-                    ("duas dúzias e três dúzias", 2 * 12 + 3 * 12),
-                    ("uma dúzia e uma dúzia", 12 + 12),
-                    # "mil" multiplies only the number after the earlier noun
-                    ("uma dúzia e duas mil dúzias", 12 + 2000 * 12),
-                    ("um milhão e duas dúzias e mil dúzias",
-                     (10 ** 6 + 2) * 12 + 1000 * 12)]:
-                with self.subTest(lang=lang, text=text):
-                    self.assertEqual(extract_number(text, lang=lang), value)
-
-    def test_numbers_to_digits_writes_the_sum(self):
-        for lang in ("pt-PT", "pt-BR"):
-            with self.subTest(lang=lang):
-                self.assertEqual(numbers_to_digits(
-                    "duas mil dúzias e duas dúzias", lang=lang), "24024")
+            for text, _, digits in self.ROWS:
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(numbers_to_digits(text, lang=lang), digits)
 
 
 class TestNounBeforeMilhar(unittest.TestCase):
-    """"N dezenas de milhar" counts tens of thousands; only an additive "e"
-    ends the count a noun made."""
+    """"N dezenas de milhar" counts tens of thousands."""
 
     def test_milhar_multiplies_the_noun_before_it(self):
         for lang in ("pt-PT", "pt-BR"):
-            for text, value in [
-                    ("duas dezenas de milhar", 2 * 10 * 1000),
-                    ("três centenas de milhar de euros", 3 * 100 * 1000),
-                    ("meia dúzia de milhar", 6 * 1000),
-                    ("duas dezenas de milhar de dúzias", 2 * 10 * 1000 * 12),
-                    ("duas dezenas de milhar e três dúzias",
-                     2 * 10 * 1000 + 3 * 12),
-                    ("uma dúzia e duas dezenas de milhar", 12 + 2 * 10 * 1000),
-                    ("mil e duas dúzias e mil e três dúzias",
-                     1002 * 12 + 1003 * 12)]:
+            for text, value, digits in [
+                    ("duas dezenas de milhar", 2 * 10 * 1000, "20000"),
+                    ("três centenas de milhar de euros", 3 * 100 * 1000,
+                     "300000 de euros"),
+                    ("meia dúzia de milhar", 6 * 1000, "6000"),
+                    ("duas dezenas de milhar de dúzias", 2 * 10 * 1000 * 12,
+                     "240000")]:
                 with self.subTest(lang=lang, text=text):
                     self.assertEqual(extract_number(text, lang=lang), value)
+                    self.assertEqual(numbers_to_digits(text, lang=lang), digits)
 
 
-class TestScaleAfterNoun(unittest.TestCase):
-    """A scale word after "e" counts only the number after the joiner: the
-    count an earlier noun finished stays as it is."""
+class TestHalfEndsNumber(unittest.TestCase):
+    """A half after a scale noun ends its number, as a collective noun does."""
 
-    def test_a_later_scale_word_leaves_the_earlier_count(self):
+    def test_each_count_is_a_span(self):
         for lang in ("pt-PT", "pt-BR"):
-            for text, value in [
-                    ("dois milhões de dúzias e três milhões",
-                     2 * 10 ** 6 * 12 + 3 * 10 ** 6),
-                    ("um milhão de dúzias e dois milhões de dúzias",
-                     10 ** 6 * 12 + 2 * 10 ** 6 * 12),
-                    ("mil milhões de dúzias e dois milhões",
-                     10 ** 9 * 12 + 2 * 10 ** 6),
-                    ("duas dúzias e um milhão de dúzias", 2 * 12 + 10 ** 6 * 12),
-                    ("duas dezenas de milhar e um milhão",
-                     2 * 10 * 1000 + 10 ** 6)]:
-                with self.subTest(lang=lang, text=text):
-                    self.assertEqual(extract_number(text, lang=lang), value)
+            for text, expected, digits in [
+                    ("um milhão e meio e duas dúzias",
+                     [(10 ** 6 + 10 ** 6 // 2, "um milhão e meio"),
+                      (2 * 12, "duas dúzias")], "1500000 e 24")]:
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(spans(text, lang), expected)
+                    self.assertEqual(numbers_to_digits(text, lang=lang), digits)
