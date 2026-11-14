@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.24.56a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.56a1) (2026-11-14)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.55a1...0.24.56a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): a collective noun after a scale word counts the whole number [\#494](https://github.com/OpenVoiceOS/ovos-number-parser/pull/494) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- test\(pt\): pin the article before a half group [\#492](https://github.com/OpenVoiceOS/ovos-number-parser/pull/492) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.55a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.55a1) (2026-11-14)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.54a1...0.24.55a1)
