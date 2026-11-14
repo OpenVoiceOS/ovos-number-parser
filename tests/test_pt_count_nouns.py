@@ -321,9 +321,11 @@ class TestNounEndsNumber(unittest.TestCase):
 
 
 class TestNounBeforeMilhar(unittest.TestCase):
-    """"N dezenas de milhar" counts tens of thousands."""
+    """After "de", a scale noun or another collective noun counts the groups
+    a collective noun made: "duas dezenas de milhar" counts tens of
+    thousands."""
 
-    def test_milhar_multiplies_the_noun_before_it(self):
+    def test_the_noun_after_de_counts_the_groups(self):
         for lang in ("pt-PT", "pt-BR"):
             for text, value, digits in [
                     ("duas dezenas de milhar", 2 * 10 * 1000, "20000"),
@@ -337,7 +339,10 @@ class TestNounBeforeMilhar(unittest.TestCase):
                      "300000000 de pessoas"),
                     ("duas dezenas de milhões", 2 * 10 * 10 ** 6, "20000000"),
                     ("duas dúzias de milhões de euros", 2 * 12 * 10 ** 6,
-                     "24000000 de euros")]:
+                     "24000000 de euros"),
+                    # and a collective noun counts the groups before it
+                    ("três dezenas de dúzias", 3 * 10 * 12, "360"),
+                    ("uma dúzia de dúzias de ovos", 12 * 12, "144 de ovos")]:
                 with self.subTest(lang=lang, text=text):
                     self.assertEqual(extract_number(text, lang=lang), value)
                     self.assertEqual(numbers_to_digits(text, lang=lang), digits)

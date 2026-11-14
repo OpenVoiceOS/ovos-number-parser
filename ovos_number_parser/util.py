@@ -1283,16 +1283,17 @@ class RomanceNumberExtractor:
             if w in numbers_map or w in self.vocab.JOIN_WORD \
                     or half_of(idx) is not None:
                 return True
-            # "de" between a collective noun and a scale noun is part of
-            # the number ("dois milhões de dúzias", "duas dezenas de
-            # milhar"), as extract_number reads it
+            # "de" between a collective noun and a scale noun or another
+            # collective noun is part of the number ("dois milhões de
+            # dúzias", "duas dezenas de milhar", "três dezenas de dúzias"),
+            # as extract_number reads it
             if w in self.vocab.HALF_OF_SCALE_FOLLOWERS and idx:
                 before, after = words[idx - 1], next_word(idx)
-                scales = [x for x in (before, after)
-                          if numbers_map.get(x, 0) >= 1000
-                          and x not in self.vocab.SCALE_NUMERALS]
-                return bool(scales) and (before in count_nouns
-                                         or after in count_nouns)
+                nouns = [x for x in (before, after) if x in count_nouns
+                         or numbers_map.get(x, 0) >= 1000
+                         and x not in self.vocab.SCALE_NUMERALS]
+                return len(nouns) == 2 and (before in count_nouns
+                                            or after in count_nouns)
             # a decimal marker only extends a span if it is immediately
             # followed by a number word ("tres coma catorze")
             if w in self.vocab.DECIMAL_MARKER:
