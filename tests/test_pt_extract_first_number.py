@@ -66,6 +66,25 @@ class TestSignOfTheFirstNumber(unittest.TestCase):
                 self.assertEqual(len(extract_number_spans(text, lang)), 2)
 
 
+class TestMarksAroundTheFirstNumber(unittest.TestCase):
+    """The span leaves out a quote or a bracket glued to the number."""
+    #: text, value
+    ROWS = [("comprei (2) gatos e 3 cães", 2),
+            ('"dois" gatos e três cães', 2),
+            ("a palavra «cem» tem três letras", 100),
+            ("ganhou (mil) euros e comprou duas dúzias", 1000),
+            ("o código é 'vinte e dois' e a porta três", 20 + 2),
+            ("'meia' hora e duas horas", 0.5),
+            ("menos (2) graus e 3", -2),
+            ("menos «dois» graus e três", -2)]
+
+    def test_the_first_number_inside_marks(self):
+        for text, value in self.ROWS:
+            for lang in ("pt-PT", "pt-BR"):
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(extract_number(text, lang=lang), value)
+
+
 class TestOneNumberStaysWhole(unittest.TestCase):
     #: text, value, language tag
     ROWS = [("mil e duas dúzias", 1002 * 12, "pt-PT"),
@@ -81,12 +100,23 @@ class TestOneNumberStaysWhole(unittest.TestCase):
             ("uma hora e, meia", 1 + 0.5, "pt-PT"),
             ("uma hora, e meia", 1 + 0.5, "pt-BR")]
 
-    def test_a_half_after_a_sentence_stop_is_a_new_number(self):
+    def test_a_half_after_a_sentence_end_is_a_new_number(self):
+        # a sentence ends at ".", "!" or "?" before a capital letter
         for text in ("uma hora. E meia hora depois três",
-                     "uma hora! E meia hora depois três"):
+                     "uma hora! E meia hora depois três",
+                     "uma hora? E meia",
+                     "uma hora e. Meia hora depois"):
             for lang in ("pt-PT", "pt-BR"):
                 with self.subTest(text=text, lang=lang):
                     self.assertEqual(extract_number(text, lang=lang), 1)
+
+    def test_a_half_after_a_mark_inside_the_sentence_stays(self):
+        for text in ("uma hora... e meia", "uma hora… e meia",
+                     "uma hora; e meia", "uma hora (aprox.) e meia",
+                     "Uma Hora E Meia"):
+            for lang in ("pt-PT", "pt-BR"):
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(extract_number(text, lang=lang), 1 + 0.5)
 
     def test_one_number(self):
         for text, value, lang in self.ROWS:

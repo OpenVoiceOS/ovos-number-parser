@@ -1807,18 +1807,24 @@ def extract_number(text: str, lang: str,
         # The reader reads the text up to the end of that number, so a sign
         # before it stays: "menos dois graus e três" is -2. A half after "e"
         # counts the unit before it (numbers_pt docstring), so in the same
-        # sentence it stays in the first number: "uma hora e meia" is 1.5
+        # sentence it stays in the first number: "uma hora e meia" is 1.5.
+        # A sentence ends at ".", "!" or "?" before a capital letter.
         spans = extract_number_spans(text, lang, short_scale, ordinals, scale)
         if len(spans) > 1:
             first, second = spans[0], spans[1]
-            gap = text[first.end:second.start]
-            gap_words = [w.strip(_SPAN_PUNCTUATION) for w in gap.lower().split()]
+            gap = text[first.end:second.start].split()
+            sentence_end = any(
+                word[-1] in ".!?" and nxt.lstrip(_SPAN_PUNCTUATION)[:1].isupper()
+                for word, nxt in zip(gap, gap[1:] + [second.surface]))
             end = first.end
             if second.surface.lower() in ("meio", "meia") and \
-                    gap_words[-1:] == ["e"] and \
-                    not any(mark in gap for mark in ".!?;…"):
+                    [w.strip(_SPAN_PUNCTUATION).lower() for w in gap][-1:] == ["e"] \
+                    and not sentence_end:
                 end = second.end
-            value = _extract_number(text[:end], lang, short_scale, ordinals, scale)
+            # the span leaves out an opening mark glued to the number
+            head = text[:first.start].rstrip(_SPAN_PUNCTUATION)
+            value = _extract_number(head + " " + text[first.start:end], lang,
+                                    short_scale, ordinals, scale)
     # an integer that str() cannot write is no number, as a digit string
     # longer than the integer string conversion limit is none
     return value if fits_str_limit(value) else False
