@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.61a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.61a1) (2026-11-15)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.60a1...0.24.61a1)
+
+**Merged pull requests:**
+
+- fix\(pt\): a half after a noun is no part of the first number [\#506](https://github.com/OpenVoiceOS/ovos-number-parser/pull/506) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.60a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.60a1) (2026-11-15)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.59a2...0.24.60a1)
@@ -370,10 +378,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.14a1...0.24.15a1)
 
-**Merged pull requests:**
-
-- fix: read decimal.Decimal input as the float with the same digits [\#403](https://github.com/OpenVoiceOS/ovos-number-parser/pull/403) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.14a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.14a1) (2026-11-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.13a1...0.24.14a1)
@@ -381,10 +385,6 @@
 ## [0.24.13a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.13a1) (2026-11-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.12a1...0.24.13a1)
-
-**Merged pull requests:**
-
-- fix: read fractions below 1e-4 without the exponent string [\#404](https://github.com/OpenVoiceOS/ovos-number-parser/pull/404) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.12a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.12a1) (2026-11-10)
 
