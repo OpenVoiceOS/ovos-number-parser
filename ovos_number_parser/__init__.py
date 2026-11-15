@@ -1801,6 +1801,34 @@ def extract_number(text: str, lang: str,
                                text contains no numbers
     """
     value = _extract_number(text, lang, short_scale, ordinals, scale)
+    if _base_lang(lang) == "pt":
+        # Portuguese gives the number written first: "ganhou mil euros e
+        # comprou duas dúzias" is 1000, where the reader alone adds up 12024.
+        # The reader reads the text up to the end of that number, so a sign
+        # before it stays: "menos dois graus e três" is -2. A half after "e"
+        # counts the unit before it (numbers_pt docstring), so in the same
+        # sentence it stays in the first number: "uma hora e meia" is 1.5.
+        # A sentence ends at ".", "!" or "?" before a capital letter.
+        spans = extract_number_spans(text, lang, short_scale, ordinals, scale)
+        if len(spans) > 1:
+            first, second = spans[0], spans[1]
+            gap = text[first.end:second.start].split()
+            sentence_end = any(
+                word[-1] in ".!?" and nxt.lstrip(_SPAN_PUNCTUATION)[:1].isupper()
+                for word, nxt in zip(gap, gap[1:] + [second.surface]))
+            end = first.end
+            if second.surface.lower() in ("meio", "meia") and \
+                    [w.strip(_SPAN_PUNCTUATION).lower() for w in gap][-1:] == ["e"] \
+                    and not sentence_end:
+                end = second.end
+            # the span leaves out an opening mark glued to the number, and a
+            # lone decimal mark before its digits (",5" is 0.5, "...5" is 5)
+            head = text[:first.start]
+            point = head[-1:] if head[-1:] in ".," and \
+                head[-2:-1] not in (".", ",") and first.surface[:1].isdigit() else ""
+            head = head[:len(head) - len(point)].rstrip(_SPAN_PUNCTUATION) + point
+            value = _extract_number(head + text[first.start:end], lang,
+                                    short_scale, ordinals, scale)
     # an integer that str() cannot write is no number, as a digit string
     # longer than the integer string conversion limit is none
     return value if fits_str_limit(value) else False
@@ -1938,11 +1966,13 @@ def _numeric_value(fragment: str, lang: str, short_scale: Optional[bool],
 
     Extractors report "no number" as either ``False`` or ``None`` depending on
     the language, and ``0`` is a legitimate value, so the falsiness of the
-    return value cannot be used to tell the two apart.
+    return value cannot be used to tell the two apart. The language's reader
+    answers, not ``extract_number``, which reads a Portuguese text through
+    these spans.
     """
-    value = extract_number(fragment, lang, short_scale=short_scale,
-                           ordinals=ordinals, scale=scale)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    value = _extract_number(fragment, lang, short_scale, ordinals, scale)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) \
+            or not fits_str_limit(value):
         return None
     return value
 

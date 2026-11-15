@@ -71,7 +71,7 @@ class TestAvosNeedsADenominatorAboveTen(unittest.TestCase):
         "os meus quatro avos moram no Porto": 4,
         "dez avos": 10,
         "os meus três queridos avos": 3,
-        "tenho três netos e dois avos": 5,
+        "tenho três netos e dois avos": 3,
         "vieram os doze netos e os avos": 12,
     }
 
