@@ -108,11 +108,12 @@ dúzias" is 24000000. Before a plural, only the bare "de" does this. "Dos" is
 "Contracção de preposição de e do artigo e pronome os.",
 https://dicionario.priberam.org/dos), so the noun after it names groups
 already known and the count picks some out of them: "uma dezena dos
-milhares de manifestantes" is 10. A
-collective noun ends its number, so after "e" a new number starts: "uma
-dúzia e duas mil dúzias" is 12 and 24000. Only a half after "e" stays in
-the number, as half a group: "duas dúzias e meia" is 30.
-"Meia dúzia" is a group of its own, so "cem e meia dúzia" is 100 and 6.
+milhares de manifestantes" is 10. A collective noun ends its number, so
+after "e" a new number starts: "uma dúzia e duas mil dúzias" is two
+numbers, 12 and 24000. Only a half after "e" stays in the number, as half a
+group: "duas dúzias e meia" is 30.
+"Meia dúzia" is a group of its own, so "cem e meia dúzia" is one number,
+100 plus 6, which is 106.
 A plural with no count names no number, as "milhares" does: "dúzias de ovos"
 and "centenas de pessoas" read as no number.
 
