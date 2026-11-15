@@ -1811,14 +1811,15 @@ def extract_number(text: str, lang: str,
         # is the number: "dois (aprox.) e meio" is 2.5. A word between them
         # is the unit, so the half is no part of the number: "uma hora e
         # meia" is 1. A mark that ends a number ends it here too: "dois, e
-        # meio" is 2, and a sentence ends at ".", "!" or "?" before a capital.
+        # meio" is 2, and a sentence ends at ".", "!", "?" or "…" before a
+        # capital.
         spans = extract_number_spans(text, lang, short_scale, ordinals, scale)
         if len(spans) > 1:
             first, second = spans[0], spans[1]
             between = text[first.end:second.start]
             gap = between.split()
             sentence_end = any(
-                word[-1] in ".!?" and nxt.lstrip(_SPAN_PUNCTUATION)[:1].isupper()
+                word[-1] in ".!?…" and nxt.lstrip(_SPAN_PUNCTUATION)[:1].isupper()
                 for word, nxt in zip(gap, gap[1:] + [second.surface]))
             words = [w for w in (w.strip(_SPAN_PUNCTUATION).lower()
                                  for w in _BRACKETED.sub(" ", between).split()) if w]
@@ -1951,9 +1952,9 @@ class NumberSpan:
 
 #: characters that punctuate a word without belonging to it; a leading or
 #: trailing run of these is not part of a number's surface ("at 7," -> "7")
-# an aside in brackets, which a half may follow: "dois (aprox.) e meio"
-_BRACKETED = re.compile(r"\([^()]*\)|\[[^\[\]]*\]")
 _SPAN_PUNCTUATION = "\"'`´.,;:!?¡¿…()[]{}<>«»“”‘’"
+#: an aside in brackets, which a half may follow: "dois (aprox.) e meio"
+_BRACKETED = re.compile(r"\([^()]*\)|\[[^\[\]]*\]")
 
 
 def _word_spans(text: str) -> List[tuple]:
