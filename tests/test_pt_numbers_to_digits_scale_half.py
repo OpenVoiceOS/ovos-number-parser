@@ -52,10 +52,14 @@ class TestNumbersToDigitsScaleAndAHalf(unittest.TestCase):
         # writes the whole number in digits and keeps the fraction word
         for text, expected in [("dois e meio", "2 e meio"),
                                ("cem e meio", "100 e meio"),
-                               ("mil e quinhentos e meio", "1500 e meio"),
-                               ("uma hora e meia", "1 hora e meia")]:
+                               ("mil e quinhentos e meio", "1500 e meio")]:
             with self.subTest(text=text):
                 self.assertEqual(numbers_to_digits(text, lang="pt"), expected)
+
+    def test_a_half_after_a_noun_stays_a_word(self):
+        # the half is of the noun, "hora", and no part of the number
+        self.assertEqual(numbers_to_digits("uma hora e meia", lang="pt"),
+                         "1 hora e meia")
 
     def test_a_half_after_mil_stays_a_word(self):
         # "mil" is a numeral: "mil e meio" is 1000.5 in extract_number, and

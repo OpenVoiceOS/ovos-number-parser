@@ -3,8 +3,9 @@
 A sentence that holds two numbers answers the first one, the value that
 ``extract_number_spans`` gives for its first span: "ganhou mil euros e
 comprou duas dúzias" is 1000. One number stays one number, whatever words it
-spans. A half after a noun is half of that noun (numbers_pt docstring), so
-"uma hora e meia" is 1. Expected values are hand arithmetic.
+spans. A half counts the unit before it (numbers_pt docstring): after a word
+outside the number, such as "hora", it is half of that word, so "uma hora e
+meia" is 1. Expected values are hand arithmetic.
 """
 import unittest
 
@@ -123,6 +124,21 @@ class TestOneNumberStaysWhole(unittest.TestCase):
                             ("uma hora; e meia", 1), ("uma hora (aprox.) e meia", 1),
                             ("Uma Hora E Meia", 1), ("uma hora? E meia", 1),
                             ("uma hora. E meia hora depois três", 1)]:
+            for lang in ("pt-PT", "pt-BR"):
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(extract_number(text, lang=lang), value)
+
+    def test_a_half_after_marks_alone_counts_the_number(self):
+        # only "e", marks or an aside in brackets stand between the number
+        # and the half, so the unit is the number
+        for text, value in [("dois e, meio", 2 + 0.5),
+                            ("dois (aprox.) e meio", 2 + 0.5),
+                            ("um. e meio", 1 + 0.5),
+                            ("dois mil e quinhentos... e meio", 2500 + 0.5),
+                            ("um milhão... e meio", 10 ** 6 + 10 ** 6 // 2),
+                            # a mark that ends a number ends it before the half
+                            ("dois, e meio", 2), ("dois; e meio", 2),
+                            ("dois. E meio", 2)]:
             for lang in ("pt-PT", "pt-BR"):
                 with self.subTest(text=text, lang=lang):
                     self.assertEqual(extract_number(text, lang=lang), value)

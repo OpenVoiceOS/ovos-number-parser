@@ -1805,20 +1805,38 @@ def extract_number(text: str, lang: str,
         # Portuguese gives the number written first: "ganhou mil euros e
         # comprou duas dúzias" is 1000, where the reader alone adds up 12024.
         # The reader reads the text up to the end of that number, so a sign
-        # before it stays: "menos dois graus e três" is -2. A half after a
-        # noun is half of that noun (numbers_pt docstring), so it is no part
-        # of the number: "uma hora e meia" is 1.
+        # before it stays: "menos dois graus e três" is -2. A half counts the
+        # unit before it (numbers_pt docstring). When only "e", marks and an
+        # aside in brackets stand between the number and the half, the unit
+        # is the number: "dois (aprox.) e meio" is 2.5. A word between them
+        # is the unit, so the half is no part of the number: "uma hora e
+        # meia" is 1. A mark that ends a number ends it here too: "dois, e
+        # meio" is 2, and a sentence ends at ".", "!" or "?" before a capital.
         spans = extract_number_spans(text, lang, short_scale, ordinals, scale)
         if len(spans) > 1:
-            first = spans[0]
+            first, second = spans[0], spans[1]
+            between = text[first.end:second.start]
+            gap = between.split()
+            sentence_end = any(
+                word[-1] in ".!?" and nxt.lstrip(_SPAN_PUNCTUATION)[:1].isupper()
+                for word, nxt in zip(gap, gap[1:] + [second.surface]))
+            words = [w for w in (w.strip(_SPAN_PUNCTUATION).lower()
+                                 for w in _BRACKETED.sub(" ", between).split()) if w]
+            joins_half = second.surface.lower() in ("meio", "meia") and \
+                words == ["e"] and not sentence_end and \
+                between.lstrip()[:1] not in tuple(",;:!?")
             # the span leaves out an opening mark glued to the number, and a
             # lone decimal mark before its digits (",5" is 0.5, "...5" is 5)
             head = text[:first.start]
             point = head[-1:] if head[-1:] in ".," and \
                 head[-2:-1] not in (".", ",") and first.surface[:1].isdigit() else ""
             head = head[:len(head) - len(point)].rstrip(_SPAN_PUNCTUATION) + point
-            value = _extract_number(head + text[first.start:first.end], lang,
-                                    short_scale, ordinals, scale)
+            # a joined half is read with a plain " e " in place of the marks,
+            # so it is half of a scale word as in "um milhão, e meio"
+            number = text[first.start:first.end]
+            if joins_half:
+                number += " e " + second.surface
+            value = _extract_number(head + number, lang, short_scale, ordinals, scale)
     # an integer that str() cannot write is no number, as a digit string
     # longer than the integer string conversion limit is none
     return value if fits_str_limit(value) else False
@@ -1933,6 +1951,8 @@ class NumberSpan:
 
 #: characters that punctuate a word without belonging to it; a leading or
 #: trailing run of these is not part of a number's surface ("at 7," -> "7")
+# an aside in brackets, which a half may follow: "dois (aprox.) e meio"
+_BRACKETED = re.compile(r"\([^()]*\)|\[[^\[\]]*\]")
 _SPAN_PUNCTUATION = "\"'`´.,;:!?¡¿…()[]{}<>«»“”‘’"
 
 
