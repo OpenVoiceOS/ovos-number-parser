@@ -1804,17 +1804,21 @@ def extract_number(text: str, lang: str,
     if _base_lang(lang) == "pt":
         # Portuguese gives the number written first: "ganhou mil euros e
         # comprou duas dúzias" is 1000, where the reader alone adds up 12024.
-        # A half after "e" counts the unit before it (numbers_pt docstring),
-        # so it stays in the first number: "uma hora e meia" is 1.5
+        # The reader reads the text up to the end of that number, so a sign
+        # before it stays: "menos dois graus e três" is -2. A half after "e"
+        # counts the unit before it (numbers_pt docstring), so in the same
+        # sentence it stays in the first number: "uma hora e meia" is 1.5
         spans = extract_number_spans(text, lang, short_scale, ordinals, scale)
         if len(spans) > 1:
             first, second = spans[0], spans[1]
+            gap = text[first.end:second.start]
+            gap_words = [w.strip(_SPAN_PUNCTUATION) for w in gap.lower().split()]
+            end = first.end
             if second.surface.lower() in ("meio", "meia") and \
-                    text[first.end:second.start].lower().split()[-1:] == ["e"]:
-                value = _extract_number(text[:second.end], lang, short_scale,
-                                        ordinals, scale)
-            else:
-                value = first.value
+                    gap_words[-1:] == ["e"] and \
+                    not any(mark in gap for mark in ".!?;…"):
+                end = second.end
+            value = _extract_number(text[:end], lang, short_scale, ordinals, scale)
     # an integer that str() cannot write is no number, as a digit string
     # longer than the integer string conversion limit is none
     return value if fits_str_limit(value) else False

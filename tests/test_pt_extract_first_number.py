@@ -48,6 +48,24 @@ class TestFirstNumber(unittest.TestCase):
             lang="pt-BR"), 2 * 12)
 
 
+class TestSignOfTheFirstNumber(unittest.TestCase):
+    """The span holds no "menos", so the sign comes from the reader."""
+    #: text, value, language tag
+    ROWS = [("menos dois graus e três", -2, "pt-PT"),
+            ("menos dois graus e três", -2, "pt-BR"),
+            ("menos 5 graus e 10", -5, "pt-PT"),
+            ("menos 5 graus e 10", -5, "pt-BR"),
+            ("menos um milhão de euros e duas dúzias", -10 ** 6, "pt-PT"),
+            ("a temperatura é de menos dez graus e amanhã será de cinco",
+             -10, "pt-BR")]
+
+    def test_the_minus_sign_stays(self):
+        for text, value, lang in self.ROWS:
+            with self.subTest(text=text, lang=lang):
+                self.assertEqual(extract_number(text, lang=lang), value)
+                self.assertEqual(len(extract_number_spans(text, lang)), 2)
+
+
 class TestOneNumberStaysWhole(unittest.TestCase):
     #: text, value, language tag
     ROWS = [("mil e duas dúzias", 1002 * 12, "pt-PT"),
@@ -59,7 +77,16 @@ class TestOneNumberStaysWhole(unittest.TestCase):
             # a half after "e" counts the unit before it
             ("uma hora e meia", 1 + 0.5, "pt-PT"),
             ("daqui a duas horas e meia", 2 + 0.5, "pt-BR"),
-            ("duas horas e meia e três dias", 2 + 0.5, "pt-PT")]
+            ("duas horas e meia e três dias", 2 + 0.5, "pt-PT"),
+            ("uma hora e, meia", 1 + 0.5, "pt-PT"),
+            ("uma hora, e meia", 1 + 0.5, "pt-BR")]
+
+    def test_a_half_after_a_sentence_stop_is_a_new_number(self):
+        for text in ("uma hora. E meia hora depois três",
+                     "uma hora! E meia hora depois três"):
+            for lang in ("pt-PT", "pt-BR"):
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(extract_number(text, lang=lang), 1)
 
     def test_one_number(self):
         for text, value, lang in self.ROWS:
@@ -73,6 +100,24 @@ class TestOneNumberStaysWhole(unittest.TestCase):
                                         lang="pt-PT"), 3)
         self.assertIs(extract_number("não há nada aqui", lang="pt-PT"), False)
         self.assertIs(extract_number("", lang="pt-BR"), False)
+
+
+class TestSpanValuesStayWritable(unittest.TestCase):
+    """A span value is an integer that str() can write. 4000 digits fit the
+    default limit of 4300; with "centiliões" (10 ** 600 in pt-PT) they do
+    not, so the span ends before the scale word."""
+
+    def test_the_span_stops_before_an_unwritable_value(self):
+        digits = "9" * 4000
+        for text in (digits + " centiliões", digits + " centiliões e dois"):
+            with self.subTest(text=text[-20:]):
+                spans = extract_number_spans(text, "pt-PT")
+                self.assertEqual(spans[0].surface, digits)
+                self.assertEqual(spans[0].value, 10 ** 4000 - 1)
+                for span in spans:
+                    str(span.value)
+                self.assertIs(extract_number(digits + " centiliões",
+                                             lang="pt-PT"), False)
 
 
 if __name__ == "__main__":
