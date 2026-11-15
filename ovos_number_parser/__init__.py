@@ -2029,6 +2029,8 @@ def extract_number_spans(text: str, lang: str,
         last = index
         cursor = index
         connector_used = crossed_connector = False
+        # the end of the phrase at each value it read so far
+        read = {value: index}
         while cursor + 1 < len(words) and \
                 not text[words[cursor][1]:words[cursor + 1][0]].strip():
             nxt = words[cursor + 1]
@@ -2038,12 +2040,31 @@ def extract_number_spans(text: str, lang: str,
                                   ordinals, scale)
             suffix = _numeric_value(text[words[index + 1][0]:nxt[1]], lang,
                                     short_scale, ordinals, scale)
+            if grown in read and grown != value \
+                    and (isinstance(value, int) or value.is_integer()):
+                # the longer phrase reads what a shorter one read; when
+                # numbers_to_digits writes the phrase so far as its value and
+                # the longer one as that shorter number and more, the words
+                # after the shorter one are a number of their own ("duas
+                # dúzias e meio milhão" is 24 and 500000). A phrase that reads
+                # a fraction keeps its span, because numbers_to_digits does
+                # not split a decimal where the number ends ("zero vírgula
+                # vinte e cinco cem" is 0.25 and 100)
+                so_far = numbers_to_digits(text[start:words[last][1]], lang,
+                                           scale=scale).split()
+                longer = numbers_to_digits(text[start:nxt[1]], lang,
+                                           scale=scale).split()
+                if so_far == [str(value)] and len(longer) > 1 \
+                        and longer[0] == str(grown):
+                    value, last = grown, read[grown]
+                    break
             if grown is not None and grown != value and \
                     not (connector_used and grown == word) and \
                     (grown != suffix or _reads_as_one_number(text[start:nxt[1]],
                                                              lang, scale)):
                 crossed_connector = crossed_connector or connector_used
                 value, last, connector_used = grown, cursor + 1, False
+                read.setdefault(value, last)
             elif connector_used or word is not None:
                 # in a span that holds a connector, a number word that
                 # leaves the value unchanged may open the rest of a mixed

@@ -93,11 +93,24 @@ fixed size. Priberam, "dezena", sense 1: "Grupo de dez."
 "Conjunto de 100 elementos." (https://dicionario.priberam.org/centena). The
 cardinal before one multiplies it: "duas dúzias" is 24, "meia dúzia" is 6, and
 a half after one is half a group, as after a scale noun: "dúzia e meia" is 18.
-The whole cardinal counts the noun, as in Priberam, "mil", locution "mil e
-um": "Grande quantidade (ex.: ele tem mil e uma artimanhas)"
-(https://dicionario.priberam.org/mil), where "mil e uma" counts
-"artimanhas". So "mil e duas dúzias" is 1002 dozens, "duas mil e duzentas
-dúzias" is 2200 dozens and "um milhão e duas dúzias" is 1000002 dozens.
+"Mil" is a numeral (Priberam, "mil": "quantificador numeral cardinal", "Dez
+vezes cem."), so the whole cardinal it is part of counts the noun, as in
+Priberam, "mil", locution "mil e um": "Grande quantidade (ex.: ele tem mil e
+uma artimanhas)" (https://dicionario.priberam.org/mil), where "mil e uma"
+counts "artimanhas". So "mil e duas dúzias" is 1002 dozens and "duas mil e
+duzentas dúzias" is 2200 dozens. "Milhão" is a noun (Priberam, "milhão":
+"nome masculino", "Mil vezes mil", https://dicionario.priberam.org/milhão),
+so a collective noun after it counts only the cardinal after it: "um milhão
+e duas dúzias" is 1000000 and 24. Right after it, through "de", the noun
+counts the "milhão" itself: "dois milhões de dúzias" is 24000000. Before a
+plural, only the bare "de" does this. "Dos" is "de" and the article (Priberam, "dos":
+"Contracção de preposição de e do artigo e pronome os.",
+https://dicionario.priberam.org/dos), so the noun after it names groups
+already known and the count picks some out of them: "uma dezena dos
+milhares de manifestantes" is 10. A
+collective noun ends its number, so after "e" a new number starts: "uma
+dúzia e duas mil dúzias" is 12 and 24000. Only a half after "e" stays in
+the number, as half a group: "duas dúzias e meia" is 30.
 "Meia dúzia" is a group of its own, so "cem e meia dúzia" is 100 and 6.
 A plural with no count names no number, as "milhares" does: "dúzias de ovos"
 and "centenas de pessoas" read as no number.

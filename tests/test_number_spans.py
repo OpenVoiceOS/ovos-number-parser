@@ -150,5 +150,45 @@ class TestNumberSpansDE(SpanAssertions):
         self.assertEqual(spans[0].start, 2)
 
 
+
+class TestPhraseReadingAnEarlierValue(SpanAssertions):
+    """A longer phrase may read the value of a shorter one. The phrase ends
+    at the shorter one only when numbers_to_digits writes it as that number
+    and more."""
+
+    def test_a_new_number_after_a_finished_one_is_cut_off(self):
+        self.assertSpans("duas dúzias e meio milhão", "pt-PT",
+                         [("duas dúzias", 24), ("meio milhão", 500000)])
+
+    def test_a_fragment_that_reads_an_earlier_value_is_not_cut(self):
+        # the extractor reads "twenty one twenty" as 20, but
+        # numbers_to_digits writes "21 20"
+        self.assertSpans("twenty one twenty", "en",
+                         [("twenty one", 21), ("twenty", 20)])
+
+    def test_a_split_numbers_to_digits_makes_no_cut(self):
+        # numbers_to_digits writes "сто и петдесет" as more than one
+        # number, so it says nothing about where the span ends
+        self.assertSpans("сто и петдесет сто и едно", "bg",
+                         [("сто и петдесет", 150), ("сто и едно", 101)])
+
+    def test_a_phrase_that_reads_a_fraction_is_not_cut(self):
+        # numbers_to_digits writes "zero vírgula vinte e cinco cem" as
+        # "0.2 e 105", which says nothing about where 0.25 ends
+        self.assertSpans("zero vírgula vinte e cinco cem", "pt-PT",
+                         [("zero vírgula vinte e cinco", 0.25), ("cem", 100)])
+        self.assertSpans("cero coma vinte e cinco cen", "gl",
+                         [("cero coma vinte e cinco", 0.25), ("cen", 100)])
+
+    def test_a_number_past_the_float_range_is_cut(self):
+        # "centilião" is 10 ** 600 in the long scale, past the float range
+        self.assertSpans("um centilião de dúzias e meio milhão", "pt-PT",
+                         [("um centilião de dúzias", 12 * 10 ** 600),
+                          ("meio milhão", 500000)])
+        self.assertSpans("um centilião e duas dúzias e meio milhão", "pt-PT",
+                         [("um centilião e duas dúzias", 10 ** 600 + 2 * 12),
+                          ("meio milhão", 500000)])
+
+
 if __name__ == "__main__":
     unittest.main()
