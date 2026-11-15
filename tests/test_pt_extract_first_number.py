@@ -3,8 +3,8 @@
 A sentence that holds two numbers answers the first one, the value that
 ``extract_number_spans`` gives for its first span: "ganhou mil euros e
 comprou duas dúzias" is 1000. One number stays one number, whatever words it
-spans. A half after "e" counts the unit before it (numbers_pt docstring), so
-"uma hora e meia" is 1.5. Expected values are hand arithmetic.
+spans. A half after a noun is half of that noun (numbers_pt docstring), so
+"uma hora e meia" is 1. Expected values are hand arithmetic.
 """
 import unittest
 
@@ -111,31 +111,21 @@ class TestOneNumberStaysWhole(unittest.TestCase):
             ("duas dúzias e meia", 2 * 12 + 12 // 2, "pt-BR"),
             ("vinte e um", 20 + 1, "pt-BR"),
             ("dois mil e vinte e cinco", 2 * 1000 + 20 + 5, "pt-PT"),
-            ("um milhão e meio", 10 ** 6 + 10 ** 6 // 2, "pt-PT"),
-            # a half after "e" counts the unit before it
-            ("uma hora e meia", 1 + 0.5, "pt-PT"),
-            ("daqui a duas horas e meia", 2 + 0.5, "pt-BR"),
-            ("duas horas e meia e três dias", 2 + 0.5, "pt-PT"),
-            ("uma hora e, meia", 1 + 0.5, "pt-PT"),
-            ("uma hora, e meia", 1 + 0.5, "pt-BR")]
+            ("um milhão e meio", 10 ** 6 + 10 ** 6 // 2, "pt-PT")]
 
-    def test_a_half_after_a_sentence_end_is_a_new_number(self):
-        # a sentence ends at ".", "!" or "?" before a capital letter
-        for text in ("uma hora. E meia hora depois três",
-                     "uma hora! E meia hora depois três",
-                     "uma hora? E meia",
-                     "uma hora e. Meia hora depois"):
+    def test_a_half_after_a_noun_is_no_part_of_the_number(self):
+        # "meia" agrees with the noun it halves: "uma hora e meia" is one
+        # hour and half an hour, a duration, and the first number is 1
+        for text, value in [("uma hora e meia", 1), ("daqui a duas horas e meia", 2),
+                            ("duas horas e meia e três dias", 2),
+                            ("uma hora e, meia", 1), ("uma hora, e meia", 1),
+                            ("uma hora... e meia", 1), ("uma hora… e meia", 1),
+                            ("uma hora; e meia", 1), ("uma hora (aprox.) e meia", 1),
+                            ("Uma Hora E Meia", 1), ("uma hora? E meia", 1),
+                            ("uma hora. E meia hora depois três", 1)]:
             for lang in ("pt-PT", "pt-BR"):
                 with self.subTest(text=text, lang=lang):
-                    self.assertEqual(extract_number(text, lang=lang), 1)
-
-    def test_a_half_after_a_mark_inside_the_sentence_stays(self):
-        for text in ("uma hora... e meia", "uma hora… e meia",
-                     "uma hora; e meia", "uma hora (aprox.) e meia",
-                     "Uma Hora E Meia"):
-            for lang in ("pt-PT", "pt-BR"):
-                with self.subTest(text=text, lang=lang):
-                    self.assertEqual(extract_number(text, lang=lang), 1 + 0.5)
+                    self.assertEqual(extract_number(text, lang=lang), value)
 
     def test_one_number(self):
         for text, value, lang in self.ROWS:

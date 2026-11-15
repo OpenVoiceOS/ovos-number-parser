@@ -1805,29 +1805,19 @@ def extract_number(text: str, lang: str,
         # Portuguese gives the number written first: "ganhou mil euros e
         # comprou duas dúzias" is 1000, where the reader alone adds up 12024.
         # The reader reads the text up to the end of that number, so a sign
-        # before it stays: "menos dois graus e três" is -2. A half after "e"
-        # counts the unit before it (numbers_pt docstring), so in the same
-        # sentence it stays in the first number: "uma hora e meia" is 1.5.
-        # A sentence ends at ".", "!" or "?" before a capital letter.
+        # before it stays: "menos dois graus e três" is -2. A half after a
+        # noun is half of that noun (numbers_pt docstring), so it is no part
+        # of the number: "uma hora e meia" is 1.
         spans = extract_number_spans(text, lang, short_scale, ordinals, scale)
         if len(spans) > 1:
-            first, second = spans[0], spans[1]
-            gap = text[first.end:second.start].split()
-            sentence_end = any(
-                word[-1] in ".!?" and nxt.lstrip(_SPAN_PUNCTUATION)[:1].isupper()
-                for word, nxt in zip(gap, gap[1:] + [second.surface]))
-            end = first.end
-            if second.surface.lower() in ("meio", "meia") and \
-                    [w.strip(_SPAN_PUNCTUATION).lower() for w in gap][-1:] == ["e"] \
-                    and not sentence_end:
-                end = second.end
+            first = spans[0]
             # the span leaves out an opening mark glued to the number, and a
             # lone decimal mark before its digits (",5" is 0.5, "...5" is 5)
             head = text[:first.start]
             point = head[-1:] if head[-1:] in ".," and \
                 head[-2:-1] not in (".", ",") and first.surface[:1].isdigit() else ""
             head = head[:len(head) - len(point)].rstrip(_SPAN_PUNCTUATION) + point
-            value = _extract_number(head + text[first.start:end], lang,
+            value = _extract_number(head + text[first.start:first.end], lang,
                                     short_scale, ordinals, scale)
     # an integer that str() cannot write is no number, as a digit string
     # longer than the integer string conversion limit is none
