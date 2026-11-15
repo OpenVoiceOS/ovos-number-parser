@@ -138,7 +138,11 @@ class TestOneNumberStaysWhole(unittest.TestCase):
                             ("um milhão... e meio", 10 ** 6 + 10 ** 6 // 2),
                             # a mark that ends a number ends it before the half
                             ("dois, e meio", 2), ("dois; e meio", 2),
-                            ("dois. E meio", 2)]:
+                            ("dois. E meio", 2),
+                            # the ellipsis character ends a sentence as "..." does
+                            ("um milhão… E meio", 10 ** 6),
+                            ("um milhão... E meio", 10 ** 6),
+                            ("um milhão… e meio", 10 ** 6 + 10 ** 6 // 2)]:
             for lang in ("pt-PT", "pt-BR"):
                 with self.subTest(text=text, lang=lang):
                     self.assertEqual(extract_number(text, lang=lang), value)
