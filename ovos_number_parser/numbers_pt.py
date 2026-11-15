@@ -101,17 +101,19 @@ counts "artimanhas". So "mil e duas dúzias" is 1002 dozens and "duas mil e
 duzentas dúzias" is 2200 dozens. "Milhão" is a noun (Priberam, "milhão":
 "nome masculino", "Mil vezes mil", https://dicionario.priberam.org/milhão),
 so a collective noun after it counts only the cardinal after it: "um milhão
-e duas dúzias" is 1000000 and 24. Right after it, through "de", the noun
-counts the "milhão" itself: "dois milhões de dúzias" is 24000000. Before a
-plural, only the bare "de" does this. "Dos" is "de" and the article (Priberam, "dos":
+e duas dúzias" is one number, 1000000 plus 24, which is 1000024. Right after
+it, through "de", the noun counts the "milhão" itself: "dois milhões de
+dúzias" is 24000000. Before a plural, only the bare "de" does this. "Dos" is
+"de" and the article (Priberam, "dos":
 "Contracção de preposição de e do artigo e pronome os.",
 https://dicionario.priberam.org/dos), so the noun after it names groups
 already known and the count picks some out of them: "uma dezena dos
-milhares de manifestantes" is 10. A
-collective noun ends its number, so after "e" a new number starts: "uma
-dúzia e duas mil dúzias" is 12 and 24000. Only a half after "e" stays in
-the number, as half a group: "duas dúzias e meia" is 30.
-"Meia dúzia" is a group of its own, so "cem e meia dúzia" is 100 and 6.
+milhares de manifestantes" is 10. A collective noun ends its number, so
+after "e" a new number starts: "uma dúzia e duas mil dúzias" is two
+numbers, 12 and 24000. Only a half after "e" stays in the number, as half a
+group: "duas dúzias e meia" is 30.
+"Meia dúzia" is a group of its own, so "cem e meia dúzia" is one number,
+100 plus 6, which is 106.
 A plural with no count names no number, as "milhares" does: "dúzias de ovos"
 and "centenas de pessoas" read as no number.
 
