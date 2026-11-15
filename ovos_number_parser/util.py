@@ -557,7 +557,7 @@ class NumberVocabulary:
     #: milhão e meio de discos"). Any other word is a noun the half counts
     #: itself ("um milhão e meia dúzia" is a million and half a dozen). The
     #: first entry is the bare preposition: only it joins a collective noun
-    #: to the noun it counts ("três centenas de milhões")
+    #: to the plural it counts ("três centenas de milhões")
     HALF_OF_SCALE_FOLLOWERS: List[str] = field(default_factory=list)
 
     # full spelling of "one <scale>" groups when they use an article or a

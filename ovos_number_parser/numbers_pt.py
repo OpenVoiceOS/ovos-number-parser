@@ -102,8 +102,8 @@ duzentas dúzias" is 2200 dozens. "Milhão" is a noun (Priberam, "milhão":
 "nome masculino", "Mil vezes mil", https://dicionario.priberam.org/milhão),
 so a collective noun after it counts only the cardinal after it: "um milhão
 e duas dúzias" is 1000000 and 24. Right after it, through "de", the noun
-counts the "milhão" itself: "dois milhões de dúzias" is 24000000. Only the
-bare "de" does this. "Dos" is "de" and the article (Priberam, "dos":
+counts the "milhão" itself: "dois milhões de dúzias" is 24000000. Before a
+plural, only the bare "de" does this. "Dos" is "de" and the article (Priberam, "dos":
 "Contracção de preposição de e do artigo e pronome os.",
 https://dicionario.priberam.org/dos), so the noun after it names groups
 already known and the count picks some out of them: "uma dezena dos

@@ -2041,7 +2041,7 @@ def extract_number_spans(text: str, lang: str,
             suffix = _numeric_value(text[words[index + 1][0]:nxt[1]], lang,
                                     short_scale, ordinals, scale)
             if grown in read and grown != value \
-                    and float(value).is_integer():
+                    and (isinstance(value, int) or value.is_integer()):
                 # the longer phrase reads what a shorter one read; when
                 # numbers_to_digits writes the phrase so far as its value and
                 # the longer one as that shorter number and more, the words

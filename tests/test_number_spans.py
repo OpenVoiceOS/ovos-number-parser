@@ -180,6 +180,15 @@ class TestPhraseReadingAnEarlierValue(SpanAssertions):
         self.assertSpans("cero coma vinte e cinco cen", "gl",
                          [("cero coma vinte e cinco", 0.25), ("cen", 100)])
 
+    def test_a_number_past_the_float_range_is_cut(self):
+        # "centilião" is 10 ** 600 in the long scale, past the float range
+        self.assertSpans("um centilião de dúzias e meio milhão", "pt-PT",
+                         [("um centilião de dúzias", 12 * 10 ** 600),
+                          ("meio milhão", 500000)])
+        self.assertSpans("um centilião e duas dúzias e meio milhão", "pt-PT",
+                         [("um centilião e duas dúzias", 10 ** 600 + 2 * 12),
+                          ("meio milhão", 500000)])
+
 
 if __name__ == "__main__":
     unittest.main()
