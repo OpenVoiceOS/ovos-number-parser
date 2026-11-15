@@ -55,20 +55,20 @@ class TestScaleAndAHalf(unittest.TestCase):
 
     def test_a_half_after_a_number_below_a_thousand_is_still_a_half(self):
         for text, value in [("dois e meio", 2.5), ("dez e meio", 10.5),
-                            ("cem e meio", 100.5),
-                            ("uma hora e meia", 1.5)]:
+                            ("cem e meio", 100.5)]:
             with self.subTest(text=text):
                 self.assertEqual(extract_number(text, lang="pt"), value)
 
     def test_half_before_the_scale_still_multiplies(self):
         self.assertEqual(extract_number("meio milhão", lang="pt"), 500_000)
 
-    def test_the_half_does_not_cross_another_word(self):
-        # extract_number reads one number; a noun between the scale and
-        # "e meio" ends the scale run, so the half adds as it does on its own
-        for text, value in [("comprei mil livros e meio quilo de café", 1000.5),
-                            ("mil euros e meio", 1000.5),
-                            ("um milhão de pessoas e meia hora", 1000000.5)]:
+    def test_a_half_after_a_noun_is_half_of_that_noun(self):
+        # "meia" agrees with the unit it halves (numbers_pt docstring): after
+        # a noun it is half of that noun, so it is no part of the number
+        for text, value in [("comprei mil livros e meio quilo de café", 1000),
+                            ("mil euros e meio", 1000),
+                            ("um milhão de pessoas e meia hora", 1_000_000),
+                            ("uma hora e meia", 1)]:
             with self.subTest(text=text):
                 self.assertEqual(extract_number(text, lang="pt"), value)
 
