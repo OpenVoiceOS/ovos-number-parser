@@ -85,6 +85,25 @@ class TestMarksAroundTheFirstNumber(unittest.TestCase):
                     self.assertEqual(extract_number(text, lang=lang), value)
 
 
+class TestDecimalMarkBeforeTheFirstNumber(unittest.TestCase):
+    """The span leaves out a decimal mark before the digits, but the mark is
+    part of the number: ",5" is 0.5. An ellipsis is no decimal mark."""
+    #: text, value
+    ROWS = [(",5 litros e 3 copos", 5 / 10),
+            ("custa .99 euros e o outro 3", 99 / 100),
+            ("menos .5 graus e 3", -5 / 10),
+            ("(.5) e 3", 5 / 10),
+            ("tomei ,5 mg e depois 3", 5 / 10),
+            ("...5 gatos e 3", 5),
+            (".dois gatos e três", 2)]
+
+    def test_the_decimal_mark_stays(self):
+        for text, value in self.ROWS:
+            for lang in ("pt-PT", "pt-BR"):
+                with self.subTest(text=text, lang=lang):
+                    self.assertEqual(extract_number(text, lang=lang), value)
+
+
 class TestOneNumberStaysWhole(unittest.TestCase):
     #: text, value, language tag
     ROWS = [("mil e duas dúzias", 1002 * 12, "pt-PT"),

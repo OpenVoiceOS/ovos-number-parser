@@ -1821,9 +1821,13 @@ def extract_number(text: str, lang: str,
                     [w.strip(_SPAN_PUNCTUATION).lower() for w in gap][-1:] == ["e"] \
                     and not sentence_end:
                 end = second.end
-            # the span leaves out an opening mark glued to the number
-            head = text[:first.start].rstrip(_SPAN_PUNCTUATION)
-            value = _extract_number(head + " " + text[first.start:end], lang,
+            # the span leaves out an opening mark glued to the number, and a
+            # lone decimal mark before its digits (",5" is 0.5, "...5" is 5)
+            head = text[:first.start]
+            point = head[-1:] if head[-1:] in ".," and \
+                head[-2:-1] not in (".", ",") and first.surface[:1].isdigit() else ""
+            head = head[:len(head) - len(point)].rstrip(_SPAN_PUNCTUATION) + point
+            value = _extract_number(head + text[first.start:end], lang,
                                     short_scale, ordinals, scale)
     # an integer that str() cannot write is no number, as a digit string
     # longer than the integer string conversion limit is none
