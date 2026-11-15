@@ -555,7 +555,9 @@ class NumberVocabulary:
     #: words that may follow such a half in numbers_to_digits, besides the end
     #: of the text and a joiner: a preposition that opens what is counted ("um
     #: milhão e meio de discos"). Any other word is a noun the half counts
-    #: itself ("um milhão e meia dúzia" is a million and half a dozen)
+    #: itself ("um milhão e meia dúzia" is a million and half a dozen). The
+    #: first entry is the bare preposition: only it joins a collective noun
+    #: to the noun it counts ("três centenas de milhões")
     HALF_OF_SCALE_FOLLOWERS: List[str] = field(default_factory=list)
 
     # full spelling of "one <scale>" groups when they use an article or a
@@ -952,13 +954,17 @@ class RomanceNumberExtractor:
             if token in bare_plurals and not (
                     last_read == i - 1
                     or last_read == i - 2
-                    and (tokens[i - 2] in scales_words or tokens[i - 2] in count_nouns)
-                    and tokens[i - 1] in self.vocab.HALF_OF_SCALE_FOLLOWERS):
+                    and (tokens[i - 2] in scales_words
+                         and tokens[i - 1] in self.vocab.HALF_OF_SCALE_FOLLOWERS
+                         or tokens[i - 2] in count_nouns
+                         and tokens[i - 1] == self.vocab.HALF_OF_SCALE_FOLLOWERS[0])):
                 # a plural takes its count from the number word right before
                 # it ("dois milhões"), or from a scale word or a collective
                 # noun and a preposition ("milhões de biliões", "três
                 # centenas de milhões"); alone it is no number ("milhões de
-                # pessoas", "dois golos perante milhares de adeptos")
+                # pessoas", "dois golos perante milhares de adeptos"). After a
+                # collective noun only the bare preposition counts: "dos"
+                # picks some out of the group ("uma dezena dos milhares" is 10)
                 val = None
             if val is not None:
                 saw_number = True
@@ -1286,8 +1292,9 @@ class RomanceNumberExtractor:
             # "de" between a collective noun and a scale noun or another
             # collective noun is part of the number ("dois milhões de
             # dúzias", "duas dezenas de milhar", "três dezenas de dúzias"),
-            # as extract_number reads it
-            if w in self.vocab.HALF_OF_SCALE_FOLLOWERS and idx:
+            # as extract_number reads it; "dos" picks some out of the group
+            if self.vocab.HALF_OF_SCALE_FOLLOWERS and idx \
+                    and w == self.vocab.HALF_OF_SCALE_FOLLOWERS[0]:
                 before, after = words[idx - 1], next_word(idx)
                 nouns = [x for x in (before, after) if x in count_nouns
                          or numbers_map.get(x, 0) >= 1000

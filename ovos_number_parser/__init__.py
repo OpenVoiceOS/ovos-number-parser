@@ -2040,12 +2040,16 @@ def extract_number_spans(text: str, lang: str,
                                   ordinals, scale)
             suffix = _numeric_value(text[words[index + 1][0]:nxt[1]], lang,
                                     short_scale, ordinals, scale)
-            if grown in read and grown != value:
+            if grown in read and grown != value \
+                    and float(value).is_integer():
                 # the longer phrase reads what a shorter one read; when
                 # numbers_to_digits writes the phrase so far as its value and
                 # the longer one as that shorter number and more, the words
                 # after the shorter one are a number of their own ("duas
-                # dúzias e meio milhão" is 24 and 500000)
+                # dúzias e meio milhão" is 24 and 500000). A phrase that reads
+                # a fraction keeps its span, because numbers_to_digits does
+                # not split a decimal where the number ends ("zero vírgula
+                # vinte e cinco cem" is 0.25 and 100)
                 so_far = numbers_to_digits(text[start:words[last][1]], lang,
                                            scale=scale).split()
                 longer = numbers_to_digits(text[start:nxt[1]], lang,

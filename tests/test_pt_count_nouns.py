@@ -364,6 +364,27 @@ class TestNounBeforeMilhar(unittest.TestCase):
                     self.assertEqual(numbers_to_digits(text, lang=lang), digits)
 
 
+    def test_a_contracted_article_picks_out_of_the_groups(self):
+        # "dos" is "de" and the article: it picks some out of the groups,
+        # so the noun after it does not count them
+        for lang in ("pt-PT", "pt-BR"):
+            for text, surface, value, rest in [
+                    ("uma dezena dos milhares de manifestantes foi detida",
+                     "uma dezena", 10,
+                     " dos milhares de manifestantes foi detida"),
+                    ("três centenas dos milhares de inscritos",
+                     "três centenas", 3 * 100, " dos milhares de inscritos"),
+                    ("uma dezena das centenas de pessoas", "uma dezena", 10,
+                     " das centenas de pessoas"),
+                    ("uma dúzia das dúzias de ovos", "uma dúzia", 12,
+                     " das dúzias de ovos")]:
+                with self.subTest(lang=lang, text=text):
+                    self.assertEqual(spans(text, lang), [(value, surface)])
+                    self.assertEqual(extract_number(text, lang=lang), value)
+                    self.assertEqual(numbers_to_digits(text, lang=lang),
+                                     str(value) + rest)
+
+
 class TestHalfEndsNumber(unittest.TestCase):
     """A half after a scale noun ends its number, as a collective noun does."""
 

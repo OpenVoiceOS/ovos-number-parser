@@ -172,6 +172,14 @@ class TestPhraseReadingAnEarlierValue(SpanAssertions):
         self.assertSpans("сто и петдесет сто и едно", "bg",
                          [("сто и петдесет", 150), ("сто и едно", 101)])
 
+    def test_a_phrase_that_reads_a_fraction_is_not_cut(self):
+        # numbers_to_digits writes "zero vírgula vinte e cinco cem" as
+        # "0.2 e 105", which says nothing about where 0.25 ends
+        self.assertSpans("zero vírgula vinte e cinco cem", "pt-PT",
+                         [("zero vírgula vinte e cinco", 0.25), ("cem", 100)])
+        self.assertSpans("cero coma vinte e cinco cen", "gl",
+                         [("cero coma vinte e cinco", 0.25), ("cen", 100)])
+
 
 if __name__ == "__main__":
     unittest.main()
