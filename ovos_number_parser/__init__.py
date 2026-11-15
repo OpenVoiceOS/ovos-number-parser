@@ -1801,6 +1801,20 @@ def extract_number(text: str, lang: str,
                                text contains no numbers
     """
     value = _extract_number(text, lang, short_scale, ordinals, scale)
+    if _base_lang(lang) == "pt":
+        # Portuguese gives the number written first: "ganhou mil euros e
+        # comprou duas dúzias" is 1000, where the reader alone adds up 12024.
+        # A half after "e" counts the unit before it (numbers_pt docstring),
+        # so it stays in the first number: "uma hora e meia" is 1.5
+        spans = extract_number_spans(text, lang, short_scale, ordinals, scale)
+        if len(spans) > 1:
+            first, second = spans[0], spans[1]
+            if second.surface.lower() in ("meio", "meia") and \
+                    text[first.end:second.start].lower().split()[-1:] == ["e"]:
+                value = _extract_number(text[:second.end], lang, short_scale,
+                                        ordinals, scale)
+            else:
+                value = first.value
     # an integer that str() cannot write is no number, as a digit string
     # longer than the integer string conversion limit is none
     return value if fits_str_limit(value) else False
@@ -1938,11 +1952,13 @@ def _numeric_value(fragment: str, lang: str, short_scale: Optional[bool],
 
     Extractors report "no number" as either ``False`` or ``None`` depending on
     the language, and ``0`` is a legitimate value, so the falsiness of the
-    return value cannot be used to tell the two apart.
+    return value cannot be used to tell the two apart. The language's reader
+    answers, not ``extract_number``, which reads a Portuguese text through
+    these spans.
     """
-    value = extract_number(fragment, lang, short_scale=short_scale,
-                           ordinals=ordinals, scale=scale)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    value = _extract_number(fragment, lang, short_scale, ordinals, scale)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) \
+            or not fits_str_limit(value):
         return None
     return value
 
