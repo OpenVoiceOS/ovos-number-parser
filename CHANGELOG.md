@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.64a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.64a1) (2026-11-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.63a1...0.24.64a1)
+
+**Merged pull requests:**
+
+- fix\(it\): centesimo decimo and pronounce\_ordinal from a million up [\#513](https://github.com/OpenVoiceOS/ovos-number-parser/pull/513) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.63a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.63a1) (2026-11-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.62a4...0.24.63a1)
@@ -357,10 +365,6 @@
 ## [0.24.20a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.20a1) (2026-11-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.19a1...0.24.20a1)
-
-**Merged pull requests:**
-
-- fix: dispatch on the exact primary language subtag [\#412](https://github.com/OpenVoiceOS/ovos-number-parser/pull/412) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.19a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.19a1) (2026-11-10)
 
