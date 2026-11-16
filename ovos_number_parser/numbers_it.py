@@ -10,10 +10,10 @@ decine, le centinaia, ecc.: ventuna pagina, le mille e una notte, centouna
 volte, ma più spesso in tal caso si usa la forma non declinata del masch.
 sing." Accademia della Crusca, consulenza 1077: "In passato era normale
 'femminilizzare' anche i composti di uno, mentre oggi questo è meno comune".
-With ``gender=FEMININE`` a whole number that ends in 1 takes the feminine
-("una", "ventuna", "centouna", "milleuna"); both sources attest it. A
-masculine scale word keeps "uno" ("ventuno milioni"), and a number with
-decimals keeps "uno" because the noun after it is plural.
+With ``gender=FEMININE`` the number 1 alone takes the feminine ("una");
+a compound keeps "uno" ("ventuno pagine", "centouno", "milleuno"), the form
+both sources call the usual one today. A number with decimals keeps "uno"
+because the noun after it is plural.
 
 "centootto". Treccani, "Numerali": "con cento seguito da una decina o da
 un'unità, l'elisione è poco comune con uno, otto e undici [...] (29)
@@ -810,8 +810,8 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False,
         short_scale (bool) : use short (True) or long scale (False)
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
-        gender (GrammaticalGender): a whole number that ends in 1 agrees with
-            a feminine noun: "una", "ventuna", "centouna"
+        gender (GrammaticalGender): the number 1 alone agrees with a
+            feminine noun: "una"; compounds keep "ventuno", "centouno"
     Returns:
         (str): The pronounced number
     """
@@ -977,8 +977,7 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False,
     # takes none, so only a "tre" that ends a longer word is accented.
     result = re.sub(r"(?<=[a-zàèéìòù])tre\b", "tré", result)
 
-    if gender == GrammaticalGender.FEMININE and num == int(num) \
-            and result.endswith("uno"):
+    if gender == GrammaticalGender.FEMININE and num == 1:
         result = result[:-1] + "a"
 
     if num != int(num) and abs(num) < 1.0 \

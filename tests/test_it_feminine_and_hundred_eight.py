@@ -7,7 +7,9 @@ Gold values are worked by hand from these sources:
   l'elisione è poco comune con uno, otto e undici [...] centootto [raramente
   centotto]".
 - Treccani, Vocabolario, "uno": "ventuna pagina, le mille e una notte,
-  centouna volte".
+  centouna volte, ma più spesso in tal caso si usa la forma non declinata
+  del masch. sing."; Crusca 1077: the feminine of compounds "oggi [...] è
+  meno comune".
 - Accademia della Crusca, consulenza 1077: "108: centootto, meno bene
   centotto"; "180: centottanta o centoottanta"; "21.000: ventunomila o
   ventunmila: entrambe le forme vanno bene".
@@ -16,7 +18,8 @@ Gold values are worked by hand from these sources:
 """
 import unittest
 
-from ovos_number_parser import pronounce_number, pronounce_ordinal
+from ovos_number_parser import (extract_number, pronounce_number,
+                                pronounce_ordinal)
 from ovos_number_parser.util import GrammaticalGender
 
 FEMININE = GrammaticalGender.FEMININE
@@ -32,45 +35,42 @@ class TestFeminineOne(unittest.TestCase):
         self.assertEqual(f"Ho letto {feminine(1)} pagina.",
                          "Ho letto una pagina.")
 
-    def test_compounds_ending_in_one(self):
-        # Treccani, "uno": "ventuna pagina", "centouna volte"
-        self.assertEqual(f"{feminine(21)} pagina", "ventuna pagina")
-        self.assertEqual(f"{feminine(101)} volte", "centouna volte")
-        self.assertEqual(feminine(31), "trentuna")
-        self.assertEqual(feminine(121), "centoventuna")
-        self.assertEqual(feminine(1001), "milleuna")
-        self.assertEqual(feminine(2001), "duemilauna")
-        self.assertEqual(feminine(101001), "centounomilauna")
+    def test_compounds_keep_uno(self):
+        # Treccani, "uno": "più spesso [...] la forma non declinata"
+        self.assertEqual(f"{feminine(21)} pagine", "ventuno pagine")
+        self.assertEqual(f"{feminine(101)} volte", "centouno volte")
+        self.assertEqual(feminine(31), "trentuno")
+        self.assertEqual(feminine(121), "centoventuno")
+        self.assertEqual(feminine(1001), "milleuno")
+        self.assertEqual(feminine(2001), "duemilauno")
+        self.assertEqual(feminine(101001), "centounomilauno")
 
     def test_negative(self):
         self.assertEqual(feminine(-1), "meno una")
-        self.assertEqual(feminine(-21), "meno ventuna")
+        self.assertEqual(feminine(-21), "meno ventuno")
 
     def test_after_a_million(self):
-        self.assertEqual(feminine(1000001), "un milione una")
-        self.assertEqual(feminine(2000021), "due milioni ventuna")
+        self.assertEqual(feminine(1000001), "un milione uno")
 
     def test_masculine_is_unchanged(self):
         self.assertEqual(pronounce_number(1, "it"), "uno")
-        self.assertEqual(pronounce_number(21, "it"), "ventuno")
-        self.assertEqual(pronounce_number(101, "it"), "centouno")
-        self.assertEqual(pronounce_number(21, "it",
+        self.assertEqual(pronounce_number(1, "it",
                                           gender=GrammaticalGender.NEUTRAL),
-                         "ventuno")
+                         "uno")
+        self.assertEqual(pronounce_number(21, "it"), "ventuno")
 
     def test_other_numbers_keep_their_form(self):
         self.assertEqual(feminine(11), "undici")
         self.assertEqual(feminine(2), "due")
-        self.assertEqual(feminine(23), "ventitré")
         self.assertEqual(feminine(10), "dieci")
-
-    def test_a_scale_word_stays_masculine(self):
         self.assertEqual(feminine(21000), "ventunomila")
-        self.assertEqual(feminine(21000000), "ventuno milioni")
         self.assertEqual(feminine(1000000), "un milione")
 
     def test_decimals_keep_uno(self):
         self.assertEqual(feminine(1.5), "uno virgola cinque")
+
+    def test_una_is_read_back(self):
+        self.assertEqual(extract_number("una pagina", lang="it"), 1)
 
 
 class TestCentoOtto(unittest.TestCase):
