@@ -95,7 +95,8 @@ class TestRbnfNegativeDecimal(unittest.TestCase):
     def test_negative_ordinal_unchanged(self):
         for lang in ("af", "ko", "sw", "ta", "eo"):
             engine = RbnfEngine.for_language(lang)
-            for number in (-3, -2.5):
+            numbers = (-3, -12, -2.5) if lang == "sw" else (-3, -12)
+            for number in numbers:
                 with self.subTest(lang=lang, number=number):
                     expected = engine.format_number(
                         number, FormatPurpose.ORDINAL).text
@@ -105,6 +106,19 @@ class TestRbnfNegativeDecimal(unittest.TestCase):
                         expected)
         self.assertEqual(pronounce_ordinal(-3, "hi", gender=F),
                          _rbnf("hi", -3, "spellout-ordinal-feminine"))
+
+    def test_fractional_ordinal_raises_for_either_sign(self):
+        # An ordinal has no reading of a fraction, so 2.5 and -2.5 are both
+        # refused. unicode_rbnf 2.4 truncated -2.5 to "minus second". The sw
+        # rule set reads the magnitude of a negative ordinal as a cardinal and
+        # keeps its reading, which test_negative_ordinal_unchanged covers.
+        for lang in ("af", "ko", "ta", "eo"):
+            for number in (2.5, -2.5):
+                with self.subTest(lang=lang, number=number):
+                    with self.assertRaises(NotImplementedError):
+                        pronounce_ordinal(number, lang)
+                    with self.assertRaises(NotImplementedError):
+                        pronounce_number(number, lang, ordinals=True)
 
     def test_language_without_negative_rule_still_raises(self):
         for number in (-12, -12.25):
