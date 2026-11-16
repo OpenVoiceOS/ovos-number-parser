@@ -1,8 +1,8 @@
 # START_VERSION_BLOCK
 VERSION_MAJOR = 0
 VERSION_MINOR = 24
-VERSION_BUILD = 62
-VERSION_ALPHA = 4
+VERSION_BUILD = 63
+VERSION_ALPHA = 1
 # END_VERSION_BLOCK
 
 # Release automation rewrites only the block above; the packaging metadata reads
