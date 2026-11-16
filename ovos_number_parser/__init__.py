@@ -1711,7 +1711,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_hu(number)
     if lang2 == "id":
         return pronounce_ordinal_id(number)
-    if lang2 == "it" and 0 <= number < 10 ** 6 and number == int(number):
+    if lang2 == "it" and 0 <= number and number == int(number):
         return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
     if lang2 == "ms":
         return pronounce_ordinal_ms(number)

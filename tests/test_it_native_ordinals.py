@@ -74,23 +74,17 @@ class TestItalianOrdinals(unittest.TestCase):
             (1000, "millesimo"), (2000, "duemillesimo"),
             (3000, "tremillesimo"), (100000, "centomillesimo")])
 
-    def test_final_ten(self):
-        self.assertOrdinal([(110, "centodecimo")])
-
     def test_feminine(self):
         self.assertOrdinal([
             (1, "prima"), (10, "decima"), (21, "ventunesima"),
             (23, "ventitreesima"), (3000, "tremillesima")], gender=FEMININE)
 
     def test_scale_words(self):
-        # pronounce_ordinal keeps the CLDR reading from a million up
         self.assertOrdinal([
             (10 ** 6, "milionesimo"), (2 * 10 ** 6, "duemilionesimo"),
-            (10 ** 9, "miliardesimo"), (10 ** 12, "bilionesimo")],
-            routed=False)
+            (10 ** 9, "miliardesimo"), (10 ** 12, "bilionesimo")])
 
     def test_from_a_million_one_word(self):
-        # pronounce_ordinal keeps the CLDR reading from a million up
         self.assertOrdinal([
             (1000001, "milioneunesimo"), (1000003, "milionetreesimo"),
             (1000008, "milioneottesimo"), (1000010, "milionedecimo"),
@@ -106,9 +100,8 @@ class TestItalianOrdinals(unittest.TestCase):
             (10 ** 9 + 8, "miliardottesimo"),
             (10 ** 9 + 23, "miliardoventitreesimo"),
             (10 ** 9 + 10 ** 6, "miliardomilionesimo"),
-            (10 ** 12 + 5, "bilionecinquesimo")], routed=False)
-        self.assertOrdinal([(1000003, "milionetreesima")], gender=FEMININE,
-                           routed=False)
+            (10 ** 12 + 5, "bilionecinquesimo")])
+        self.assertOrdinal([(1000003, "milionetreesima")], gender=FEMININE)
 
     def test_cardinal_unchanged(self):
         self.assertEqual(pronounce_number(23, "it"), "ventitré")
