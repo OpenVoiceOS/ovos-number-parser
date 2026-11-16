@@ -39,6 +39,36 @@ millesimo secondo, millesimo decimo, millesimo undecimo o undicesimo, ecc.
 (in questi casi la grafia staccata è preferita)". The writer gives these four
 as two words: 1001 "millesimo primo", 1002 "millesimo secondo", 1010
 "millesimo decimo", 1011 "millesimo undicesimo".
+
+Ordinals of a hundred and ten. The same Treccani entry lists "centesimo
+decimo" first among the ordinals for which the stem type "sarebbe sentito
+come poco eufonico", and Treccani, "centesimo": "In composizione con altri
+numerali forma gli ordinali superiori: centesimo primo (o, più com.,
+centunesimo), centesimo secondo (o, più com., centoduesimo)". So 110 reads
+"centesimo decimo", and every number from 110 that ends in 10 reads the
+ordinal of the hundreds, a space and "decimo": "duecentesimo decimo",
+"millecentesimo decimo", "duemillesimo decimo". Treccani gives the pattern
+for 110 and 1010; the other numbers follow it. Giorgio De Rienzo, Corriere
+della Sera, "Scioglilingua", 24 September 2004, answers a reader who asks
+about "gli ordinali corrispondenti a 110, 210, ecc." and finds "centodiecesimo"
+"improponibile": "Ha due alternative. O "centodecesimo" (perché in questi casi
+il "dieci" perde la "i") o "centesimo decimo", decisamente più elegante, anche
+se più antiquato." The fused forms "centodecimo" and "duecentodecimo" are in
+use, and the stem form "-diecesimo" follows Treccani's own -esimo rule but is
+not attested in use. The ruling: Treccani and De Rienzo give "centesimo
+decimo" as the preferred standard form, over the commoner fused usage.
+Numbers from a million up keep the fused form ("milionecentodecimo").
+
+Ordinals above a million. Treccani, "milionesimo", defines only the ordinal of
+one million ("occupa il posto corrispondente a un milione"). No source in
+hand gives the ordinal of a compound such as 3500000, with the scale word in
+the singular or the plural, fused or spaced. The writer keeps the CLDR RBNF
+reading, the scale word in the singular and fused into one word
+("tremilionecinquecentomillesimo"). This is a choice without a source. The
+count before the scale word is apocopated like "ventun gatti" (Crusca,
+consulenza 1077, "segue le sue stesse regole di apocope"; Treccani, "Numerali":
+"può essere apocopato se il numerale precede il nome"), so 21000000 reads
+"ventunmilionesimo" where the cardinal reads "ventuno milioni".
 """
 import collections
 from decimal import Decimal
@@ -783,8 +813,12 @@ def pronounce_ordinal_it(number: int,
     the ordinal is one word as well (see ``_ordinal_from_a_million_it``).
     The feminine ends in -a.
     """
+    words = None
     if number - 1000 in _SPACED_AFTER_MILLESIMO_IT:
         words = ["millesimo", _SPACED_AFTER_MILLESIMO_IT[number - 1000]]
+    elif 110 <= number < 10 ** 6 and number % 100 == 10:
+        words = [_ordinal_it(number - 10), "decimo"]
+    if words:
         if gender == GrammaticalGender.FEMININE:
             words = [word[:-1] + "a" for word in words]
         return " ".join(words)
