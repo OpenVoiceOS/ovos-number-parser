@@ -20,6 +20,7 @@ import unittest
 
 from ovos_number_parser import (extract_number, pronounce_number,
                                 pronounce_ordinal)
+from ovos_number_parser.numbers_it import pronounce_ordinal_it
 from ovos_number_parser.util import GrammaticalGender
 
 FEMININE = GrammaticalGender.FEMININE
@@ -135,6 +136,21 @@ class TestOrdinalsAfterMillesimo(unittest.TestCase):
             (1000, "millesimo"), (1003, "milletreesimo"),
             (1012, "milledodicesimo"), (1100, "millecentesimo"),
             (2001, "duemilaunesimo")])
+
+    def test_two_words_only_on_their_own(self):
+        # inside a scale word the ordinal stays one fused word, as before
+        for number, masculine, feminine in [
+                (1001001, "milionemilleunesimo", "milionemilleunesima"),
+                (10 ** 9 + 1001, "miliardomilleunesimo",
+                 "miliardomilleunesima"),
+                (10 ** 12 + 1002, "bilionemilleduesimo",
+                 "bilionemilleduesima"),
+                (2001010, "duemilionemilledecimo", "duemilionemilledecima"),
+                (1001011, "milionemilleundicesimo", "milionemilleundicesima")]:
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_ordinal_it(number), masculine)
+                self.assertEqual(
+                    pronounce_ordinal_it(number, FEMININE), feminine)
 
     def test_ventunomila_is_kept(self):
         # Crusca: "ventunomila o ventunmila: entrambe le forme vanno bene"

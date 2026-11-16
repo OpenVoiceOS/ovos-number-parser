@@ -750,7 +750,7 @@ def _ordinal_from_a_million_it(number: int) -> str:
             unit = _esimo_it(pronounce_number_it(rest))
             tail = unit if unit.startswith(("u", "o")) else "o" + unit
         else:
-            tail = "o" + pronounce_ordinal_it(rest)
+            tail = "o" + _ordinal_it(rest)
     else:
         # "milione→%%ordinal-esimo→"
         stem = plural[:-1] + "e"
@@ -759,8 +759,18 @@ def _ordinal_from_a_million_it(number: int) -> str:
         elif rest < 10:
             tail = _esimo_it(pronounce_number_it(rest))
         else:
-            tail = pronounce_ordinal_it(rest)
+            tail = _ordinal_it(rest)
     return head + stem + tail
+
+
+def _ordinal_it(number: int) -> str:
+    """The masculine ordinal of a whole number, one word, with no
+    two-word reading."""
+    if number <= 10:
+        return _ORDINAL_UNITS_IT[number]
+    if number < 10 ** 6:
+        return _esimo_it(pronounce_number_it(number))
+    return _ordinal_from_a_million_it(number)
 
 
 def pronounce_ordinal_it(number: int,
@@ -780,17 +790,13 @@ def pronounce_ordinal_it(number: int,
         return " ".join(words)
     if number < 0:
         return "meno " + pronounce_ordinal_it(-number, gender)
-    if number <= 10:
-        word = _ORDINAL_UNITS_IT[number]
-    elif number < 10 ** 6:
-        word = _esimo_it(pronounce_number_it(number))
-    else:
+    if number >= 10 ** 6:
         spoken = pronounce_number_it(number, short_scale=False)
         if spoken == pronounce_number_it(number, short_scale=False,
                                          scientific=True):
             # past the last scale word: no ordinal reading
             return spoken
-        word = _ordinal_from_a_million_it(number)
+    word = _ordinal_it(number)
     if gender == GrammaticalGender.FEMININE:
         word = word[:-1] + "a"
     return word
