@@ -1,3 +1,45 @@
+"""Italian number writers: ``pronounce_number_it`` and ``pronounce_ordinal_it``.
+
+Rules and their sources:
+
+Feminine of 1. Treccani, Enciclopedia dell'Italiano, "Numerali" (Faloppa
+2011): "In italiano [i cardinali] sono invariabili, a eccezione di uno, che
+varia secondo il genere [...] e che al femminile assume la forma una".
+Treccani, Vocabolario, "uno": "nella composizione con i numeri indicanti le
+decine, le centinaia, ecc.: ventuna pagina, le mille e una notte, centouna
+volte, ma più spesso in tal caso si usa la forma non declinata del masch.
+sing." Accademia della Crusca, consulenza 1077: "In passato era normale
+'femminilizzare' anche i composti di uno, mentre oggi questo è meno comune".
+With ``gender=FEMININE`` a whole number that ends in 1 takes the feminine
+("una", "ventuna", "centouna", "milleuna"); both sources attest it. A
+masculine scale word keeps "uno" ("ventuno milioni"), and a number with
+decimals keeps "uno" because the noun after it is plural.
+
+"centootto". Treccani, "Numerali": "con cento seguito da una decina o da
+un'unità, l'elisione è poco comune con uno, otto e undici [...] (29)
+centootto [raramente centotto]". Crusca, consulenza 1077: "108: centootto,
+meno bene centotto" and "180: centottanta o centoottanta". "Cento" and the
+other hundreds therefore keep their -o before "otto" ("centootto",
+"duecentootto") and elide it before "ottanta" ("centottanta",
+"trecentottantotto").
+
+"ventunomila". Crusca, consulenza 1077: "21.000: ventunomila o ventunmila:
+entrambe le forme vanno bene". Both forms are standard, so the writer keeps
+"ventunomila", "trentunomila".
+
+Ordinals of a round count of thousands. Treccani, Vocabolario, "tremillesimo":
+"der. di tremila, secondo l'agg. millesimo"; "ordinale": "millesimo,
+duemillesimo, ... diecimillesimo". "Ventunomillesimo" follows the same
+count as the cardinal "ventunomila", which Crusca allows.
+
+Ordinals right after "millesimo". Treccani, Vocabolario, "ordinale": the
+juxtaposed type "è pressoché l'unico per alcuni ordinali per i quali l'altro
+tipo sarebbe sentito come poco eufonico: centesimo decimo, millesimo primo,
+millesimo secondo, millesimo decimo, millesimo undecimo o undicesimo, ecc.
+(in questi casi la grafia staccata è preferita)". The writer gives these four
+as two words: 1001 "millesimo primo", 1002 "millesimo secondo", 1010
+"millesimo decimo", 1011 "millesimo undicesimo".
+"""
 import collections
 from decimal import Decimal
 
@@ -643,6 +685,11 @@ _ORDINAL_UNITS_IT = ["zeresimo", "primo", "secondo", "terzo", "quarto",
                      "quinto", "sesto", "settimo", "ottavo", "nono", "decimo"]
 
 
+#: the ordinals right after "millesimo" that are written as two words
+_SPACED_AFTER_MILLESIMO_IT = {1: "primo", 2: "secondo", 10: "decimo",
+                              11: "undicesimo"}
+
+
 def _esimo_it(word):
     """The -esimo ordinal of one fused cardinal word.
 
@@ -726,6 +773,11 @@ def pronounce_ordinal_it(number: int,
     the ordinal is one word as well (see ``_ordinal_from_a_million_it``).
     The feminine ends in -a.
     """
+    if number - 1000 in _SPACED_AFTER_MILLESIMO_IT:
+        words = ["millesimo", _SPACED_AFTER_MILLESIMO_IT[number - 1000]]
+        if gender == GrammaticalGender.FEMININE:
+            words = [word[:-1] + "a" for word in words]
+        return " ".join(words)
     if number < 0:
         return "meno " + pronounce_ordinal_it(-number, gender)
     if number <= 10:
@@ -744,7 +796,8 @@ def pronounce_ordinal_it(number: int,
     return word
 
 
-def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
+def pronounce_number_it(number, places=2, short_scale=False, scientific=False,
+                        gender: GrammaticalGender = GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
     adapted to italian fron en version
@@ -757,6 +810,8 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
         short_scale (bool) : use short (True) or long scale (False)
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
+        gender (GrammaticalGender): a whole number that ends in 1 agrees with
+            a feminine noun: "una", "ventuna", "centouna"
     Returns:
         (str): The pronounced number
     """
@@ -827,10 +882,9 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
                 # eccezioni, senza spazi: duecentodiecimila". Cardinals below a
                 # million are one fused word, so the hundreds join directly.
                 rest = _sub_thousand(r) if r else ""
-                # "cento" drops its final -o before a word beginning with o
-                # (otto, ottanta...): "centottanta", "trecentottantotto", not
-                # "centoottanta". Both ICU and num2words agree.
-                if rest.startswith("o"):
+                # "cento" drops its final -o before "ottanta": "centottanta",
+                # "trecentottantotto"; it keeps it before "otto": "centootto".
+                if rest.startswith("o") and r != 8:
                     _partial = _partial[:-1]
                 _partial += rest
                 return _partial
@@ -922,6 +976,10 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
     # si scrivono più correttamente con l'accento". The standalone "tre" (3)
     # takes none, so only a "tre" that ends a longer word is accented.
     result = re.sub(r"(?<=[a-zàèéìòù])tre\b", "tré", result)
+
+    if gender == GrammaticalGender.FEMININE and num == int(num) \
+            and result.endswith("uno"):
+        result = result[:-1] + "a"
 
     if num != int(num) and abs(num) < 1.0 \
             and (result == "meno " or not result):
