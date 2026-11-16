@@ -14,6 +14,36 @@
 # limitations under the License.
 #
 
+"""Dutch number words.
+
+Rules and sources:
+
+* Cardinals: Taaladvies.net (Nederlandse Taalunie), "Aaneenschrijven van
+  telwoorden (algemeen)", https://taaladvies.net/aaneenschrijven-van-telwoorden/
+  Cardinals are written as one word up to and including "duizend" ("135
+  honderdvijfendertig", "6000 zesduizend"). "Na het woord duizend (en
+  samenstellingen hiermee, zoals vierduizend) staat een spatie": 4002 is
+  "vierduizend twee" and 28 064 is "achtentwintigduizend vierenzestig".
+  "Miljoen en miljard zijn altijd aparte woorden": 3 000 000 is "drie miljoen".
+  Onze Taal, "Getallen uitschrijven",
+  https://onzetaal.nl/taalloket/getallen-uitschrijven, gives the same rule and
+  says it holds for cardinals and ordinals.
+* Ordinals: the same Taaladvies page ("Rangtelwoorden worden gevormd door
+  toevoeging van het achtervoegsel -ste, -de of -e aan het overeenkomstige
+  hoofdtelwoord. Met de hoofdtelwoorden een en drie corresponderen evenwel de
+  rangtelwoorden eerste en derde"; examples "102e honderdentweede", "3220e
+  drieduizend tweehonderdtwintigste", "4 000 000e vier miljoenste"). Onze Taal,
+  "Honderdeneende / honderdeneerste",
+  https://onzetaal.nl/taalloket/honderdeneende-honderdeneerste: "In
+  samengestelde rangtelwoorden ga je van het laatste deel uit:
+  negenhonderdzevende, driehonderdachtste, honderdeneerste"; the forms without
+  "en" ("honderdeerste") are correct as well. The suffix follows the last
+  part: 1 "eerste", 3 "derde", 8 "achtste", the other numbers up to 19 take
+  "-de", tens, "honderd", "duizend" and the scale words take "-ste". The
+  Wiktionary entries "eerste", "derde", "achtste" and "miljoenste" agree.
+* Trema: Taaladvies.net, "Klinkerbotsing" ("tweeëntwintig").
+"""
+
 import sys
 from fractions import Fraction
 from collections import OrderedDict
@@ -407,43 +437,32 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             result += " " + _NUM_STRING_NL[int(digit)]
         return result
 
-    def pronounce_whole_number_nl(num, scale_level=0):
-        if num == 0:
-            return ''
-
+    def pronounce_whole_number_nl(num):
+        # Taaladvies.net, "Aaneenschrijven van telwoorden": a space follows
+        # "duizend" and its compounds, and "miljoen", "miljard" ... are
+        # separate words, so every group of the number is its own word.
         num = floor(num)
-        result = ''
-        last_triplet = num % 1000
-
-        if last_triplet == 1:
-            if scale_level == 0:
-                result += "een"
-            elif scale_level == 1:
-                # 1000 is "duizend", not "eenduizend" (same Taalunie rule)
-                result += 'duizend' + _EXTRA_SPACE_NL
-            else:
-                # from a million up the count word IS written ("één miljoen"):
-                # here "een" would read as the article "a million", so the
-                # accented "één" marks the numeral
-                result += "één " + _NUM_POWERS_OF_TEN[scale_level] + ' '
-        elif last_triplet > 1:
-            result += pronounce_triplet_nl(last_triplet)
-            if scale_level == 1:
-                # result += _EXTRA_SPACE_DA
-                result += 'duizend' + _EXTRA_SPACE_NL
-            if scale_level >= 2:
-                # if _EXTRA_SPACE_DA == '':
-                #    result += " "
-                result += " " + _NUM_POWERS_OF_TEN[scale_level] + ' '
-            if scale_level >= 2:
-                if scale_level % 2 == 0:
-                    result += ""  # Miljioen
-                result += ""  # Miljard, Miljoen
-
-        num //= 1000
-        scale_level += 1
-        return pronounce_whole_number_nl(num,
-                                         scale_level) + result + ''
+        groups = []
+        scale_level = 0
+        while num:
+            triplet = num % 1000
+            if triplet:
+                if scale_level == 0:
+                    groups.append("een" if triplet == 1
+                                  else pronounce_triplet_nl(triplet))
+                elif scale_level == 1:
+                    # 1000 is "duizend", not "eenduizend" (same Taalunie rule)
+                    groups.append("duizend" if triplet == 1 else
+                                  pronounce_triplet_nl(triplet) + "duizend")
+                else:
+                    # from a million up the count word IS written; "één"
+                    # marks the numeral where "een" would read as the article
+                    count = "één" if triplet == 1 \
+                        else pronounce_triplet_nl(triplet)
+                    groups.append(count + " " + _NUM_POWERS_OF_TEN[scale_level])
+            num //= 1000
+            scale_level += 1
+        return " ".join(reversed(groups))
 
     result = ""
     if abs(number) >= 1000000000000000000000000:  # cannot do more than this
@@ -477,28 +496,51 @@ def pronounce_ordinal_nl(number):
     """
     This function pronounces a number as an ordinal
 
-    1 -> first
-    2 -> second
+    1 -> eerste
+    2 -> tweede
+    101 -> honderdeerste
+    4002 -> vierduizend tweede
+    1000000 -> miljoenste
+
+    The ending follows the last part of the number: 1, 3 and 8 are irregular
+    ("eerste", "derde", "achtste"), the rest of 1 to 19 take "-de", and the
+    tens and the scale words take "-ste".
+
+    Sources: Taaladvies.net, "Aaneenschrijven van telwoorden (algemeen)"
+    (rangtelwoorden: "-ste, -de of -e" at the matching cardinal, "eerste" and
+    "derde" for 1 and 3, "drieduizend tweehonderdtwintigste", "vier
+    miljoenste"); Onze Taal, "Honderdeneende / honderdeneerste" ("In
+    samengestelde rangtelwoorden ga je van het laatste deel uit:
+    negenhonderdzevende, driehonderdachtste, honderdeneerste"); Onze Taal,
+    "Getallen uitschrijven" (the spacing rule holds for ordinals);
+    Wiktionary nl "eerste", "derde", "achtste".
 
     Args:
         number (int): the number to format
     Returns:
         (str): The pronounced number string.
     """
-    ordinals = ["nulste", "eerste", "tweede", "derde", "vierde", "vijfde",
-                "zesde", "zevende", "achtste"]
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
-    if number < 4:
-        return ordinals[number]
-    if number < 8:
-        return pronounce_number_nl(number) + "de"
-    if number < 9:
-        return pronounce_number_nl(number) + "ste"
-    if number < 20:
-        return pronounce_number_nl(number) + "de"
-    return pronounce_number_nl(number) + "ste"
+    number = int(number)
+    if number == 0:
+        return "nulste"
+    spoken = pronounce_number_nl(number)
+    if spoken == "één":
+        return "eerste"
+    if spoken.split(" ")[0] == "één" and len(spoken.split(" ")) == 2:
+        spoken = spoken.split(" ")[1]  # "één miljoen" -> "miljoenste"
+    last = number % 100
+    if last == 1:
+        return spoken[:-len("een")] + "eerste"
+    if last == 3:
+        return spoken[:-len("drie")] + "derde"
+    if last == 8:
+        return spoken + "ste"
+    if 0 < last < 20:
+        return spoken + "de"
+    return spoken + "ste"
 
 
 def numbers_to_digits_nl(text, short_scale=True, ordinals=False):
@@ -1015,10 +1057,27 @@ def _compound_value_nl(parts, short_scale=True):
     return total + current
 
 
+def _is_below_thousand_nl(word):
+    """True when the word is a number word that is worth less than 1000."""
+    parts = _split_compound_number_nl(word) or [word]
+    value = _compound_value_nl(parts)
+    return value is not None and 0 < value < 1000
+
+
 def _expand_compound_numbers_nl(text, short_scale=True):
     """Rewrite compound number words as their digit value for parsing."""
     out = []
-    for w in text.split():
+    words = text.split()
+    # a space follows "duizend": "vierduizend twee" is the one number 4002
+    glued = []
+    for w in words:
+        if glued and glued[-1].endswith("duizend") and (
+                w in _STRING_NUM_NL or _split_compound_number_nl(w)) \
+                and _is_below_thousand_nl(w):
+            glued[-1] += w
+        else:
+            glued.append(w)
+    for w in glued:
         parts = _split_compound_number_nl(w)
         if parts:
             value = _compound_value_nl(parts, short_scale)
