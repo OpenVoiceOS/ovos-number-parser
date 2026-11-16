@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.24.63a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.63a1) (2026-11-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.62a4...0.24.63a1)
+
+**Merged pull requests:**
+
+- fix\(it\): feminine una, centootto and the ordinals after millesimo [\#511](https://github.com/OpenVoiceOS/ovos-number-parser/pull/511) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
+## [0.24.62a4](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.62a4) (2026-11-15)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.62a1...0.24.62a4)
+
 ## [0.24.62a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.62a1) (2026-11-15)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.61a1...0.24.62a1)
