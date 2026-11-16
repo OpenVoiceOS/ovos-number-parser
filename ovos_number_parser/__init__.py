@@ -1295,7 +1295,8 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
         # engine handles elision, so `digits` stays unused here.
         if ordinals and not scientific and number == int(number):
             return pronounce_ordinal_it(int(number), gender)
-        return pronounce_number_it(number, places, short_scale, scientific)
+        return pronounce_number_it(number, places, short_scale, scientific,
+                                   gender)
     if lang2 == "kab":
         return pronounce_number_kab(number, places, ordinals, gender)
     if lang2 == "fy":

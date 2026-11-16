@@ -12,7 +12,7 @@ From a million up, milione/miliardo stand as separate words -- "un milione",
 form for such large numbers; both ICU and num2words agree.
 
 Two elisions surface once the word is fused, both confirmed by ICU + num2words:
-"cento" drops its -o before an o-word ("centottanta", "trecentottantotto"), and
+"cento" drops its -o before "ottanta" ("centottanta", "trecentottantotto"), and
 the singular scale word apocopates to "un" ("un milione", not "uno milioni").
 
 Source archived under papers/linguistics/it/.
@@ -45,9 +45,9 @@ class TestFusedBelowMillion(unittest.TestCase):
 
 
 class TestCentoElision(unittest.TestCase):
-    """cento drops -o before an o-word (both refs agree)."""
+    """cento drops -o before "ottanta" and keeps it before "otto"."""
 
-    CASES = [(108, "centotto"), (180, "centottanta"),
+    CASES = [(108, "centootto"), (180, "centottanta"),
              (188, "centottantotto"), (380, "trecentottanta"),
              (788, "settecentottantotto"), (880, "ottocentottanta")]
 
