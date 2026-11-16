@@ -48,8 +48,15 @@ centunesimo), centesimo secondo (o, più com., centoduesimo)". So 110 reads
 "centesimo decimo", and every number from 110 that ends in 10 reads the
 ordinal of the hundreds, a space and "decimo": "duecentesimo decimo",
 "millecentesimo decimo", "duemillesimo decimo". Treccani gives the pattern
-for 110 and 1010; the other numbers follow it. The stem form "-diecesimo" is
-not attested, and the form "duecentodecimo" comes from CLDR RBNF alone.
+for 110 and 1010; the other numbers follow it. Giorgio De Rienzo, Corriere
+della Sera, "Scioglilingua", 24 September 2004, answers a reader who asks
+about "gli ordinali corrispondenti a 110, 210, ecc." and finds "centodiecesimo"
+"improponibile": "Ha due alternative. O "centodecesimo" (perché in questi casi
+il "dieci" perde la "i") o "centesimo decimo", decisamente più elegante, anche
+se più antiquato." The fused forms "centodecimo" and "duecentodecimo" are in
+use, and the stem form "-diecesimo" follows Treccani's own -esimo rule but is
+not attested in use. The ruling: Treccani and De Rienzo give "centesimo
+decimo" as the preferred standard form, over the commoner fused usage.
 Numbers from a million up keep the fused form ("milionecentodecimo").
 
 Ordinals above a million. Treccani, "milionesimo", defines only the ordinal of

@@ -10,6 +10,10 @@ Gold values are worked by hand from these sources:
   staccata è preferita)".
 - Treccani, Vocabolario, "centesimo": "centesimo primo (o, più com.,
   centunesimo), centesimo secondo (o, più com., centoduesimo)".
+- Giorgio De Rienzo, Corriere della Sera, "Scioglilingua", 24 September 2004,
+  on "gli ordinali corrispondenti a 110, 210, ecc.": "O "centodecesimo"
+  (perché in questi casi il "dieci" perde la "i") o "centesimo decimo",
+  decisamente più elegante, anche se più antiquato."
 - CLDR RBNF it, spellout-ordinal-masculine, for a million and above (worked
   out in test_it_native_ordinals): the count, the singular scale word and the
   ordinal of the rest in one word. No source settles the scale word of a
@@ -60,6 +64,29 @@ class TestOrdinalsEndingInTen(unittest.TestCase):
 
     def test_inside_a_scale_word_the_tail_stays_fused(self):
         self.assertOrdinals([(1000110, "milionecentodecimo")])
+
+
+class TestNegativeOrdinals(unittest.TestCase):
+    CASES = [(-110, "meno centesimo decimo", "meno centesima decima"),
+             (-1001, "meno millesimo primo", "meno millesima prima"),
+             (-3500000, "meno tremilionecinquecentomillesimo",
+              "meno tremilionecinquecentomillesima")]
+
+    def test_pronounce_ordinal_reads_the_engine(self):
+        for number, masculine, feminine in self.CASES:
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_ordinal(number, "it"), masculine)
+                self.assertEqual(
+                    pronounce_ordinal(number, "it", gender=FEMININE), feminine)
+
+    def test_both_functions_agree(self):
+        for number, _, _ in self.CASES:
+            for gender in (MASCULINE, FEMININE):
+                with self.subTest(number=number, gender=gender.name):
+                    self.assertEqual(
+                        pronounce_ordinal(number, "it", gender=gender),
+                        pronounce_number(number, "it", ordinals=True,
+                                         gender=gender))
 
 
 class TestOrdinalsFromAMillion(unittest.TestCase):
