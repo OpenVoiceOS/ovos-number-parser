@@ -104,6 +104,22 @@ the text intact.
 'set a timer for 5 minutes'
 ```
 
+## Readers backed by numtag
+
+`extract_number`, `extract_number_spans` and `numbers_to_digits` read a
+language through [numtag](https://github.com/TigreGotico/numtag) when its
+language code is in `ovos_number_parser.numtag_readers.NUMTAG_LANGS`. Every
+other language keeps its `numbers_<code>.py` reader. A language joins the set
+when numtag passes that language's tests in this repository.
+
+numtag gives each value as an exact digit string. The readers convert it to
+the `int` or `float` the API returns. A value that is no whole number is a
+`float`. When the `float` drops the part after the point, the value rounds
+half up to an `int`. An integer with more digits than `str` can write is no
+number. `numbers_to_digits` keeps a number written in digits and an ordinal
+as written. `is_fractional` and `is_ordinal` answer a question about one
+word, which numtag does not read, so they keep the parser for every language.
+
 ## Enums
 
 - `Scale`: `Scale.SHORT` / `Scale.LONG` large-number scales.

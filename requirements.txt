@@ -1,2 +1,3 @@
 quebra_frases>=0.3.7
 unicode-rbnf
+numtag>=0.7.0a1

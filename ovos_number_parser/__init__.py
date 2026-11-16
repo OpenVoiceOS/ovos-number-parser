@@ -111,6 +111,7 @@ from ovos_number_parser.numbers_sv import nice_number_sv
 from ovos_number_parser.numbers_uk import nice_number_uk
 from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation, fits_str_limit, \
     scientific_parts, round_half_up
+from ovos_number_parser import numtag_readers
 
 
 # --- canonical short/long scale convention per language --------------------
@@ -562,6 +563,8 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
     Raises:
         NotImplementedError: If the specified language is not supported.
     """
+    if numtag_readers.routed(lang):
+        return numtag_readers.numbers_to_digits(utterance, lang, scale)
     converted = _number_words_to_digits(utterance, lang, scale)
     if _base_lang(lang) in ("nb", "nn", "no"):
         # nb and nn keep the output of their converter
@@ -1800,6 +1803,8 @@ def extract_number(text: str, lang: str,
         (int, float or False): The number extracted or False if the input
                                text contains no numbers
     """
+    if numtag_readers.routed(lang):
+        return numtag_readers.extract_number(text, lang, short_scale, ordinals, scale)
     value = _extract_number(text, lang, short_scale, ordinals, scale)
     if _base_lang(lang) == "pt":
         # Portuguese gives the number written first: "ganhou mil euros e
@@ -2055,6 +2060,10 @@ def extract_number_spans(text: str, lang: str,
     """
     if not isinstance(text, str):
         return []
+    if numtag_readers.routed(lang):
+        return [NumberSpan(start, end, text[start:end], numtag_readers.number(m.value))
+                for m in numtag_readers.mentions(text, lang, short_scale, ordinals, scale)
+                for start, end in [m.char_span]]
 
     words = _word_spans(text)
     spans = []
