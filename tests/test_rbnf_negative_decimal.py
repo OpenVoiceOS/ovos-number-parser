@@ -1,10 +1,9 @@
 """The Unicode RBNF fallback keeps the fraction of a negative number.
 
-``unicode_rbnf`` reads a negative number through the rule set's "-x" rule,
-which formats ``int(-number)``, so -12.25 read as "minus twelve". The
-expected reading of -x is the reading of x with the minus word of the rule
-set on the side the rule set puts it. The minus word is the engine's reading
-of -1 less its reading of 1, both read straight from ``unicode_rbnf``.
+The expected reading of a negative number -x is the reading of x with the
+minus word of the rule set on the side the rule set puts it. The minus word
+is the engine's reading of -1 less its reading of 1, both read straight from
+``unicode_rbnf``.
 """
 import unittest
 from decimal import Decimal
@@ -95,8 +94,7 @@ class TestRbnfNegativeDecimal(unittest.TestCase):
     def test_negative_ordinal_unchanged(self):
         for lang in ("af", "ko", "sw", "ta", "eo"):
             engine = RbnfEngine.for_language(lang)
-            numbers = (-3, -12, -2.5) if lang == "sw" else (-3, -12)
-            for number in numbers:
+            for number in (-3, -12):
                 with self.subTest(lang=lang, number=number):
                     expected = engine.format_number(
                         number, FormatPurpose.ORDINAL).text
@@ -109,9 +107,7 @@ class TestRbnfNegativeDecimal(unittest.TestCase):
 
     def test_fractional_ordinal_raises_for_either_sign(self):
         # An ordinal has no reading of a fraction, so 2.5 and -2.5 are both
-        # refused. unicode_rbnf 2.4 truncated -2.5 to "minus second". The sw
-        # rule set reads the magnitude of a negative ordinal as a cardinal and
-        # keeps its reading, which test_negative_ordinal_unchanged covers.
+        # refused. unicode_rbnf 2.4 truncated -2.5 to "minus second".
         for lang in ("af", "ko", "ta", "eo"):
             for number in (2.5, -2.5):
                 with self.subTest(lang=lang, number=number):
@@ -119,6 +115,14 @@ class TestRbnfNegativeDecimal(unittest.TestCase):
                         pronounce_ordinal(number, lang)
                     with self.assertRaises(NotImplementedError):
                         pronounce_number(number, lang, ordinals=True)
+
+    def test_swahili_negative_fractional_ordinal_reads_a_cardinal(self):
+        # The sw "-x" ordinal rule is "wa kasoro →%spellout-cardinal→;", so
+        # the magnitude is read as a cardinal, "mbili nukta tano".
+        self.assertEqual(pronounce_ordinal(-2.5, "sw"),
+                         "wa kasoro mbili nukta tano")
+        with self.assertRaises(NotImplementedError):
+            pronounce_ordinal(2.5, "sw")
 
     def test_language_without_negative_rule_still_raises(self):
         for number in (-12, -12.25):
