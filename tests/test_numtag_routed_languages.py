@@ -14,8 +14,10 @@ CASES = [
     # kolm, in the allative "kolmele"
     ("et", "Saatsin kutse kolmele sõbrale.", 3),
     # hogeita lau eta erdi, 24 and a half (Euskaltzaindia 203, EBO VI:
-    # "24,5: hogeita lau koma bost edo hogeita lau eta erdi")
-    ("eu", "Hogeita lau eta erdi kilo.", 24.5),
+    # "24,5: hogeita lau koma bost edo hogeita lau eta erdi"). The norm
+    # stars the shape with a noun after it ("*hogeita lau eta erdi euro",
+    # footnote 14), so the case has none.
+    ("eu", "Hogeita lau eta erdi.", 24.5),
     ("eu", "Hogeita lau koma bost kilo.", 24.5),
     # hogeita hamazortzi, 20 + 18 (Euskaltzaindia, Araua 7: 38 "hogeita
     # hamazortzi")
