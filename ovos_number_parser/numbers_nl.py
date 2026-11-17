@@ -41,6 +41,14 @@ Rules and sources:
   part: 1 "eerste", 3 "derde", 8 "achtste", the other numbers up to 19 take
   "-de", tens, "honderd", "duizend" and the scale words take "-ste". The
   Wiktionary entries "eerste", "derde", "achtste" and "miljoenste" agree.
+  Onze Taal writes the 1001st as "duizendeneerste" and "duizendeerste" in
+  that page; the spacing rule of Taaladvies and of Onze Taal's "Getallen
+  uitschrijven" ("Deze regel geldt zowel voor hoofdtelwoorden als voor
+  rangtelwoorden") wins, so the 1001st is "duizend eerste".
+* Stress mark: Taaladvies.net, "Klemtoonteken (algemeen)": accents are only
+  needed where a misreading threatens, so a number inside a longer number
+  ("tweeduizend een", "honderdeen") takes no accent, and the numeral on its
+  own and before "miljoen" or "miljard" takes "één".
 * Trema: Taaladvies.net, "Klinkerbotsing" ("tweeëntwintig").
 """
 
@@ -1057,27 +1065,54 @@ def _compound_value_nl(parts, short_scale=True):
     return total + current
 
 
-def _is_below_thousand_nl(word):
-    """True when the word is a number word that is worth less than 1000."""
+def _small_value_nl(word):
+    """The value of a number word worth less than 1000, else None."""
     parts = _split_compound_number_nl(word) or [word]
+    if parts == [word] and word not in _STRING_NUM_NL:
+        return None
     value = _compound_value_nl(parts)
-    return value is not None and 0 < value < 1000
+    return value if value is not None and 0 < value < 1000 else None
+
+
+def _glue_after_duizend_nl(words):
+    """Join the words that a space separates after "duizend": "vierduizend
+    twee" is the one number 4002, and "tweeduizend drie honderd vijftig" is
+    2350. "een" joins only before the end of the text or another number word:
+    "tweeduizend een maand" keeps the article."""
+    glued = []
+    i = 0
+    while i < len(words):
+        word = words[i]
+        if not glued or not glued[-1].endswith("duizend") \
+                or _small_value_nl(word) is None:
+            glued.append(word)
+            i += 1
+            continue
+        following = words[i + 1] if i + 1 < len(words) else None
+        if word == "een" and following is not None \
+                and _small_value_nl(following) is None \
+                and following not in _DECIMAL_MARKER_NL:
+            glued.append(word)
+            i += 1
+            continue
+        i += 1
+        if word in _STRING_NUM_NL and _STRING_NUM_NL[word] in range(2, 10) \
+                and following is not None and following.startswith("honderd"):
+            word += following
+            i += 1
+        if word.endswith("honderd") and i < len(words):
+            value = _small_value_nl(words[i])
+            if value is not None and value < 100:
+                word += words[i]
+                i += 1
+        glued[-1] += word
+    return glued
 
 
 def _expand_compound_numbers_nl(text, short_scale=True):
     """Rewrite compound number words as their digit value for parsing."""
     out = []
-    words = text.split()
-    # a space follows "duizend": "vierduizend twee" is the one number 4002
-    glued = []
-    for w in words:
-        if glued and glued[-1].endswith("duizend") and (
-                w in _STRING_NUM_NL or _split_compound_number_nl(w)) \
-                and _is_below_thousand_nl(w):
-            glued[-1] += w
-        else:
-            glued.append(w)
-    for w in glued:
+    for w in _glue_after_duizend_nl(text.split()):
         parts = _split_compound_number_nl(w)
         if parts:
             value = _compound_value_nl(parts, short_scale)

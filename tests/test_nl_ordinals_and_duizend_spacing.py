@@ -173,6 +173,30 @@ class TestSweep(unittest.TestCase):
                 self.assertEqual(extract_number(spoken, "nl-nl"), number)
 
 
+class TestReadBackAfterDuizend(unittest.TestCase):
+    """The extractor joins the words that a space separates after "duizend"."""
+
+    ROWS = [("tweeduizend een", 2001),
+            ("tweeduizend een komma vijf", 2001.5),
+            ("duizend honderd vijftig", 1150),
+            ("tweeduizend drie honderd", 2300),
+            ("tweeduizend vijf honderd", 2500),
+            ("drieduizend twee honderd vijftig", 3250),
+            ("drieduizend tweehonderd vijftig", 3250),
+            ("één miljoen tweeduizend drie", 1002003),
+            # a number word of 1000 or more never joins
+            ("tweeduizend vierduizend", 4000),
+            ("vijfduizend tweehonderdduizend", 200000),
+            # the article "een" before a noun stays out of the number
+            ("tweeduizend een maand", 1),
+            ("tweeduizend twee auto's", 2002)]
+
+    def test_rows(self):
+        for text, expected in self.ROWS:
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, "nl-nl"), expected)
+
+
 class TestOracleAgreesWithGold(unittest.TestCase):
     """The oracle is checked against the hand-written gold first."""
 
