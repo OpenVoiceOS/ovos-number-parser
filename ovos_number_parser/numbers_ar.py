@@ -538,7 +538,7 @@ AR_LECT_FORMS = {
         11: "حداشر",          # Dirr 1904 p. 26 ḥaddášar; masc 11, sada 7, omni 17
         12: "اتناشر",         # Dirr 1904 p. 26 etnášar; masc 76, omni 34, sada 5
         13: "تلتاشر",         # Dirr 1904 p. 26 telatášar; masc 11, sada 2. masc writes the syncopated تلتاشر 11 and تلاتاشر 0, so the syncopated form ships
-        14: "اربعتاشر",       # Dirr 1904 p. 26 arbaḫtášar; masc 10, omni 13, sada 5
+        14: "اربعتاشر",       # Dirr 1904 p. 26 arbaḥtášar; masc 10, omni 13, sada 5
         15: "خمستاشر",        # Dirr 1904 p. 26 ḫamastášar; omni 68, sada 12, masc 6
         16: "ستاشر",          # Dirr 1904 p. 26 sittášar; masc 8, sada 4, omni 2
         17: "سبعتاشر",        # Dirr 1904 p. 26 sab'atášar; sada 14, omni 6, masc 5
@@ -555,6 +555,29 @@ AR_LECT_FORMS = {
         700: "سبعمية",        # Dirr 1904 p. 26 sub'êmíyä; sada 79, omni 3, masc 8 as سبعميه
         800: "تمنمية",        # Dirr 1904 p. 26 tumnêmíyä; thin: sada 1, omni 6 as تمنميه, masc 2 as تمنميه
         900: "تسعمية",        # Dirr 1904 p. 26 tus'êmíyä; sada 110, omni 5 as تسعميه, masc 10 as تسعميه
+    },
+    # Algerian Arabic. Source: Belkassem Ben Sedira, Dictionnaire français-arabe (dialecte d'Algérie), Algiers,
+    # 1882, "Notions élémentaires de grammaire arabe", Nombres, pp. XLIII-XLV, read on the page images of the
+    # archive.org scan (item dictionnaire-francais-arabe-dialecte-d-al, PDF pages 55-57). The book prints each
+    # number in Arabic script beside its French transliteration; each form below is the printed Arabic, without
+    # vowel marks, and the comment gives the transliteration. 300 and 400 are printed as two words and written
+    # as one, as in the other tables. Only the numbers whose printed word differs from
+    # the literary one have a row. 500-900 and 3000 have none: the page gives no 500-900, and its Arabic for
+    # 3000 ("ثلثة الاف", transliterated "thelth alaf") writes a ة where the transliteration has none.
+    "arq": {
+        11: "احداش",          # Ben Sedira 1882 p. XLIV h'adâch
+        12: "اثناش",          # Ben Sedira 1882 p. XLIV thnâch
+        13: "ثلثاش",          # Ben Sedira 1882 p. XLIV thelethâch
+        14: "اربعتاش",        # Ben Sedira 1882 p. XLIV arbâtâch
+        15: "خمستاش",         # Ben Sedira 1882 p. XLIV khamstâch
+        16: "ستاش",           # Ben Sedira 1882 p. XLIV settâch
+        17: "سبعتاش",         # Ben Sedira 1882 p. XLIV sebâtâch
+        18: "ثمنتاش",         # Ben Sedira 1882 p. XLIV thementâch
+        19: "تسعتاش",         # Ben Sedira 1882 p. XLIV tsâtâch
+        100: "مية",           # Ben Sedira 1882 p. XLV mia
+        200: "ميتين",         # Ben Sedira 1882 p. XLV mitein
+        300: "ثلثمية",        # Ben Sedira 1882 p. XLV thelth mia, printed as two words
+        400: "اربعمية",       # Ben Sedira 1882 p. XLV arbâ mia, printed as two words
     },
 }
 
@@ -625,7 +648,7 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
         lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
             cardinal words should be spoken instead of the literary ones --
             ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian), ``ars``
-            (Najdi). The number is
+            (Najdi), ``arq`` (Algerian). The number is
             composed the same way either way and only the words differ; see
             :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
             ``ar`` and the literary ``arb`` all keep the literary words.
@@ -865,6 +888,8 @@ def _build_lookup():
     # ثلث is the classical spelling of ثلاث, with a dagger alif that the
     # normalisation strips: Quran 18:25, Uthmani text, "ثَلَٰثَ مِا۟ئَةٍ"
     hundreds["ثلثمئة"] = 300
+    # the same with the colloquial مية, Ben Sedira 1882 p. XLV "ثلث مية" thelth mia; see AR_LECT_FORMS
+    hundreds["ثلثمية"] = 300
     # the lect hundreds built on the fraction prefixes (tult-, rub'-, tumn-), and the
     # ت-for-ث spellings; see AR_LECT_FORMS
     hundreds.update({"تلتمية": 300, "ربعمية": 400, "تمنمية": 800, "ثمنمية": 800})
