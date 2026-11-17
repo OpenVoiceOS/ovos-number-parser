@@ -9,7 +9,7 @@ tables.
 """
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number, resolve_ar_lect
+from ovos_number_parser import extract_number, numbers_to_digits, pronounce_number, resolve_ar_lect
 
 BEN_SEDIRA = {
     1: "واحد",             # ouah'ad
@@ -64,7 +64,14 @@ class TestAlgerianCardinals(unittest.TestCase):
     def test_a_composed_number_reads_back(self):
         for value in (11, 13, 19, 300, 350, 400, 2018, 11000):
             spoken = pronounce_number(value, lang="arq")
-            self.assertEqual(extract_number(spoken, lang="ar"), value, spoken)
+            self.assertEqual(extract_number(spoken, lang="arq"), value, spoken)
+
+    def test_ben_sedira_three_hundred_is_read_only_as_arq(self):
+        """ثلثمية is the book's ثلث مية "thelth mia", "Trois cents". ثلث is also "a third"."""
+        self.assertEqual(extract_number("ثلثمية وخمسين", lang="arq"), 350)
+        for lang in ("ar", "ar-DZ", "arz"):
+            self.assertIs(extract_number("ثلثمية", lang=lang), False, lang)
+            self.assertEqual(numbers_to_digits("ثلثمية", lang=lang), "ثلثمية", lang)
 
 
 if __name__ == "__main__":

@@ -367,12 +367,10 @@ class TestArabicColloquialExtract(unittest.TestCase):
         self.assertEqual(extract_number_ar("ثلثمئة وخمسين"), 350)
         self.assertEqual(extract_number_ar("ثلثمئة"), 300)
 
-    def test_thulthmiya_is_ben_sedira_three_hundred(self):
-        # the hybrid of the classical ثلث and the colloquial مية. Ben Sedira,
-        # Dictionnaire français-arabe (dialecte d'Algérie), 1882, p. XLV, prints
-        # "Trois cents" as ثلث مية, transliterated "thelth mia"
-        self.assertEqual(extract_number_ar("ثلثمية"), 300)
-        self.assertEqual(extract_number_ar("ثلثمية وخمسين"), 350)
+    def test_thulthmiya_has_no_source(self):
+        # the hybrid of the classical ثلث and the colloquial مية
+        self.assertFalse(extract_number_ar("ثلثمية"))
+        self.assertEqual(extract_numbers_ar("ثلثمية وخمسين"), [50])
 
     def test_colloquial_hundred_plus_tens(self):
         # 100 + 50 = 150
