@@ -8,6 +8,7 @@ Every expected string is a cell of a published table, copied from its raw wikite
 """
 import unittest
 
+from ovos_number_parser.numbers_ar import _tokenize_ar
 from ovos_number_parser import extract_number, numbers_to_digits, pronounce_number, resolve_ar_lect
 
 # number -> the Arabic cell, with the table it comes from
@@ -132,16 +133,29 @@ class TestLevantineCardinals(unittest.TestCase):
         the verb تلا with the object pronoun, "it followed him"."""
         for lang in ("ar", "ar-EG", "arz", "arb", "ar-LB"):
             for text in ("عندي تنين ريال", "قرأ الآية ثم تلته مرة أخرى",
-                         "وتلته سنوات من الحرب", "تلتة آلاف", "حكم الملك عشرين عاما ثم تلته فترة من الفوضى"):
-                self.assertEqual(numbers_to_digits(text, lang=lang),
-                                 numbers_to_digits(text, lang="arz")
-                                 if lang == "arz" else numbers_to_digits(text, lang="ar"),
-                                 (lang, text))
+                         "وتلته سنوات من الحرب"):
+                self.assertEqual(numbers_to_digits(text, lang=lang), text, (lang, text))
+        self.assertEqual(numbers_to_digits("حكم الملك عشرين عاما ثم تلته فترة", lang="ar"),
+                         "حكم الملك 20 عاما ثم تلته فترة")
         self.assertIs(extract_number("قرأ الآية ثم تلته مرة أخرى", lang="ar"), False)
-        self.assertEqual(numbers_to_digits("قرأ الآية ثم تلته مرة أخرى", lang="ar"),
-                         "قرأ الآية ثم تلته مرة أخرى")
         self.assertEqual(numbers_to_digits("وتلته سنوات من الحرب", lang="ar"),
                          "وتلته سنوات من الحرب")
+
+    def test_the_lect_is_off_again_after_a_call(self):
+        """The lect of one call must not reach the next call, nor a helper that
+        reads without setting a lect of its own."""
+        self.assertEqual(extract_number("عندي تنين ريال", lang="apc"), 2)
+        self.assertEqual(numbers_to_digits("عندي تنين ريال", lang="apc"), "عندي 2 ريال")
+        self.assertEqual(_tokenize_ar("تنين"), ["تنين"])
+        self.assertIs(extract_number("عندي تنين ريال", lang="ar"), False)
+        self.assertEqual(numbers_to_digits("عندي تنين ريال", lang="ar"), "عندي تنين ريال")
+
+    def test_a_lect_keeps_the_conjunction_the_way_standard_arabic_does(self):
+        """A و written onto a number word stays in the text under every lect."""
+        self.assertEqual(numbers_to_digits("كتاب وأربعة", lang="ar"), "كتاب و4")
+        self.assertEqual(numbers_to_digits("كتاب وتلتة", lang="apc"), "كتاب و3")
+        self.assertEqual(numbers_to_digits("1 وتلتة", lang="apc"), "1 و3")
+        self.assertEqual(numbers_to_digits("كتاب وتنين ريال", lang="apc"), "كتاب و2 ريال")
 
     def test_apc_reads_its_own_three_and_attributive_teens(self):
         self.assertEqual(extract_number("تلتة آلاف", lang="apc"), 3000)
