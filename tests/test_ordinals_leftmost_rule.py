@@ -67,11 +67,12 @@ REACHED = {
 #: never reaches it. Any other adjacency stays two spans and the rule does
 #: reach it. Kabyle writes its ordinal as a phrase, "wis kṛaḍ", so neither of
 #: its orders is one span and the rule reaches both. English reads both of
-#: its orders as one span. The eu and fa pairs are measured, not copied from a
-#: sibling: both collapse the cardinal-then-ordinal order to one span, as da,
-#: de, nb and nn do.
+#: its orders as one span. The fa pair is measured, not copied from a
+#: sibling: it collapses the cardinal-then-ordinal order to one span, as da,
+#: de, nb and nn do. The eu reader is numtag, which reads two spans in both
+#: orders (numtag docs/rulings.md, "The leftmost longest number").
 ADJACENT_SPANS = {"da": (2, 1), "de": (2, 1), "kab": (2, 2), "en": (1, 1),
-                  "nb": (2, 1), "nn": (2, 1), "eu": (2, 1), "fa": (2, 1)}
+                  "nb": (2, 1), "nn": (2, 1), "eu": (2, 2), "fa": (2, 1)}
 
 #: locales whose parser cannot answer the rule yet, with the value each one
 #: returns today and the task that unblocks it. Each entry is a defect in the

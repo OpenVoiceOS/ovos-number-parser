@@ -13,6 +13,13 @@ from ovos_number_parser import (extract_number, extract_number_spans,
 CASES = [
     # kolm, in the allative "kolmele"
     ("et", "Saatsin kutse kolmele sõbrale.", 3),
+    # hogeita lau eta erdi, 24 and a half (Euskaltzaindia 203, EBO VI:
+    # "24,5: hogeita lau koma bost edo hogeita lau eta erdi")
+    ("eu", "Hogeita lau eta erdi kilo.", 24.5),
+    ("eu", "Hogeita lau koma bost kilo.", 24.5),
+    # hogeita hamazortzi, 20 + 18 (Euskaltzaindia, Araua 7: 38 "hogeita
+    # hamazortzi")
+    ("eu", "Herriak hogeita hamazortzi etxe ditu.", 38),
     # viisi, in the genitive "viiden"
     ("fi", "Meillä on viiden hengen perhe.", 5),
     # viisitoista, in the inessive "viidessätoista"
@@ -26,7 +33,7 @@ class TestShippedRoutes(unittest.TestCase):
 
     def test_the_routed_languages(self):
         self.assertEqual(numtag_readers.NUMTAG_LANGS,
-                         frozenset({"et", "fi", "sl"}))
+                         frozenset({"et", "eu", "fi", "sl"}))
 
     def test_extract_number_reads_through_numtag(self):
         for lang, text, value in CASES:
@@ -48,7 +55,7 @@ class TestShippedRoutes(unittest.TestCase):
                          "Bilo jih je okoli 2.")
 
     def test_a_language_outside_the_set_keeps_its_reader(self):
-        for lang in ("el", "es", "eu", "mwl", "oc", "ru", "tr"):
+        for lang in ("el", "es", "mwl", "oc", "ru", "tr"):
             with self.subTest(lang=lang):
                 self.assertFalse(numtag_readers.routed(lang))
 
