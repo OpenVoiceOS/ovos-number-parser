@@ -108,6 +108,13 @@ class TestMoroccanCardinals(unittest.TestCase):
                 self.assertIs(extract_number(text, lang=lang), False, (lang, text))
                 self.assertEqual(numbers_to_digits(text, lang=lang), text, (lang, text))
 
+    def test_ary_keeps_the_conjunction_on_its_own_words(self):
+        """A و written onto a number word stays in the text, as it does under ar."""
+        self.assertEqual(numbers_to_digits("كتاب وأربعة", lang="ar"), "كتاب و4")
+        self.assertEqual(numbers_to_digits("كتاب وربعة", lang="ary"), "كتاب و4")
+        self.assertEqual(numbers_to_digits("1 وربعين", lang="ary"), "1 و40")
+        self.assertEqual(numbers_to_digits("كتاب وتنين ريال", lang="ary"), "كتاب و2 ريال")
+
 
 if __name__ == "__main__":
     unittest.main()
