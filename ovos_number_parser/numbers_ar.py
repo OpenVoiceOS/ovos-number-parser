@@ -16,8 +16,25 @@ written immediately adjacent to punctuation (``٢٠٢٤،``, ``25.``).
 literary standard and its major spoken lects) to this engine and to each
 lect's default register -- see its docstring for the code table and
 citations.
+
+Every member of the macrolanguage ``ara`` is served. The SIL ISO 639-3
+macrolanguage mappings page,
+https://iso639-3.sil.org/code_tables/macrolanguage_mappings/data, lists 30
+individual languages under "ara" (Arabic): aao Algerian Saharan Arabic, abh
+Tajiki Arabic, abv Baharna Arabic, acm Mesopotamian Arabic, acq Ta'izzi-Adeni
+Arabic, acw Hijazi Arabic, acx Omani Arabic, acy Cypriot Arabic, adf Dhofari
+Arabic, aeb Tunisian Arabic, aec Saidi Arabic, afb Gulf Arabic, ajp South
+Levantine Arabic, apc Levantine Arabic, apd Sudanese Arabic, arb Standard
+Arabic, arq Algerian Arabic, ars Najdi Arabic, ary Moroccan Arabic, arz
+Egyptian Arabic, auz Uzbeki Arabic, avl Eastern Egyptian Bedawi Arabic, ayh
+Hadrami Arabic, ayl Libyan Arabic, ayn Sanaani Arabic, ayp North Mesopotamian
+Arabic, bbz Babalia Creole Arabic, pga Sudanese Creole Arabic, shu Chadian
+Arabic, ssh Shihhi Arabic. A lect with no table in ``AR_LECT_FORMS`` speaks the
+literary words in the oblique register.
 """
 
+import contextlib
+import contextvars
 import re
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
     scientific_parts
@@ -90,6 +107,25 @@ AR_DIALECT_DEFAULT_CASE = {
     "ary": "oblique",     # Moroccan Arabic
     "aeb": "oblique",     # Tunisian Arabic
     "ayl": "oblique",     # Libyan Arabic
+    "aao": "oblique",     # Algerian Saharan Arabic
+    "abh": "oblique",     # Tajiki Arabic
+    "abv": "oblique",     # Baharna Arabic
+    "acq": "oblique",     # Ta'izzi-Adeni Arabic
+    "acx": "oblique",     # Omani Arabic
+    "acy": "oblique",     # Cypriot Arabic
+    "adf": "oblique",     # Dhofari Arabic
+    "aec": "oblique",     # Saidi Arabic
+    "apd": "oblique",     # Sudanese Arabic
+    "arq": "oblique",     # Algerian Arabic
+    "auz": "oblique",     # Uzbeki Arabic
+    "avl": "oblique",     # Eastern Egyptian Bedawi Arabic
+    "ayh": "oblique",     # Hadrami Arabic
+    "ayn": "oblique",     # Sanaani Arabic
+    "ayp": "oblique",     # North Mesopotamian Arabic
+    "bbz": "oblique",     # Babalia Creole Arabic
+    "pga": "oblique",     # Sudanese Creole Arabic
+    "shu": "oblique",     # Chadian Arabic
+    "ssh": "oblique",     # Shihhi Arabic
 }
 
 
@@ -530,7 +566,8 @@ AR_LECT_FORMS = {
     # arz. The independent form of a unit is written, and the form before a noun only where a source
     # writes it: the hundreds and 11000-19000. The hundreds 400-900 are one word, like W's 300, with the
     # attributive unit and مية joined; B spaces them. A number no source gives keeps its literary word,
-    # and so do 4-7, 9, 10, 20, 40, 50, 60, 70, 90 and the millions, which are spelled alike.
+    # and so do 4-7, 9, 10, 20, 40, 50, 60, 70 and 90, which are spelled alike. No apc source gives a
+    # million word, so the millions keep the literary word.
     "apc": {
         2: "تنين",            # W "تنين tnēn"; B "تنين tnēn"; T تنين apc and ajp {{apc-numeral|g=m|tr=tnēn|f=تنتين}}
         3: "تلاتة",           # W "تلاتة talāte (South), تلاتة tlēte (North)"; B "تلاتة tlāte (N) talāte (S)"
@@ -569,10 +606,11 @@ AR_LECT_FORMS = {
     # Moroccan Arabic (Darija). Source: the English Wiktionary Moroccan Arabic number entries, each a
     # {{number box|ary|N}} page with its {{ary-numeral}} line and its IPA, listed in the page
     # Appendix:Moroccan Arabic numerals (revision 75382086); the forms are written without vowel marks.
-    # The entries give two words for 2, تنين and جوج; تنين is written, the one the entries for 22 and 33
-    # use. The entries for 4 and 40 are ربعة and ربعين, with أربعة and أربعين as the alternative forms. A
-    # number with no entry keeps its literary word, as do 5-7, 9, 10, 20, 50, 60, 70, 90, 1000, 2000 and
-    # the millions, which are spelled alike.
+    # The entries give two words for 2, تنين and جوج; تنين is written, the one the entry for 22 uses. The
+    # entries for 4 and 40 are ربعة and ربعين, with أربعة and أربعين as the alternative forms. A number with
+    # no entry keeps its literary word, as do 5-7, 9, 10, 20, 50, 60, 70, 90, 1000, 2000 and the singular
+    # million, which are spelled alike. The entry for مليون gives the plural ملاين, which the table does
+    # not write: the millions above one keep the literary plural.
     "ary": {
         2: "تنين",            # ary تنين {{ary-numeral|head=تنِين|tr=tnīn}}; تنين وعشرين "tnīn u ʕašrīn" 22
         3: "تلاتة",           # ary تلاتة {{ary-numeral|tr=tlāta}}
@@ -901,12 +939,6 @@ def _build_lookup():
     # says a word and then cannot recognise it is two libraries. These are the lect
     # spellings whose skeleton nothing above already covers.
     units.update({"اتنين": 2, "تمنية": 8, "تمانية": 8})
-    # Levantine three, W's thousand cell "تلتة آلاف"; see AR_LECT_FORMS
-    units["تلتة"] = 3
-    # Levantine two, "تنين" (the homograph read in context: _LEVANTINE_TWO)
-    units["تنين"] = 2
-    # Moroccan four, English Wiktionary ربعة, Moroccan Arabic, "four"
-    units["ربعة"] = 4
     # Egyptian, borrowed from Italian zero: English Wiktionary, زيرو,
     # Egyptian Arabic, "zīrō ... zero"
     units["زيرو"] = 0
@@ -918,8 +950,6 @@ def _build_lookup():
         tens[word[:-2] + "ين"] = value  # oblique case: عشرين, ثلاثين ...
     # ت for ث in the lects that merge them; see AR_LECT_FORMS
     tens.update({"تلاتين": 30, "تمانين": 80})
-    # Moroccan forty, English Wiktionary ربعين, Moroccan Arabic, "forty"
-    tens["ربعين"] = 40
     hundreds = {"مئة": 100, "مائة": 100}
     for value, word in _HUNDREDS_AR.items():
         if value >= 200:
@@ -1031,10 +1061,6 @@ _ATTESTED_TEENS_AR = {
     "تنعش": 12,
     # South Levantine Arabic, تلتعش "talattaʕš", "thirteen"
     "تلتعش": 13,
-    # English Wikibooks, "Levantine Arabic/Numbers", the forms before a noun,
-    # which stand before ألف: تنعشر "tnaʕšar", تلتّعشر "t(a)lattaʕšar",
-    # تمنتعشر "t(a)mantaʕšar"
-    "تنعشر": 12, "تلتعشر": 13, "تمنتعشر": 18,
     # South Levantine Arabic, أربعتعش "ʔarbaʕtaʕš", "fourteen"
     "أربعتعش": 14,
     # South Levantine Arabic, ستعش "sittaʕš", "sixteen"
@@ -1202,11 +1228,66 @@ _SADA_TEENS_AR = {
     "تسعطاعشر": 19,  # 2
     "تسعطاشر": 19,  # 1
 }
+# the lects whose table teens are read as that lect only, see _LECT_READER_WORDS
+_LECT_TABLE_TEENS = ("apc", "ary")
 _FUSED_TEENS_LOOKUP = _norm_map({
     **{form: value
-       for forms in AR_LECT_FORMS.values()
+       for lect, forms in AR_LECT_FORMS.items() if lect not in _LECT_TABLE_TEENS
        for value, form in forms.items() if 11 <= value <= 19},
     **_ATTESTED_TEENS_AR, **_SADA_TEENS_AR})
+
+# A word that one lect says and Standard Arabic does not is read only when the
+# text is read as that lect (``lect`` of ``extract_numbers_ar``, ``lang`` of
+# ``numbers_to_digits_ar``), because the same letters are everyday words in the
+# standard language: تنين "dragon" (English Wiktionary, تنين, Arabic,
+# Etymology 1) and the verb تلته "it followed him" (تَلَتْهُ, from تلا) are the
+# Levantine two and three. The reader gives such a word a mark that no text
+# carries, and these entries stand under the marked spelling. A form with the
+# article or a clitic never takes the mark, so it is never read. The teens
+# and hundreds of a lect table are read the same way.
+_LECT_MARK = "\u2060"
+_LECT_READER_WORDS = {
+    "apc": {
+        "units": {
+            # W's thousand cell "تلتة آلاف", English Wikipedia "Levantine
+            # Arabic grammar"; see AR_LECT_FORMS
+            "تلتة": 3,
+            # W "تنين tnēn"
+            "تنين": 2},
+        "fused": {
+            # English Wikibooks, "Levantine Arabic/Numbers", the forms before
+            # a noun, which stand before ألف: تنعشر "tnaʕšar", تلتّعشر
+            # "t(a)lattaʕšar", تمنتعشر "t(a)mantaʕšar"
+            "تنعشر": 12, "تلتعشر": 13, "تمنتعشر": 18}},
+    "ary": {
+        # English Wiktionary, Moroccan Arabic: تنين "two", ربعة "four" (a
+        # Standard Arabic رَبْعة is "of medium height"), ربعين "forty" (the
+        # oblique dual of ربع "quarter" in Standard Arabic, which nice_number_ar
+        # writes)
+        "units": {"تنين": 2, "ربعة": 4},
+        "tens": {"ربعين": 40}},
+}
+_LECT_ONLY_WORDS = {}
+
+
+def _scope_lect_words():
+    lookups = {"units": _UNITS_LOOKUP, "tens": _TENS_LOOKUP,
+               "hundreds": _HUNDREDS_LOOKUP, "fused": _FUSED_TEENS_LOOKUP}
+    for lect, words in _LECT_READER_WORDS.items():
+        if lect in _LECT_TABLE_TEENS:
+            words.setdefault("fused", {}).update({
+                form: value for value, form in AR_LECT_FORMS[lect].items()
+                if 11 <= value <= 19})
+        only = _LECT_ONLY_WORDS.setdefault(lect, set())
+        for kind, entries in words.items():
+            for word, value in entries.items():
+                word = _normalize_ar(word)
+                if word not in lookups[kind]:
+                    lookups[kind][word + _LECT_MARK] = value
+                    only.add(word)
+
+
+_scope_lect_words()
 # ناقص is the minus sign of the number after it, as سالب is. Omar 1975,
 # pp. 62-63: "Three minus one talaata naagiṣ waaHid" (the OCR of the
 # archive.org scan prints ṣ as $). "عشرة ناقص اثنين" is
@@ -1294,7 +1375,7 @@ _LECTS_WITH_SPOKEN_HALF = {"ars"}
 _WATER_HUNDRED = _normalize_ar("مية")
 _DEAD_TWO_HUNDRED = "ميتين"
 _CONSTRUCT_HUNDRED = "ميت"
-_LEVANTINE_TWO = "تنين"
+_LEVANTINE_TWO = "تنين" + _LECT_MARK
 _DAY_NAMES = _norm_keys({"التلات", "التلاتة", "الاتنين", "الاثنين"})
 # the homographs that are units three to nine, which build the hundreds
 _HUNDRED_UNIT_HOMOGRAPHS = _norm_keys({"التلات", "التلاتة", "الست"})
@@ -1556,9 +1637,23 @@ def _is_round(token):
         tok in _SCALE_DUALS_LOOKUP or tok in _CONSTRUCT_HUNDRED_LOOKUP
 
 
+_ACTIVE_LECT = contextvars.ContextVar("_ACTIVE_LECT", default=None)
+
+
+@contextlib.contextmanager
+def _reading_as(lect):
+    """Read the text inside the block as ``lect``; see _LECT_READER_WORDS."""
+    active = _ACTIVE_LECT.set(lect)
+    try:
+        yield
+    finally:
+        _ACTIVE_LECT.reset(active)
+
+
 def _tokenize_ar(text):
     """Normalize and split, detaching the attached conjunction "و"."""
     tokens = []
+    lect_only = _LECT_ONLY_WORDS.get(_ACTIVE_LECT.get(), ())
     for written in text.split():
         token = _normalize_ar(written).strip(".,!?;:؟،؛")
         if not token:
@@ -1571,9 +1666,9 @@ def _tokenize_ar(text):
             _UNITS_LOOKUP, _TENS_LOOKUP, _HUNDREDS_LOOKUP, _SCALES_LOOKUP,
             _SCALE_DUALS_LOOKUP, _FRACTIONS_LOOKUP, _TEEN_FIRST_LOOKUP,
             _ORDINAL_UNITS_LOOKUP, _FUSED_TEENS_LOOKUP)) or \
-            token in _TEEN_SECOND_LOOKUP
+            token in _TEEN_SECOND_LOOKUP or token in lect_only
         if not whole_word and len(token) > 1 and token[0] == "و" and (
-                any(token[1:] in v for v in vocab) or
+                any(token[1:] in v for v in vocab) or token[1:] in lect_only or
                 token[1:] in _TEEN_SECOND_LOOKUP or
                 token[1:] in _CONSTRUCT_HUNDRED_LOOKUP or
                 token[1:] in _SPOKEN_HALF_LOOKUP or
@@ -1589,7 +1684,7 @@ def _tokenize_ar(text):
         if token in _ACCUSATIVE_OR_CONSTRUCT_DUAL and _TANWEEN_FATH in written:
             # ألفًا with its tanween is the accusative singular, never the dual
             token = token[:-1]
-        tokens.append(token)
+        tokens.append(token + _LECT_MARK if token in lect_only else token)
     return tokens
 
 
@@ -1743,9 +1838,10 @@ def extract_numbers_ar(text, short_scale=True, ordinals=False, lect=None):
     Returns:
         list: list of extracted numbers as floats
     """
-    return [value for _, _, value in
-            _number_spans(_tokenize_ar(text), ordinals,
-                          lect in _LECTS_WITH_SPOKEN_HALF)]
+    with _reading_as(lect):
+        return [value for _, _, value in
+                _number_spans(_tokenize_ar(text), ordinals,
+                              lect in _LECTS_WITH_SPOKEN_HALF)]
 
 
 def _closes_a_hundred(token):
@@ -2182,15 +2278,16 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     # deferred: the shared converter lives in the package root, which imports
     # this module — importing it at module level would be circular
     from ovos_number_parser import _numbers_to_digits_generic
-    halves = resolve_ar_lect(lang) in _LECTS_WITH_SPOKEN_HALF
-    resolved, masked = _resolve_context_words_ar(utterance, halves)
-    resolved, duals = _mask_dual_nouns_ar(_join_literary_teens_ar(resolved))
-    spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)
-    spaced = _WORD_RE.sub(_detach_proclitic, spaced)
-    converted = _numbers_to_digits_generic(
-        spaced, lang, continues=_continues_a_number_ar,
-        first_number_words=lambda words: _first_number_words_ar(words, halves))
-    converted = _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
-    converted = _DUAL_MASK_RE.sub(lambda m: duals[ord(m.group(1)) - 0xE000],
-                                  converted)
-    return _MASK_RE.sub(lambda m: masked[ord(m.group(1)) - 0xE000], converted)
+    with _reading_as(resolve_ar_lect(lang)):
+        halves = resolve_ar_lect(lang) in _LECTS_WITH_SPOKEN_HALF
+        resolved, masked = _resolve_context_words_ar(utterance, halves)
+        resolved, duals = _mask_dual_nouns_ar(_join_literary_teens_ar(resolved))
+        spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)
+        spaced = _WORD_RE.sub(_detach_proclitic, spaced)
+        converted = _numbers_to_digits_generic(
+            spaced, lang, continues=_continues_a_number_ar,
+            first_number_words=lambda words: _first_number_words_ar(words, halves))
+        converted = _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
+        converted = _DUAL_MASK_RE.sub(lambda m: duals[ord(m.group(1)) - 0xE000],
+                                      converted)
+        return _MASK_RE.sub(lambda m: masked[ord(m.group(1)) - 0xE000], converted)

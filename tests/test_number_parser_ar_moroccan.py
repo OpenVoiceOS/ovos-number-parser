@@ -7,7 +7,9 @@ them). The transliteration of the entry is beside each.
 """
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number, resolve_ar_lect
+from ovos_number_parser import (extract_number, numbers_to_digits, pronounce_number,
+                                resolve_ar_lect)
+from ovos_number_parser.numbers_ar import nice_number_ar
 
 WIKTIONARY_ENTRIES = {
     0: "صفر",                  # not an ary numeral entry: the literary word stays
@@ -82,7 +84,29 @@ class TestMoroccanCardinals(unittest.TestCase):
     def test_a_composed_number_reads_back(self):
         for value in (4, 14, 40, 44, 350, 2018, 12000):
             spoken = pronounce_number(value, lang="ary")
-            self.assertEqual(extract_number(spoken, lang="ar"), value, spoken)
+            self.assertEqual(extract_number(spoken, lang="ary"), value, spoken)
+
+    def test_ary_reads_its_own_four_and_forty(self):
+        self.assertEqual(extract_number("ربعة", lang="ary"), 4)
+        self.assertEqual(extract_number("ربعين", lang="ary"), 40)
+        self.assertEqual(extract_number("تنين", lang="ary"), 2)
+
+    def test_the_quarter_stays_a_quarter_in_standard_arabic(self):
+        """ربعين is the oblique dual of ربع "quarter", which the library writes itself."""
+        spoken = nice_number_ar(1.5, denominators=[4], case="oblique")
+        self.assertEqual(spoken, "1 وربعين")
+        for lang in ("ar", "ar-MA", "arz", "apc"):
+            self.assertEqual(extract_number("واحد وربعين", lang=lang), 1, lang)
+            self.assertIs(extract_number("قطع الكعكة إلى ربعين", lang=lang), False, lang)
+            self.assertEqual(numbers_to_digits("1 وربعين", lang=lang), "1 وربعين", lang)
+            self.assertEqual(numbers_to_digits("ساعة وربعين", lang=lang), "ساعة وربعين", lang)
+
+    def test_ribaa_of_medium_build_is_no_number_in_standard_arabic(self):
+        for text in ("كان رسول الله صلى الله عليه وسلم ربعة من القوم ليس بالطويل ولا بالقصير",
+                     "رجل ربعة القامة", "كان ربعة من القوم"):
+            for lang in ("ar", "ar-MA", "arz", "apc"):
+                self.assertIs(extract_number(text, lang=lang), False, (lang, text))
+                self.assertEqual(numbers_to_digits(text, lang=lang), text, (lang, text))
 
 
 if __name__ == "__main__":

@@ -113,13 +113,40 @@ class TestLevantineCardinals(unittest.TestCase):
     def test_a_composed_number_reads_back(self):
         for value in (13, 22, 33, 350, 3500, 13500, 2018):
             spoken = pronounce_number(value, lang="apc")
-            self.assertEqual(extract_number(spoken, lang="ar"), value, spoken)
+            self.assertEqual(extract_number(spoken, lang="apc"), value, spoken)
 
     def test_tnen_is_two_only_in_context(self):
         """تنين is also "dragon" (English Wiktionary, تنين, Arabic, Etymology 1)."""
-        self.assertEqual(extract_number("عندي تنين ريال", lang="ar"), 2)
-        self.assertEqual(numbers_to_digits("عندي تنين ريال", lang="ar"), "عندي 2 ريال")
-        self.assertEqual(numbers_to_digits("رأيت تنين في الفيلم", lang="ar"), "رأيت تنين في الفيلم")
+        self.assertEqual(extract_number("عندي تنين ريال", lang="apc"), 2)
+        self.assertEqual(numbers_to_digits("عندي تنين ريال", lang="apc"), "عندي 2 ريال")
+        self.assertEqual(numbers_to_digits("رأيت تنين في الفيلم", lang="apc"), "رأيت تنين في الفيلم")
+
+    def test_the_definite_dragon_is_no_number_in_any_lect(self):
+        for lang in ("ar", "ar-EG", "arz", "apc"):
+            for text in ("التنين الصيني رمز القوة", "ثم ظهر التنين", "بالتنين", "والتنين الأحمر"):
+                self.assertIs(extract_number(text, lang=lang), False, (lang, text))
+                self.assertEqual(numbers_to_digits(text, lang=lang), text, (lang, text))
+
+    def test_the_lect_words_are_not_read_in_standard_arabic(self):
+        """Standard Arabic keeps its vocabulary: تنين is the dragon and تلته is
+        the verb تلا with the object pronoun, "it followed him"."""
+        for lang in ("ar", "ar-EG", "arz", "arb", "ar-LB"):
+            for text in ("عندي تنين ريال", "قرأ الآية ثم تلته مرة أخرى",
+                         "وتلته سنوات من الحرب", "تلتة آلاف", "حكم الملك عشرين عاما ثم تلته فترة من الفوضى"):
+                self.assertEqual(numbers_to_digits(text, lang=lang),
+                                 numbers_to_digits(text, lang="arz")
+                                 if lang == "arz" else numbers_to_digits(text, lang="ar"),
+                                 (lang, text))
+        self.assertIs(extract_number("قرأ الآية ثم تلته مرة أخرى", lang="ar"), False)
+        self.assertEqual(numbers_to_digits("قرأ الآية ثم تلته مرة أخرى", lang="ar"),
+                         "قرأ الآية ثم تلته مرة أخرى")
+        self.assertEqual(numbers_to_digits("وتلته سنوات من الحرب", lang="ar"),
+                         "وتلته سنوات من الحرب")
+
+    def test_apc_reads_its_own_three_and_attributive_teens(self):
+        self.assertEqual(extract_number("تلتة آلاف", lang="apc"), 3000)
+        self.assertEqual(extract_number("تنعشر ألف", lang="apc"), 12000)
+        self.assertEqual(extract_number("تنعشر ألف", lang="ar"), 1000)
 
     def test_feminine_keeps_the_literary_words_below_twenty(self):
         self.assertEqual(pronounce_number(3, lang="apc", gender="feminine"), "ثلاث")
