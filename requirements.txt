@@ -1,3 +1,0 @@
-quebra_frases>=0.3.7
-unicode-rbnf>=2.5.0
-numtag>=0.12.12a1
