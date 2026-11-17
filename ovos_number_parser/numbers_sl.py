@@ -1,3 +1,16 @@
+"""Slovenian number words.
+
+Sources for the writer rules:
+
+* Slovenski pravopis, člen 544, quoted by ZRC SAZU, svetovalnica "Zapis
+  stotic": "Druge glavne števnike pišemo narazen: sto enajst, dva tisoč,
+  sedem milijonov, tristo tisoč sto".
+* Wiktionary, Module:number list/data/sl: 2000 is "dva tisoč" and its
+  ordinal is "dvatisoči". A count of 2 before tisoč or milijon is therefore
+  masculine.
+* Lektorsko društvo Slovenije, Jezikovni pogovor 2014: "leto 2002 pravilno
+  samo kot [dva tisoč dve]". The last digit keeps the counting form "dve".
+"""
 from decimal import Decimal
 from collections import OrderedDict
 
@@ -291,7 +304,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
                 else:
                     qstr = digits[q]
                 return (qstr + "sto" + (
-                    " " + _sub_thousand(r, ordinals) if r else ""))
+                    " " + _sub_thousand(r, ordinals, is_male) if r else ""))
 
         def _plural_hundreds(n, hundred, ordi=True):
             if hundred[-3:] != "jon":
@@ -350,8 +363,11 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
                 if z == 1 and i == 1:
                     number = ""
-                elif z > 100 and z % 100 == 2 and not ordi:
-                    number = _sub_thousand(z, not i and ordi, is_male=True)
+                elif z % 100 == 2 and i:
+                    # a count of tisoč or milijon ends in the masculine dva:
+                    # "dva tisoč", "sto dva tisoč"; the units group keeps the
+                    # counting form "dve"
+                    number = _sub_thousand(z, False, is_male=True)
                 elif z > 100 and z % 100 == 3 and not ordi:
                     number = _sub_thousand(z, not i and ordi) + "je"
                 elif z > 1 or i == 0 or ordi:
