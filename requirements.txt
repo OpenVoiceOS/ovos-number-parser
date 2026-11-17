@@ -1,2 +1,2 @@
 quebra_frases>=0.3.7
-unicode-rbnf
+unicode-rbnf>=2.5.0

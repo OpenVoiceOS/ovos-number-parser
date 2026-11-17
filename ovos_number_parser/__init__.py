@@ -1468,9 +1468,7 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     ``_RBNF_COUNTING`` names the rule set it reads through.
 
     A negative cardinal with a fraction is read as its magnitude with the
-    minus word of the same rule set, because the engine reads only the
-    integer part of a negative number (``int(-number)`` in
-    ``RbnfEngine.iter_format_number``). The minus word is the reading of -1
+    minus word of the same rule set. The minus word is the reading of -1
     less the reading of 1, so it keeps the side and the spacing the rule set
     gives it. A language whose reading of -1 does not hold the reading of 1
     keeps the engine reading.
