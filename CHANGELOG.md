@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.25.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.25.0a1) (2026-11-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.66a1...0.25.0a1)
+
+**Merged pull requests:**
+
+- feat: route et, fi and sl through numtag [\#517](https://github.com/OpenVoiceOS/ovos-number-parser/pull/517) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.66a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.66a1) (2026-11-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.65a1...0.24.66a1)
