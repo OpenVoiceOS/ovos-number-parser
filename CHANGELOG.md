@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.25.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.25.1a1) (2026-11-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.25.0a1...0.25.1a1)
+
+**Merged pull requests:**
+
+- fix: serve every member of the Arabic macrolanguage ara [\#526](https://github.com/OpenVoiceOS/ovos-number-parser/pull/526) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.25.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.25.0a1) (2026-11-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.66a1...0.25.0a1)
