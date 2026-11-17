@@ -16,6 +16,21 @@ written immediately adjacent to punctuation (``٢٠٢٤،``, ``25.``).
 literary standard and its major spoken lects) to this engine and to each
 lect's default register -- see its docstring for the code table and
 citations.
+
+Every member of the macrolanguage ``ara`` is served. The SIL ISO 639-3
+macrolanguage mappings page,
+https://iso639-3.sil.org/code_tables/macrolanguage_mappings/data, lists 30
+individual languages under "ara" (Arabic): aao Algerian Saharan Arabic, abh
+Tajiki Arabic, abv Baharna Arabic, acm Mesopotamian Arabic, acq Ta'izzi-Adeni
+Arabic, acw Hijazi Arabic, acx Omani Arabic, acy Cypriot Arabic, adf Dhofari
+Arabic, aeb Tunisian Arabic, aec Saidi Arabic, afb Gulf Arabic, ajp South
+Levantine Arabic, apc Levantine Arabic, apd Sudanese Arabic, arb Standard
+Arabic, arq Algerian Arabic, ars Najdi Arabic, ary Moroccan Arabic, arz
+Egyptian Arabic, auz Uzbeki Arabic, avl Eastern Egyptian Bedawi Arabic, ayh
+Hadrami Arabic, ayl Libyan Arabic, ayn Sanaani Arabic, ayp North Mesopotamian
+Arabic, bbz Babalia Creole Arabic, pga Sudanese Creole Arabic, shu Chadian
+Arabic, ssh Shihhi Arabic. A lect with no table in ``AR_LECT_FORMS`` speaks the
+literary words in the oblique register.
 """
 
 import re
@@ -90,6 +105,25 @@ AR_DIALECT_DEFAULT_CASE = {
     "ary": "oblique",     # Moroccan Arabic
     "aeb": "oblique",     # Tunisian Arabic
     "ayl": "oblique",     # Libyan Arabic
+    "aao": "oblique",     # Algerian Saharan Arabic
+    "abh": "oblique",     # Tajiki Arabic
+    "abv": "oblique",     # Baharna Arabic
+    "acq": "oblique",     # Ta'izzi-Adeni Arabic
+    "acx": "oblique",     # Omani Arabic
+    "acy": "oblique",     # Cypriot Arabic
+    "adf": "oblique",     # Dhofari Arabic
+    "aec": "oblique",     # Saidi Arabic
+    "apd": "oblique",     # Sudanese Arabic
+    "arq": "oblique",     # Algerian Arabic
+    "auz": "oblique",     # Uzbeki Arabic
+    "avl": "oblique",     # Eastern Egyptian Bedawi Arabic
+    "ayh": "oblique",     # Hadrami Arabic
+    "ayn": "oblique",     # Sanaani Arabic
+    "ayp": "oblique",     # North Mesopotamian Arabic
+    "bbz": "oblique",     # Babalia Creole Arabic
+    "pga": "oblique",     # Sudanese Creole Arabic
+    "shu": "oblique",     # Chadian Arabic
+    "ssh": "oblique",     # Shihhi Arabic
 }
 
 
