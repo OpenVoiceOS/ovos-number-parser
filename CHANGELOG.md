@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.26.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.26.1a1) (2026-11-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.26.0a1...0.26.1a1)
+
+**Merged pull requests:**
+
+- fix: Danish, Slovenian and Slovak number writers follow the cited rules [\#523](https://github.com/OpenVoiceOS/ovos-number-parser/pull/523) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.26.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.26.0a1) (2026-11-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.25.1a1...0.26.0a1)
@@ -358,10 +366,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.25a1...0.24.26a1)
 
-**Merged pull requests:**
-
-- fix: read the numbers extraction misread in 17 languages [\#424](https://github.com/OpenVoiceOS/ovos-number-parser/pull/424) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.25a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.25a1) (2026-11-11)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.24a1...0.24.25a1)
@@ -385,10 +389,6 @@
 ## [0.24.22a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.22a1) (2026-11-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.21a1...0.24.22a1)
-
-**Merged pull requests:**
-
-- fix: read huge magnitudes, ordinal Decimals, non-float Reals and Fractions [\#423](https://github.com/OpenVoiceOS/ovos-number-parser/pull/423) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.21a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.21a1) (2026-11-10)
 
