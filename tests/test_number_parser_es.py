@@ -78,7 +78,7 @@ class TestSpanishMagnitudes(unittest.TestCase):
 
     def test_thousands(self):
         cases = {
-            "mil": 1000, "mil uno": 1001, "mil y uno": 1001,
+            "mil": 1000, "mil uno": 1001,
             "dos mil veintitrés": 2023, "cien mil": 100000,
             "doscientos mil": 200000, "ciento cincuenta mil": 150000,
             "novecientos noventa y nueve mil novecientos noventa y nueve": 999999,
@@ -104,8 +104,17 @@ class TestSpanishFusedAndGendered(unittest.TestCase):
 
     def test_cien_vs_ciento(self):
         self.assertEqual(extract_number("cien", lang="es"), 100)
-        self.assertEqual(extract_number("ciento", lang="es"), 100)
         self.assertEqual(extract_number("ciento uno", lang="es"), 101)
+
+    def test_ciento_alone_is_no_number(self):
+        # Wiktionary (en) "ciento", Number: "(only in compounds followed by
+        # lower numerals)"
+        self.assertIs(extract_number("ciento", lang="es"), False)
+
+    def test_a_joiner_does_not_join_the_thousand_and_the_unit(self):
+        # numtag docs/rulings.md, "The joiner before the last group"; DPD
+        # "cardinales" 2: "el resto se forma por mera yuxtaposicion"
+        self.assertEqual(extract_number("mil y uno", lang="es"), 1000)
 
 
 class TestSpanishFractions(unittest.TestCase):
@@ -248,9 +257,10 @@ class TestSpanishLongScale(unittest.TestCase):
             extract_number("un billón", lang="es", scale=Scale.LONG))
 
     def test_bare_scale_word_without_multiplier(self):
-        # "billón" with no leading unit implies one
-        self.assertEqual(
-            extract_number("billón", lang="es", scale=Scale.LONG), 10 ** 12)
+        # numtag docs/rulings.md, "Words that are no number": a scale noun
+        # alone names no number
+        self.assertIs(
+            extract_number("billón", lang="es", scale=Scale.LONG), False)
 
 
 class TestSpanishTinyFloatNoCrash(unittest.TestCase):
