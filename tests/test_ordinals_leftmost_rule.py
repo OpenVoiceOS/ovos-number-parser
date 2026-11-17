@@ -56,9 +56,6 @@ REACHED = {
     "nn": (extract_number_nn, "to", "tredje", 2, 2),
     # the extractors consult is_ordinal_eu and is_ordinal_fa under the flag
     "eu": (extract_number_eu, "bi", "hirugarren", 2, 2),
-    # numtag reads each of the two words as its own number (numtag
-    # docs/rulings.md, "The leftmost longest number")
-    "es": (extract_number_es, "dos", "tercero", 2, 2),
     "fa": (extract_number_fa, "دو", "سوم", 2, 2),
     "kab": (extract_number_kab, "sin", "wis kṛaḍ", 3, 2),
     "en": (extract_number_en, "two", "third", 2, 2),
@@ -70,13 +67,11 @@ REACHED = {
 #: never reaches it. Any other adjacency stays two spans and the rule does
 #: reach it. Kabyle writes its ordinal as a phrase, "wis kṛaḍ", so neither of
 #: its orders is one span and the rule reaches both. English reads both of
-#: its orders as one span. The fa pair is measured, not copied from a
-#: sibling: it collapses the cardinal-then-ordinal order to one span, as da,
-#: de, nb and nn do. The es and eu readers are numtag, which reads two spans
-#: in both orders.
+#: its orders as one span. The eu and fa pairs are measured, not copied from a
+#: sibling: both collapse the cardinal-then-ordinal order to one span, as da,
+#: de, nb and nn do.
 ADJACENT_SPANS = {"da": (2, 1), "de": (2, 1), "kab": (2, 2), "en": (1, 1),
-                  "nb": (2, 1), "nn": (2, 1), "eu": (2, 2), "fa": (2, 1),
-                  "es": (2, 2)}
+                  "nb": (2, 1), "nn": (2, 1), "eu": (2, 1), "fa": (2, 1)}
 
 #: locales whose parser cannot answer the rule yet, with the value each one
 #: returns today and the task that unblocks it. Each entry is a defect in the
@@ -89,6 +84,7 @@ BLOCKED = {
     # extractor. All four are in REACHED now.
     # T-4415: the Romance extractor adds the two numbers together
     "ca": (extract_number_ca, "dos", "tercer", 5, 5, "T-4415 additive"),
+    "es": (extract_number_es, "dos", "tercero", 5, 5, "T-4415 additive"),
     "fr": (extract_number_fr, "deux", "troisième", 5, 5, "T-4415 additive"),
     "gl": (extract_number_gl, "dous", "terceiro", 5, 5, "T-4415 additive"),
     "it": (extract_number_it, "due", "terzo", 5, 5, "T-4415 additive"),

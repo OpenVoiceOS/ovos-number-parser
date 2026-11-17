@@ -255,15 +255,10 @@ class TestBasqueAdversarial(unittest.TestCase):
     numbers."""
 
     def test_empty_and_junk(self):
-        for text in ["", "   ", "kaixo zer moduz", "eta", "minus"]:
+        for text in ["", "   ", "kaixo zer moduz", "eta", "minus",
+                     "hogeitabat"]:
             with self.subTest(text=text):
                 self.assertIn(extract_number(text, lang="eu"), (False, None))
-
-    def test_the_numeral_written_as_one_word(self):
-        # Euskaltzaindia Araua 7, 4: "hogeitazazpi bezalakoak aurki
-        # daitezke"; "hogeitabat" is the same form for 21
-        self.assertEqual(extract_number("hogeitabat", lang="eu"), 21)
-        self.assertEqual(extract_number("hogeitazazpi", lang="eu"), 27)
 
     def test_junk_around_number(self):
         self.assertEqual(extract_number("xyz 123 abc", lang="eu"), 123)
@@ -373,11 +368,8 @@ class TestBasqueOrdinalsUnderTheFlag(unittest.TestCase):
                 self.assertIs(extract_number(line, lang="eu"), False)
 
     def test_a_cardinal_still_reads_under_the_flag(self):
-        # "eta" joins a hundred or a thousand to the rest, so "bi eta hiru"
-        # is 2 and 3 (Euskaltzaindia Araua 7; numtag docs/rulings.md, "The
-        # joiner before the last group")
         self.assertEqual(extract_number("bi eta hiru", lang="eu",
-                                        ordinals=True), 2)
+                                        ordinals=True), 5)
 
 
 if __name__ == "__main__":

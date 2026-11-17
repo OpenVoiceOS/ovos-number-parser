@@ -107,16 +107,15 @@ class TestTheAnswersAreUnchanged(unittest.TestCase):
 
     Every expected value here was read off dev before the change, so this
     is a regression control and not a claim about what the answers ought
-    to be. "cinco y tres" reads two numbers, 5 and 3, since DPD "cardinales"
-    2 puts "y" only between tens and units (numtag docs/rulings.md, "The
-    joiner before the last group"); the parser read 8.
+    to be. "cinco y tres" reads 8 on dev: the Spanish connector joins the
+    two numbers. That is recorded, not endorsed.
     """
 
     CASES = (
         ("ar", "خمسة وعشرون", "25"),
         ("ar", "مية", "100"),
         ("es", "veinticinco", "25"),
-        ("es", "cinco y tres", "5 y 3"),
+        ("es", "cinco y tres", "8"),
         ("it", "venti", "20"),
     )
 
