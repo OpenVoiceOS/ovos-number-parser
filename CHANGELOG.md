@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.66a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.66a1) (2026-11-17)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.65a1...0.24.66a1)
+
+**Merged pull requests:**
+
+- fix\(nl\): ordinals above 100 follow the last part, a space follows "duizend" [\#515](https://github.com/OpenVoiceOS/ovos-number-parser/pull/515) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.24.65a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.65a1) (2026-11-17)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.64a1...0.24.65a1)
@@ -374,10 +382,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.18a1...0.24.19a1)
 
-**Merged pull requests:**
-
-- fix: use the words of the language in decimal readings \(da, kk, ky, mt, cy, lo\) [\#416](https://github.com/OpenVoiceOS/ovos-number-parser/pull/416) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.18a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.18a1) (2026-11-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.17a1...0.24.18a1)
@@ -385,10 +389,6 @@
 ## [0.24.17a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.17a1) (2026-11-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.16a1...0.24.17a1)
-
-**Merged pull requests:**
-
-- fix: extract digit strings with every digit and their sign [\#415](https://github.com/OpenVoiceOS/ovos-number-parser/pull/415) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.16a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.16a1) (2026-11-10)
 
