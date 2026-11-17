@@ -645,7 +645,7 @@ AR_LECT_FORMS = {
     # Abdelkader 1977, "Peace Corps English-Tunisian Arabic Dictionary", and Biţuna 2011, "The Morpho-Syntax
     # of the Numeral in the Spoken Arabic of Tunis", Romano-Arabica 8-11, pp. 25-42; (M) English Wikipedia
     # "Tunisian Arabic", revision 1384869026, a paragraph on the numbers 11 to 19 "pronounced as one word"
-    # with the suffix طاش, citing Gibson 2009, "Tunis Arabic". The forms are written without vowel marks.
+    # with the suffix طاش, citing Gibson 2011, "Tunis Arabic". The forms are written without vowel marks.
     # Only the numbers N or M spell differently from the literary word have a row: 2, 3, 8, the tens and
     # 1000 and up are spelled like it, and N gives 500, 600 and 800 only by the pattern of 300, 400, 700
     # and 900, so they keep the literary word.

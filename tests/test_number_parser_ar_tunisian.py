@@ -9,7 +9,7 @@ there, or a form from the paragraph on the numbers 11 to 19 in "Tunisian Arabic"
 """
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number, resolve_ar_lect
+from ovos_number_parser import extract_number, numbers_to_digits, pronounce_number, resolve_ar_lect
 
 TABLE_CELLS = {
     0: "صفر",                  # ṣfir صفر
@@ -76,6 +76,10 @@ class TestTunisianCardinals(unittest.TestCase):
         for value in (11, 16, 300, 350, 1956, 2018):
             spoken = pronounce_number(value, lang="aeb")
             self.assertEqual(extract_number(spoken, lang="aeb"), value, spoken)
+
+    def test_aeb_keeps_the_conjunction_on_a_teen(self):
+        self.assertEqual(numbers_to_digits("1 وثلطاش", lang="aeb"), "1 و13")
+        self.assertEqual(numbers_to_digits("كتاب وثلطاش", lang="aeb"), "كتاب و13")
 
 
 if __name__ == "__main__":
