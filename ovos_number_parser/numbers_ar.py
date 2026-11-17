@@ -566,6 +566,42 @@ AR_LECT_FORMS = {
         18000: "تمنتعشر ألف",   # B attributive 18 "تمنتعشر t(a)mantaʕšar" + ألف
         19000: "تسعتعشر ألف",   # B attributive 19 "تسعتعشر tisᵉʕtaʕšar" + ألف
     },
+    # Moroccan Arabic (Darija). Source: the English Wiktionary Moroccan Arabic number entries, each a
+    # {{number box|ary|N}} page with its {{ary-numeral}} line and its IPA, listed in the page
+    # Appendix:Moroccan Arabic numerals (revision 75382086); the forms are written without vowel marks.
+    # The entries give two words for 2, تنين and جوج; تنين is written, the one the entries for 22 and 33
+    # use. The entries for 4 and 40 are ربعة and ربعين, with أربعة and أربعين as the alternative forms. A
+    # number with no entry keeps its literary word, as do 5-7, 9, 10, 20, 50, 60, 70, 90, 1000, 2000 and
+    # the millions, which are spelled alike.
+    "ary": {
+        2: "تنين",            # ary تنين {{ary-numeral|head=تنِين|tr=tnīn}}; تنين وعشرين "tnīn u ʕašrīn" 22
+        3: "تلاتة",           # ary تلاتة {{ary-numeral|tr=tlāta}}
+        4: "ربعة",            # ary ربعة {{ary-numeral|tr=rabʕa|f=ربع}}; أربعة "alternative form of ربعة"
+        8: "تمنية",           # ary تمنية {{ary-numeral|tr=tmanya|f=تمان}}
+        11: "حداش",           # ary حداش {{ary-numeral|tr=ḥdāš}}
+        12: "تناش",           # ary تناش {{ary-numeral|tr=tnāš}}
+        13: "تلتاش",          # ary تلتاش {{ary-numeral|tr=tlattāš}}
+        14: "ربعتاش",         # ary ربعتاش {{ary-numeral|tr=rbaʕtāš}}
+        15: "خمستاش",         # ary خمستاش {{ary-numeral|head=خْمَستاش|tr=ḵmastāš}}
+        16: "ستاش",           # ary ستاش {{ary-numeral|tr=sittāš}}
+        17: "سبعتاش",         # ary سبعتاش {{ary-numeral|tr=sbaʕtāš}}
+        18: "تمنتاش",         # ary تمنتاش {{ary-numeral|tr=tmantāš}}
+        19: "تسعتاش",         # ary تسعتاش {{ary-numeral|tr=tsaʕtāš}}
+        30: "تلاتين",         # ary تلاتين {{ary-numeral|tr=tlātīn}}
+        40: "ربعين",          # ary ربعين {{ary-numeral|tr=rabʕīn}}; أربعين alternative
+        80: "تمانين",         # ary تمانين {{ary-numeral|tr=tmānīn}}
+        100: "مية",           # ary مية {{ary-numeral|head=مية|tr=myā|cons=مْيَة|constr=myat|cons2=مِية}}
+        200: "ميتين",         # ary ميتين {{ary-numeral|head=مْيَتَيْن|head2=مْيَتِين|head3=مِيتِين}}
+        300: "تلتمية",        # ary تلتمية {{ary-numeral|tr=taltimya}}
+        400: "ربعمية",        # ary ربعمية {{ary-numeral|tr=rabʕamya}}
+        500: "خمسمية",        # ary خمسمية {{ary-numeral|tr=xamsamya}}
+        600: "ستمية",         # ary ستمية {{ary-numeral|tr=sittimya}}
+        700: "سبعمية",        # ary سبعمية {{ary-numeral|tr=sabʕamya}}
+        800: "تمنمية",        # ary تمنمية {{ary-numeral|tr=tamnamya}}
+        900: "تسعمية",        # ary تسعمية {{ary-numeral|tr=tisʕamya}}
+        10000: "عشر آلاف",    # ary عشر آلاف {{ary-numeral|tr=ʕašr ʔālāf}}
+        100000: "مية ألف",    # ary مية ألف {{ary-numeral|tr=myat ʔalf}}
+    },
 }
 
 
@@ -635,7 +671,7 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
         lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
             cardinal words should be spoken instead of the literary ones --
             ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian), ``ars``
-            (Najdi), ``apc`` (Levantine). The number is
+            (Najdi), ``apc`` (Levantine), ``ary`` (Moroccan). The number is
             composed the same way either way and only the words differ; see
             :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
             ``ar`` and the literary ``arb`` all keep the literary words.
@@ -844,6 +880,8 @@ def _build_lookup():
     units["تلتة"] = 3
     # Levantine two, "تنين" (the homograph read in context: _LEVANTINE_TWO)
     units["تنين"] = 2
+    # Moroccan four, English Wiktionary ربعة, Moroccan Arabic, "four"
+    units["ربعة"] = 4
     # Egyptian, borrowed from Italian zero: English Wiktionary, زيرو,
     # Egyptian Arabic, "zīrō ... zero"
     units["زيرو"] = 0
@@ -855,6 +893,8 @@ def _build_lookup():
         tens[word[:-2] + "ين"] = value  # oblique case: عشرين, ثلاثين ...
     # ت for ث in the lects that merge them; see AR_LECT_FORMS
     tens.update({"تلاتين": 30, "تمانين": 80})
+    # Moroccan forty, English Wiktionary ربعين, Moroccan Arabic, "forty"
+    tens["ربعين"] = 40
     hundreds = {"مئة": 100, "مائة": 100}
     for value, word in _HUNDREDS_AR.items():
         if value >= 200:
