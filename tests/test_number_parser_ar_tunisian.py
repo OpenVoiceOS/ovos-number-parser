@@ -1,9 +1,9 @@
 """Tunisian Arabic (ISO 639-3 aeb) cardinals.
 
-Every expected string is an Arabic cell of English Wikipedia "Tunisian Arabic",
-Numerals, Cardinals (revision 1384869026), or a form of its examples there, or a
-form from "Tunisian Arabic morphology" (revision 1383344607), whichever is named
-beside it. The table's own examples:
+Every expected string is an Arabic cell of English Wikipedia "Tunisian Arabic
+morphology", Numerals, Cardinals (revision 1383344607), or a form of its examples
+there, or a form from the paragraph on the numbers 11 to 19 in "Tunisian Arabic"
+(revision 1384869026), whichever is named beside it. The table's own examples:
 123456789 is "مية وثلاثة وعشرين مليون وأربعة مية وستّة وخمسين الف وسبعة ميه
 وتسعة وثمانين" and 1956 is "الف وتسعة مية وستّة وخمسين".
 """
@@ -19,10 +19,10 @@ TABLE_CELLS = {
     10: "عشرة",                # ɛacra عشرة
     11: "احداش",               # ḥdāc احداش
     12: "اثناش",               # ŧnāc اثناش
-    13: "ثلطاش",               # morphology page "ثلطّاش θlaṭṭāš"; the table's cell has ظ
-    14: "أربعطاش",             # morphology page "أربعطاش aṛbaʿṭāš"
+    13: "ثلطاش",               # teens paragraph "ثلطّاش θlaṭṭāš"; the table's cell has ظ
+    14: "أربعطاش",             # teens paragraph "أربعطاش aṛbaʿṭāš"
     15: "خمسطاش",              # xumsṭāc خمسطاش
-    16: "سطاش",                # morphology page "سطّاش sitṭāš"
+    16: "سطاش",                # teens paragraph "سطّاش sitṭāš"
     17: "سبعطاش",              # sbaɛṭāc سبعطاش
     18: "ثمنطاش",              # ŧmanṭāc ثمنطاش
     19: "تسعطاش",              # tsaɛṭāc تسعطاش
@@ -75,7 +75,7 @@ class TestTunisianCardinals(unittest.TestCase):
     def test_a_composed_number_reads_back(self):
         for value in (11, 16, 300, 350, 1956, 2018):
             spoken = pronounce_number(value, lang="aeb")
-            self.assertEqual(extract_number(spoken, lang="ar"), value, spoken)
+            self.assertEqual(extract_number(spoken, lang="aeb"), value, spoken)
 
 
 if __name__ == "__main__":

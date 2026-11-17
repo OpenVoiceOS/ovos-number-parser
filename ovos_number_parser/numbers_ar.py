@@ -640,14 +640,15 @@ AR_LECT_FORMS = {
         10000: "عشر آلاف",    # ary عشر آلاف {{ary-numeral|tr=ʕašr ʔālāf}}
         100000: "مية ألف",    # ary مية ألف {{ary-numeral|tr=myat ʔalf}}
     },
-    # Tunisian Arabic. Sources, read as raw wikitext: (N) English Wikipedia "Tunisian Arabic", Numerals,
-    # Cardinals, revision 1384869026, a table with the Arabic script of each number, citing Talmoudi and
-    # Biţuna 2011 "The Morpho-Syntax of the Numeral in the Spoken Arabic of Tunis"; (M) English Wikipedia
-    # "Tunisian Arabic morphology", revision 1383344607, on the numbers 11 to 19 "pronounced as one word"
-    # with the suffix طاش, citing Gibson. The forms are written without vowel marks. Only the numbers N or M
-    # spell differently from the literary word have a row: 2, 3, 8, the tens and 1000 and up are spelled
-    # like it, and N gives 500, 600 and 800 only by the pattern of 300, 400, 700 and 900, so they keep
-    # the literary word.
+    # Tunisian Arabic. Sources, read as raw wikitext: (N) English Wikipedia "Tunisian Arabic morphology",
+    # Numerals, Cardinals, revision 1383344607, a table with the Arabic script of each number, citing Ben
+    # Abdelkader 1977, "Peace Corps English-Tunisian Arabic Dictionary", and Biţuna 2011, "The Morpho-Syntax
+    # of the Numeral in the Spoken Arabic of Tunis", Romano-Arabica 8-11, pp. 25-42; (M) English Wikipedia
+    # "Tunisian Arabic", revision 1384869026, a paragraph on the numbers 11 to 19 "pronounced as one word"
+    # with the suffix طاش, citing Gibson 2009, "Tunis Arabic". The forms are written without vowel marks.
+    # Only the numbers N or M spell differently from the literary word have a row: 2, 3, 8, the tens and
+    # 1000 and up are spelled like it, and N gives 500, 600 and 800 only by the pattern of 300, 400, 700
+    # and 900, so they keep the literary word.
     "aeb": {
         11: "احداش",          # N "ḥdāc احداش"; M "احداش aḥdāš"
         12: "اثناش",          # N "ŧnāc اثناش"; M "اثناش θṇāš"
@@ -1229,7 +1230,7 @@ _SADA_TEENS_AR = {
     "تسعطاشر": 19,  # 1
 }
 # the lects whose table teens are read as that lect only, see _LECT_READER_WORDS
-_LECT_TABLE_TEENS = ("apc", "ary")
+_LECT_TABLE_TEENS = ("apc", "ary", "aeb")
 _FUSED_TEENS_LOOKUP = _norm_map({
     **{form: value
        for lect, forms in AR_LECT_FORMS.items() if lect not in _LECT_TABLE_TEENS
