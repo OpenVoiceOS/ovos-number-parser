@@ -2092,11 +2092,13 @@ def _detach_proclitic(match):
     word = match.group(0)
     bare = _normalize_ar(word.strip(".,!?;:؟،؛"))
     if word[0] == "و" and len(bare) > 1 and \
-            _tokenize_ar(bare)[0] == "و" and extract_numbers_ar(bare[1:]):
+            _tokenize_ar(bare)[0] == "و" and \
+            extract_numbers_ar(bare[1:], lect=_ACTIVE_LECT.get()):
         return "و " + word[1:]
     split = _split_proclitic(bare)
     # only when the rest is a number by itself, or the space would stay
-    if split and word[0] in _PROCLITICS_AR and extract_numbers_ar(split[1]):
+    if split and word[0] in _PROCLITICS_AR and \
+            extract_numbers_ar(split[1], lect=_ACTIVE_LECT.get()):
         return word[0] + " " + word[1:]
     return word
 
