@@ -1250,7 +1250,7 @@ def _scope_lect_words():
                "hundreds": _HUNDREDS_LOOKUP, "fused": _FUSED_TEENS_LOOKUP}
     for lect, words in _LECT_READER_WORDS.items():
         if lect in _LECT_TABLE_TEENS:
-            words["fused"].update({
+            words.setdefault("fused", {}).update({
                 form: value for value, form in AR_LECT_FORMS[lect].items()
                 if 11 <= value <= 19})
         only = _LECT_ONLY_WORDS.setdefault(lect, set())

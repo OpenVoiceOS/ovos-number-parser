@@ -7,8 +7,9 @@ them). The transliteration of the entry is beside each.
 """
 import unittest
 
-from ovos_number_parser import (extract_number, nice_number, numbers_to_digits,
-                                pronounce_number, resolve_ar_lect)
+from ovos_number_parser import (extract_number, numbers_to_digits, pronounce_number,
+                                resolve_ar_lect)
+from ovos_number_parser.numbers_ar import nice_number_ar
 
 WIKTIONARY_ENTRIES = {
     0: "صفر",                  # not an ary numeral entry: the literary word stays
@@ -92,7 +93,7 @@ class TestMoroccanCardinals(unittest.TestCase):
 
     def test_the_quarter_stays_a_quarter_in_standard_arabic(self):
         """ربعين is the oblique dual of ربع "quarter", which the library writes itself."""
-        spoken = nice_number(1.5, lang="ar", denominators=[4], case="oblique")
+        spoken = nice_number_ar(1.5, denominators=[4], case="oblique")
         self.assertEqual(spoken, "1 وربعين")
         for lang in ("ar", "ar-MA", "arz", "apc"):
             self.assertEqual(extract_number("واحد وربعين", lang=lang), 1, lang)
