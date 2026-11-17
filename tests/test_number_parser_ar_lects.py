@@ -24,11 +24,11 @@ class TestArabicLectCardinals(unittest.TestCase):
         self.assertEqual(pronounce_number(350, lang="afb"), "ثلاثمية وخمسين")
 
     def test_a_lect_with_no_table_keeps_the_literary_words(self):
-        """Levantine has no table because no source has been read for it. It still
+        """Mesopotamian has no table because no source has been read for it. It still
         takes the oblique register every spoken lect takes."""
-        self.assertIsNone(resolve_ar_lect("apc"))
-        self.assertEqual(pronounce_number(15, lang="apc"), "خمسة عشر")
-        self.assertEqual(pronounce_number(350, lang="apc"), "ثلاثمئة وخمسين")
+        self.assertIsNone(resolve_ar_lect("acm"))
+        self.assertEqual(pronounce_number(15, lang="acm"), "خمسة عشر")
+        self.assertEqual(pronounce_number(350, lang="acm"), "ثلاثمئة وخمسين")
 
     def test_the_literary_codes_are_untouched(self):
         for code in ("ar", "arb"):
@@ -37,9 +37,9 @@ class TestArabicLectCardinals(unittest.TestCase):
             self.assertEqual(pronounce_number(350, lang=code), "ثلاثمئة وخمسون")
 
     def test_only_a_lect_with_a_table_resolves(self):
-        for code in ("acw", "afb", "arz", "ars", "ACW", "acw-x-anything"):
+        for code in ("acw", "afb", "arz", "ars", "apc", "ACW", "acw-x-anything"):
             self.assertIsNotNone(resolve_ar_lect(code))
-        for code in ("ar", "arb", "apc", "ar-EG", "ar-SA", "en", "arc"):
+        for code in ("ar", "arb", "acm", "ar-EG", "ar-SA", "en", "arc"):
             self.assertIsNone(resolve_ar_lect(code), code)
 
     def test_a_negative_number_keeps_the_lects_words(self):
@@ -86,7 +86,7 @@ class TestArabicLectCardinals(unittest.TestCase):
 
     def test_a_whole_composed_number_reads_back_too(self):
         from ovos_number_parser import extract_number
-        for code in ("acw", "afb", "arz"):
+        for code in ("acw", "afb", "arz", "apc"):
             for value in (12, 15, 18, 350, 2018):
                 spoken = pronounce_number(value, lang=code)
                 self.assertEqual(extract_number(spoken, lang="ar"), value,

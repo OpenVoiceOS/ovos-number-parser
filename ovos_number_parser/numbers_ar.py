@@ -522,6 +522,50 @@ AR_LECT_FORMS = {
         800: "تمنمية",        # Dirr 1904 p. 26 tumnêmíyä; thin: sada 1, omni 6 as تمنميه, masc 2 as تمنميه
         900: "تسعمية",        # Dirr 1904 p. 26 tus'êmíyä; sada 110, omni 5 as تسعميه, masc 10 as تسعميه
     },
+    # Levantine Arabic (ISO 639-3 apc, which absorbed ajp). Sources, all read as raw wikitext:
+    # (W) English Wikipedia "Levantine Arabic grammar", Numerals, revision 1368977674, a table that cites
+    # Elihai 2011 pp. 57-59 and 107-108 and Brustad & Zuniga 2019 pp. 414-415; (B) English Wikibooks
+    # "Levantine Arabic/Numbers", revision 4672979; (T) the English Wiktionary entries for the number
+    # words (North Levantine apc, South Levantine ajp). The forms are written without vowel marks, as in
+    # arz. The independent form of a unit is written, and the form before a noun only where a source
+    # writes it: the hundreds and 11000-19000. The hundreds 400-900 are one word, like W's 300, with the
+    # attributive unit and مية joined; B spaces them. A number no source gives keeps its literary word,
+    # and so do 4-7, 9, 10, 20, 40, 50, 60, 70, 90 and the millions, which are spelled alike.
+    "apc": {
+        2: "تنين",            # W "تنين tnēn"; B "تنين tnēn"; T تنين apc and ajp {{apc-numeral|g=m|tr=tnēn|f=تنتين}}
+        3: "تلاتة",           # W "تلاتة talāte (South), تلاتة tlēte (North)"; B "تلاتة tlāte (N) talāte (S)"
+        8: "تمانية",          # W "تمانية tamānye (South), تمانة tmēne (North)"; B "تمانية / تمانة"; T تمانية ajp tamanye. The South spelling ships
+        11: "حدعش",           # W "احدعش (i)ḥdaʕš"; B "حدعش ḥdaʕš"; T حدعش ajp, احدعش "alternative spelling of حدعش"
+        12: "تنعش",           # W "تنعش tnaʕš"; B "تنعش tnaʕš"; T تنعش ajp {{ajp-IPA|tnaš}}
+        13: "تلتعش",          # B "تلتّعش t(a)lattaʕš"; T تلتعش ajp {{ajp-numeral}} number box 13, "ثَلَاثَةَ عَشَرَ"
+        14: "أربعتعش",        # B "أربعتش 'arbaʕtaʕš" (its Arabic cell drops the ع that its romanisation has); T أربعتعش ajp 14
+        15: "خمستعش",         # B "خمستعش ḫamᵉstaʕš"; T خمستعش ajp 15
+        16: "ستعش",           # B "ستّعش sittaʕš"; T ستعش ajp 16
+        17: "سبعتعش",         # B "سبعتعش sabᵉʕtaʕš"; T سبعتعش ajp 17
+        18: "تمنتعش",         # B "تمنتعش t(a)mantaʕš"; T تمنتعش ajp 18
+        19: "تسعتعش",         # B "تسعتعش tisᵉʕtaʕš"; T تسعتعش ajp 19
+        30: "تلاتين",         # W "تلاتين talatīn (South) / tlētīn (North)"; B "تلاتين t(a)lātīn"; T تلاتين apc and ajp
+        80: "تمانين",         # B "تمانين t(a)mānīn"; T تمانين apc tmēnīn, ajp tamānīn
+        100: "مية",           # W "مية miyye"; B "ميّة miyye"; T مية ajp head مِيّة
+        200: "ميتين",         # W "ميتين mītēn"; B "ميتين mītēn"; T ميتين ajp
+        300: "تلتمية",        # W "تلتمية t(a)lat-miyye"; B "تلت ميّة t(a)lat-miyye"; T تلتمية ajp
+        400: "أربعمية",       # B "أربع ميّة 'arbaʕ-miyye": "attributive form + ميّة"; W attributive column "أربع ʾarbaʕ"
+        500: "خمسمية",        # B pattern "attributive form + ميّة", "... 900"; W attributive column "خمس ḵams"
+        600: "ستمية",         # B pattern; W attributive column "ست sitt"; B "ستّ sitt"
+        700: "سبعمية",        # B pattern; W attributive column "سبع sabʕ"
+        800: "تمنمية",        # B pattern; W attributive column "تمن taman/tman"; B "تمن"
+        900: "تسعمية",        # B pattern; W attributive column "تسع tisʕ"
+        3000: "تلتة آلاف",    # W "تلتة آلاف t(a)latt‿ālāf"; B "تلت آلاف t(a)lat t-ālāf"
+        11000: "حدعشر ألف",   # W "إحدشر ألف ʾiḥdaʕšar ʾalf" (its Arabic cell drops the ع); B "11,000-999,000 are created with attributive form of the number followed by ألف", attributive 11 "حدعشر"
+        12000: "تنعشر ألف",   # B attributive 12 "تنعشر tnaʕšar" + ألف
+        13000: "تلتعشر ألف",  # B attributive 13 "تلتّعشر t(a)lattaʕšar" + ألف
+        14000: "أربعتعشر ألف",  # B attributive 14 "أربعتشر 'arbaʕtaʕšar" (the ع is in its romanisation) + ألف
+        15000: "خمستعشر ألف",   # B attributive 15 "خمستعشر ḫamᵉstaʕšar" + ألف
+        16000: "ستعشر ألف",     # B attributive 16 "ستّعشر sittaʕšar" + ألف
+        17000: "سبعتعشر ألف",   # B attributive 17 "سبعتعشر sabᵉʕtaʕšar" + ألف
+        18000: "تمنتعشر ألف",   # B attributive 18 "تمنتعشر t(a)mantaʕšar" + ألف
+        19000: "تسعتعشر ألف",   # B attributive 19 "تسعتعشر tisᵉʕtaʕšar" + ألف
+    },
 }
 
 
@@ -591,7 +635,7 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
         lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
             cardinal words should be spoken instead of the literary ones --
             ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian), ``ars``
-            (Najdi). The number is
+            (Najdi), ``apc`` (Levantine). The number is
             composed the same way either way and only the words differ; see
             :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
             ``ar`` and the literary ``arb`` all keep the literary words.
@@ -796,6 +840,10 @@ def _build_lookup():
     # says a word and then cannot recognise it is two libraries. These are the lect
     # spellings whose skeleton nothing above already covers.
     units.update({"اتنين": 2, "تمنية": 8, "تمانية": 8})
+    # Levantine three, W's thousand cell "تلتة آلاف"; see AR_LECT_FORMS
+    units["تلتة"] = 3
+    # Levantine two, "تنين" (the homograph read in context: _LEVANTINE_TWO)
+    units["تنين"] = 2
     # Egyptian, borrowed from Italian zero: English Wiktionary, زيرو,
     # Egyptian Arabic, "zīrō ... zero"
     units["زيرو"] = 0
@@ -918,6 +966,10 @@ _ATTESTED_TEENS_AR = {
     "تنعش": 12,
     # South Levantine Arabic, تلتعش "talattaʕš", "thirteen"
     "تلتعش": 13,
+    # English Wikibooks, "Levantine Arabic/Numbers", the forms before a noun,
+    # which stand before ألف: تنعشر "tnaʕšar", تلتّعشر "t(a)lattaʕšar",
+    # تمنتعشر "t(a)mantaʕšar"
+    "تنعشر": 12, "تلتعشر": 13, "تمنتعشر": 18,
     # South Levantine Arabic, أربعتعش "ʔarbaʕtaʕš", "fourteen"
     "أربعتعش": 14,
     # South Levantine Arabic, ستعش "sittaʕš", "sixteen"
@@ -1145,6 +1197,8 @@ _LECTS_WITH_SPOKEN_HALF = {"ars"}
 #   Arabic, "Monday", "al-itnēn".
 # - الست: Egyptian Arabic, "woman", "Mrs, Miss, lady (title for a woman)",
 #   with "الست اللى فى الصورة" "the woman that's in this picture".
+# - تنين: Arabic, "dragon" (Etymology 1), as well as North and South Levantine
+#   Arabic and Moroccan Arabic, "two".
 # - ألفي, the oblique construct 2,000: Arabic, verb forms of أَلَّفَ and
 #   أَلْفَى (Etymologies 1 and 2), and ألفى "found" is the same word once ى
 #   and ي are one letter. مليوني and ملياري, the construct 2,000,000 and
@@ -1175,6 +1229,7 @@ _LECTS_WITH_SPOKEN_HALF = {"ars"}
 _WATER_HUNDRED = _normalize_ar("مية")
 _DEAD_TWO_HUNDRED = "ميتين"
 _CONSTRUCT_HUNDRED = "ميت"
+_LEVANTINE_TWO = "تنين"
 _DAY_NAMES = _norm_keys({"التلات", "التلاتة", "الاتنين", "الاثنين"})
 # the homographs that are units three to nine, which build the hundreds
 _HUNDRED_UNIT_HOMOGRAPHS = _norm_keys({"التلات", "التلاتة", "الست"})
@@ -1182,6 +1237,7 @@ _CONSTRUCT_DUAL_SCALES = _norm_map({"ألفي": "ألفين", "مليوني": "�
                                     "ملياري": "مليارين"})
 _PRICE_OR_EIGHTH = "ثمن"
 _HOMOGRAPHS_AR = {_WATER_HUNDRED, _DEAD_TWO_HUNDRED, _CONSTRUCT_HUNDRED,
+                  _LEVANTINE_TWO,
                   "ال" + _WATER_HUNDRED, "ال" + _DEAD_TWO_HUNDRED,
                   "الست", _PRICE_OR_EIGHTH, "ال" + _PRICE_OR_EIGHTH} | \
     _DAY_NAMES | set(_CONSTRUCT_DUAL_SCALES)
@@ -1201,7 +1257,7 @@ _UNIT_WORDS_AR = _norm_keys({
     "اسبوعين"})
 # the canonical spelling of each, for numbers_to_digits
 _CONTEXT_CANONICAL_AR = {
-    _WATER_HUNDRED: "مئة", _DEAD_TWO_HUNDRED: "مئتين",
+    _WATER_HUNDRED: "مئة", _DEAD_TWO_HUNDRED: "مئتين", _LEVANTINE_TWO: "اثنين",
     _CONSTRUCT_HUNDRED: "مئة", "ال" + _WATER_HUNDRED: "المئة",
     "ال" + _DEAD_TWO_HUNDRED: "المئتين", "الست": "ست",
     **_norm_map({"التلات": "ثلاث", "التلاتة": "ثلاثة", "الاتنين": "اثنين",
