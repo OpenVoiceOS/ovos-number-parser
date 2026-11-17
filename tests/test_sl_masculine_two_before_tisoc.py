@@ -5,7 +5,6 @@ Slovenski pravopis, člen 544, quoted by ZRC SAZU svetovalnica "Zapis stotic":
 Wiktionary Module:number list/data/sl: 2000 "dva tisoč", ordinal "dvatisoči".
 Lektorsko društvo Slovenije, Jezikovni pogovor 2014: "leto 2002 pravilno samo
 kot [dva tisoč dve]" -- the final digit keeps the counting form "dve".
-Slovenski pravopis, via slo-na-dlani.si: "dvesto dva tisoč dvesto".
 """
 import unittest
 

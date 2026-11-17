@@ -3,13 +3,14 @@
 Dansk Sprognævn, svarbase SV00017853: "Man vil altså udtale tallene: et
 hundrede og en, et tusinde og en, en million og en." Wiktionary
 Appendix:Danish numerals: "tre tusinde to hundrede og fireoghalvtreds"
-(3254). Den Danske Ordbog: "tusinde eller tusind talord (mængdetal)".
+(3254). Den Danske Ordbog: "tusinde 1 eller tusind talord (mængdetal)".
 
 Ordinals: the cardinal head stays and "og" precedes the last ordinal
 (Politikens sprogklumme on sproget.dk: "hundred(e) (og) syttende"). Den
 Danske Ordbog lists "hundrede" and "tusinde" as the ordinals of 100 and 1000
 and "millionte", "milliardte" for the larger scale words. Dansk Sprognævn,
-svarbase SV00000084: "tresindstyvende" and "tressende" both name the 60th.
+svarbase SV00000084: "fyrrende, halvtredsende, tressende, halvfjerdsende,
+firsende og halvfemsende" are correct next to the long forms.
 """
 import unittest
 
@@ -21,15 +22,15 @@ class TestDanishOgBeforeLastGroup(unittest.TestCase):
         101: "hundrede og en",
         1001: "tusind og en",
         1010: "tusind og ti",
-        2001: "to tusind og en",
-        2024: "to tusind og fireogtyve",
-        2101: "to tusind hundrede og en",
-        3254: "tre tusind to hundrede og fireoghalvtreds",
-        101000: "hundrede og et tusind",
+        2001: "to tusinde og en",
+        2024: "to tusinde og fireogtyve",
+        2101: "to tusinde hundrede og en",
+        3254: "tre tusinde to hundrede og fireoghalvtreds",
+        101000: "hundrede og et tusinde",
         1000001: "en million og en",
         2000024: "to millioner og fireogtyve",
         1500: "tusind fem hundrede",
-        2000: "to tusind",
+        2000: "to tusinde",
         1000: "tusind",
     }
 
@@ -41,8 +42,8 @@ class TestDanishOgBeforeLastGroup(unittest.TestCase):
 
 class TestDanishOrdinals(unittest.TestCase):
     CASES = {
-        60: "tresindstyvende",
-        61: "enogtresindstyvende",
+        60: "tressende",
+        61: "enogtressende",
         40: "fyrrende",
         50: "halvtredsende",
         70: "halvfjerdsende",

@@ -43,7 +43,7 @@ class TestSplitAboveHundred(unittest.TestCase):
         (123, "hundrede og treogtyve"),
         (253, "to hundrede og treoghalvtreds"),
         (999, "ni hundrede og nioghalvfems"),
-        (5953, "fem tusind ni hundrede og treoghalvtreds"),  # sproget.dk example
+        (5953, "fem tusinde ni hundrede og treoghalvtreds"),  # sproget.dk example
     ]
 
     def test_split_forms(self):
@@ -78,7 +78,7 @@ class TestParsingStillPermissive(unittest.TestCase):
     def test_new_split_forms_also_parse(self):
         for spelled, value in [("hundrede", 100), ("tusind", 1000),
                               ("tusind fem hundrede", 1500),
-                              ("fem tusind ni hundrede og treoghalvtreds", 5953)]:
+                              ("fem tusinde ni hundrede og treoghalvtreds", 5953)]:
             with self.subTest(spelled=spelled):
                 self.assertEqual(extract_number(spelled, "da"), value)
 

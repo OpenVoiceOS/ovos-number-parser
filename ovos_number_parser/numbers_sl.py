@@ -6,9 +6,8 @@ Sources for the writer rules:
   stotic": "Druge glavne števnike pišemo narazen: sto enajst, dva tisoč,
   sedem milijonov, tristo tisoč sto".
 * Wiktionary, Module:number list/data/sl: 2000 is "dva tisoč" and its
-  ordinal is "dvatisoči". ŠUSS (arnes.si): "Ime dva za 2 je pogosto tudi v
-  sestavljenih številih. Tako poznamo dvanajst, dvajset in dva tisoč [...]
-  tri tisoč". A count of 2 before tisoč or milijon is therefore masculine.
+  ordinal is "dvatisoči". A count of 2 before tisoč or milijon is therefore
+  masculine.
 * Lektorsko društvo Slovenije, Jezikovni pogovor 2014: "leto 2002 pravilno
   samo kot [dva tisoč dve]". The last digit keeps the counting form "dve".
 """

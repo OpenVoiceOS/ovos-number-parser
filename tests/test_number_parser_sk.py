@@ -124,9 +124,10 @@ class TestSlovakRoundTrip(unittest.TestCase):
     """pronounce_number output must be understood by extract_number."""
 
     def test_round_trip(self):
-        # numtag reads the separated spelling only, so the round trip covers
-        # the values the writer spells as separate words or as one short word
-        numbers = list(range(0, 100)) + [1000, 1000000, 2000000]
+        numbers = list(range(0, 200)) + \
+            [201, 222, 300, 345, 400, 456, 500, 678, 700, 891, 900,
+             1000, 1001, 2000, 2023, 5000, 9999, 10000, 100000,
+             1000000, 2000000]
         for number in numbers:
             with self.subTest(number=number):
                 spoken = pronounce_number(number, lang="sk")
@@ -148,7 +149,7 @@ class TestSlovakScaleAccumulation(unittest.TestCase):
     """
 
     def test_million_plus_hundred_thousands_anchor(self):
-        # the thousands and hundreds below a million are one word
+        # "jeden milión päťsto tisíc" = 1 500 000
         self.assertEqual(pronounce_number(1500000, lang="sk"),
                          "jeden milión päťstotisíc")
         self.assertEqual(extract_number("jeden milión päťsto tisíc",
@@ -164,6 +165,26 @@ class TestSlovakScaleAccumulation(unittest.TestCase):
                 self.assertEqual(pronounce_number(number, lang="sk"), spoken)
                 self.assertEqual(pronounce_number(-number, lang="sk"),
                                  "mínus " + spoken)
+
+    def test_million_thousand_hundred_round_trip(self):
+        for number in [1000500, 1100000, 1200000, 1500000, 8186976,
+                       2500000, 9999999, 10000000, 1186976]:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="sk")
+                self.assertEqual(extract_number(spoken, lang="sk"), number)
+
+    def test_negative_scale_round_trip(self):
+        for number in [-9997, -1499, -1500000, -8186976, -104979, -1000500]:
+            with self.subTest(number=number):
+                spoken = pronounce_number(number, lang="sk")
+                self.assertEqual(extract_number(spoken, lang="sk"), number)
+
+    def test_property_round_trip_both_signs(self):
+        for base in range(0, 10000001, 5417):
+            for number in (base, -base):
+                spoken = pronounce_number(number, lang="sk")
+                self.assertEqual(extract_number(spoken, lang="sk"), number,
+                                 msg=f"round-trip failed for {number}: {spoken!r}")
 
 
 if __name__ == "__main__":
