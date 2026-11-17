@@ -540,7 +540,7 @@ AR_LECT_FORMS = {
         11: "حداشر",          # Dirr 1904 p. 26 ḥaddášar; masc 11, sada 7, omni 17
         12: "اتناشر",         # Dirr 1904 p. 26 etnášar; masc 76, omni 34, sada 5
         13: "تلتاشر",         # Dirr 1904 p. 26 telatášar; masc 11, sada 2. masc writes the syncopated تلتاشر 11 and تلاتاشر 0, so the syncopated form ships
-        14: "اربعتاشر",       # Dirr 1904 p. 26 arbaḫtášar; masc 10, omni 13, sada 5
+        14: "اربعتاشر",       # Dirr 1904 p. 26 arbaḥtášar; masc 10, omni 13, sada 5
         15: "خمستاشر",        # Dirr 1904 p. 26 ḫamastášar; omni 68, sada 12, masc 6
         16: "ستاشر",          # Dirr 1904 p. 26 sittášar; masc 8, sada 4, omni 2
         17: "سبعتاشر",        # Dirr 1904 p. 26 sab'atášar; sada 14, omni 6, masc 5
@@ -602,6 +602,29 @@ AR_LECT_FORMS = {
         17000: "سبعتعشر ألف",   # B attributive 17 "سبعتعشر sabᵉʕtaʕšar" + ألف
         18000: "تمنتعشر ألف",   # B attributive 18 "تمنتعشر t(a)mantaʕšar" + ألف
         19000: "تسعتعشر ألف",   # B attributive 19 "تسعتعشر tisᵉʕtaʕšar" + ألف
+    },
+    # Algerian Arabic. Source: Belkassem Ben Sedira, Dictionnaire français-arabe (dialecte d'Algérie), Algiers,
+    # 1882, "Notions élémentaires de grammaire arabe", Nombres, pp. XLIII-XLV, read on the page images of the
+    # archive.org scan (item dictionnaire-francais-arabe-dialecte-d-al, PDF pages 55-57). The book prints each
+    # number in Arabic script beside its French transliteration; each form below is the printed Arabic, without
+    # vowel marks, and the comment gives the transliteration. 300 and 400 are printed as two words and written
+    # as one, as in the other tables. Only the numbers whose printed word differs from
+    # the literary one have a row. 500-900 and 3000 have none: the page gives no 500-900, and its Arabic for
+    # 3000 ("ثلثة الاف", transliterated "thelth alaf") writes a ة where the transliteration has none.
+    "arq": {
+        11: "احداش",          # Ben Sedira 1882 p. XLIV h'adâch
+        12: "اثناش",          # Ben Sedira 1882 p. XLIV thnâch
+        13: "ثلثاش",          # Ben Sedira 1882 p. XLIV thelethâch
+        14: "اربعتاش",        # Ben Sedira 1882 p. XLIV arbâtâch
+        15: "خمستاش",         # Ben Sedira 1882 p. XLIV khamstâch
+        16: "ستاش",           # Ben Sedira 1882 p. XLIV settâch
+        17: "سبعتاش",         # Ben Sedira 1882 p. XLIV sebâtâch
+        18: "ثمنتاش",         # Ben Sedira 1882 p. XLIV thementâch
+        19: "تسعتاش",         # Ben Sedira 1882 p. XLIV tsâtâch
+        100: "مية",           # Ben Sedira 1882 p. XLV mia
+        200: "ميتين",         # Ben Sedira 1882 p. XLV mitein
+        300: "ثلثمية",        # Ben Sedira 1882 p. XLV thelth mia, printed as two words
+        400: "اربعمية",       # Ben Sedira 1882 p. XLV arbâ mia, printed as two words
     },
 }
 
@@ -672,7 +695,7 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
         lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
             cardinal words should be spoken instead of the literary ones --
             ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian), ``ars``
-            (Najdi), ``apc`` (Levantine). The number is
+            (Najdi), ``apc`` (Levantine), ``arq`` (Algerian). The number is
             composed the same way either way and only the words differ; see
             :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
             ``ar`` and the literary ``arb`` all keep the literary words.
@@ -1167,7 +1190,7 @@ _SADA_TEENS_AR = {
     "تسعطاشر": 19,  # 1
 }
 # the lects whose table teens are read as that lect only, see _LECT_READER_WORDS
-_LECT_TABLE_TEENS = ("apc",)
+_LECT_TABLE_TEENS = ("apc", "arq")
 _FUSED_TEENS_LOOKUP = _norm_map({
     **{form: value
        for lect, forms in AR_LECT_FORMS.items() if lect not in _LECT_TABLE_TEENS
@@ -1197,6 +1220,10 @@ _LECT_READER_WORDS = {
             # a noun, which stand before ألف: تنعشر "tnaʕšar", تلتّعشر
             # "t(a)lattaʕšar", تمنتعشر "t(a)mantaʕšar"
             "تنعشر": 12, "تلتعشر": 13, "تمنتعشر": 18}},
+    "arq": {
+        # Ben Sedira 1882 p. XLV "ثلث مية" thelth mia, "Trois cents"; ثلث is
+        # also "a third"
+        "hundreds": {"ثلثمية": 300}},
 }
 _LECT_ONLY_WORDS = {}
 
@@ -1206,7 +1233,7 @@ def _scope_lect_words():
                "hundreds": _HUNDREDS_LOOKUP, "fused": _FUSED_TEENS_LOOKUP}
     for lect, words in _LECT_READER_WORDS.items():
         if lect in _LECT_TABLE_TEENS:
-            words["fused"].update({
+            words.setdefault("fused", {}).update({
                 form: value for value, form in AR_LECT_FORMS[lect].items()
                 if 11 <= value <= 19})
         only = _LECT_ONLY_WORDS.setdefault(lect, set())

@@ -16,7 +16,7 @@ ARA_MEMBERS = [
 
 # members with no table of their own: the literary words, oblique register
 NO_TABLE = [c for c in ARA_MEMBERS
-            if c not in ("acw", "afb", "arz", "ars", "apc", "ary", "aeb", "arb")]
+            if c not in ("acw", "afb", "arz", "ars", "apc", "ary", "aeb", "arq", "arb")]
 
 
 class TestArabicMacrolanguageMembers(unittest.TestCase):
@@ -49,8 +49,8 @@ class TestArabicMacrolanguageMembers(unittest.TestCase):
     def test_region_subtags_and_case_stay_as_they_were(self):
         self.assertEqual(pronounce_number(13, lang="ar-EG"), "ثلاثة عشر")
         self.assertEqual(pronounce_number(350, lang="ar-DZ"), "ثلاثمئة وخمسون")
-        self.assertEqual(pronounce_number(350, lang="ARQ-DZ"), "ثلاثمئة وخمسين")
-        self.assertEqual(pronounce_number(350, lang="arq_DZ"), "ثلاثمئة وخمسين")
+        self.assertEqual(pronounce_number(350, lang="AYL-LY"), "ثلاثمئة وخمسين")
+        self.assertEqual(pronounce_number(350, lang="ayl_LY"), "ثلاثمئة وخمسين")
 
 
 if __name__ == "__main__":
