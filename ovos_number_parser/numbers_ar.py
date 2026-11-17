@@ -1223,9 +1223,13 @@ _LECT_READER_WORDS = {
     "arq": {
         # Ben Sedira 1882 p. XLV "ثلث مية" thelth mia, "Trois cents"; ثلث is
         # also "a third"
-        "hundreds": {"ثلثمية": 300}},
+        "hundreds": {"ثلثمية": 300},
+        # the book's two-word 300, "ثلث مية"
+        "before_hundred": {"ثلث": 3}},
 }
 _LECT_ONLY_WORDS = {}
+# a word that is a unit only before a hundred word: ثلث is also "a third"
+_LECT_BEFORE_HUNDRED = {}
 
 
 def _scope_lect_words():
@@ -1237,12 +1241,15 @@ def _scope_lect_words():
                 form: value for value, form in AR_LECT_FORMS[lect].items()
                 if 11 <= value <= 19})
         only = _LECT_ONLY_WORDS.setdefault(lect, set())
+        before = _LECT_BEFORE_HUNDRED.setdefault(lect, set())
         for kind, entries in words.items():
+            scoped = only if kind != "before_hundred" else before
+            kind = "units" if kind == "before_hundred" else kind
             for word, value in entries.items():
                 word = _normalize_ar(word)
                 if word not in lookups[kind]:
                     lookups[kind][word + _LECT_MARK] = value
-                    only.add(word)
+                    scoped.add(word)
 
 
 _scope_lect_words()
@@ -1608,6 +1615,19 @@ def _reading_as(lect):
         _ACTIVE_LECT.reset(active)
 
 
+_TWO_WORD_HUNDRED_RE = re.compile(r"(?<![^\s و])(و?)ثلث\s+مي[ةه](?!\S)")
+
+
+def _mark_before_hundred(tokens):
+    """Mark a word that is a unit only before a hundred word (ثلث, "a third",
+    in "ثلث مية"), for the lect of the call; see _LECT_READER_WORDS."""
+    before = _LECT_BEFORE_HUNDRED.get(_ACTIVE_LECT.get(), ())
+    return [token + _LECT_MARK
+            if token in before and i + 1 < len(tokens)
+            and tokens[i + 1] in _HUNDRED_MULT_LOOKUP else token
+            for i, token in enumerate(tokens)]
+
+
 def _tokenize_ar(text):
     """Normalize and split, detaching the attached conjunction "و"."""
     tokens = []
@@ -1643,7 +1663,7 @@ def _tokenize_ar(text):
             # ألفًا with its tanween is the accusative singular, never the dual
             token = token[:-1]
         tokens.append(token + _LECT_MARK if token in lect_only else token)
-    return tokens
+    return _mark_before_hundred(tokens)
 
 
 def _parse_ordinal_span(tokens, i):
@@ -2102,6 +2122,7 @@ def _first_number_words_ar(words, halves=False):
         for token in _tokenize_ar(word):
             tokens.append(token)
             owner.append(w)
+    tokens = _mark_before_hundred(tokens)
     for start, end, _ in _number_spans(tokens, halves=halves):
         if owner[start] != 0:
             return None
@@ -2240,6 +2261,9 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     from ovos_number_parser import _numbers_to_digits_generic
     with _reading_as(resolve_ar_lect(lang)):
         halves = resolve_ar_lect(lang) in _LECTS_WITH_SPOKEN_HALF
+        if _ACTIVE_LECT.get() in _LECT_BEFORE_HUNDRED:
+            # the converter skips a lone "a third"; join the two-word hundred first
+            utterance = _TWO_WORD_HUNDRED_RE.sub(r"\1ثلثمية", utterance)
         resolved, masked = _resolve_context_words_ar(utterance, halves)
         resolved, duals = _mask_dual_nouns_ar(_join_literary_teens_ar(resolved))
         spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)

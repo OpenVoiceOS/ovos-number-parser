@@ -73,6 +73,21 @@ class TestAlgerianCardinals(unittest.TestCase):
             self.assertIs(extract_number("ثلثمية", lang=lang), False, lang)
             self.assertEqual(numbers_to_digits("ثلثمية", lang=lang), "ثلثمية", lang)
 
+    def test_the_printed_two_word_three_hundred_reads_300_as_arq(self):
+        """Ben Sedira p. XLV prints 300 as ثلث مية. ثلث alone stays "a third"."""
+        self.assertEqual(extract_number("ثلث مية", lang="arq"), 300)
+        self.assertEqual(extract_number("ثلث مية وخمسين", lang="arq"), 350)
+        self.assertEqual(numbers_to_digits("عندي ثلث مية ريال", lang="arq"), "عندي 300 ريال")
+        self.assertEqual(extract_number("ثلث", lang="arq"), 1 / 3)
+        self.assertEqual(numbers_to_digits("أكلت ثلث الكعكة", lang="arq"), "أكلت ثلث الكعكة")
+        for lang in ("ar", "ar-DZ", "arz"):
+            self.assertEqual(extract_number("ثلث مية", lang=lang), 1 / 3, lang)
+
+    def test_arq_keeps_the_conjunction_on_its_own_words(self):
+        self.assertEqual(numbers_to_digits("1 وثلثمية", lang="arq"), "1 و300")
+        self.assertEqual(numbers_to_digits("كتاب وثلثاش", lang="arq"), "كتاب و13")
+        self.assertEqual(numbers_to_digits("كتاب وأربعة", lang="ar"), "كتاب و4")
+
 
 if __name__ == "__main__":
     unittest.main()
