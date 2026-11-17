@@ -122,7 +122,7 @@ digits of its value when it gets `ordinals=True`.
 `is_fractional` and `is_ordinal` answer a question about one
 word, which numtag does not read, so they keep the parser for every language.
 
-The set holds et, fi, sl and tr.
+The set holds et, fi and sl.
 
 ## Enums
 

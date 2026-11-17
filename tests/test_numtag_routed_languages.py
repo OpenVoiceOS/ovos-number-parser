@@ -19,10 +19,6 @@ CASES = [
     ("fi", "Kokous alkaa viidessätoista minuutissa.", 15),
     # dva, in the genitive "dveh"
     ("sl", "Bilo jih je okoli dveh.", 2),
-    # on bir, 10 + 1
-    ("tr", "Doğru sayı on bir.", 11),
-    # on iki, 10 + 2
-    ("tr", "Cevap on iki.", 12),
 ]
 
 
@@ -30,7 +26,7 @@ class TestShippedRoutes(unittest.TestCase):
 
     def test_the_routed_languages(self):
         self.assertEqual(numtag_readers.NUMTAG_LANGS,
-                         frozenset({"et", "fi", "sl", "tr"}))
+                         frozenset({"et", "fi", "sl"}))
 
     def test_extract_number_reads_through_numtag(self):
         for lang, text, value in CASES:
@@ -46,13 +42,13 @@ class TestShippedRoutes(unittest.TestCase):
                                  spans[0].surface)
 
     def test_numbers_to_digits_writes_the_value(self):
-        self.assertEqual(numbers_to_digits("Doğru sayı on bir.", "tr"),
-                         "Doğru sayı 11.")
+        self.assertEqual(numbers_to_digits("Meillä on viiden hengen perhe.", "fi"),
+                         "Meillä on 5 hengen perhe.")
         self.assertEqual(numbers_to_digits("Bilo jih je okoli dveh.", "sl"),
                          "Bilo jih je okoli 2.")
 
     def test_a_language_outside_the_set_keeps_its_reader(self):
-        for lang in ("el", "es", "eu", "mwl", "oc", "ru"):
+        for lang in ("el", "es", "eu", "mwl", "oc", "ru", "tr"):
             with self.subTest(lang=lang):
                 self.assertFalse(numtag_readers.routed(lang))
 
