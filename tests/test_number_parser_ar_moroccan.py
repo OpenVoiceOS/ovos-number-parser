@@ -77,7 +77,7 @@ class TestMoroccanCardinals(unittest.TestCase):
     def test_other_lects_do_not_say_the_moroccan_words(self):
         self.assertEqual(pronounce_number(13, lang="arz"), "تلتاشر")
         self.assertEqual(pronounce_number(13, lang="apc"), "تلتعش")
-        self.assertEqual(pronounce_number(13, lang="aeb"), "ثلاثة عشر")
+        self.assertEqual(pronounce_number(13, lang="acm"), "ثلاثة عشر")
 
     def test_a_composed_number_reads_back(self):
         for value in (4, 14, 40, 44, 350, 2018, 12000):

@@ -602,6 +602,31 @@ AR_LECT_FORMS = {
         10000: "عشر آلاف",    # ary عشر آلاف {{ary-numeral|tr=ʕašr ʔālāf}}
         100000: "مية ألف",    # ary مية ألف {{ary-numeral|tr=myat ʔalf}}
     },
+    # Tunisian Arabic. Sources, read as raw wikitext: (N) English Wikipedia "Tunisian Arabic", Numerals,
+    # Cardinals, revision 1384869026, a table with the Arabic script of each number, citing Talmoudi and
+    # Biţuna 2011 "The Morpho-Syntax of the Numeral in the Spoken Arabic of Tunis"; (M) English Wikipedia
+    # "Tunisian Arabic morphology", revision 1383344607, on the numbers 11 to 19 "pronounced as one word"
+    # with the suffix طاش, citing Gibson. The forms are written without vowel marks. Only the numbers N or M
+    # spell differently from the literary word have a row: 2, 3, 8, the tens and 1000 and up are spelled
+    # like it, and N gives 500, 600 and 800 only by the pattern of 300, 400, 700 and 900, so they keep
+    # the literary word.
+    "aeb": {
+        11: "احداش",          # N "ḥdāc احداش"; M "احداش aḥdāš"
+        12: "اثناش",          # N "ŧnāc اثناش"; M "اثناش θṇāš"
+        13: "ثلطاش",          # M "ثلطّاش θlaṭṭāš"; N "ŧluṭṭāc ثلظّاش" (its Arabic has ظ, its romanisation ṭ)
+        14: "أربعطاش",        # M "أربعطاش aṛbaʿṭāš"; N "arbaɛṭāc اربعطاش"
+        15: "خمسطاش",         # N "xumsṭāc خمسطاش"; M "خمسطاش xmasṭāš"
+        16: "سطاش",           # M "سطّاش sitṭāš"; N "sutṭāc سطّاش"
+        17: "سبعطاش",         # N "sbaɛṭāc سبعطاش"; M "سبعطاش sbaʿṭāš"
+        18: "ثمنطاش",         # N "ŧmanṭāc ثمنطاش"; M "ثمنطاش θmanṭāš"
+        19: "تسعطاش",         # N "tsaɛṭāc تسعطاش"; M "تسعطاش tsaʿṭāš"
+        100: "مية",           # N "mya مية"
+        200: "ميتين",         # N "mītīn ميتين"
+        300: "ثلاثة مية",     # N "ŧlāŧamya ثلاثة مية"
+        400: "أربعة مية",     # N, the example 123456789, "وأربعة مية" "arbɛa mya"
+        700: "سبعة مية",      # N, the example 123456789, "وسبعة ميه" "sabɛa mya"
+        900: "تسعة مية",      # N, the example 1956, "الف وتسعة مية وستّة وخمسين" "alf w tisɛamya w sitta w xamsīn"
+    },
 }
 
 
@@ -671,7 +696,7 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
         lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
             cardinal words should be spoken instead of the literary ones --
             ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian), ``ars``
-            (Najdi), ``apc`` (Levantine), ``ary`` (Moroccan). The number is
+            (Najdi), ``apc`` (Levantine), ``ary`` (Moroccan), ``aeb`` (Tunisian). The number is
             composed the same way either way and only the words differ; see
             :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
             ``ar`` and the literary ``arb`` all keep the literary words.
