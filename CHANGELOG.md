@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.28.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.28.0a1) (2026-11-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.27.0a1...0.28.0a1)
+
+**Merged pull requests:**
+
+- feat: add Moroccan Arabic \(ary\) cardinals [\#524](https://github.com/OpenVoiceOS/ovos-number-parser/pull/524) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.27.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.27.0a1) (2026-11-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.26.1a1...0.27.0a1)
