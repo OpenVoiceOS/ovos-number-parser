@@ -1,3 +1,20 @@
+"""Slovak number words.
+
+Sources for the writer rules:
+
+* Pravidlá slovenského pravopisu (JÚĽŠ SAV, 3rd ed. 2000): "Dovedna sa píšu
+  číslovky v základnom tvare, napr. pätnásť, dvadsaťsedem, stojeden,
+  sedemstodvadsať, tisícpäť, sedemtisícdesať." and "Číslovky označujúce
+  stovky a tisícky sa píšu spolu, napr. dvesto, sedemsto, tritisíc,
+  dvadsaťsedemtisíc, stoosemdesiatdvatisíc. Spolu sa píšu aj radové číslovky
+  zložené z jednotiek, stovák a tisícok, napr. stoprvý, dvetisícdruhý.
+  Číslovky označujúce milióny, miliardy, bilióny sa píšu oddelene". In an
+  ordinal from 21 up the tens and units stay two words ("stodvadsiaty
+  štvrtý").
+* Jazyková poradňa JÚĽŠ SAV, "dvatisíc, dva tisíc alebo dvetisíc?": "Číslo a
+  počet 2 000 sa vyjadruje nesklonnou základnou číslovkou dvetisíc".
+  Wiktionary, "dvetisíc": "two thousand".
+"""
 import sys
 from fractions import Fraction
 from decimal import Decimal
@@ -884,8 +901,11 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
             else:
                 q, r = divmod(n, 100)
                 hundred = _HUNDREDS_SK[q]
+                # hundreds, tens and units are one word; an ordinal keeps its
+                # own word
+                joiner = " " if ordinals else ""
                 return hundred + (
-                    " " + _sub_thousand(r, ordinals) if r else "")
+                    joiner + _sub_thousand(r, ordinals) if r else "")
 
         def _split_by(n, split=1000):
             assert 0 <= n
@@ -910,7 +930,14 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
                     continue
                 number = _sub_thousand(z, not i and ordi)
 
-                if i:
+                if i == 1 and not ordi:
+                    # tisíc is invariable and joins its count: tritisíc,
+                    # dvetisíc (2 000), tisíc (1 000)
+                    if z == 1:
+                        number = "tisíc"
+                    else:
+                        number = ("dve" if z == 2 else number) + "tisíc"
+                elif i:
                     if i >= len(hundreds):
                         return ""
                     number += " "
@@ -924,10 +951,18 @@ def pronounce_number_sk(number, places=2, short_scale=True, scientific=False,
                             number += hundreds[i] + "ty"
                     else:
                         number += _scale_declined_sk(hundreds[i], z)
-                res.append(number)
+                res.append((i, number))
                 ordi = False
 
-            return " ".join(reversed(res))
+            # thousands, hundreds, tens and units below a million are one
+            # word; million and larger groups stay separate words
+            words = []
+            for i, number in reversed(res):
+                if i == 0 and words and words[-1][0] == 1 and not ordinals:
+                    words[-1] = (0, words[-1][1] + number)
+                else:
+                    words.append((i, number))
+            return " ".join(word for _, word in words)
 
         result += _whole_number(num)
 
@@ -971,5 +1006,8 @@ def pronounce_ordinal_sk(number):
     last = number % 100
     if last:
         prefix = number - last
-        return f"{pronounce_number_sk(prefix)} {pronounce_ordinal_sk(last)}"
+        # thousands, hundreds and the tail are one word (stoprvý,
+        # dvetisícdruhý); a million group stays a separate word
+        joiner = " " if prefix % 1000000 == 0 else ""
+        return pronounce_number_sk(prefix) + joiner + pronounce_ordinal_sk(last)
     raise NotImplementedError(f"cannot pronounce {number} as a Slovak ordinal")
