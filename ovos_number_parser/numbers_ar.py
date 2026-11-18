@@ -33,6 +33,8 @@ Arabic, ssh Shihhi Arabic. A lect with no table in ``AR_LECT_FORMS`` speaks the
 literary words in the oblique register.
 """
 
+import contextlib
+import contextvars
 import re
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
     scientific_parts
@@ -556,6 +558,51 @@ AR_LECT_FORMS = {
         800: "تمنمية",        # Dirr 1904 p. 26 tumnêmíyä; thin: sada 1, omni 6 as تمنميه, masc 2 as تمنميه
         900: "تسعمية",        # Dirr 1904 p. 26 tus'êmíyä; sada 110, omni 5 as تسعميه, masc 10 as تسعميه
     },
+    # Levantine Arabic (ISO 639-3 apc, which absorbed ajp). Sources, all read as raw wikitext:
+    # (W) English Wikipedia "Levantine Arabic grammar", Numerals, revision 1368977674, a table that cites
+    # Elihai 2011 pp. 57-59 and 107-108 and Brustad & Zuniga 2019 pp. 414-415; (B) English Wikibooks
+    # "Levantine Arabic/Numbers", revision 4672979; (T) the English Wiktionary entries for the number
+    # words (North Levantine apc, South Levantine ajp). The forms are written without vowel marks, as in
+    # arz. The independent form of a unit is written, and the form before a noun only where a source
+    # writes it: the hundreds and 11000-19000. The hundreds 400-900 are one word, like W's 300, with the
+    # attributive unit and مية joined; B spaces them. A number no source gives keeps its literary word,
+    # and so do 4-7, 9, 10, 20, 40, 50, 60, 70 and 90, which are spelled alike. No apc source gives a
+    # million word, so the millions keep the literary word.
+    "apc": {
+        2: "تنين",            # W "تنين tnēn"; B "تنين tnēn"; T تنين apc and ajp {{apc-numeral|g=m|tr=tnēn|f=تنتين}}
+        3: "تلاتة",           # W "تلاتة talāte (South), تلاتة tlēte (North)"; B "تلاتة tlāte (N) talāte (S)"
+        8: "تمانية",          # W "تمانية tamānye (South), تمانة tmēne (North)"; B "تمانية / تمانة"; T تمانية ajp tamanye. The South spelling ships
+        11: "حدعش",           # W "احدعش (i)ḥdaʕš"; B "حدعش ḥdaʕš"; T حدعش ajp, احدعش "alternative spelling of حدعش"
+        12: "تنعش",           # W "تنعش tnaʕš"; B "تنعش tnaʕš"; T تنعش ajp {{ajp-IPA|tnaš}}
+        13: "تلتعش",          # B "تلتّعش t(a)lattaʕš"; T تلتعش ajp {{ajp-numeral}} number box 13, "ثَلَاثَةَ عَشَرَ"
+        14: "أربعتعش",        # B "أربعتش 'arbaʕtaʕš" (its Arabic cell drops the ع that its romanisation has); T أربعتعش ajp 14
+        15: "خمستعش",         # B "خمستعش ḫamᵉstaʕš"; T خمستعش ajp 15
+        16: "ستعش",           # B "ستّعش sittaʕš"; T ستعش ajp 16
+        17: "سبعتعش",         # B "سبعتعش sabᵉʕtaʕš"; T سبعتعش ajp 17
+        18: "تمنتعش",         # B "تمنتعش t(a)mantaʕš"; T تمنتعش ajp 18
+        19: "تسعتعش",         # B "تسعتعش tisᵉʕtaʕš"; T تسعتعش ajp 19
+        30: "تلاتين",         # W "تلاتين talatīn (South) / tlētīn (North)"; B "تلاتين t(a)lātīn"; T تلاتين apc and ajp
+        80: "تمانين",         # B "تمانين t(a)mānīn"; T تمانين apc tmēnīn, ajp tamānīn
+        100: "مية",           # W "مية miyye"; B "ميّة miyye"; T مية ajp head مِيّة
+        200: "ميتين",         # W "ميتين mītēn"; B "ميتين mītēn"; T ميتين ajp
+        300: "تلتمية",        # W "تلتمية t(a)lat-miyye"; B "تلت ميّة t(a)lat-miyye"; T تلتمية ajp
+        400: "أربعمية",       # B "أربع ميّة 'arbaʕ-miyye": "attributive form + ميّة"; W attributive column "أربع ʾarbaʕ"
+        500: "خمسمية",        # B pattern "attributive form + ميّة", "... 900"; W attributive column "خمس ḵams"
+        600: "ستمية",         # B pattern; W attributive column "ست sitt"; B "ستّ sitt"
+        700: "سبعمية",        # B pattern; W attributive column "سبع sabʕ"
+        800: "تمنمية",        # B pattern; W attributive column "تمن taman/tman"; B "تمن"
+        900: "تسعمية",        # B pattern; W attributive column "تسع tisʕ"
+        3000: "تلتة آلاف",    # W "تلتة آلاف t(a)latt‿ālāf"; B "تلت آلاف t(a)lat t-ālāf"
+        11000: "حدعشر ألف",   # W "إحدشر ألف ʾiḥdaʕšar ʾalf" (its Arabic cell drops the ع); B "11,000-999,000 are created with attributive form of the number followed by ألف", attributive 11 "حدعشر"
+        12000: "تنعشر ألف",   # B attributive 12 "تنعشر tnaʕšar" + ألف
+        13000: "تلتعشر ألف",  # B attributive 13 "تلتّعشر t(a)lattaʕšar" + ألف
+        14000: "أربعتعشر ألف",  # B attributive 14 "أربعتشر 'arbaʕtaʕšar" (the ع is in its romanisation) + ألف
+        15000: "خمستعشر ألف",   # B attributive 15 "خمستعشر ḫamᵉstaʕšar" + ألف
+        16000: "ستعشر ألف",     # B attributive 16 "ستّعشر sittaʕšar" + ألف
+        17000: "سبعتعشر ألف",   # B attributive 17 "سبعتعشر sabᵉʕtaʕšar" + ألف
+        18000: "تمنتعشر ألف",   # B attributive 18 "تمنتعشر t(a)mantaʕšar" + ألف
+        19000: "تسعتعشر ألف",   # B attributive 19 "تسعتعشر tisᵉʕtaʕšar" + ألف
+    },
 }
 
 
@@ -625,7 +672,7 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
         lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
             cardinal words should be spoken instead of the literary ones --
             ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian), ``ars``
-            (Najdi). The number is
+            (Najdi), ``apc`` (Levantine). The number is
             composed the same way either way and only the words differ; see
             :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
             ``ar`` and the literary ``arb`` all keep the literary words.
@@ -1119,11 +1166,59 @@ _SADA_TEENS_AR = {
     "تسعطاعشر": 19,  # 2
     "تسعطاشر": 19,  # 1
 }
+# the lects whose table teens are read as that lect only, see _LECT_READER_WORDS
+_LECT_TABLE_TEENS = ("apc",)
 _FUSED_TEENS_LOOKUP = _norm_map({
     **{form: value
-       for forms in AR_LECT_FORMS.values()
+       for lect, forms in AR_LECT_FORMS.items() if lect not in _LECT_TABLE_TEENS
        for value, form in forms.items() if 11 <= value <= 19},
     **_ATTESTED_TEENS_AR, **_SADA_TEENS_AR})
+
+# A word that one lect says and Standard Arabic does not is read only when the
+# text is read as that lect (``lect`` of ``extract_numbers_ar``, ``lang`` of
+# ``numbers_to_digits_ar``), because the same letters are everyday words in the
+# standard language: تنين "dragon" (English Wiktionary, تنين, Arabic,
+# Etymology 1) and the verb تلته "it followed him" (تَلَتْهُ, from تلا) are the
+# Levantine two and three. The reader gives such a word a mark that no text
+# carries, and these entries stand under the marked spelling. A form with the
+# article or a clitic never takes the mark, so it is never read. The teens
+# and hundreds of a lect table are read the same way.
+_LECT_MARK = "\u2060"
+_LECT_READER_WORDS = {
+    "apc": {
+        "units": {
+            # W's thousand cell "تلتة آلاف", English Wikipedia "Levantine
+            # Arabic grammar"; see AR_LECT_FORMS
+            "تلتة": 3,
+            # W "تنين tnēn"
+            "تنين": 2},
+        "fused": {
+            # English Wikibooks, "Levantine Arabic/Numbers", the forms before
+            # a noun, which stand before ألف: تنعشر "tnaʕšar", تلتّعشر
+            # "t(a)lattaʕšar", تمنتعشر "t(a)mantaʕšar"
+            "تنعشر": 12, "تلتعشر": 13, "تمنتعشر": 18}},
+}
+_LECT_ONLY_WORDS = {}
+
+
+def _scope_lect_words():
+    lookups = {"units": _UNITS_LOOKUP, "tens": _TENS_LOOKUP,
+               "hundreds": _HUNDREDS_LOOKUP, "fused": _FUSED_TEENS_LOOKUP}
+    for lect, words in _LECT_READER_WORDS.items():
+        if lect in _LECT_TABLE_TEENS:
+            words["fused"].update({
+                form: value for value, form in AR_LECT_FORMS[lect].items()
+                if 11 <= value <= 19})
+        only = _LECT_ONLY_WORDS.setdefault(lect, set())
+        for kind, entries in words.items():
+            for word, value in entries.items():
+                word = _normalize_ar(word)
+                if word not in lookups[kind]:
+                    lookups[kind][word + _LECT_MARK] = value
+                    only.add(word)
+
+
+_scope_lect_words()
 # ناقص is the minus sign of the number after it, as سالب is. Omar 1975,
 # pp. 62-63: "Three minus one talaata naagiṣ waaHid" (the OCR of the
 # archive.org scan prints ṣ as $). "عشرة ناقص اثنين" is
@@ -1179,6 +1274,8 @@ _LECTS_WITH_SPOKEN_HALF = {"ars"}
 #   Arabic, "Monday", "al-itnēn".
 # - الست: Egyptian Arabic, "woman", "Mrs, Miss, lady (title for a woman)",
 #   with "الست اللى فى الصورة" "the woman that's in this picture".
+# - تنين: Arabic, "dragon" (Etymology 1), as well as North and South Levantine
+#   Arabic and Moroccan Arabic, "two".
 # - ألفي, the oblique construct 2,000: Arabic, verb forms of أَلَّفَ and
 #   أَلْفَى (Etymologies 1 and 2), and ألفى "found" is the same word once ى
 #   and ي are one letter. مليوني and ملياري, the construct 2,000,000 and
@@ -1209,6 +1306,7 @@ _LECTS_WITH_SPOKEN_HALF = {"ars"}
 _WATER_HUNDRED = _normalize_ar("مية")
 _DEAD_TWO_HUNDRED = "ميتين"
 _CONSTRUCT_HUNDRED = "ميت"
+_LEVANTINE_TWO = "تنين" + _LECT_MARK
 _DAY_NAMES = _norm_keys({"التلات", "التلاتة", "الاتنين", "الاثنين"})
 # the homographs that are units three to nine, which build the hundreds
 _HUNDRED_UNIT_HOMOGRAPHS = _norm_keys({"التلات", "التلاتة", "الست"})
@@ -1216,6 +1314,7 @@ _CONSTRUCT_DUAL_SCALES = _norm_map({"ألفي": "ألفين", "مليوني": "�
                                     "ملياري": "مليارين"})
 _PRICE_OR_EIGHTH = "ثمن"
 _HOMOGRAPHS_AR = {_WATER_HUNDRED, _DEAD_TWO_HUNDRED, _CONSTRUCT_HUNDRED,
+                  _LEVANTINE_TWO,
                   "ال" + _WATER_HUNDRED, "ال" + _DEAD_TWO_HUNDRED,
                   "الست", _PRICE_OR_EIGHTH, "ال" + _PRICE_OR_EIGHTH} | \
     _DAY_NAMES | set(_CONSTRUCT_DUAL_SCALES)
@@ -1235,7 +1334,7 @@ _UNIT_WORDS_AR = _norm_keys({
     "اسبوعين"})
 # the canonical spelling of each, for numbers_to_digits
 _CONTEXT_CANONICAL_AR = {
-    _WATER_HUNDRED: "مئة", _DEAD_TWO_HUNDRED: "مئتين",
+    _WATER_HUNDRED: "مئة", _DEAD_TWO_HUNDRED: "مئتين", _LEVANTINE_TWO: "اثنين",
     _CONSTRUCT_HUNDRED: "مئة", "ال" + _WATER_HUNDRED: "المئة",
     "ال" + _DEAD_TWO_HUNDRED: "المئتين", "الست": "ست",
     **_norm_map({"التلات": "ثلاث", "التلاتة": "ثلاثة", "الاتنين": "اثنين",
@@ -1469,9 +1568,23 @@ def _is_round(token):
         tok in _SCALE_DUALS_LOOKUP or tok in _CONSTRUCT_HUNDRED_LOOKUP
 
 
+_ACTIVE_LECT = contextvars.ContextVar("_ACTIVE_LECT", default=None)
+
+
+@contextlib.contextmanager
+def _reading_as(lect):
+    """Read the text inside the block as ``lect``; see _LECT_READER_WORDS."""
+    active = _ACTIVE_LECT.set(lect)
+    try:
+        yield
+    finally:
+        _ACTIVE_LECT.reset(active)
+
+
 def _tokenize_ar(text):
     """Normalize and split, detaching the attached conjunction "و"."""
     tokens = []
+    lect_only = _LECT_ONLY_WORDS.get(_ACTIVE_LECT.get(), ())
     for written in text.split():
         token = _normalize_ar(written).strip(".,!?;:؟،؛")
         if not token:
@@ -1484,9 +1597,9 @@ def _tokenize_ar(text):
             _UNITS_LOOKUP, _TENS_LOOKUP, _HUNDREDS_LOOKUP, _SCALES_LOOKUP,
             _SCALE_DUALS_LOOKUP, _FRACTIONS_LOOKUP, _TEEN_FIRST_LOOKUP,
             _ORDINAL_UNITS_LOOKUP, _FUSED_TEENS_LOOKUP)) or \
-            token in _TEEN_SECOND_LOOKUP
+            token in _TEEN_SECOND_LOOKUP or token in lect_only
         if not whole_word and len(token) > 1 and token[0] == "و" and (
-                any(token[1:] in v for v in vocab) or
+                any(token[1:] in v for v in vocab) or token[1:] in lect_only or
                 token[1:] in _TEEN_SECOND_LOOKUP or
                 token[1:] in _CONSTRUCT_HUNDRED_LOOKUP or
                 token[1:] in _SPOKEN_HALF_LOOKUP or
@@ -1502,7 +1615,7 @@ def _tokenize_ar(text):
         if token in _ACCUSATIVE_OR_CONSTRUCT_DUAL and _TANWEEN_FATH in written:
             # ألفًا with its tanween is the accusative singular, never the dual
             token = token[:-1]
-        tokens.append(token)
+        tokens.append(token + _LECT_MARK if token in lect_only else token)
     return tokens
 
 
@@ -1656,9 +1769,10 @@ def extract_numbers_ar(text, short_scale=True, ordinals=False, lect=None):
     Returns:
         list: list of extracted numbers as floats
     """
-    return [value for _, _, value in
-            _number_spans(_tokenize_ar(text), ordinals,
-                          lect in _LECTS_WITH_SPOKEN_HALF)]
+    with _reading_as(lect):
+        return [value for _, _, value in
+                _number_spans(_tokenize_ar(text), ordinals,
+                              lect in _LECTS_WITH_SPOKEN_HALF)]
 
 
 def _closes_a_hundred(token):
@@ -1934,11 +2048,13 @@ def _detach_proclitic(match):
     word = match.group(0)
     bare = _normalize_ar(word.strip(".,!?;:؟،؛"))
     if word[0] == "و" and len(bare) > 1 and \
-            _tokenize_ar(bare)[0] == "و" and extract_numbers_ar(bare[1:]):
+            _tokenize_ar(bare)[0] == "و" and \
+            extract_numbers_ar(bare[1:], lect=_ACTIVE_LECT.get()):
         return "و " + word[1:]
     split = _split_proclitic(bare)
     # only when the rest is a number by itself, or the space would stay
-    if split and word[0] in _PROCLITICS_AR and extract_numbers_ar(split[1]):
+    if split and word[0] in _PROCLITICS_AR and \
+            extract_numbers_ar(split[1], lect=_ACTIVE_LECT.get()):
         return word[0] + " " + word[1:]
     return word
 
@@ -2095,15 +2211,16 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     # deferred: the shared converter lives in the package root, which imports
     # this module — importing it at module level would be circular
     from ovos_number_parser import _numbers_to_digits_generic
-    halves = resolve_ar_lect(lang) in _LECTS_WITH_SPOKEN_HALF
-    resolved, masked = _resolve_context_words_ar(utterance, halves)
-    resolved, duals = _mask_dual_nouns_ar(_join_literary_teens_ar(resolved))
-    spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)
-    spaced = _WORD_RE.sub(_detach_proclitic, spaced)
-    converted = _numbers_to_digits_generic(
-        spaced, lang, continues=_continues_a_number_ar,
-        first_number_words=lambda words: _first_number_words_ar(words, halves))
-    converted = _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
-    converted = _DUAL_MASK_RE.sub(lambda m: duals[ord(m.group(1)) - 0xE000],
-                                  converted)
-    return _MASK_RE.sub(lambda m: masked[ord(m.group(1)) - 0xE000], converted)
+    with _reading_as(resolve_ar_lect(lang)):
+        halves = resolve_ar_lect(lang) in _LECTS_WITH_SPOKEN_HALF
+        resolved, masked = _resolve_context_words_ar(utterance, halves)
+        resolved, duals = _mask_dual_nouns_ar(_join_literary_teens_ar(resolved))
+        spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)
+        spaced = _WORD_RE.sub(_detach_proclitic, spaced)
+        converted = _numbers_to_digits_generic(
+            spaced, lang, continues=_continues_a_number_ar,
+            first_number_words=lambda words: _first_number_words_ar(words, halves))
+        converted = _CLITIC_SPACE_DIGITS_RE.sub(r'\1', converted)
+        converted = _DUAL_MASK_RE.sub(lambda m: duals[ord(m.group(1)) - 0xE000],
+                                      converted)
+        return _MASK_RE.sub(lambda m: masked[ord(m.group(1)) - 0xE000], converted)
