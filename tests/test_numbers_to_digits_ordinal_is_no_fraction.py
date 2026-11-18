@@ -81,9 +81,11 @@ class TestGenericPath(unittest.TestCase):
 
     def test_a_tens_word_and_an_ordinal_are_no_fraction(self):
         # extract_number reads "vingt cinquième" as 20 * 1/5 = 4.0; the
-        # numerator of a fraction is smaller than its denominator
+        # numerator of a fraction is smaller than its denominator. "vingt
+        # cinquième" is one ordinal, the 25th, and numbers_to_digits keeps an
+        # ordinal as written (docs/api.md, "Readers backed by numtag")
         self.assertEqual(numbers_to_digits("vingt cinquième", "fr"),
-                         "20 cinquième")
+                         "vingt cinquième")
 
     def test_digits_are_untouched(self):
         self.assertEqual(numbers_to_digits("0.25", "fr"), "0.25")
