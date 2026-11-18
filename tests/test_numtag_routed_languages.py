@@ -28,6 +28,11 @@ CASES = [
     ("fi", "Kokous alkaa viidessätoista minuutissa.", 15),
     # dva, in the genitive "dveh"
     ("sl", "Bilo jih je okoli dveh.", 2),
+    # one word below a million: 100 + 20 + 3 (Pravidlá slovenského pravopisu,
+    # "sedemstodvadsať")
+    ("sk", "Mám stodvadsaťtri jabĺk.", 123),
+    # dvetisíc is 2 000 (Jazyková poradňa JÚĽŠ)
+    ("sk", "Bolo ich dvetisíc.", 2000),
 ]
 
 
@@ -35,7 +40,7 @@ class TestShippedRoutes(unittest.TestCase):
 
     def test_the_routed_languages(self):
         self.assertEqual(numtag_readers.NUMTAG_LANGS,
-                         frozenset({"et", "eu", "fi", "sl"}))
+                         frozenset({"et", "eu", "fi", "sk", "sl"}))
 
     def test_extract_number_reads_through_numtag(self):
         for lang, text, value in CASES:

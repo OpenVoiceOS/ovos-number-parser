@@ -19,7 +19,7 @@ from ovos_number_parser.util import Scale
 
 #: languages whose readers are numtag; every other language keeps its
 #: numbers_xx.py reader
-NUMTAG_LANGS = frozenset({"et", "eu", "fi", "sl"})
+NUMTAG_LANGS = frozenset({"et", "eu", "fi", "sk", "sl"})
 
 #: languages whose numbers_to_digits writes the cardinal words of a fraction
 #: in digits and keeps the fraction words ("dois e meio" is "2 e meio"); the
