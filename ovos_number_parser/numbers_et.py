@@ -207,10 +207,11 @@ def pronounce_ordinal_et(number):
     1 -> "esimene", 2 -> "teine", 21 -> "kahekümne esimene",
     2003 -> "kahe tuhande kolmas", 1000007 -> "miljoni seitsmes"
 
-    Every part of a compound ordinal but the last stands in the genitive
-    (Wikipedia, "Estonian grammar": the ordinal is "cardinal_genitive-s");
-    the scale words end in -s: "tuhandes", "miljones", "miljardes",
-    "biljones".
+    Every part of a compound ordinal but the last stands in the genitive.
+    Eesti keele sõnaraamat ÕS 2013 (EKI) gives "Kahe tuhandes = kahe+tuhandes
+    aasta" and "Kahe miljones = kahe+miljones auto". A count below ten joins
+    the scale word; a larger count stands apart ("kümne miljones"). The scale
+    words end in -s: "tuhandes", "miljones", "miljardes", "biljones".
 
     Args:
         number (int): the number to format
@@ -255,7 +256,7 @@ def pronounce_ordinal_et(number):
         return head + ' ' + pronounce_ordinal_et(rest)
     if count == 1:
         return ordinal
-    if count <= 10:
+    if count < 10:
         return _GENITIVE_UNITS_ET[count] + ordinal
     return _genitive_below_1000_et(count) + ' ' + ordinal
 

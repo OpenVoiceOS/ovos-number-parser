@@ -16,11 +16,17 @@ Sources for the expected values:
 - fi: Wiktionary "miljardis" ("lukua miljardi vastaava järjestysluku");
   Kotus, Kielitoimiston ohjepankki, "järjestyslukujen taivuttaminen" (every
   part of a compound ordinal takes the ordinal stem).
-- et: Wikipedia, "Estonian grammar" (ordinal = cardinal genitive + -s) and
-  et.wikipedia "Arvsõna" (regular ordinals "sajas, miljones, miljardes");
-  Wiktionary "bimillenary" (kahetuhandes).
-- hu: hu.wikipedia attests "milliárdodik" ("az 50 milliárdodik ..."); the
-  billió and trillió words follow the "milliomodik" / "milliárdodik" pattern.
+- et: Eesti keele sõnaraamat ÕS 2013 (EKI, arhiiv.eki.ee/dict/qs), entries
+  "tuhandes" ("Kahe tuhandes = kahe+tuhandes aasta") and "miljones" ("Kahe
+  miljones = kahe+miljones auto"): the multiplier stands in the genitive;
+  et.wiktionary "kahetuhandes" ("kahetuhandes aastapäev"); et.wikipedia
+  "Arvsõna" (regular ordinals "sajas, miljones, miljardes").
+- hu: hu.wikipedia, article "Richard és Maurice McDonald": "az ötven
+  milliárdodik (50 000 000 000)"; the billió and trillió words follow the
+  "milliomodik" / "milliárdodik" pattern.
+- nb: ICU 78.3 spellout-ordinal-masculine gives "én milliard ti millioner
+  første" for 1 010 000 001 and "to milliarder hundre millionte" for
+  2 100 000 000; the repo's cardinal writer keeps "og" before a last part.
 """
 import unittest
 
@@ -61,6 +67,10 @@ ROWS = {
         (10 ** 18, "trillionte"),
         (10 ** 9 + 7, "en milliard og sjuende"),
         (10 ** 12 + 3, "en billion og tredje"),
+        (1010000001, "en milliard ti millioner og første"),
+        (1200000007, "en milliard to hundre millioner og sjuende"),
+        (2100000000, "to milliarder hundre millionte"),
+        (1010000000, "en milliard ti millionte"),
     ],
     "nn": [
         (10 ** 9, "milliardte"),
@@ -68,6 +78,7 @@ ROWS = {
         (10 ** 12, "billionte"),
         (10 ** 18, "trillionte"),
         (10 ** 9 + 7, "ein milliard og sjuande"),
+        (2100000000, "to milliardar hundre millionte"),
     ],
     "fi": [
         (10 ** 9, "miljardis"),
@@ -105,6 +116,11 @@ ROWS = {
         (2003, "kahe tuhande kolmas"),
         (21000, "kahekümne ühe tuhandes"),
         (110000, "saja kümne tuhandes"),
+        (10000, "kümne tuhandes"),
+        (10 ** 7, "kümne miljones"),
+        (5010000, "viie miljoni kümne tuhandes"),
+        (10 ** 10, "kümne miljardes"),
+        (10 ** 13, "kümne biljones"),
     ],
 }
 
@@ -128,6 +144,18 @@ class TestOrdinalLongNumbers(unittest.TestCase):
                     else:
                         spoken = pronounce_ordinal(number, lang)
                         self.assertIsInstance(spoken, str)
+                        self.assertFalse(any(c.isdigit() for c in spoken),
+                                         spoken)
+
+    def test_no_error_below_the_limit_for_round_counts(self):
+        for lang in LANGS:
+            for exponent in range(3, 31):
+                for count in (1, 2, 9, 10, 11, 20, 100):
+                    number = count * 10 ** exponent
+                    if number >= LIMIT[lang]:
+                        continue
+                    with self.subTest(lang=lang, number=number):
+                        spoken = pronounce_ordinal(number, lang)
                         self.assertFalse(any(c.isdigit() for c in spoken),
                                          spoken)
 
