@@ -89,7 +89,7 @@ class TestGenericPath(unittest.TestCase):
 
     def test_digits_are_untouched(self):
         self.assertEqual(numbers_to_digits("0.25", "fr"), "0.25")
-        self.assertEqual(numbers_to_digits("1/4", "fr"), "0.25")
+        self.assertEqual(numbers_to_digits("1/4", "fr"), "1/4")
 
 
 class TestFrisianAndBulgarian(unittest.TestCase):

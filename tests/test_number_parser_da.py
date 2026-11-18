@@ -240,51 +240,27 @@ class TestDanishOrdinalsFlagKeepsCardinals(unittest.TestCase):
             with self.subTest(word=word):
                 self.assertEqual(extract_number(word, lang="da", ordinals=True), value)
 
-    def test_an_ordinal_wins_over_a_cardinal_in_the_same_line(self):
-        """The line that separates the two readings.
-
-        A bare cardinal cannot tell a dead filter from a live one that drops
-        cardinals: both answer the cardinal once the filter is gone. A line
-        holding an ordinal AND a cardinal does tell them apart.
-
-        English is NOT the anchor for this. It returns the last number of
-        the line, not the ordinal: "fifth three" answers 3 and
-        "three fifth seven" answers 7, so "three fifth" answering 5 is the
-        position of the word and not its kind. The two rules are the
-        library's open question (panel item
-        number-parser-ordinals-rule-v2), and the English line below is
-        asserted as the behaviour that must flip if it is ruled the other
-        way, never as a justification for this one.
-        """
+    def test_the_first_number_of_the_line_answers(self):
+        """A line that holds an ordinal and a cardinal answers its first
+        number, whatever its kind: the leftmost rule of ``extract_number``
+        (``util.leftmost_separated_number``), and numtag reads two adjacent
+        numbers as two (numtag docs/rulings.md, "The leftmost longest
+        number"). The ordinal reads when it comes first."""
         self.assertEqual(
             extract_number("den femte af ti", lang="da", ordinals=True), 5)
         self.assertEqual(
-            extract_number("tre femte", lang="da", ordinals=True), 5)
-        # English's own rule, recorded so a change to it is caught: the
-        # LAST number of the line, whatever its kind.
+            extract_number("tre femte", lang="da", ordinals=True), 3)
         self.assertEqual(
-            extract_number("three fifth seven", lang="en", ordinals=True), 7)
+            extract_number("three fifth seven", lang="en", ordinals=True), 3)
 
     def test_two_ordinals_resolve_the_same_way_as_german(self):
-        """One cardinal and one ordinal cannot separate "the first ordinal"
-        from "the ordinal": both answers are the same number. A line with two
-        ordinals does, and it is also where the two languages could drift
-        apart, which is what brought this change back once already.
-
-        Both take the FIRST ordinal. That is German's behaviour before this
-        change as well as after it, so Danish is matched to the language that
-        had a working mechanism rather than to a new rule of its own.
-        English answers differently here because it returns the last number
-        of the line rather than an ordinal, which is a rule of its own and
-        older than this change. Which rule the library should hold is the
-        open question on panel item number-parser-ordinals-rule-v2.
-        """
+        """Both languages take the first number of the line."""
         for lang, line in (("da", "den tredje femte"), ("de", "der dritte fünfte")):
             with self.subTest(lang=lang):
                 self.assertEqual(extract_number(line, lang=lang, ordinals=True), 3)
         for lang, line in (("da", "ti tredje femte"), ("de", "zehn dritte fünfte")):
             with self.subTest(lang=lang, shape="with a cardinal"):
-                self.assertEqual(extract_number(line, lang=lang, ordinals=True), 3)
+                self.assertEqual(extract_number(line, lang=lang, ordinals=True), 10)
 
     def test_an_ordinal_shaped_word_that_is_not_an_ordinal(self):
         """"anden" is the ordinal "second" and the definite form of "and",

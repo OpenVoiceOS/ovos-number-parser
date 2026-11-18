@@ -115,11 +115,22 @@ the issue that tracks the difference.
 
 numtag gives each value as an exact digit string. The readers convert it to
 the `int` or `float` the API returns. A value that is no whole number is a
-`float`. When the `float` drops the part after the point, the value rounds
-half up to an `int`. An integer with more digits than `str` can write is no
-number. `numbers_to_digits` keeps a number written in digits and an ordinal
-as written. `numtag_readers.numbers_to_digits` writes an ordinal as the
-digits of its value when it gets `ordinals=True`.
+`float`. When the `float` has no room for the part after the point, a
+decimal rounds half up to an `int`, and a mixed number is its whole part
+(`"9007199254740993 1/2"` is 9007199254740993). An integer with more digits
+than `str` can write is no number, and so is a value that is no whole number
+and has no `float`.
+
+Under `ordinals=True`, `extract_number` answers the first number of the
+line, ordinal or cardinal (`"tre femte"` is 3 in Danish, `"femte tre"` is 5).
+
+`numbers_to_digits` keeps a number written in digits as written (`"5 1/2"`,
+`"007"`), in Western digits (`"٠٠٧"` is `"007"`). A sign word before digits
+is written as the sign (`"minus 5"` is `"-5"`). An ordinal stays as written.
+`numtag_readers.numbers_to_digits` writes an ordinal as the digits of its
+value when it gets `ordinals=True`. In German a clock time written with a
+point is written with a colon (`"um 13.30 Uhr"` is `"um 13:30 Uhr"`), as
+speech to text writes it with a point.
 `is_fractional` and `is_ordinal` answer a question about one
 word, which numtag does not read, so they keep the parser for every language.
 

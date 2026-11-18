@@ -2060,7 +2060,7 @@ def extract_number_spans(text: str, lang: str,
     if not isinstance(text, str):
         return []
     if numtag_readers.routed(lang):
-        return [NumberSpan(start, end, text[start:end], numtag_readers.number(m.value))
+        return [NumberSpan(start, end, text[start:end], numtag_readers.number(m.value, m.kind))
                 for m in numtag_readers.mentions(text, lang, short_scale, ordinals, scale)
                 for start, end in [m.char_span]]
 

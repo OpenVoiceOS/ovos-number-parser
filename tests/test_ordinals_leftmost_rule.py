@@ -5,11 +5,10 @@ carries several numbers and ``extract_number`` is called with
 ``ordinals=True``, the number written first wins, whether it is the ordinal
 or the cardinal.
 
-The rule covers numbers that other words separate, and only those. Two
-adjacent number words are how a fraction is written ("two thirds", "zwei
-drittel"), and what they mean under the flag is open (T-4416, architecture).
-The tests below pin the adjacent readings as they stand, so a later answer to
-that question has to move them on purpose.
+The rule covers numbers that other words separate. numtag, which reads every
+language here, also reads two adjacent number words as two numbers (numtag
+docs/rulings.md, "The leftmost longest number"), so the rule reaches an
+adjacent pair too.
 """
 import unittest
 from unittest import mock
@@ -39,7 +38,7 @@ IDIOMATIC = [
     ("kab", extract_number_kab, "sin seg wis kṛaḍ", 2, 2),
 ]
 
-#: the locales the rule reaches today, with their own words for 2 and 3 and
+#: the locales the rule reaches, with their own words for 2 and 3 and
 #: the reading each order keeps once the flag is off. ``qzx`` is a filler: it
 #: spells no number in any of them, so it only keeps the two numbers apart.
 #: The flag-off values are not uniform, and that is the point of recording
@@ -50,8 +49,8 @@ REACHED = {
     #        extract,            card,   ordinal,     off(O x C), off(C x O)
     "da": (extract_number_da, "to", "tredje", 2, 2),
     "de": (extract_number_de, "zwei", "dritte", 2, 2),
-    # T-3864 moved these two out of BLOCKED: the cardinal is read under the
-    # flag again, so the line reaches two spans and the rule answers.
+    # T-3864: the cardinal is read under the flag again, so the line reaches
+    # two spans and the rule answers.
     "nb": (extract_number_nb, "to", "tredje", 2, 2),
     "nn": (extract_number_nn, "to", "tredje", 2, 2),
     # the extractors consult is_ordinal_eu and is_ordinal_fa under the flag
@@ -59,37 +58,22 @@ REACHED = {
     "fa": (extract_number_fa, "دو", "سوم", 2, 2),
     "kab": (extract_number_kab, "sin", "wis kṛaḍ", 3, 2),
     "en": (extract_number_en, "two", "third", 2, 2),
+    # T-4415 ended the Romance sum of two separated numbers, and numtag reads
+    # them as two. Without the flag the it reader still reads "terzo" as
+    # the fraction 1/3 and adds it.
+    "ca": (extract_number_ca, "dos", "tercer", 2, 2),
+    "es": (extract_number_es, "dos", "tercero", 2, 2),
+    "fr": (extract_number_fr, "deux", "troisième", 2, 2),
+    "gl": (extract_number_gl, "dous", "terceiro", 2, 2),
+    "it": (extract_number_it, "due", "terzo", 2 + 1 / 3, 2 / 3),
 }
 
 #: the pair written with no word between them, for each reached locale, and
-#: the number of spans the scanner reports. A cardinal followed by an ordinal
-#: is the fraction shape, and the scanner grows it into one span, so the rule
-#: never reaches it. Any other adjacency stays two spans and the rule does
-#: reach it. Kabyle writes its ordinal as a phrase, "wis kṛaḍ", so neither of
-#: its orders is one span and the rule reaches both. English reads both of
-#: its orders as one span. The fa pair is measured, not copied from a
-#: sibling: it collapses the cardinal-then-ordinal order to one span, as da,
-#: de, nb and nn do. The eu reader is numtag, which reads two spans in both
-#: orders (numtag docs/rulings.md, "The leftmost longest number").
-ADJACENT_SPANS = {"da": (2, 1), "de": (2, 1), "kab": (2, 2), "en": (1, 1),
-                  "nb": (2, 1), "nn": (2, 1), "eu": (2, 2), "fa": (2, 1)}
-
-#: locales whose parser cannot answer the rule yet, with the value each one
-#: returns today and the task that unblocks it. Each entry is a defect in the
-#: locale's own reading, not in the rule: the line never reaches two number
-#: spans, so there is no "leftmost" to choose.
-BLOCKED = {
-    # nb and nn were here under "cardinal unread" until T-3864 gave
-    # _extract_number its fall-through; eu and fa were here under "ordinal
-    # unread" until T-4475 wired each language's own ordinal reader into its
-    # extractor. All four are in REACHED now.
-    # T-4415: the Romance extractor adds the two numbers together
-    "ca": (extract_number_ca, "dos", "tercer", 5, 5, "T-4415 additive"),
-    "es": (extract_number_es, "dos", "tercero", 5, 5, "T-4415 additive"),
-    "fr": (extract_number_fr, "deux", "troisième", 5, 5, "T-4415 additive"),
-    "gl": (extract_number_gl, "dous", "terceiro", 5, 5, "T-4415 additive"),
-    "it": (extract_number_it, "due", "terzo", 5, 5, "T-4415 additive"),
-}
+#: the number of spans the scanner reports. numtag reads the two words as two
+#: numbers in both orders, except fa, whose cardinal-then-ordinal order is
+#: one span.
+ADJACENT_SPANS = {lang: (2, 2) for lang in REACHED}
+ADJACENT_SPANS["fa"] = (2, 1)
 
 FILLER = "qzx"
 
@@ -110,13 +94,13 @@ class TestLeftmostSeparatedNumber(unittest.TestCase):
     def test_the_rule_does_not_apply_to_one_number(self):
         self.assertIsNone(leftmost_separated_number("zwei", "de", True))
 
-    def test_the_rule_does_not_apply_to_adjacent_words(self):
-        """Two adjacent number words are one span, so the helper stands
-        aside and the language's own reading answers."""
+    def test_the_rule_applies_to_adjacent_words(self):
+        """numtag reads two adjacent number words as two spans, so the
+        helper answers the first."""
         self.assertEqual(
-            len(extract_number_spans("zwei dritte", "de", ordinals=True)), 1)
-        self.assertIsNone(
-            leftmost_separated_number("zwei dritte", "de", True))
+            len(extract_number_spans("zwei dritte", "de", ordinals=True)), 2)
+        self.assertEqual(
+            leftmost_separated_number("zwei dritte", "de", True), 2)
 
     def test_a_line_with_no_number_is_not_the_rule(self):
         self.assertIsNone(leftmost_separated_number("qzx qzx", "de", True))
@@ -198,12 +182,12 @@ class TestEveryReachedLocale(unittest.TestCase):
 
 
 class TestTheFractionShapeIsUntouched(unittest.TestCase):
-    """T-4416 owns what an adjacent pair means; this pins where the line
-    falls today.
+    """A fraction keeps its reading, and the table records where the
+    scanner ends an adjacent pair.
 
-    The scanner grows a cardinal followed by an ordinal into one span,
-    which is the shape a fraction is written in, so the rule never reaches
-    it. That is what keeps "zwei drittel" two thirds.
+    "zwei drittel" is a fraction word after a count, so it stays two
+    thirds. "zwei dritte" is a count and an ordinal, which numtag reads as
+    two numbers.
     """
 
     def test_the_fraction_reading_survives(self):
@@ -231,38 +215,6 @@ class TestTheFractionShapeIsUntouched(unittest.TestCase):
         "sin wis kṛaḍ" answered 3 before the rule and answers 2 under it."""
         self.assertEqual(extract_number_kab("sin wis kṛaḍ", ordinals=True), 2)
         self.assertEqual(extract_number_kab("wis kṛaḍ sin", ordinals=True), 3)
-
-
-class TestLocalesTheRuleCannotReachYet(unittest.TestCase):
-    """Every locale the census found and the rule does not answer.
-
-    These are recorded, not excused. Each one fails to reach two number
-    spans for its own reason, named in the table, so there is no leftmost
-    to choose. The values are asserted as they stand today, so the locale
-    cannot change quietly: when its own defect is fixed, this test fails
-    and the locale moves to REACHED.
-    """
-
-    def test_each_blocked_locale_answers_what_it_answers_today(self):
-        for lang, (extract, card, ordinal, ord_first, card_first,
-                   why) in BLOCKED.items():
-            with self.subTest(lang=lang, why=why):
-                self.assertEqual(
-                    extract(f"{ordinal} {FILLER} {card}", ordinals=True),
-                    ord_first, f"{lang} ordinal first ({why})")
-                self.assertEqual(
-                    extract(f"{card} {FILLER} {ordinal}", ordinals=True),
-                    card_first, f"{lang} cardinal first ({why})")
-
-    def test_each_blocked_locale_reaches_fewer_than_two_spans(self):
-        """The reason the rule cannot answer, stated as a measurement:
-        the scanner never sees two numbers on the line."""
-        for lang, (_, card, ordinal, _, _, why) in BLOCKED.items():
-            with self.subTest(lang=lang, why=why):
-                line = f"{card} {FILLER} {ordinal}"
-                self.assertLess(
-                    len(extract_number_spans(line, lang, ordinals=True)), 2,
-                    f"{lang} now reaches two spans: move it to REACHED")
 
 
 if __name__ == "__main__":
