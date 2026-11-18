@@ -5,9 +5,7 @@ readers.
 the issue that tracks it. The key ``""`` stands for the assertions of the test
 outside its subtests. A subtest key is the subtest parameters as ``repr``
 writes them (``lang='fr', text='à tout le moins 3 jours'``), after the subtest
-message in brackets when it has one. The key ``"*"`` stands for every subtest
-of a sweep: a subtest that fails is an xfail, and the test fails when none of
-them does.
+message in brackets when it has one.
 
 A listed test or subtest that passes fails the run, so a fixed issue shows up
 as soon as numtag ships the fix and its rows can leave the file. An exception
@@ -22,7 +20,7 @@ import pytest
 
 XFAILS = json.loads((Path(__file__).parent / "numtag_xfail.json").read_text(encoding="utf-8"))
 
-#: the subtest rows of the running test, and how many of them failed
+#: the subtest rows of the running test
 _running = {}
 
 
@@ -36,14 +34,11 @@ def subtest_key(subtest) -> str:
 
 @pytest.hookimpl(wrapper=True)
 def pytest_runtest_call(item):
-    _running.update(rows=XFAILS.get(item.nodeid, {}), failed=0)
+    _running["rows"] = XFAILS.get(item.nodeid, {})
     try:
-        result = yield
+        return (yield)
     finally:
-        rows, failed = _running.pop("rows"), _running.pop("failed")
-    if "*" in rows and not failed:
-        pytest.fail(f"[XPASS(strict)] {rows['*']}", pytrace=False)
-    return result
+        del _running["rows"]
 
 
 @pytest.hookimpl(wrapper=True)
@@ -66,19 +61,15 @@ _subTest = unittest.TestCase.subTest
 @contextmanager
 def _subtest(self, msg=unittest.case._subtest_msg_sentinel, **params):
     with _subTest(self, msg, **params):
-        rows = _running.get("rows") or {}
-        url = rows.get(subtest_key(self._subtest))
-        sweep = rows.get("*")
-        if not (url or sweep):
+        url = _running.get("rows", {}).get(subtest_key(self._subtest))
+        if not url:
             yield
             return
         try:
             yield
         except AssertionError:
-            _running["failed"] += 1
-            pytest.xfail(url or sweep)
-        if url:
-            pytest.fail(f"[XPASS(strict)] {url}", pytrace=False)
+            pytest.xfail(url)
+        pytest.fail(f"[XPASS(strict)] {url}", pytrace=False)
 
 
 unittest.TestCase.subTest = _subtest

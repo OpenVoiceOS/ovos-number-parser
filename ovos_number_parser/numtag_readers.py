@@ -160,7 +160,7 @@ def _digits(mention: NumberMention, words: str, lang: str, scale: Optional[Scale
     """How numbers_to_digits writes one number, written as ``words``."""
     value = number(mention.value, mention.kind)
     if mention.kind is Kind.FRACTION and _base(lang) in _FRACTION_WORDS_KEPT \
-            and not float(value).is_integer():
+            and Fraction(mention.value).denominator != 1:
         return _fraction_words(words, lang, scale)
     return str(value)
 
