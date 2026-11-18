@@ -37,7 +37,7 @@ class TestArabicLectCardinals(unittest.TestCase):
             self.assertEqual(pronounce_number(350, lang=code), "ثلاثمئة وخمسون")
 
     def test_only_a_lect_with_a_table_resolves(self):
-        for code in ("acw", "afb", "arz", "ars", "apc", "ary", "aeb", "ACW", "acw-x-anything"):
+        for code in ("acw", "afb", "arz", "ars", "apc", "ary", "aeb", "arq", "ACW", "acw-x-anything"):
             self.assertIsNotNone(resolve_ar_lect(code))
         for code in ("ar", "arb", "acm", "ar-EG", "ar-SA", "en", "arc"):
             self.assertIsNone(resolve_ar_lect(code), code)

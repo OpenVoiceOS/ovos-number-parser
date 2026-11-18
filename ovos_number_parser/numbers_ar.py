@@ -540,7 +540,7 @@ AR_LECT_FORMS = {
         11: "حداشر",          # Dirr 1904 p. 26 ḥaddášar; masc 11, sada 7, omni 17
         12: "اتناشر",         # Dirr 1904 p. 26 etnášar; masc 76, omni 34, sada 5
         13: "تلتاشر",         # Dirr 1904 p. 26 telatášar; masc 11, sada 2. masc writes the syncopated تلتاشر 11 and تلاتاشر 0, so the syncopated form ships
-        14: "اربعتاشر",       # Dirr 1904 p. 26 arbaḫtášar; masc 10, omni 13, sada 5
+        14: "اربعتاشر",       # Dirr 1904 p. 26 arbaḥtášar; masc 10, omni 13, sada 5
         15: "خمستاشر",        # Dirr 1904 p. 26 ḫamastášar; omni 68, sada 12, masc 6
         16: "ستاشر",          # Dirr 1904 p. 26 sittášar; masc 8, sada 4, omni 2
         17: "سبعتاشر",        # Dirr 1904 p. 26 sab'atášar; sada 14, omni 6, masc 5
@@ -666,6 +666,29 @@ AR_LECT_FORMS = {
         700: "سبعة مية",      # N, the example 123456789, "وسبعة ميه" "sabɛa mya"
         900: "تسعة مية",      # N, the example 1956, "الف وتسعة مية وستّة وخمسين" "alf w tisɛamya w sitta w xamsīn"
     },
+    # Algerian Arabic. Source: Belkassem Ben Sedira, Dictionnaire français-arabe (dialecte d'Algérie), Algiers,
+    # 1882, "Notions élémentaires de grammaire arabe", Nombres, pp. XLIII-XLV, read on the page images of the
+    # archive.org scan (item dictionnaire-francais-arabe-dialecte-d-al, PDF pages 55-57). The book prints each
+    # number in Arabic script beside its French transliteration; each form below is the printed Arabic, without
+    # vowel marks, and the comment gives the transliteration. 300 and 400 are printed as two words and written
+    # as one, as in the other tables. Only the numbers whose printed word differs from
+    # the literary one have a row. 500-900 and 3000 have none: the page gives no 500-900, and its Arabic for
+    # 3000 ("ثلثة الاف", transliterated "thelth alaf") writes a ة where the transliteration has none.
+    "arq": {
+        11: "احداش",          # Ben Sedira 1882 p. XLIV h'adâch
+        12: "اثناش",          # Ben Sedira 1882 p. XLIV thnâch
+        13: "ثلثاش",          # Ben Sedira 1882 p. XLIV thelethâch
+        14: "اربعتاش",        # Ben Sedira 1882 p. XLIV arbâtâch
+        15: "خمستاش",         # Ben Sedira 1882 p. XLIV khamstâch
+        16: "ستاش",           # Ben Sedira 1882 p. XLIV settâch
+        17: "سبعتاش",         # Ben Sedira 1882 p. XLIV sebâtâch
+        18: "ثمنتاش",         # Ben Sedira 1882 p. XLIV thementâch
+        19: "تسعتاش",         # Ben Sedira 1882 p. XLIV tsâtâch
+        100: "مية",           # Ben Sedira 1882 p. XLV mia
+        200: "ميتين",         # Ben Sedira 1882 p. XLV mitein
+        300: "ثلثمية",        # Ben Sedira 1882 p. XLV thelth mia, printed as two words
+        400: "اربعمية",       # Ben Sedira 1882 p. XLV arbâ mia, printed as two words
+    },
 }
 
 
@@ -735,7 +758,7 @@ def pronounce_number_ar(number, places=2, scientific=False, ordinals=False,
         lect (str, optional): the ISO 639-3 code of an Arabic lect whose own
             cardinal words should be spoken instead of the literary ones --
             ``acw`` (Hijazi), ``afb`` (Gulf), ``arz`` (Egyptian), ``ars``
-            (Najdi), ``apc`` (Levantine), ``ary`` (Moroccan), ``aeb`` (Tunisian). The number is
+            (Najdi), ``apc`` (Levantine), ``ary`` (Moroccan), ``aeb`` (Tunisian), ``arq`` (Algerian). The number is
             composed the same way either way and only the words differ; see
             :data:`AR_LECT_FORMS`. A lect with no table, the macrolanguage
             ``ar`` and the literary ``arb`` all keep the literary words.
@@ -1230,7 +1253,7 @@ _SADA_TEENS_AR = {
     "تسعطاشر": 19,  # 1
 }
 # the lects whose table teens are read as that lect only, see _LECT_READER_WORDS
-_LECT_TABLE_TEENS = ("apc", "ary", "aeb")
+_LECT_TABLE_TEENS = ("apc", "ary", "aeb", "arq")
 _FUSED_TEENS_LOOKUP = _norm_map({
     **{form: value
        for lect, forms in AR_LECT_FORMS.items() if lect not in _LECT_TABLE_TEENS
@@ -1267,8 +1290,16 @@ _LECT_READER_WORDS = {
         # writes)
         "units": {"تنين": 2, "ربعة": 4},
         "tens": {"ربعين": 40}},
+    "arq": {
+        # Ben Sedira 1882 p. XLV "ثلث مية" thelth mia, "Trois cents"; ثلث is
+        # also "a third"
+        "hundreds": {"ثلثمية": 300},
+        # the book's two-word 300, "ثلث مية"
+        "before_hundred": {"ثلث": 3}},
 }
 _LECT_ONLY_WORDS = {}
+# a word that is a unit only before a hundred word: ثلث is also "a third"
+_LECT_BEFORE_HUNDRED = {}
 
 
 def _scope_lect_words():
@@ -1280,12 +1311,15 @@ def _scope_lect_words():
                 form: value for value, form in AR_LECT_FORMS[lect].items()
                 if 11 <= value <= 19})
         only = _LECT_ONLY_WORDS.setdefault(lect, set())
+        before = _LECT_BEFORE_HUNDRED.setdefault(lect, set())
         for kind, entries in words.items():
+            scoped = only if kind != "before_hundred" else before
+            kind = "units" if kind == "before_hundred" else kind
             for word, value in entries.items():
                 word = _normalize_ar(word)
                 if word not in lookups[kind]:
                     lookups[kind][word + _LECT_MARK] = value
-                    only.add(word)
+                    scoped.add(word)
 
 
 _scope_lect_words()
@@ -1651,6 +1685,19 @@ def _reading_as(lect):
         _ACTIVE_LECT.reset(active)
 
 
+_TWO_WORD_HUNDRED_RE = re.compile(r"(?<![^\s و])(و?)ثلث\s+مي[ةه](?!\S)")
+
+
+def _mark_before_hundred(tokens):
+    """Mark a word that is a unit only before a hundred word (ثلث, "a third",
+    in "ثلث مية"), for the lect of the call; see _LECT_READER_WORDS."""
+    before = _LECT_BEFORE_HUNDRED.get(_ACTIVE_LECT.get(), ())
+    return [token + _LECT_MARK
+            if token in before and i + 1 < len(tokens)
+            and tokens[i + 1] in _HUNDRED_MULT_LOOKUP else token
+            for i, token in enumerate(tokens)]
+
+
 def _tokenize_ar(text):
     """Normalize and split, detaching the attached conjunction "و"."""
     tokens = []
@@ -1686,7 +1733,7 @@ def _tokenize_ar(text):
             # ألفًا with its tanween is the accusative singular, never the dual
             token = token[:-1]
         tokens.append(token + _LECT_MARK if token in lect_only else token)
-    return tokens
+    return _mark_before_hundred(tokens)
 
 
 def _parse_ordinal_span(tokens, i):
@@ -2145,6 +2192,7 @@ def _first_number_words_ar(words, halves=False):
         for token in _tokenize_ar(word):
             tokens.append(token)
             owner.append(w)
+    tokens = _mark_before_hundred(tokens)
     for start, end, _ in _number_spans(tokens, halves=halves):
         if owner[start] != 0:
             return None
@@ -2283,6 +2331,9 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     from ovos_number_parser import _numbers_to_digits_generic
     with _reading_as(resolve_ar_lect(lang)):
         halves = resolve_ar_lect(lang) in _LECTS_WITH_SPOKEN_HALF
+        if _LECT_BEFORE_HUNDRED.get(_ACTIVE_LECT.get()):
+            # the converter skips a lone "a third"; join the two-word hundred first
+            utterance = _TWO_WORD_HUNDRED_RE.sub(r"\1ثلثمية", utterance)
         resolved, masked = _resolve_context_words_ar(utterance, halves)
         resolved, duals = _mask_dual_nouns_ar(_join_literary_teens_ar(resolved))
         spaced = _CLITIC_BEFORE_DIGITS_RE.sub(r'\1 \2', resolved)
