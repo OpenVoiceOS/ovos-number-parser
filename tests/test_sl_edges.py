@@ -44,7 +44,7 @@ class TestSlovenianPronounceLegacy(unittest.TestCase):
         self.assertEqual(pronounce_number_sl(2.5), "dve celi pet")
 
     def test_million_declension(self):
-        self.assertEqual(pronounce_number_sl(2000000), "dve milijona")
+        self.assertEqual(pronounce_number_sl(2000000), "dva milijona")
         self.assertEqual(pronounce_number_sl(3000000), "tri milijoni")
         self.assertEqual(pronounce_number_sl(5000000), "pet milijonov")
 

@@ -1,3 +1,27 @@
+"""Danish number words.
+
+Sources for the writer rules:
+
+* Dansk Sprognævn, svarbase SV00017853 (sproget.dk): "Man vil altså udtale
+  tallene: et hundrede og en, et tusinde og en, en million og en." A final
+  group below 100 follows a hundred, thousand or million after "og", and a
+  final 1 is the counting form "en"; "et" is for a neuter noun
+  ("101 gram udtales et hundrede og et gram"). Wiktionary, Appendix:Danish
+  numerals: "tre tusinde to hundrede og fireoghalvtreds" (3254).
+* Den Danske Ordbog, "tusinde" and "tusind": "tusinde 1 eller tusind talord
+  (mængdetal)". The writer keeps "tusind" for 1000 and "tusinde" after a
+  count ("to tusinde"). The same entries list "hundrede" and "tusinde" as the
+  ordinals of 100 and 1000, and "millionte", "milliardte" and "billionte"
+  are ordinals, so a larger scale word takes -te.
+* Politikens sprogklumme on sproget.dk, "Den 101. dalmatiner møder den 101.
+  stryger": the ordinal of 100 is "hundrede"; "hundred(e) (og) syttende"
+  shows that "og" before the last ordinal is optional.
+* Dansk Sprognævn, svarbase SV00000084: "fyrrende, halvtredsende, tressende,
+  halvfjerdsende, firsende og halvfemsende" are correct next to the long
+  forms on -indstyvende. The writer uses the short series for 40 to 90, so
+  the 60th is "tressende" (da.wikipedia, "Talord", gives the long forms as
+  frequent in ordinals).
+"""
 import re
 import sys
 from fractions import Fraction
@@ -399,7 +423,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
     # TODO short_scale, scientific and ordinals
     # currently ignored
 
-    def pronounce_triplet_da(num):
+    def pronounce_triplet_da(num, one="en"):
         result = ""
         num = floor(num)
         if num > 99:
@@ -426,7 +450,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
         if num == 0:
             result += ''  # do nothing
         elif num == 1:
-            result += 'et'
+            result += one
         elif num <= 20:
             result += _NUM_STRING_DA[num] + _EXTRA_SPACE_DA
         elif num > 20:
@@ -455,13 +479,14 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
         num = floor(num)
         result = ''
         last_triplet = num % 1000
+        if scale_level == 0 and num > 1000 and 0 < last_triplet < 100:
+            # "og" links a final group below 100 to the thousands or millions
+            # before it ("tusind og en", "to tusind og fireogtyve")
+            result += 'og '
 
         if last_triplet == 1:
             if scale_level == 0:
-                if result != '':
-                    result += '' + 'et'
-                else:
-                    result += "en"
+                result += "en"
             elif scale_level == 1:
                 # 1000 is "tusind", not "et tusinde": Retskrivningsordbogen
                 # gives "tusind" as the count word (a bare "tusinde" also
@@ -470,7 +495,10 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             else:
                 result += "en " + _NUM_POWERS_OF_TEN[scale_level] + ' '
         elif last_triplet > 1:
-            result += pronounce_triplet_da(last_triplet)
+            # a final 1 is "en" (common gender); before "tusind", a neuter
+            # noun, it is "et" ("hundrede og et tusind")
+            result += pronounce_triplet_da(
+                last_triplet, "et" if scale_level == 1 else "en")
             if scale_level == 1:
                 # a space so the thousands stay a separate word from the
                 # hundreds below them ("fem tusinde ni hundrede ...")
@@ -539,17 +567,38 @@ def pronounce_ordinal_da(number, gender=GrammaticalGender.MASCULINE):
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
+    number = int(number)
     if number < 20:
         if number == 2 and gender == GrammaticalGender.NEUTRAL:
             return "andet"
         return ordinals[number]
+    if number >= 100:
+        last = number % 100
+        if last:
+            # the cardinal head is unchanged and "og" links the ordinal of
+            # the last group below 100 ("hundrede og første")
+            return pronounce_number_da(number - last) + " og " + \
+                pronounce_ordinal_da(last, gender)
+        # the last word of a round number is a scale word: hundrede and
+        # tusinde are the ordinals of 100 and 1000, larger ones take -te
+        # ("millionte", "milliardte")
+        head, _, scale = pronounce_number_da(number).rpartition(" ")
+        if scale in ("tusind", "tusinde"):
+            scale = "tusinde"
+        elif scale != "hundrede":
+            scale = scale.removesuffix("er") + "te"
+        return scale if head in ("", "en") else f"{head} {scale}"
     if 30 <= number < 40:
         # tredive -> tredivte, enogtredive -> enogtredivte: drop the
         # trailing unstressed -e and add -te (distinct from the plain
         # +ende suffix used everywhere else)
         return pronounce_number_da(number)[:-1] + "te"
-    # 20-29 and 40+ both just append the cardinal's usual +nde/+ende
     cardinal = pronounce_number_da(number)
+    if cardinal.endswith("tres"):
+        # tres + sende, as halvtreds + ende: the short series of
+        # Retskrivningsordbogen ("tressende")
+        return cardinal + "sende"
+    # 20-29 and 40+ both just append the cardinal's usual +nde/+ende
     return cardinal + ("nde" if cardinal[-1:] == 'e' else "ende")
 
 
