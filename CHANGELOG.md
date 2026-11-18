@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.30.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.30.0a1) (2026-11-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.29.0a1...0.30.0a1)
+
+**Merged pull requests:**
+
+- feat: add Algerian Arabic \(arq\) cardinals [\#529](https://github.com/OpenVoiceOS/ovos-number-parser/pull/529) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.29.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.29.0a1) (2026-11-18)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.28.0a1...0.29.0a1)
@@ -360,10 +368,6 @@
 ## [0.24.30a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.30a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.29a1...0.24.30a1)
-
-**Merged pull requests:**
-
-- fix\(es\): read fractions above twenty with the fraction noun [\#432](https://github.com/OpenVoiceOS/ovos-number-parser/pull/432) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.29a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.29a1) (2026-11-12)
 
