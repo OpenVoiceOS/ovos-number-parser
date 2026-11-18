@@ -1,0 +1,158 @@
+"""Ordinals of long numbers read in words or decline with a named error.
+
+The ordinal writers of et, fi, sv, nb, nn, hu, da, de, nl and fy returned the
+digits or raised IndexError for long numbers. Each writer now reads every
+number its cardinal writer reads in words, and raises NotImplementedError from
+the first number its cardinal writer cannot read in words.
+
+Sources for the expected values:
+
+- sv, nb, fi: the CLDR spellout-ordinal rule sets of ICU 78.3 (rbnf sv.xml,
+  nb.xml, fi.xml), which give "miljonte", "miljardte", "biljonte", "biljardte"
+  (sv); "millionte", "milliardte", "billionte", "billiardte" (nb);
+  "miljoonas", "miljardis", "biljoonas" and "miljardisseitsemäs" (fi). The
+  trillion-level words follow the same -te pattern; ICU stops at 10 ** 15.
+  The cardinal head keeps the spelling of the cardinal writer.
+- fi: Wiktionary "miljardis" ("lukua miljardi vastaava järjestysluku");
+  Kotus, Kielitoimiston ohjepankki, "järjestyslukujen taivuttaminen" (every
+  part of a compound ordinal takes the ordinal stem).
+- et: Wikipedia, "Estonian grammar" (ordinal = cardinal genitive + -s) and
+  et.wikipedia "Arvsõna" (regular ordinals "sajas, miljones, miljardes");
+  Wiktionary "bimillenary" (kahetuhandes).
+- hu: hu.wikipedia attests "milliárdodik" ("az 50 milliárdodik ..."); the
+  billió and trillió words follow the "milliomodik" / "milliárdodik" pattern.
+"""
+import unittest
+
+from ovos_number_parser import pronounce_number, pronounce_ordinal
+
+LANGS = ("et", "fi", "sv", "nb", "nn", "hu", "da", "de", "nl", "fy")
+
+# (language, first number whose ordinal is not read in words)
+LIMIT = {
+    "et": 10 ** 15,
+    "fi": 10 ** 15,
+    "sv": 10 ** 24,
+    "nb": 10 ** 21,
+    "nn": 10 ** 21,
+    "hu": 10 ** 24,
+    "da": 10 ** 24,
+    "de": 10 ** 24,
+    "nl": 10 ** 24,
+    "fy": 10 ** 24,
+}
+
+ROWS = {
+    "sv": [
+        (10 ** 9, "miljardte"),
+        (2 * 10 ** 9, "tvåmiljardte"),
+        (10 ** 12, "biljonte"),
+        (10 ** 15, "biljardte"),
+        (10 ** 18, "triljonte"),
+        (10 ** 21, "triljardte"),
+        (10 ** 9 + 7, "en miljard sjunde"),
+        (10 ** 12 + 7, "en biljon sjunde"),
+    ],
+    "nb": [
+        (10 ** 9, "milliardte"),
+        (2 * 10 ** 9, "to milliardte"),
+        (10 ** 12, "billionte"),
+        (10 ** 15, "billiardte"),
+        (10 ** 18, "trillionte"),
+        (10 ** 9 + 7, "en milliard og sjuende"),
+        (10 ** 12 + 3, "en billion og tredje"),
+    ],
+    "nn": [
+        (10 ** 9, "milliardte"),
+        (2 * 10 ** 9, "to milliardte"),
+        (10 ** 12, "billionte"),
+        (10 ** 18, "trillionte"),
+        (10 ** 9 + 7, "ein milliard og sjuande"),
+    ],
+    "fi": [
+        (10 ** 9, "miljardis"),
+        (2 * 10 ** 9, "kahdesmiljardis"),
+        (10 ** 9 + 7, "miljardisseitsemäs"),
+        (1500000000, "miljardisviidessadasmiljoonas"),
+        (10 ** 12, "biljoonas"),
+        (3 * 10 ** 12, "kolmasbiljoonas"),
+        (10 ** 12 + 7, "biljoonasseitsemäs"),
+    ],
+    "hu": [
+        (10 ** 9, "egymilliárdodik"),
+        (2 * 10 ** 9, "kétmilliárdodik"),
+        (10 ** 12, "egybilliomodik"),
+        (10 ** 15, "egybilliárdodik"),
+        (10 ** 18, "egytrilliomodik"),
+        (10 ** 21, "egytrilliárdodik"),
+        (10 ** 9 + 7, "egymilliárd-hetedik"),
+        # the last digit of a number past 2 ** 53 is read from the integer
+        (12345678901234567893,
+         "tizenkéttrillió-háromszáznegyvenötbilliárd-hatszázhetvennyolcbillió-"
+         "kilencszázegymilliárd-kétszázharmincnégymillió-ötszázhatvanhétezer-"
+         "nyolcszázkilencvenharmadik"),
+    ],
+    "et": [
+        (10 ** 6, "miljones"),
+        (2 * 10 ** 6, "kahemiljones"),
+        (10 ** 9, "miljardes"),
+        (10 ** 12, "biljones"),
+        (10 ** 6 + 7, "miljoni seitsmes"),
+        (10 ** 9 + 7, "miljardi seitsmes"),
+        (10 ** 12 + 7, "biljoni seitsmes"),
+        (3002003, "kolme miljoni kahe tuhande kolmas"),
+        (15 * 10 ** 6, "viieteistkümne miljones"),
+        (2003, "kahe tuhande kolmas"),
+        (21000, "kahekümne ühe tuhandes"),
+        (110000, "saja kümne tuhandes"),
+    ],
+}
+
+
+class TestOrdinalLongNumbers(unittest.TestCase):
+    def test_rows(self):
+        for lang, rows in ROWS.items():
+            for number, expected in rows:
+                with self.subTest(lang=lang, number=number):
+                    self.assertEqual(pronounce_ordinal(number, lang), expected)
+
+    def test_words_below_the_limit_and_named_error_from_it(self):
+        for lang in LANGS:
+            limit = LIMIT[lang]
+            for digits in range(1, 31):
+                number = 10 ** (digits - 1) + 7
+                with self.subTest(lang=lang, digits=digits):
+                    if number >= limit:
+                        with self.assertRaises(NotImplementedError):
+                            pronounce_ordinal(number, lang)
+                    else:
+                        spoken = pronounce_ordinal(number, lang)
+                        self.assertIsInstance(spoken, str)
+                        self.assertFalse(any(c.isdigit() for c in spoken),
+                                         spoken)
+
+    def test_limit_is_where_the_cardinal_writer_stops(self):
+        # the cardinal writer reads the digits back, or in scientific form
+        scientific = {"sv": "gånger", "da": "gange", "de": "mal", "nl": "maal"}
+        for lang in LANGS:
+            limit = LIMIT[lang]
+            with self.subTest(lang=lang):
+                below = pronounce_number(limit - 1, lang)
+                self.assertFalse(any(c.isdigit() for c in below), below)
+                at = pronounce_number(limit, lang)
+                if lang in scientific:
+                    self.assertIn(scientific[lang], at)
+                else:
+                    self.assertEqual(at, str(limit))
+
+    def test_ordinals_flag_matches(self):
+        for lang in ("et", "fi"):
+            for number in (10 ** 9 + 7, 10 ** 12):
+                with self.subTest(lang=lang, number=number):
+                    self.assertEqual(
+                        pronounce_number(number, lang, ordinals=True),
+                        pronounce_ordinal(number, lang))
+
+
+if __name__ == "__main__":
+    unittest.main()

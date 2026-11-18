@@ -141,6 +141,10 @@ _ORDINAL_STRING_NB = {
     100: 'hundrede',
     1000: 'tusende',
     1000000: 'millionte',
+    10 ** 9: 'milliardte',
+    10 ** 12: 'billionte',
+    10 ** 15: 'billiardte',
+    10 ** 18: 'trillionte',
 }
 
 # variant ordinal forms accepted when parsing (Bokmålsordboka)
@@ -323,22 +327,20 @@ def _pronounce_ordinal(number, t):
         ones = number % 10
         return t.num_string[tens] + t.ordinal_string[ones]
     # 121 -> "hundre og tjueførste": cardinal prefix + ordinal last element
-    for scale in (1000000, 1000, 100):
+    if number >= 10 ** 21:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a Norwegian ordinal")
+    for scale in (10 ** 18, 10 ** 15, 10 ** 12, 10 ** 9, 10 ** 6, 1000, 100):
         if number >= scale:
             remainder = number % scale
             if remainder == 0:
                 prefix = number // scale
                 lead = '' if prefix == 1 and scale <= 1000 else \
                     _pronounce_whole_number(prefix, t).strip() + ' '
-                if prefix == 1 and scale == 100:
-                    return t.ordinal_string[100]
-                if prefix == 1 and scale == 1000:
-                    return t.ordinal_string[1000]
                 return lead + t.ordinal_string[scale]
             head = number - remainder
             return _pronounce_whole_number(head, t).strip() + ' og ' + \
                 _pronounce_ordinal(remainder, t)
-    return str(number)
 
 
 def _nice_number(number, t, speech=True, denominators=range(1, 21)):

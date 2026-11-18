@@ -60,10 +60,13 @@ class TestPronounceNumberFi(unittest.TestCase):
         # exact multiples of a million once triggered unbounded recursion
         for n in (2000000, 3000000, 999000000):
             self.assertIsInstance(pronounce_ordinal(n, "fi"), str)
-        # above the supported "miljoonas" scale falls back to digits cleanly
-        self.assertEqual(pronounce_ordinal(10 ** 9, "fi"), "1000000000")
-        self.assertEqual(pronounce_ordinal(999999999999, "fi"),
-                         "999999999999")
+        self.assertEqual(pronounce_ordinal(10 ** 9, "fi"), "miljardis")
+        self.assertEqual(
+            pronounce_ordinal(999999999999, "fi"),
+            "yhdeksässadasyhdeksäskymmenesyhdeksäsmiljardis"
+            "yhdeksässadasyhdeksäskymmenesyhdeksäsmiljoonas"
+            "yhdeksässadasyhdeksäskymmenesyhdeksästuhannes"
+            "yhdeksässadasyhdeksäskymmenesyhdeksäs")
 
 
 class TestExtractNumberFi(unittest.TestCase):

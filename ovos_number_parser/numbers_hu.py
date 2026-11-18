@@ -313,6 +313,19 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             return result
 
 
+#: ordinal of each scale word; "milliárdodik" is attested on hu.wikipedia, the
+#: billió and trillió pairs follow the milliomodik / milliárdodik pattern
+_SCALE_ORDINALS_HU = (
+    ("ezer", "ezredik"),
+    ("millió", "milliomodik"),
+    ("milliárd", "milliárdodik"),
+    ("billió", "billiomodik"),
+    ("billiárd", "billiárdodik"),
+    ("trillió", "trilliomodik"),
+    ("trilliárd", "trilliárdodik"),
+)
+
+
 def pronounce_ordinal_hu(number):
     """
     This function pronounces a number as an ordinal
@@ -328,24 +341,25 @@ def pronounce_ordinal_hu(number):
     ordinals = ["nulladik", "első", "második", "harmadik", "negyedik",
                 "ötödik", "hatodik", "hetedik", "nyolcadik", "kilencedik",
                 "tizedik"]
-    big_ordinals = ["", "ezredik", "milliomodik"]
 
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
     elif number < 11:
         return ordinals[number]
+    elif number >= 10 ** 24:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a Hungarian ordinal")
     else:
         # concatenate parts and inflect them accordingly
         root = pronounce_number_hu(number)
         vtype = _get_vocal_type_hu(root)
-        last_digit = number - floor(number / 10) * 10
+        last_digit = number % 10
         if root == "húsz":
             root = "husz"
-        if number % 1000000 == 0:
-            return root.replace(_NUM_POWERS_OF_TEN[2], big_ordinals[2])
-        if number % 1000 == 0:
-            return root.replace(_NUM_POWERS_OF_TEN[1], big_ordinals[1])
+        for scale_word, scale_ordinal in _SCALE_ORDINALS_HU:
+            if root.endswith(scale_word):
+                return root[:-len(scale_word)] + scale_ordinal
         if last_digit == 1:
             return root + "edik"
         elif root[-1] == 'ő':

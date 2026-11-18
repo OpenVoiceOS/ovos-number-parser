@@ -335,20 +335,23 @@ def pronounce_ordinal_sv(number):
             return prefix + 'de'
         return prefix + pronounce_ordinal_sv(rem)
 
-    if number < 1000000000000:
-        scale = 1000000000 if number >= 1000000000 else 1000000
-        word = 'miljard' if scale == 1000000000 else 'miljon'
-        count = number // scale
-        rem = number % scale
-        if rem == 0:
-            prefix = word if count == 1 \
-                else pronounce_number_sv(count).replace(' ', '') + word
-            return prefix + 'te'
-        # magnitude word stays cardinal; only the remainder is the ordinal
-        return pronounce_number_sv(number - rem).strip() + ' ' \
-            + pronounce_ordinal_sv(rem)
-
-    return str(number)
+    if number >= 10 ** 24:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a Swedish ordinal")
+    # the scale words come in pairs: miljon/miljard, biljon/biljard,
+    # triljon/triljard; ICU RBNF sv gives "miljonte", "miljardte", "biljonte"
+    scale_level = (len(str(number)) - 1) // 3
+    scale = 10 ** (3 * scale_level)
+    word = _NUM_POWERS_OF_TEN_SV[scale_level]
+    count = number // scale
+    rem = number % scale
+    if rem == 0:
+        prefix = word if count == 1 \
+            else pronounce_number_sv(count).replace(' ', '') + word
+        return prefix + 'te'
+    # magnitude word stays cardinal; only the remainder is the ordinal
+    return pronounce_number_sv(number - rem).strip() + ' ' \
+        + pronounce_ordinal_sv(rem)
 
 
 def _find_numbers_in_text(tokens):

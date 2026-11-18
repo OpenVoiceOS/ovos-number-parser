@@ -532,6 +532,9 @@ def pronounce_ordinal_nl(number):
     if number < 0 or number != int(number):
         return number
     number = int(number)
+    if number >= 10 ** 24:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a Dutch ordinal")
     if number == 0:
         return "nulste"
     spoken = pronounce_number_nl(number)
