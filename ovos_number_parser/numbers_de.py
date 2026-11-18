@@ -444,12 +444,18 @@ def pronounce_ordinal_de(number):
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
-    elif number < 9:
-        return ordinals[number]
-    elif number < 20:
-        return pronounce_number_de(number) + "te"
-    else:
-        return pronounce_number_de(number) + "ste"
+    number = int(number)
+    last = number % 100
+    if 0 < last < 20:
+        # the ending follows the last word: "einhunderterste",
+        # "hundertneunzehnte", "eine Million dritte"
+        spoken = pronounce_number_de(number)
+        tail = pronounce_number_de(last)
+        word = ordinals[last] if last < 9 else tail + "te"
+        return spoken[:-len(tail)] + word
+    if number == 0:
+        return ordinals[0]
+    return pronounce_number_de(number) + "ste"
 
 
 def numbers_to_digits_de(text, short_scale=False,
