@@ -148,11 +148,10 @@ def _fraction_words(text: str, lang: str, scale: Optional[Scale]) -> str:
 
 def _digits(mention: NumberMention, words: str, lang: str, scale: Optional[Scale]) -> str:
     """How numbers_to_digits writes one number, written as ``words``."""
-    value = number(mention.value)
     if mention.kind is Kind.FRACTION and _base(lang) in _FRACTION_WORDS_KEPT \
-            and not float(value).is_integer():
+            and Fraction(mention.value).denominator != 1:
         return _fraction_words(words, lang, scale)
-    return str(value)
+    return str(number(mention.value))
 
 
 def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
