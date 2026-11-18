@@ -38,7 +38,7 @@ class TestSplitAboveHundred(unittest.TestCase):
     """Groups above 100 are separate words joined by "og" before the rest."""
 
     CASES = [
-        (101, "hundrede og et"),
+        (101, "hundrede og en"),
         (111, "hundrede og elleve"),
         (123, "hundrede og treogtyve"),
         (253, "to hundrede og treoghalvtreds"),
