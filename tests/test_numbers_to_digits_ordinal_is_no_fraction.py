@@ -28,8 +28,10 @@ class TestEnglish(unittest.TestCase):
         self.assertEqual(numbers_to_digits("1 sixth", "en"), str(1 / 6))
 
     def test_quarter_and_plural_denominators_are_fractions(self):
-        # "quarter" is no ordinal; English reads it as 1/4 on its own
-        self.assertEqual(numbers_to_digits("a quarter", "en"), "a 0.25")
+        # "quarter" is no ordinal, and "a" counts one before a multiplier
+        # (numtag en article_one: "a hundred", "a dozen", "a third"), so "a
+        # quarter" is one number, 1/4
+        self.assertEqual(numbers_to_digits("a quarter", "en"), "0.25")
         self.assertEqual(numbers_to_digits("three quarters", "en"), "0.75")
         self.assertEqual(numbers_to_digits("two fifths", "en"), "0.4")
 
@@ -113,7 +115,9 @@ class TestFrisianAndBulgarian(unittest.TestCase):
                 self.assertEqual(numbers_to_digits(line, lang), str(value))
 
     def test_words_that_are_no_ordinal_are_still_fractions(self):
-        self.assertEqual(numbers_to_digits("in kwart", "fy"), "in 0.25")
+        # "in" is the West Frisian indefinite article (Wiktionary, "in"),
+        # which counts one before a number noun, as English "a" does
+        self.assertEqual(numbers_to_digits("in kwart", "fy"), "0.25")
         self.assertEqual(numbers_to_digits("половин час", "bg"), "0.5 час")
         self.assertEqual(numbers_to_digits("четвърт час", "bg"), "0.25 час")
 
