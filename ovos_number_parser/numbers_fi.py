@@ -13,6 +13,10 @@ References:
       "Numeraalit" / "Lukusanat"
     * https://fi.wikipedia.org/wiki/Numeraali
     * https://en.wiktionary.org/wiki/Appendix:Finnish_numbers
+    * Kotus, Kielitoimiston ohjepankki, "Luvut ja numerot: järjestyslukujen
+      taivuttaminen" (every part of a compound ordinal takes the ordinal
+      stem); fi.wiktionary "miljardis" ("lukua miljardi vastaava
+      järjestysluku"); "biljoonas" follows the same -s derivation
 """
 from decimal import Decimal
 from math import floor
@@ -191,8 +195,7 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     return result
 
 
-# round scale ordinals, largest first; "miljardis" is attested in Kielitoimiston
-# sanakirja, "biljoonas" follows the same -s derivation
+# round scale ordinals, largest first
 _ORDINAL_SCALES_FI = ((10 ** 12, 'biljoonas'), (10 ** 9, 'miljardis'),
                       (10 ** 6, 'miljoonas'), (1000, 'tuhannes'))
 
@@ -250,12 +253,12 @@ def pronounce_ordinal_fi(number):
         raise NotImplementedError(
             f"cannot pronounce {number} as a Finnish ordinal")
     for base, word in _ORDINAL_SCALES_FI:
-        if number % base == 0 and number // base < 1000:
-            count = number // base
+        count, rest = divmod(number, base)
+        if not rest and count < 1000:
             return word if count == 1 else \
                 _ordinal_multiplier_fi(count) + word
     # compose: ordinal prefix from the largest round part + remainder.
-    for base, _ in _ORDINAL_SCALES_FI + ((100, 'sadas'),):
+    for base in (10 ** 12, 10 ** 9, 10 ** 6, 1000, 100):
         if number > base:
             head = (number // base) * base
             return pronounce_ordinal_fi(head) + \

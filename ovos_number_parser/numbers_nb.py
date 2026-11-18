@@ -20,6 +20,8 @@ Pronunciation always uses the modern order and the official modern forms
 Sources:
     - https://snl.no/den_nye_tellem%C3%A5ten (1951 counting reform)
     - https://snl.no/den_gamle_tellem%C3%A5ten (traditional counting)
+    - ICU 78.3 spellout-ordinal (CLDR rbnf nb.xml): "én milliard ti millioner
+      første", "to milliarder hundre millionte"
     - https://ordbokene.no (Språkrådet/UiB: Bokmålsordboka & Nynorskordboka;
       every pronounced form in this module is an attested entry)
 """
@@ -338,7 +340,7 @@ def _pronounce_ordinal(number, t):
             scale *= 1000
         group = number // scale % 1000
         head = number - group * scale
-        lead = _pronounce_whole_number(head, t).strip() + ' ' if head else ''
+        lead = f"{_pronounce_whole_number(head, t).strip()} " if head else ''
         if group > 1:
             lead += _pronounce_whole_number(group, t).strip() + ' '
         return lead + t.ordinal_string[scale]

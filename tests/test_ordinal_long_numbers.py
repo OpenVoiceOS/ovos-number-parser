@@ -1,33 +1,4 @@
-"""Ordinals of long numbers read in words or decline with a named error.
-
-The ordinal writers of et, fi, sv, nb, nn, hu, da, de, nl and fy returned the
-digits or raised IndexError for long numbers. Each writer now reads every
-number its cardinal writer reads in words, and raises NotImplementedError from
-the first number its cardinal writer cannot read in words.
-
-Sources for the expected values:
-
-- sv, nb, fi: the CLDR spellout-ordinal rule sets of ICU 78.3 (rbnf sv.xml,
-  nb.xml, fi.xml), which give "miljonte", "miljardte", "biljonte", "biljardte"
-  (sv); "millionte", "milliardte", "billionte", "billiardte" (nb);
-  "miljoonas", "miljardis", "biljoonas" and "miljardisseitsemäs" (fi). The
-  trillion-level words follow the same -te pattern; ICU stops at 10 ** 15.
-  The cardinal head keeps the spelling of the cardinal writer.
-- fi: Wiktionary "miljardis" ("lukua miljardi vastaava järjestysluku");
-  Kotus, Kielitoimiston ohjepankki, "järjestyslukujen taivuttaminen" (every
-  part of a compound ordinal takes the ordinal stem).
-- et: Eesti keele sõnaraamat ÕS 2013 (EKI, arhiiv.eki.ee/dict/qs), entries
-  "tuhandes" ("Kahe tuhandes = kahe+tuhandes aasta") and "miljones" ("Kahe
-  miljones = kahe+miljones auto"): the multiplier stands in the genitive;
-  et.wiktionary "kahetuhandes" ("kahetuhandes aastapäev"); et.wikipedia
-  "Arvsõna" (regular ordinals "sajas, miljones, miljardes").
-- hu: hu.wikipedia, article "Richard és Maurice McDonald": "az ötven
-  milliárdodik (50 000 000 000)"; the billió and trillió words follow the
-  "milliomodik" / "milliárdodik" pattern.
-- nb: ICU 78.3 spellout-ordinal-masculine gives "én milliard ti millioner
-  første" for 1 010 000 001 and "to milliarder hundre millionte" for
-  2 100 000 000; the repo's cardinal writer keeps "og" before a last part.
-"""
+"""Ordinals of long numbers read in words or decline with a named error."""
 import unittest
 
 from ovos_number_parser import pronounce_number, pronounce_ordinal

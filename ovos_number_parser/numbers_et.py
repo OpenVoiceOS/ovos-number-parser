@@ -12,6 +12,13 @@ References:
       -kümmend ja -sada liitumites, muidu lahku)
     * https://et.wikipedia.org/wiki/Arvs%C3%B5na
     * https://en.wiktionary.org/wiki/Appendix:Estonian_numbers
+    * Eesti õigekeelsussõnaraamat ÕS 2013 (EKI), entries "tuhandes" ("Kahe
+      tuhandes = kahe+tuhandes aasta") and "miljones" ("Kahe miljones =
+      kahe+miljones auto"): the multiplier of an ordinal scale word stands in
+      the genitive. A count below ten joins the scale word, a larger count
+      stands apart ("kümne miljones")
+    * et.wiktionary "bimillenary" ("kahetuhandes aastapäev"); et.wikipedia
+      "Arvsõna" (regular ordinals "sajas, miljones, miljardes")
 """
 from decimal import Decimal
 from math import floor
@@ -208,10 +215,6 @@ def pronounce_ordinal_et(number):
     2003 -> "kahe tuhande kolmas", 1000007 -> "miljoni seitsmes"
 
     Every part of a compound ordinal but the last stands in the genitive.
-    Eesti keele sõnaraamat ÕS 2013 (EKI) gives "Kahe tuhandes = kahe+tuhandes
-    aasta" and "Kahe miljones = kahe+miljones auto". A count below ten joins
-    the scale word; a larger count stands apart ("kümne miljones"). The scale
-    words end in -s: "tuhandes", "miljones", "miljardes", "biljones".
 
     Args:
         number (int): the number to format

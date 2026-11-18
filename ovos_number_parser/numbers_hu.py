@@ -1,3 +1,9 @@
+"""Hungarian number parsing and pronunciation.
+
+The ordinal of a scale word: hu.wikipedia, article "Richard és Maurice
+McDonald": "az ötven milliárdodik (50 000 000 000)". The billió and trillió
+pairs follow the "milliomodik" and "milliárdodik" pattern.
+"""
 from decimal import Decimal, ROUND_HALF_UP
 from math import floor
 
@@ -313,8 +319,7 @@ def pronounce_number_hu(number, places=2, short_scale=True, scientific=False,
             return result
 
 
-#: ordinal of each scale word; "milliárdodik" is attested on hu.wikipedia, the
-#: billió and trillió pairs follow the milliomodik / milliárdodik pattern
+#: ordinal of each scale word
 _SCALE_ORDINALS_HU = (
     ("ezer", "ezredik"),
     ("millió", "milliomodik"),
@@ -353,7 +358,6 @@ def pronounce_ordinal_hu(number):
     else:
         # concatenate parts and inflect them accordingly
         root = pronounce_number_hu(number)
-        vtype = _get_vocal_type_hu(root)
         last_digit = number % 10
         if root == "húsz":
             root = "husz"
@@ -367,6 +371,7 @@ def pronounce_ordinal_hu(number):
         elif last_digit != 0:
             return ordinals[last_digit].join(
                 root.rsplit(_NUM_STRING_HU[last_digit], 1))
+        vtype = _get_vocal_type_hu(root)
         return root + "edik" if vtype == 1 else root + "adik"
 
 

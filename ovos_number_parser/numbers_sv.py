@@ -339,7 +339,7 @@ def pronounce_ordinal_sv(number):
         raise NotImplementedError(
             f"cannot pronounce {number} as a Swedish ordinal")
     # the scale words come in pairs: miljon/miljard, biljon/biljard,
-    # triljon/triljard; ICU RBNF sv gives "miljonte", "miljardte", "biljonte"
+    # triljon/triljard
     scale_level = (len(str(number)) - 1) // 3
     scale = 10 ** (3 * scale_level)
     word = _NUM_POWERS_OF_TEN_SV[scale_level]
