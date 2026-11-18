@@ -13,6 +13,10 @@ References:
       "Numeraalit" / "Lukusanat"
     * https://fi.wikipedia.org/wiki/Numeraali
     * https://en.wiktionary.org/wiki/Appendix:Finnish_numbers
+    * Kotus, Kielitoimiston ohjepankki, "Luvut ja numerot: järjestyslukujen
+      taivuttaminen" (every part of a compound ordinal takes the ordinal
+      stem); fi.wiktionary "miljardis" ("lukua miljardi vastaava
+      järjestysluku"); "biljoonas" follows the same -s derivation
 """
 from decimal import Decimal
 from math import floor
@@ -191,6 +195,11 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     return result
 
 
+# round scale ordinals, largest first
+_ORDINAL_SCALES_FI = ((10 ** 12, 'biljoonas'), (10 ** 9, 'miljardis'),
+                      (10 ** 6, 'miljoonas'), (1000, 'tuhannes'))
+
+
 def _ordinal_multiplier_fi(number):
     """Ordinal stem of a scale-word multiplier (before "tuhannes"/"miljoonas").
 
@@ -240,30 +249,20 @@ def pronounce_ordinal_fi(number):
         hundreds = number // 100
         return 'sadas' if hundreds == 1 else \
             _ORDINAL_UNITS_COMPOUND_FI[hundreds] + 'sadas'
-    if number < 10 ** 6 and number % 1000 == 0:
-        thousands = number // 1000
-        return 'tuhannes' if thousands == 1 else \
-            _ordinal_multiplier_fi(thousands) + 'tuhannes'
-    if number < 10 ** 9 and number % 10 ** 6 == 0:
-        millions = number // 10 ** 6
-        return 'miljoonas' if millions == 1 else \
-            _ordinal_multiplier_fi(millions) + 'miljoonas'
-    if number >= 10 ** 9:
-        # above the supported "miljoonas" scale: fall back to digits rather
-        # than composing an unidiomatic mix of words and figures
-        return str(number)
+    if number >= 10 ** 15:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a Finnish ordinal")
+    for base, word in _ORDINAL_SCALES_FI:
+        count, rest = divmod(number, base)
+        if not rest and count < 1000:
+            return word if count == 1 else \
+                _ordinal_multiplier_fi(count) + word
     # compose: ordinal prefix from the largest round part + remainder.
-    # ``head`` must be a strict prefix of ``number`` or the recursion never
-    # shrinks; an exact multiple of a base is handled by the branches above,
-    # so a base yielding ``head == number`` here is out of representable range.
-    for base in (10 ** 6, 1000, 100):
+    for base in (10 ** 12, 10 ** 9, 10 ** 6, 1000, 100):
         if number > base:
             head = (number // base) * base
-            if head == number:
-                continue
             return pronounce_ordinal_fi(head) + \
                 pronounce_ordinal_fi(number - head)
-    return str(number)
 
 
 def nice_number_fi(number, speech=True, denominators=range(1, 21)):

@@ -328,6 +328,9 @@ def pronounce_ordinal_fy(number):
     if number < 0 or number != int(number):
         return number
     number = int(number)
+    if number >= 10 ** 24:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a West Frisian ordinal")
     if number in _ORDINAL_STRING_BASE_FY:
         return _ORDINAL_STRING_BASE_FY[number]
     if number in _SHORT_ORDINAL_STRING_FY:

@@ -12,6 +12,13 @@ References:
       -kümmend ja -sada liitumites, muidu lahku)
     * https://et.wikipedia.org/wiki/Arvs%C3%B5na
     * https://en.wiktionary.org/wiki/Appendix:Estonian_numbers
+    * Eesti õigekeelsussõnaraamat ÕS 2013 (EKI), entries "tuhandes" ("Kahe
+      tuhandes = kahe+tuhandes aasta") and "miljones" ("Kahe miljones =
+      kahe+miljones auto"): the multiplier of an ordinal scale word stands in
+      the genitive. A count below ten joins the scale word, a larger count
+      stands apart ("kümne miljones")
+    * et.wiktionary "bimillenary" ("kahetuhandes aastapäev"); et.wikipedia
+      "Arvsõna" (regular ordinals "sajas, miljones, miljardes")
 """
 from decimal import Decimal
 from math import floor
@@ -173,21 +180,56 @@ def pronounce_number_et(number, places=2, short_scale=True, scientific=False,
     return result
 
 
+# (value, genitive stem, nominative ordinal) of the scale words, largest first
+_ORDINAL_SCALES_ET = ((10 ** 12, 'biljoni', 'biljones'),
+                      (10 ** 9, 'miljardi', 'miljardes'),
+                      (10 ** 6, 'miljoni', 'miljones'),
+                      (1000, 'tuhande', 'tuhandes'))
+
+
+def _genitive_below_1000_et(num):
+    """Genitive of a cardinal below 1000: 21 -> "kahekümne ühe"."""
+    words = []
+    hundreds, num = divmod(num, 100)
+    if hundreds:
+        words.append('saja' if hundreds == 1 else
+                     _GENITIVE_UNITS_ET[hundreds] + 'saja')
+    if num == 10:
+        words.append('kümne')
+    elif 10 < num < 20:
+        words.append(_GENITIVE_UNITS_ET[num - 10] + 'teistkümne')
+    elif num:
+        tens, ones = divmod(num, 10)
+        if tens:
+            words.append(_GENITIVE_UNITS_ET[tens] + 'kümne')
+        if ones:
+            words.append(_GENITIVE_UNITS_ET[ones])
+    return ' '.join(words)
+
+
 def pronounce_ordinal_et(number):
     """
     Pronounce a number as an Estonian ordinal.
 
-    1 -> "esimene", 2 -> "teine", 21 -> "kahekümne esimene"
+    1 -> "esimene", 2 -> "teine", 21 -> "kahekümne esimene",
+    2003 -> "kahe tuhande kolmas", 1000007 -> "miljoni seitsmes"
+
+    Every part of a compound ordinal but the last stands in the genitive.
 
     Args:
         number (int): the number to format
     Returns:
         (str): The pronounced ordinal string.
+    Raises:
+        NotImplementedError: from 10 ** 15, past the largest scale word
     """
     # only for whole positive numbers
     if number < 1 or number != int(number):
         return number
     number = int(number)
+    if number >= 10 ** 15:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as an Estonian ordinal")
     if number in _ORDINAL_UNITS_ET:
         return _ORDINAL_UNITS_ET[number]
     if number < 20:
@@ -199,28 +241,27 @@ def pronounce_ordinal_et(number):
             return tens_ordinal
         # the leading part goes to the genitive: "kahekümne esimene"
         return _GENITIVE_UNITS_ET[tens] + 'kümne ' + _ORDINAL_UNITS_ET[ones]
-    if number < 1000 and number % 100 == 0:
-        hundreds = number // 100
-        return 'sajas' if hundreds == 1 else \
-            _GENITIVE_UNITS_ET[hundreds] + 'sajas'
-    if number < 10 ** 6 and number % 1000 == 0 and number // 1000 <= 10:
-        thousands = number // 1000
-        return 'tuhandes' if thousands == 1 else \
-            _GENITIVE_UNITS_ET[thousands] + 'tuhandes'
-    if number == 10 ** 6:
-        return 'miljones'
-    # compose: genitive round part + ordinal remainder ("saja esimene")
-    if 100 < number < 1000:
-        hundreds = number // 100
-        head = 'saja' if hundreds == 1 else \
-            _GENITIVE_UNITS_ET[hundreds] + 'saja'
-        return head + ' ' + pronounce_ordinal_et(number % 100)
-    if 1000 < number < 10 ** 6:
-        thousands = number // 1000
-        head = 'tuhande' if thousands == 1 else \
-            _pronounce_int_et(thousands) + ' tuhande'
-        return head + ' ' + pronounce_ordinal_et(number % 1000)
-    return str(number)
+    if number < 1000:
+        hundreds, rest = divmod(number, 100)
+        if not rest:
+            return 'sajas' if hundreds == 1 else \
+                _GENITIVE_UNITS_ET[hundreds] + 'sajas'
+        # compose: genitive round part + ordinal remainder ("saja esimene")
+        return _genitive_below_1000_et(number - rest) + ' ' + \
+            pronounce_ordinal_et(rest)
+    for value, genitive, ordinal in _ORDINAL_SCALES_ET:
+        if number >= value:
+            count, rest = divmod(number, value)
+            break
+    if rest:
+        head = genitive if count == 1 else \
+            _genitive_below_1000_et(count) + ' ' + genitive
+        return head + ' ' + pronounce_ordinal_et(rest)
+    if count == 1:
+        return ordinal
+    if count < 10:
+        return _GENITIVE_UNITS_ET[count] + ordinal
+    return _genitive_below_1000_et(count) + ' ' + ordinal
 
 
 def nice_number_et(number, speech=True, denominators=range(1, 21)):

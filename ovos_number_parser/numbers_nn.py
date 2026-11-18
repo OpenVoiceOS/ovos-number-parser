@@ -82,6 +82,10 @@ _ORDINAL_STRING_NN = {
     100: 'hundrede',
     1000: 'tusande',
     1000000: 'millionte',
+    10 ** 9: 'milliardte',
+    10 ** 12: 'billionte',
+    10 ** 15: 'billiardte',
+    10 ** 18: 'trillionte',
 }
 
 _STRING_ORDINAL_NN = invert_dict(_ORDINAL_STRING_NN)

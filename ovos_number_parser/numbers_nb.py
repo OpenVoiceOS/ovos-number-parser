@@ -20,6 +20,8 @@ Pronunciation always uses the modern order and the official modern forms
 Sources:
     - https://snl.no/den_nye_tellem%C3%A5ten (1951 counting reform)
     - https://snl.no/den_gamle_tellem%C3%A5ten (traditional counting)
+    - ICU 78.3 spellout-ordinal (CLDR rbnf nb.xml): "én milliard ti millioner
+      første", "to milliarder hundre millionte"
     - https://ordbokene.no (Språkrådet/UiB: Bokmålsordboka & Nynorskordboka;
       every pronounced form in this module is an attested entry)
 """
@@ -141,6 +143,10 @@ _ORDINAL_STRING_NB = {
     100: 'hundrede',
     1000: 'tusende',
     1000000: 'millionte',
+    10 ** 9: 'milliardte',
+    10 ** 12: 'billionte',
+    10 ** 15: 'billiardte',
+    10 ** 18: 'trillionte',
 }
 
 # variant ordinal forms accepted when parsing (Bokmålsordboka)
@@ -323,22 +329,32 @@ def _pronounce_ordinal(number, t):
         ones = number % 10
         return t.num_string[tens] + t.ordinal_string[ones]
     # 121 -> "hundre og tjueførste": cardinal prefix + ordinal last element
-    for scale in (1000000, 1000, 100):
+    if number >= 10 ** 21:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a Norwegian ordinal")
+    if number >= 10 ** 6 and number % 10 ** 6 == 0:
+        # the lowest non-zero group of three digits names the ordinal
+        # ("to milliarder hundre millionte"); the head stays cardinal
+        scale = 10 ** 6
+        while number % (scale * 1000) == 0:
+            scale *= 1000
+        group = number // scale % 1000
+        head = number - group * scale
+        lead = f"{_pronounce_whole_number(head, t).strip()} " if head else ''
+        if group > 1:
+            lead += _pronounce_whole_number(group, t).strip() + ' '
+        return lead + t.ordinal_string[scale]
+    for scale in (10 ** 6, 1000, 100):
         if number >= scale:
             remainder = number % scale
             if remainder == 0:
                 prefix = number // scale
-                lead = '' if prefix == 1 and scale <= 1000 else \
+                lead = '' if prefix == 1 else \
                     _pronounce_whole_number(prefix, t).strip() + ' '
-                if prefix == 1 and scale == 100:
-                    return t.ordinal_string[100]
-                if prefix == 1 and scale == 1000:
-                    return t.ordinal_string[1000]
                 return lead + t.ordinal_string[scale]
             head = number - remainder
             return _pronounce_whole_number(head, t).strip() + ' og ' + \
                 _pronounce_ordinal(remainder, t)
-    return str(number)
 
 
 def _nice_number(number, t, speech=True, denominators=range(1, 21)):
