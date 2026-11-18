@@ -438,9 +438,6 @@ def pronounce_ordinal_de(number):
     # this produces the base form, it will have to be adapted for genus,
     # casus, numerus
 
-    ordinals = ["nullte", "erste", "zweite", "dritte", "vierte", "fünfte",
-                "sechste", "siebte", "achte"]
-
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
@@ -449,12 +446,11 @@ def pronounce_ordinal_de(number):
     if 0 < last < 20:
         # the ending follows the last word: "einhunderterste",
         # "hundertneunzehnte", "eine Million dritte"
-        spoken = pronounce_number_de(number)
-        tail = pronounce_number_de(last)
-        word = ordinals[last] if last < 9 else tail + "te"
-        return spoken[:-len(tail)] + word
+        tail = _NUM_STRING[last]
+        return pronounce_number_de(number)[:-len(tail)] + \
+            _ORDINAL_BASE[f"{last}."] + "e"
     if number == 0:
-        return ordinals[0]
+        return "nullte"
     return pronounce_number_de(number) + "ste"
 
 
