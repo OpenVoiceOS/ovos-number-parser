@@ -88,6 +88,16 @@ class TestAlgerianCardinals(unittest.TestCase):
         self.assertEqual(numbers_to_digits("كتاب وثلثاش", lang="arq"), "كتاب و13")
         self.assertEqual(numbers_to_digits("كتاب وأربعة", lang="ar"), "كتاب و4")
 
+    def test_other_lects_read_the_two_words_as_dev_does(self):
+        """Only arq joins ثلث مية. Everywhere else the two words are "a third" and
+        "a hundred", with the spacing and line break the shared converter gives."""
+        for lang in ("ar", "ar-DZ", "arz", "apc"):
+            self.assertEqual(numbers_to_digits("ثلث مية", lang=lang), "ثلث مية", lang)
+            self.assertEqual(numbers_to_digits("ثلث\nمية", lang=lang), "ثلث مية", lang)
+            self.assertEqual(numbers_to_digits("عندي ثلث مية ريال", lang=lang),
+                             "عندي ثلث 100 ريال", lang)
+            self.assertEqual(numbers_to_digits("وثلث مية", lang=lang), "و ثلث مية", lang)
+
 
 if __name__ == "__main__":
     unittest.main()

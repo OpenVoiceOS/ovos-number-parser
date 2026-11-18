@@ -2261,7 +2261,7 @@ def numbers_to_digits_ar(utterance: str, lang: str = "ar") -> str:
     from ovos_number_parser import _numbers_to_digits_generic
     with _reading_as(resolve_ar_lect(lang)):
         halves = resolve_ar_lect(lang) in _LECTS_WITH_SPOKEN_HALF
-        if _ACTIVE_LECT.get() in _LECT_BEFORE_HUNDRED:
+        if _LECT_BEFORE_HUNDRED.get(_ACTIVE_LECT.get()):
             # the converter skips a lone "a third"; join the two-word hundred first
             utterance = _TWO_WORD_HUNDRED_RE.sub(r"\1ثلثمية", utterance)
         resolved, masked = _resolve_context_words_ar(utterance, halves)
