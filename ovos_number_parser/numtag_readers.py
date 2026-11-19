@@ -88,9 +88,11 @@ def number(value: str) -> Optional[Union[int, float]]:
         return None
     if "/" not in value and "." not in value:
         return int(value)
-    exact = Fraction(value)
     try:
+        exact = Fraction(value)
         approx = float(exact)
+    except ValueError:
+        return None
     except OverflowError:
         approx = math.inf
     if approx.is_integer() or math.isinf(approx):
