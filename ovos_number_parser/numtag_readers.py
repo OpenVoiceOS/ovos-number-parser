@@ -65,6 +65,13 @@ def _scale(scale: Optional[Scale], short_scale: Optional[bool]) -> Optional[Numt
 
 #: digits of other scripts, read as the digits they write ("١" is 1)
 _WESTERN_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "0123456789" * 2)
+#: the same digits and the Arabic decimal separator, as numbers_to_digits
+#: writes them ("١٢٫٥" is "12.5")
+_WRITTEN_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٫", "0123456789" * 2 + ".")
+#: a German clock time written with a point, as speech to text writes it
+#: ("13.30 Uhr"); numbers_to_digits writes it with a colon
+_DE_CLOCK = re.compile(r"\b([01]?[0-9]|2[0-4])\.([0-5][0-9]?)(?=\s+(?:uhr|pm|a\.m\.|p\.m\.)(?!\w))",
+                       re.IGNORECASE)
 #: an underscore between two letters, which spells a space ("twenty_one")
 _UNDERSCORE = re.compile(r"(?<=[^\W\d_])_(?=[^\W\d_])")
 
@@ -75,13 +82,15 @@ def _prepare(text: str) -> str:
     return _UNDERSCORE.sub(" ", text.translate(_WESTERN_DIGITS))
 
 
-def number(value: str) -> Optional[Union[int, float]]:
-    """The ``int`` or ``float`` of a numtag value, or None when the value
-    is an integer with more digits than ``str`` can write.
+def number(value: str, kind: Kind = Kind.DECIMAL) -> Optional[Union[int, float]]:
+    """The ``int`` or ``float`` of a numtag value of ``kind``, or None when
+    the value is an integer with more digits than ``str`` can write.
 
     A value that is no whole number is a ``float``. When the ``float`` has
-    no room left for the part after the point, or none for the value at all,
-    the value rounds half up to an ``int``, so the whole part keeps its digits.
+    no room for the part after the point, or none for the value at all, a
+    decimal rounds half up to an ``int``, and a mixed number within the
+    range of a ``float`` ("9007199254740993 1/2") is its whole part, so the
+    whole part keeps every digit.
     """
     whole = value.lstrip("-").split(".")[0].split("/")[0]
     if len(whole) > sys.get_int_max_str_digits() > 0:
@@ -95,6 +104,8 @@ def number(value: str) -> Optional[Union[int, float]]:
         return None
     except OverflowError:
         approx = math.inf
+    if exact.denominator == 1 or (kind is Kind.FRACTION and approx.is_integer() and abs(exact) >= 1):
+        return int(exact)
     if approx.is_integer() or math.isinf(approx):
         rounded = (2 * abs(exact.numerator) + exact.denominator) // (2 * exact.denominator)
         return -rounded if exact < 0 else rounded
@@ -116,7 +127,7 @@ def extract_number(text: str, lang: str, short_scale: Optional[bool] = None,
                    scale: Optional[Scale] = None) -> Union[int, float, bool]:
     """The value of the first number in ``text``, or False."""
     found = mentions(text, lang, short_scale, ordinals, scale)
-    return number(found[0].value) if found else False
+    return number(found[0].value, found[0].kind) if found else False
 
 
 def _one(text: str, lang: str, scale: Optional[Scale], kind: Kind) -> Optional[NumberMention]:
@@ -150,27 +161,39 @@ def _fraction_words(text: str, lang: str, scale: Optional[Scale]) -> str:
 
 def _digits(mention: NumberMention, words: str, lang: str, scale: Optional[Scale]) -> str:
     """How numbers_to_digits writes one number, written as ``words``."""
+    value = number(mention.value, mention.kind)
     if mention.kind is Kind.FRACTION and _base(lang) in _FRACTION_WORDS_KEPT \
             and Fraction(mention.value).denominator != 1:
         return _fraction_words(words, lang, scale)
-    return str(number(mention.value))
+    return str(value)
 
 
 def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
                       ordinals: bool = False) -> str:
     """``utterance`` with each number written in words put in digits.
 
-    A number already in digits stays as written ("Version 2.0"). An ordinal
-    ("the sixth sense") stays as written too, unless ``ordinals`` is true:
-    then it is the digits of its value ("the twenty-first of march" is "the
-    21 of march").
+    A number already in digits stays as written ("Version 2.0", "5 1/2",
+    "007"), in Western digits ("٠٠٧" is "007"); with a sign word it is the
+    digits of its value ("minus 5" is "-5"). An ordinal ("the sixth
+    sense") stays as written too, unless ``ordinals`` is true: then it is the
+    digits of its value ("the twenty-first of march" is "the 21 of march").
+    In German a clock time written with a point is written with a colon
+    ("um 13.30 Uhr" is "um 13:30 Uhr").
     """
     out, at = [], 0
     for mention in mentions(utterance, lang, ordinals=True, scale=scale):
-        if mention.form is Form.DIGITS or (mention.kind is Kind.ORDINAL and not ordinals):
-            continue
         start, end = mention.char_span
-        out += [utterance[at:start], _digits(mention, utterance[start:end], lang, scale)]
+        words = utterance[start:end]
+        if mention.form is Form.DIGITS and not any(char.isalpha() for char in words):
+            written = words.translate(_WRITTEN_DIGITS)
+        elif mention.kind is Kind.ORDINAL and not ordinals:
+            continue
+        else:
+            written = _digits(mention, words, lang, scale)
+        out += [utterance[at:start], written]
         at = end
     out.append(utterance[at:])
-    return "".join(out)
+    text = "".join(out)
+    if _base(lang) == "de":
+        text = _DE_CLOCK.sub(lambda m: f"{m[1]}:{m[2].ljust(2, '0')}", text)
+    return text

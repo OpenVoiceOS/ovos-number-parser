@@ -137,22 +137,19 @@ class TestOrdinalsFlagKeepsTheCardinal(unittest.TestCase):
                 # and without the flag an ordinal is still not a number
                 self.assertFalse(extract_number('femte', lang=lang))
 
-    def test_an_ordinal_wins_over_a_cardinal_in_the_same_line(self):
-        """The line that separates a fall-through from no preference at all.
-
-        A line holding both readings is the only instrument that tells a
-        dropped preference from a dropped cardinal: with the fall-through
-        alone and no ordinal loop, these would answer the cardinal.
-        """
+    def test_the_first_number_of_the_line_answers(self):
+        """A line that holds an ordinal and a cardinal answers its first
+        number, whatever its kind, as Danish does
+        (``test_number_parser_da``)."""
         for lang in ("nb", "nn"):
             with self.subTest(lang=lang):
                 self.assertEqual(
-                    extract_number('tre femte', lang=lang, ordinals=True), 5)
+                    extract_number('tre femte', lang=lang, ordinals=True), 3)
                 self.assertEqual(
                     extract_number('femte tre', lang=lang, ordinals=True), 5)
                 self.assertEqual(
                     extract_number('tre femte sju', lang=lang,
-                                   ordinals=True), 5)
+                                   ordinals=True), 3)
                 # without the flag the same lines read their first cardinal
                 self.assertEqual(extract_number('tre femte', lang=lang), 3)
 

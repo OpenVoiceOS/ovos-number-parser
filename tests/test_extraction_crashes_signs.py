@@ -19,9 +19,11 @@ LANGS = ["an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en",
 SLAVIC = ["bg", "cs", "hr", "pl", "ru", "sk", "uk"]
 
 #: languages whose extractors multiply a digit run by a scale word
-MILLION = {"ar": "ملايين", "bg": "милион", "da": "million", "de": "Million",
+#: da, de, nb and nn take the plural after a count above one (CLDR RBNF
+#: "2000000: ←← millioner", "←← Millionen", "←← millionar")
+MILLION = {"ar": "ملايين", "bg": "милион", "da": "millioner", "de": "Millionen",
            "en": "million", "eu": "milioi", "fy": "miljoen", "hr": "milijun",
-           "nb": "million", "nl": "miljoen", "nn": "million", "pl": "milion",
+           "nb": "millioner", "nl": "miljoen", "nn": "millionar", "pl": "milion",
            "ru": "миллион", "uk": "мільйон"}
 
 #: the word each Romance vocabulary reads as the minus sign
@@ -51,10 +53,6 @@ MIXED = {"bg": ("минус", "двадесет", "сто двадесет", "д
          "en": ("minus", "twenty", "one hundred twenty", "two hundred"),
          "nl": ("min", "twintig", "honderdtwintig", "tweehonderd"),
          "fy": ("min", "tweintich", "hûnderttweintich", "twahûndert")}
-
-#: the languages of MIXED whose digit input the legacy readers handle; sk
-#: reads through numtag, which keeps "5 1/2" as written in numbers_to_digits
-LEGACY_MIXED = {lang: words for lang, words in MIXED.items() if lang != "sk"}
 
 
 class TestDoubleMinusNeverRaises(unittest.TestCase):
@@ -108,57 +106,54 @@ class TestMixedNumber(unittest.TestCase):
                                  Fraction(401, 2))
 
     def test_digits_written_once(self):
-        # the mixed number is one value: it is written once, whole part
-        # included
-        for lang, (minus, twenty, _, two_hundred) in LEGACY_MIXED.items():
+        # a mixed number in digits stays as written; with a whole part in
+        # words the mixed number is one value, written once
+        for lang, (minus, twenty, _, two_hundred) in MIXED.items():
             with self.subTest(lang=lang):
-                self.assertEqual(numbers_to_digits("5 1/2", lang), "5.5")
-                self.assertEqual(numbers_to_digits("x 20 1/2 y", lang), "x 20.5 y")
-                self.assertEqual(numbers_to_digits("x 120 1/2 y", lang), "x 120.5 y")
-                self.assertEqual(numbers_to_digits("-5 1/2", lang), "-5.5")
+                for text in ("5 1/2", "x 20 1/2 y", "x 120 1/2 y", "-5 1/2"):
+                    self.assertEqual(numbers_to_digits(text, lang), text)
                 self.assertEqual(numbers_to_digits(twenty + " 1/2", lang), "20.5")
                 self.assertEqual(numbers_to_digits(two_hundred + " 1/2", lang),
                                  "200.5")
         self.assertEqual(numbers_to_digits("у меня 20 1/2 литра", "ru"),
-                         "у меня 20.5 литра")
+                         "у меня 20 1/2 литра")
 
     def test_other_fraction_after_a_number_is_a_second_number(self):
         # only a whole number and a proper fraction form a mixed number: a
         # fraction after a decimal, or an improper fraction, starts a second
         # number, and the first keeps its sign
-        for lang, (minus, *_) in LEGACY_MIXED.items():
+        for lang, (minus, *_) in MIXED.items():
             with self.subTest(lang=lang):
                 self.assertEqual(extract_number(f"{minus} 3.5 1/2", lang),
                                  Fraction(-7, 2))
                 self.assertEqual(extract_number("5 3/2", lang), 5)
                 self.assertEqual(numbers_to_digits("x 3.5 1/2 y", lang),
-                                 "x 3.5 0.5 y")
+                                 "x 3.5 1/2 y")
                 self.assertEqual(numbers_to_digits("x 5 3/2 y", lang),
-                                 "x 5 1.5 y")
+                                 "x 5 3/2 y")
 
     def test_signed_zero_whole_part(self):
-        for lang in LEGACY_MIXED:
+        for lang in MIXED:
             with self.subTest(lang=lang):
                 self.assertEqual(extract_number("-0 1/2", lang), Fraction(-1, 2))
-                self.assertEqual(numbers_to_digits("-0 1/2", lang), "-0.5")
+                self.assertEqual(numbers_to_digits("-0 1/2", lang), "-0 1/2")
         for lang in ("da", "de", "nb", "nn"):
             with self.subTest(lang=lang):
                 self.assertEqual(extract_number("-0 1/2", lang), Fraction(-1, 2))
 
     def test_zero_fraction_after_a_number(self):
-        # 0/2 is the number 0: it adds nothing to the number before it and
-        # is written as 0
-        for lang in LEGACY_MIXED:
+        # 0/2 adds nothing to the number before it, and digits stay as written
+        for lang in MIXED:
             with self.subTest(lang=lang):
                 self.assertEqual(extract_number("5 0/2", lang), 5)
-                self.assertEqual(numbers_to_digits("5 0/2", lang), "5 0")
-                self.assertEqual(numbers_to_digits("x 0/2 y", lang), "x 0 y")
+                self.assertEqual(numbers_to_digits("5 0/2", lang), "5 0/2")
+                self.assertEqual(numbers_to_digits("x 0/2 y", lang), "x 0/2 y")
 
     def test_mixed_number_no_float_holds(self):
         # from 2**52 on a float cannot hold a whole part and a half; the
-        # whole number keeps every digit and the fraction is a second number
+        # value is the whole part, with every digit of it
         whole = 2 ** 53 + 1
-        for lang in list(LEGACY_MIXED) + ["da", "de", "nb", "nn"]:
+        for lang in list(MIXED) + ["da", "de", "nb", "nn"]:
             with self.subTest(lang=lang):
                 value = extract_number(f"{whole} 1/2", lang)
                 self.assertIsInstance(value, int)
@@ -167,10 +162,8 @@ class TestMixedNumber(unittest.TestCase):
                 self.assertEqual(extract_number(f"{minus} {whole} 1/2", lang),
                                  -whole)
                 self.assertEqual(extract_number(f"-{whole} 1/2", lang), -whole)
-                self.assertEqual(numbers_to_digits(f"{whole} 1/2", lang),
-                                 f"{whole} 0.5")
-                self.assertEqual(numbers_to_digits(f"{10 ** 19 + 1} 1/2", lang),
-                                 f"{10 ** 19 + 1} 0.5")
+                for text in (f"{whole} 1/2", f"{10 ** 19 + 1} 1/2"):
+                    self.assertEqual(numbers_to_digits(text, lang), text)
                 # below 2**52 the float holds the mixed number exactly
                 self.assertEqual(extract_number(f"{2 ** 52 - 1} 1/2", lang),
                                  Fraction(2 ** 53 - 1, 2))
@@ -186,11 +179,12 @@ class TestMixedNumber(unittest.TestCase):
         self.assertEqual(numbers_to_digits("5 min 1/2", "nl"), "5 min 0.5")
 
     def test_mixed_whole_part_past_float_range(self):
+        # 400 nines and one half is 10**400 - 1/2, which has no float and
+        # rounds half up to 10**400
         big = "9" * 400
-        for lang in LEGACY_MIXED:
+        for lang in MIXED:
             with self.subTest(lang=lang):
-                self.assertEqual(extract_number(big + " 1/2", lang),
-                                 extract_number("zzz", lang))
+                self.assertEqual(extract_number(big + " 1/2", lang), 10 ** 400)
 
     def test_sign_covers_the_whole_mixed_number(self):
         # -5 1/2 is -(5 + 1/2)
@@ -221,14 +215,13 @@ class TestMixedNumber(unittest.TestCase):
                                  Fraction(-7, 2))
 
     def test_whole_part_past_float_range(self):
-        # the value has no float, so it is no number, as the digit string
-        # "999...9.5" is none
+        # the value has no float, so it rounds half up to an int, as the
+        # digit string "999...9.5" does
         big = "9" * 400
         for lang in ("da", "de", "nb", "nn"):
             with self.subTest(lang=lang):
-                self.assertEqual(extract_number(big + " 1/2", lang),
-                                 extract_number("zzz", lang))
-                self.assertFalse(extract_number(big + ".5", lang))
+                self.assertEqual(extract_number(big + " 1/2", lang), 10 ** 400)
+                self.assertEqual(extract_number(big + ".5", lang), 10 ** 400)
 
 
 class TestValuePastIntStringLimit(unittest.TestCase):

@@ -164,20 +164,16 @@ class TestOneNumberStaysWhole(unittest.TestCase):
 class TestSpanValuesStayWritable(unittest.TestCase):
     """A span value is an integer that str() can write. 4000 digits fit the
     default limit of 4300; with "centiliões" (10 ** 600 in pt-PT) they do
-    not, so the span ends before the scale word."""
+    not, so the number is no number, as extract_number answers."""
 
-    def test_the_span_stops_before_an_unwritable_value(self):
+    def test_an_unwritable_value_is_no_span(self):
         digits = "9" * 4000
         for text in (digits + " centiliões", digits + " centiliões e dois"):
             with self.subTest(text=text[-20:]):
-                spans = extract_number_spans(text, "pt-PT")
-                self.assertTrue(spans)
-                self.assertEqual(spans[0].surface, digits)
-                self.assertEqual(spans[0].value, 10 ** 4000 - 1)
-                for span in spans:
+                for span in extract_number_spans(text, "pt-PT"):
                     str(span.value)
-                self.assertIs(extract_number(digits + " centiliões",
-                                             lang="pt-PT"), False)
+                    self.assertNotIn(digits, span.surface)
+                self.assertIs(extract_number(text, lang="pt-PT"), False)
 
 
 if __name__ == "__main__":

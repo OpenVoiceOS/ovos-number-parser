@@ -5,11 +5,11 @@ from ovos_number_parser import numbers_to_digits
 
 
 class TestGenericNumbersToDigitsEdges(unittest.TestCase):
-    def test_adjacent_bare_numbers_sum(self):
-        # the shared Romance engine accumulates adjacent bare numbers
-        # ("cinque tre" = 5 + 3), exactly as it does for es/ca
+    def test_adjacent_bare_numbers_are_two_numbers(self):
+        # an Italian cardinal is one word ("ventitré"), so two unit words are
+        # two numbers, not a sum
         out = numbers_to_digits("cinque tre", "it")
-        self.assertEqual(out, "8")
+        self.assertEqual(out, "5 3")
 
     def test_e_is_not_a_cardinal_conjunction(self):
         # standard Italian cardinals carry no conjunction ("venticinque", never
@@ -18,10 +18,11 @@ class TestGenericNumbersToDigitsEdges(unittest.TestCase):
         out = numbers_to_digits("due e tre", "it")
         self.assertEqual(out, "2 e 3")
 
-    def test_decimal_marker_not_merged(self):
-        # "virgola" is not a connector: both numbers convert separately
+    def test_decimal_marker_reads_a_decimal(self):
+        # "virgola" is the decimal comma: CLDR 48 RBNF it
+        # %spellout-cardinal-masculine reads x.x as "<< virgola >>"
         out = numbers_to_digits("cinque virgola due chili", "it")
-        self.assertEqual(out, "5 virgola 2 chili")
+        self.assertEqual(out, "5.2 chili")
 
 
 class TestPerLanguageNumbersToDigits(unittest.TestCase):

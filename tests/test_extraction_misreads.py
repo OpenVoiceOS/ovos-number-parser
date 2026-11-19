@@ -534,7 +534,7 @@ class TestDecimalBeforeAFraction(unittest.TestCase):
         for lang in ("en", "de", "da"):
             with self.subTest(lang=lang):
                 self.assertEqual(numbers_to_digits("x 3.5 1/2 y", lang),
-                                 f"x 3.5 {1 / 2} y")
+                                 "x 3.5 1/2 y")
                 self.assertEqual(extract_number("x 3.5 1/2 y", lang),
                                  Fraction(7, 2))
                 self.assertEqual(_spans("x 3.5 1/2 y", lang),
@@ -564,8 +564,10 @@ class TestDecimalBeforeAFraction(unittest.TestCase):
     def test_integer_whole_part_still_makes_a_mixed_number(self):
         for lang in ("en", "de", "da"):
             with self.subTest(lang=lang):
+                self.assertEqual(extract_number("x 3 1/2 y", lang),
+                                 Fraction(7, 2))
                 self.assertEqual(numbers_to_digits("x 3 1/2 y", lang),
-                                 f"x {3 + 1 / 2} y")
+                                 "x 3 1/2 y")
 
 
 if __name__ == "__main__":
