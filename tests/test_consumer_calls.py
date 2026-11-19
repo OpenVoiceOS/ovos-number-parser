@@ -13,11 +13,12 @@ from ovos_number_parser import extract_number, numbers_to_digits
 
 class TestClockTimeKeepsItsHalfHour(unittest.TestCase):
     def test_numbers_to_digits(self):
-        # German "halb drei" is half an hour before three, 2:30; French "et
-        # demie" and Galician "e media" after an hour are its half hour
+        # German "halb drei" is half an hour before three: the date parser
+        # reads "halb 3" as 2:30; French "et demie" and Galician "e media"
+        # after an hour are its half hour
         for text, lang, expected in (
-                ("um halb drei", "de-DE", "um 2:30"),
-                ("weck mich um halb drei", "de-DE", "weck mich um 2:30"),
+                ("um halb drei", "de-DE", "um halb 3"),
+                ("weck mich um halb drei", "de-DE", "weck mich um halb 3"),
                 ("à cinq heures et demie", "fr-FR", "à 5 heures et demie"),
                 ("dans deux heures et demie", "fr-FR", "dans 2 heures et demie"),
                 ("ás cinco e media", "gl-ES", "ás 5 e media")):

@@ -30,28 +30,13 @@
  "tests/test_extraction_crashes_signs.py::TestNordicSignedPart::test_swedish_signed_part_is_a_new_number": {
   "": "https://github.com/TigreGotico/numtag/issues/163"
  },
- "tests/test_extraction_crashes_signs.py::TestRomanceSigns::test_leading_decimal_separator": {
-  "lang='fr'": "https://github.com/TigreGotico/numtag/issues/163",
-  "lang='it'": "https://github.com/TigreGotico/numtag/issues/163",
-  "lang='ro'": "https://github.com/TigreGotico/numtag/issues/163"
- },
  "tests/test_extraction_crashes_signs.py::TestRomanceSigns::test_minus_word_after_a_french_clock_head_signs_nothing": {
   "text='il est 9h moins 10'": "https://github.com/TigreGotico/numtag/issues/163",
-  "text='il est 21h30 moins 10'": "https://github.com/TigreGotico/numtag/issues/163",
-  "text='midi moins 10'": "https://github.com/TigreGotico/numtag/issues/163",
-  "text='il est midi moins 10'": "https://github.com/TigreGotico/numtag/issues/163",
-  "text='minuit moins dix'": "https://github.com/TigreGotico/numtag/issues/163",
-  "": "https://github.com/TigreGotico/numtag/issues/163"
+  "text='il est 21h30 moins 10'": "https://github.com/TigreGotico/numtag/issues/163"
  },
  "tests/test_extraction_crashes_signs.py::TestRomanceSigns::test_minus_word_before_a_number_still_signs": {
   "lang='pt', text='desceu a menos três graus'": "https://github.com/TigreGotico/numtag/issues/163",
   "lang='pt', text='desceu a menos 3 graus'": "https://github.com/TigreGotico/numtag/issues/163"
- },
- "tests/test_extraction_crashes_signs.py::TestRomanceSigns::test_minus_word_in_an_idiom_signs_nothing": {
-  "lang='fr', text='à tout le moins 3 jours'": "https://github.com/TigreGotico/numtag/issues/163",
-  "lang='fr', text='à tout le moins trois jours'": "https://github.com/TigreGotico/numtag/issues/163",
-  "lang='it', text='quanto meno 3 ore'": "https://github.com/TigreGotico/numtag/issues/163",
-  "lang='it', text='quanto meno tre ore'": "https://github.com/TigreGotico/numtag/issues/163"
  },
  "tests/test_extraction_misreads.py::TestArabicSpansAcrossAnd::test_a_span_may_open_with_and": {
   "": "https://github.com/TigreGotico/numtag/issues/160"
@@ -4317,23 +4302,12 @@
   "power=63": "https://github.com/TigreGotico/numtag/issues/161"
  },
  "tests/test_consumer_calls.py::TestClockTimeKeepsItsHalfHour::test_numbers_to_digits": {
-  "lang='de-DE', text='um halb drei'": "https://github.com/TigreGotico/numtag/issues/179",
-  "lang='de-DE', text='weck mich um halb drei'": "https://github.com/TigreGotico/numtag/issues/179",
   "lang='fr-FR', text='à cinq heures et demie'": "https://github.com/TigreGotico/numtag/issues/180",
   "lang='fr-FR', text='dans deux heures et demie'": "https://github.com/TigreGotico/numtag/issues/180",
   "lang='gl-ES', text='ás cinco e media'": "https://github.com/TigreGotico/numtag/issues/180"
  },
- "tests/test_consumer_calls.py::TestUnitAfterACount::test_seconds": {
-  "lang='it-IT', text='dieci secondi'": "https://github.com/TigreGotico/numtag/issues/181",
-  "lang='it-IT', text='trenta secondi'": "https://github.com/TigreGotico/numtag/issues/181",
-  "lang='it-IT', text='tra dieci secondi'": "https://github.com/TigreGotico/numtag/issues/181",
-  "lang='ca-ES', text='vint segons'": "https://github.com/TigreGotico/numtag/issues/181",
-  "lang='ca-ES', text='trenta segons'": "https://github.com/TigreGotico/numtag/issues/181",
-  "lang='ca-ES', text='d aquí a vint segons'": "https://github.com/TigreGotico/numtag/issues/181"
- },
  "tests/test_consumer_calls.py::TestPronouncedThousands::test_a_thousand_and_its_rest": {
   "lang='en-US', text='one thousand, one'": "https://github.com/TigreGotico/numtag/issues/157",
-  "lang='en-US', text='two thousand, twenty three'": "https://github.com/TigreGotico/numtag/issues/157",
-  "lang='gl-ES', text='mil e un segundos'": "https://github.com/TigreGotico/numtag/issues/144"
+  "lang='en-US', text='two thousand, twenty three'": "https://github.com/TigreGotico/numtag/issues/157"
  }
 }

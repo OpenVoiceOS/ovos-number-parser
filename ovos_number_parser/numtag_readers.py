@@ -96,9 +96,11 @@ def number(value: str, kind: Kind = Kind.DECIMAL) -> Optional[Union[int, float]]
         return None
     if "/" not in value and "." not in value:
         return int(value)
-    exact = Fraction(value)
     try:
+        exact = Fraction(value)
         approx = float(exact)
+    except ValueError:
+        return None
     except OverflowError:
         return None
     if exact.denominator == 1 or (kind is Kind.FRACTION and approx.is_integer() and abs(exact) >= 1):
