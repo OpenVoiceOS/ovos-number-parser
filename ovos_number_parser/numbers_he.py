@@ -8,8 +8,10 @@ value times two (``מאתיים`` = 200, ``אלפיים`` = 2000). Niqqud (vowel
 points and cantillation marks) is stripped before matching.
 """
 
-from math import isfinite
-from ovos_number_parser.util import convert_to_mixed_fraction
+import re
+
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
+    scientific_parts
 
 # niqqud and cantillation marks are stripped so vocalized text matches
 _NORM_TABLE = {c: None for c in range(0x0591, 0x05C8)}
@@ -187,15 +189,14 @@ def pronounce_number_he(number, places=2, scientific=False, ordinals=False,
     if scientific:
         if number == 0:
             return _ONES_HE[0]
-        n, power = ('%E' % number).replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(number, places)
         if power != 0:
-            mantissa = pronounce_number_he(abs(float(n)), places,
+            mantissa = pronounce_number_he(abs(n), places,
                                            feminine=feminine)
             exponent = pronounce_number_he(abs(power), places,
                                            feminine=feminine)
             return "{}{} כפול עשר בחזקת {}{}".format(
-                _MINUS_HE + " " if float(n) < 0 else "", mantissa,
+                _MINUS_HE + " " if n < 0 else "", mantissa,
                 _MINUS_HE + " " if power < 0 else "", exponent)
     if ordinals:
         return pronounce_ordinal_he(number)
@@ -323,15 +324,6 @@ _ORDINAL_UNITS_LOOKUP = {w: v for v, w in _ORDINALS_HE.items()}
 _ORDINAL_UNITS_LOOKUP.update({w: v for v, w in _ORDINALS_FEM_HE.items()})
 
 
-def _is_number(s):
-    try:
-        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
-        # string) carries no usable number and must not be treated as one
-        return isfinite(float(s))
-    except ValueError:
-        return False
-
-
 def _in_vocab(token):
     return (token in _UNITS_LOOKUP or token in _TENS_LOOKUP or
             token in _SCALES_LOOKUP or token in _SCALE_DUALS_LOOKUP or
@@ -429,12 +421,50 @@ def extract_numbers_he(text, short_scale=True, ordinals=False):
     return results
 
 
+def _component_value(tokens, k):
+    """The value of the unit, teen, ten or hundred that starts at tokens[k].
+
+    None for a scale word, a fraction or a word that is no number."""
+    tok = tokens[k]
+    nxt = tokens[k + 1] if k + 1 < len(tokens) else None
+    if tok in _UNITS_LOOKUP:
+        unit = _UNITS_LOOKUP[tok]
+        if 1 <= unit <= 9 and nxt in _TEEN_SECOND_LOOKUP:
+            return 10 + unit
+        if 3 <= unit <= 9 and nxt in _HUNDRED_MULT_LOOKUP:
+            return unit * 100
+        return unit
+    if tok in _TENS_LOOKUP:
+        return _TENS_LOOKUP[tok]
+    if tok in _HUNDRED_WORDS:
+        return _HUNDRED_WORDS[tok]
+    if tok in _SCALE_DUALS_LOOKUP and _SCALE_DUALS_LOOKUP[tok] < 1000:
+        return _SCALE_DUALS_LOOKUP[tok]
+    return None
+
+
+def _fits(current, value):
+    """Whether a component of ``value`` can follow ``current`` in one number.
+
+    A compound numeral names its components from the largest to the
+    smallest, as the example in Hebrew Wikipedia, "שם מספר", section
+    "אבני יסוד", shows ("שלושת־אלפים שש־מאות ושבע־עשרה"). So a unit only
+    follows a whole ten, a ten or a teen only a whole hundred, and a hundred
+    only a whole thousand: "שלושה וארבעה" is two numbers, three and four.
+    """
+    if value is None:
+        return True
+    place = 10 ** len(str(int(value))) if value else 10
+    return current % place == 0
+
+
 def _parse_number_span(tokens, i):
     """Parse one number starting at tokens[i].
 
     Returns (value, next_index); value is None if no number starts here."""
     total = 0
     current = 0
+    largest = 0
     started = False
     n = len(tokens)
     j = i
@@ -446,17 +476,21 @@ def _parse_number_span(tokens, i):
             nxt = tokens[j + 1]
             if (nxt in _UNITS_LOOKUP or nxt in _TENS_LOOKUP or
                     nxt in _SCALES_LOOKUP or nxt in _SCALE_DUALS_LOOKUP or
-                    nxt in _HUNDRED_WORDS or nxt in _FRACTIONS_LOOKUP):
+                    nxt in _HUNDRED_WORDS or nxt in _FRACTIONS_LOOKUP) and \
+                    _fits(current, _component_value(tokens, j + 1)):
                 j += 1
                 continue
             break
-        if _is_number(tok):
+        if is_numeric(tok):
             if started:
                 break
-            value = float(tok)
-            if value.is_integer():
+            value = numeric_value(tok)
+            if value == int(value):
                 value = int(value)
             return value, j + 1
+        if started and tokens[j - 1] != "ו" and \
+                not _fits(current, _component_value(tokens, j)):
+            break
         # teens: unit word followed by עשר/עשרה
         if tok in _UNITS_LOOKUP and 1 <= _UNITS_LOOKUP[tok] <= 9 and \
                 j + 1 < n and tokens[j + 1] in _TEEN_SECOND_LOOKUP:
@@ -487,7 +521,15 @@ def _parse_number_span(tokens, i):
             j += 1
             continue
         if tok in _SCALES_LOOKUP:
-            total += (current if current else 1) * _SCALES_LOOKUP[tok]
+            scale = _SCALES_LOOKUP[tok]
+            if total and scale > largest and tokens[j - 1] != "ו":
+                # a scale word above every scale before it multiplies the
+                # whole number ("שנים עשר מיליון טריליון" = 12 * 10**6 * 10**12);
+                # after "ו" it adds ("אלפיים ומיליון" = 1002000)
+                total = (total + current) * scale
+            else:
+                total += (current if current else 1) * scale
+            largest = max(largest, scale)
             current = 0
             started = True
             j += 1
@@ -498,6 +540,7 @@ def _parse_number_span(tokens, i):
                 current += 200
             else:
                 total += value
+                largest = max(largest, value // 2)
                 current = 0
             started = True
             j += 1
@@ -529,6 +572,50 @@ def _parse_decimal_part(tokens, i):
     if digits:
         return sum(d / 10 ** (k + 1) for k, d in enumerate(digits)), j
     return None, i
+
+
+_WORD_RE = re.compile(r'\S+')
+#: a ו that _detach_conjunction split off and the converter left alone: it
+#: goes back onto the digits or the word after it
+_CONJUNCTION_DIGITS_RE = re.compile(r'(?<!\S)ו (?=\S)')
+#: a ו the writer typed as a word of its own
+_OWN_WORD_CONJUNCTION_RE = re.compile(r'(?<!\S)ו(?!\S)')
+#: the private-use characters that can stand in for such a ו while the
+#: converter runs, so that neither the converter nor the re-glue above
+#: touches it; the first one absent from the input is used
+_PRIVATE_USE = range(0xE000, 0xF900)
+
+
+def _detach_conjunction(match):
+    """Put a space after a ו written onto a number word.
+
+    The shared converter then reads the ו as a connector: it joins the parts
+    of one number ("אלף וחמישים" is 1050) and stays a word before a number
+    that starts anew ("מכונית ושלוש אופניים")."""
+    word = match.group(0)
+    tokens = _tokenize_he(word)
+    if len(tokens) == 2 and tokens[0] == "ו" and word[0] == "ו":
+        return "ו " + word[1:]
+    return word
+
+
+def numbers_to_digits_he(utterance: str) -> str:
+    """Replace spoken Hebrew number spans with digits.
+
+    A ו attached to a number word that starts a new number stays, glued to
+    the digits: "יש לי מכונית ושלוש אופניים" becomes "יש לי מכונית ו3
+    אופניים", while "אלף וחמישים" becomes "1050".
+    """
+    # deferred: the shared converter lives in the package root, which imports
+    # this module
+    from ovos_number_parser import _numbers_to_digits_generic
+    placeholder = next(chr(c) for c in _PRIVATE_USE if chr(c) not in utterance)
+    held = _OWN_WORD_CONJUNCTION_RE.sub(placeholder, utterance)
+    spaced = _WORD_RE.sub(_detach_conjunction, held)
+    # "מאות" is no number alone but multiplies the unit before it
+    converted = _numbers_to_digits_generic(
+        spaced, "he", continues=lambda word: word in _HUNDRED_MULT_LOOKUP)
+    return _CONJUNCTION_DIGITS_RE.sub("ו", converted).replace(placeholder, "ו")
 
 
 def extract_number_he(text, ordinals=False):

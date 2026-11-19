@@ -130,6 +130,8 @@ _CA = NumberVocabulary(
 
     NUMBER_OVERFLOW="número exageradament gran",
     DEFAULT_SCALE=Scale.LONG,  # 10^9 = "miliard", 10^12 = "bilió"
+    DIGIT_GROUP_MARK=".",
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["i"],
 
     JOINER_ON_TWENTYS=True,       # "vint i un" (hyphenated on output)
@@ -141,6 +143,8 @@ _CA = NumberVocabulary(
 
     DECIMAL_MARKER=["coma", "amb", "punt", ".", ","],
     NEGATIVE_SIGN=["menys"],
+    NEGATIVE_IDIOMS=[("al", "menys"), ("a", "menys", "que"), ("més", "o", "menys"),
+                     ("ni", "més", "ni", "menys")],
     UNITS={
         0: 'zero',
         1: 'un',
@@ -381,10 +385,11 @@ class CatalanNumberExtractor(RomanceNumberExtractor):
                          digits: DigitPronunciation = DigitPronunciation.DIGIT_BY_DIGIT,
                          gender: GrammaticalGender = GrammaticalGender.MASCULINE,
                          _force_hundreds_join: bool = False,
-                         _under_higher_scale: bool = False) -> str:
+                         _under_higher_scale: bool = False,
+                         _fraction_digits: bool = False) -> str:
         spoken = super().pronounce_number(number, places, scale, ordinals,
                                           digits, gender, _force_hundreds_join,
-                                          _under_higher_scale)
+                                          _under_higher_scale, _fraction_digits)
         return _hyphenate_ca(spoken)
 
 
@@ -477,6 +482,13 @@ def extract_number_ca(text, short_scale=False, ordinals=False):
     """
     DEPRECATED
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "ca", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,

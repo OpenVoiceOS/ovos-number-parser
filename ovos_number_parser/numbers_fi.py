@@ -14,9 +14,10 @@ References:
     * https://fi.wikipedia.org/wiki/Numeraali
     * https://en.wiktionary.org/wiki/Appendix:Finnish_numbers
 """
-from math import floor, isfinite
+from decimal import Decimal
+from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
 
 _NUM_STRING_FI = {
     0: 'nolla',
@@ -172,18 +173,19 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     Returns:
         (str): The pronounced number
     """
-    if ordinals:
+    if ordinals and number == int(number) and number >= 0:
         return pronounce_ordinal_fi(number)
     if abs(number) >= 10 ** 15:  # beyond the supported scale words
-        return str(number)
+        return f"{Decimal(str(number)):f}".removesuffix(".0")
     if number < 0:
-        return "miinus " + pronounce_number_fi(abs(number), places)
+        return "miinus " + pronounce_number_fi(abs(number), places,
+                                                ordinals=ordinals)
     if number == int(number):
         return _pronounce_int_fi(int(number))
     result = _pronounce_int_fi(floor(number))
     if places > 0:
         # decimals are read digit by digit after "pilkku"
-        fraction = str(round(number - floor(number), places))[2:]
+        fraction = f"{Decimal(str(round(number - floor(number), places))):f}"[2:]
         digits = [_NUM_STRING_FI[int(d)] for d in fraction[:places]]
         result += " pilkku " + " ".join(digits)
     return result
@@ -453,14 +455,11 @@ def _extract_span_fi(tokens, idx):
 
     # digits, including comma decimals
     cleaned = token.replace(',', '.')
-    try:
-        val = float(cleaned)
-        if isfinite(val):
-            if val == int(val) and '.' not in cleaned:
-                val = int(val)
-            return val, idx + 1
-    except ValueError:
-        pass
+    if is_numeric(cleaned):
+        val = numeric_value(cleaned)
+        if val == int(val) and '.' not in cleaned:
+            val = int(val)
+        return val, idx + 1
 
     frac = is_fractional_fi(token)
     if frac:

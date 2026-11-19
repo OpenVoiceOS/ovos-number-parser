@@ -1,8 +1,44 @@
+"""Danish number words.
+
+Sources for the writer rules:
+
+* Dansk Sprognævn, svarbase SV00017853 (sproget.dk): "Man vil altså udtale
+  tallene: et hundrede og en, et tusinde og en, en million og en." A final
+  group below 100 follows a hundred, thousand or million after "og", and a
+  final 1 is the counting form "en"; "et" is for a neuter noun
+  ("101 gram udtales et hundrede og et gram"). Wiktionary, Appendix:Danish
+  numerals: "tre tusinde to hundrede og fireoghalvtreds" (3254).
+* Den Danske Ordbog, "tusinde" and "tusind": "tusinde 1 eller tusind talord
+  (mængdetal)". The writer keeps "tusind" for 1000 and "tusinde" after a
+  count ("to tusinde"). The same entries list "hundrede" and "tusinde" as the
+  ordinals of 100 and 1000, and "millionte", "milliardte" and "billionte"
+  are ordinals, so a larger scale word takes -te.
+* Politikens sprogklumme on sproget.dk, "Den 101. dalmatiner møder den 101.
+  stryger": the ordinal of 100 is "hundrede"; "hundred(e) (og) syttende"
+  shows that "og" before the last ordinal is optional.
+* Dansk Sprognævn, svarbase SV00000084: "fyrrende, halvtredsende, tressende,
+  halvfjerdsende, firsende og halvfemsende" are correct next to the long
+  forms on -indstyvende. The writer uses the short series for 40 to 90, so
+  the 60th is "tressende" (da.wikipedia, "Talord", gives the long forms as
+  frequent in ordinals).
+"""
 import re
+import sys
+from fractions import Fraction
+from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
-                                     ReplaceableNumber, Token, look_for_fractions)
+                                     ReplaceableNumber, Token, look_for_fractions,
+                                     GrammaticalGender, numeric_value, fits_str_limit)
+
+#: the last word of a whole number before a common-gender (FEMININE) or neuter
+#: noun (ICU RBNF da spellout-cardinal-common and -neuter: "hundrede og en",
+#: "hundrede og et"). The masculine is the default gender and keeps its output.
+_GENDERED_LAST_WORD_DA = {
+    GrammaticalGender.FEMININE: {"et": "en"},
+    GrammaticalGender.NEUTRAL: {"en": "et"},
+}
 
 
 _ARTICLES = {'en', 'et'}
@@ -165,13 +201,13 @@ _LONG_SCALE = {
     100: 'hundrede',
     1000: 'tusinde',
     1000000: 'million',
-    1e9: "milliard",
-    1e12: 'billion',
-    1e15: "billiard",
-    1e18: "trillion",
-    1e21: "trilliard",
-    1e24: "quadrillion",
-    1e27: "quadrilliard"
+    10 ** 9: "milliard",
+    10 ** 12: 'billion',
+    10 ** 15: "billiard",
+    10 ** 18: "trillion",
+    10 ** 21: "trilliard",
+    10 ** 24: "quadrillion",
+    10 ** 27: "quadrilliard"
 }
 
 _MULTIPLIER = set(_LONG_SCALE.values())
@@ -237,6 +273,21 @@ _COMMA = {"komma"}
 _EXTRA_SPACE_DA = ""
 
 
+# The ordinals of the tens 40-90 come in two forms, both correct (Dansk
+# Sprognævn, sproget.dk SV00000084): the newer cardinal plus -ende
+# ("fyrrende") and the older vigesimal -(inds)tyvende ("fyrretyvende"). The
+# older forms and "tressende" are no suffix of the cardinal, so each maps to
+# the cardinal ten it names.
+_DA_TENS_ORDINALS = {
+    "fyrretyvende": "fyrre",
+    "halvtredsindstyvende": "halvtreds",
+    "tresindstyvende": "tres", "tressende": "tres",
+    "halvfjerdsindstyvende": "halvfjerds",
+    "firsindstyvende": "firs",
+    "halvfemsindstyvende": "halvfems",
+}
+
+
 def is_ordinal_da(input_str):
     """
     This function takes the given text and checks if it is an ordinal number.
@@ -279,6 +330,12 @@ def is_ordinal_da(input_str):
     }
     if lowerstr in irregular:
         return irregular[lowerstr]
+
+    for ordinal, cardinal in _DA_TENS_ORDINALS.items():
+        if lowerstr.endswith(ordinal):
+            # "toogfyrretyvende" = "toogfyrre" + "nde", read below
+            value = _cardinal_value(lowerstr[:-len(ordinal)] + cardinal)
+            return False if value is None else value
 
     if lowerstr.endswith("te"):
         value = _cardinal_value(lowerstr[:-2] + "e")
@@ -338,7 +395,7 @@ def nice_number_da(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -366,7 +423,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
     # TODO short_scale, scientific and ordinals
     # currently ignored
 
-    def pronounce_triplet_da(num):
+    def pronounce_triplet_da(num, one="en"):
         result = ""
         num = floor(num)
         if num > 99:
@@ -393,7 +450,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
         if num == 0:
             result += ''  # do nothing
         elif num == 1:
-            result += 'et'
+            result += one
         elif num <= 20:
             result += _NUM_STRING_DA[num] + _EXTRA_SPACE_DA
         elif num > 20:
@@ -411,14 +468,8 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
     def pronounce_fractional_da(num, places):
         # fixed number of places even with trailing zeros
         result = ""
-        num = round(num, places)
-        place = 10
-        while places > 0:
-            # doesn't work with 1.0001 and places = 2: int(
-            # number*place) % 10 > 0 and places > 0:
-            result += " " + _NUM_STRING_DA[int(num * place) % 10]
-            place *= 10
-            places -= 1
+        for digit in f"{Decimal(str(num)):f}".split(".")[1][:places].ljust(places, "0"):
+            result += " " + _NUM_STRING_DA[int(digit)]
         return result
 
     def pronounce_whole_number_da(num, scale_level=0):
@@ -428,13 +479,14 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
         num = floor(num)
         result = ''
         last_triplet = num % 1000
+        if scale_level == 0 and num > 1000 and 0 < last_triplet < 100:
+            # "og" links a final group below 100 to the thousands or millions
+            # before it ("tusind og en", "to tusind og fireogtyve")
+            result += 'og '
 
         if last_triplet == 1:
             if scale_level == 0:
-                if result != '':
-                    result += '' + 'et'
-                else:
-                    result += "en"
+                result += "en"
             elif scale_level == 1:
                 # 1000 is "tusind", not "et tusinde": Retskrivningsordbogen
                 # gives "tusind" as the count word (a bare "tusinde" also
@@ -443,7 +495,10 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             else:
                 result += "en " + _NUM_POWERS_OF_TEN[scale_level] + ' '
         elif last_triplet > 1:
-            result += pronounce_triplet_da(last_triplet)
+            # a final 1 is "en" (common gender); before "tusind", a neuter
+            # noun, it is "et" ("hundrede og et tusind")
+            result += pronounce_triplet_da(
+                last_triplet, "et" if scale_level == 1 else "en")
             if scale_level == 1:
                 # a space so the thousands stay a separate word from the
                 # hundreds below them ("fem tusinde ni hundrede ...")
@@ -453,7 +508,7 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
             if scale_level >= 2:
                 result += "er "  # MilliardER, MillioneER
 
-        num = floor(num / 1000)
+        num //= 1000
         scale_level += 1
         return pronounce_whole_number_da(num,
                                          scale_level) + result + _EXTRA_SPACE_DA
@@ -464,21 +519,23 @@ def pronounce_number_da(number, places=2, short_scale=True, scientific=False,
     elif number == 0:
         return str(_NUM_STRING_DA[0])
     elif number < 0:
-        return "minus " + pronounce_number_da(abs(number), places)
+        return "minus " + pronounce_number_da(abs(number), places, gender=gender)
     else:
         if number == int(number):
-            return re.sub(r'\s+', ' ', pronounce_whole_number_da(number)).strip()
+            spoken = re.sub(r'\s+', ' ', pronounce_whole_number_da(number)).strip()
+            *head, last = spoken.split(" ")
+            last = _GENDERED_LAST_WORD_DA.get(gender, {}).get(last, last)
+            return " ".join(head + [last])
         else:
             whole_number_part = floor(number)
-            fractional_part = number - whole_number_part
-            result += pronounce_whole_number_da(whole_number_part)
+            result += pronounce_whole_number_da(whole_number_part) or _NUM_STRING_DA[0]
             if places > 0:
                 result += " komma"
-                result += pronounce_fractional_da(fractional_part, places)
-            return re.sub(r'\s+', ' ', result).strip()
+                result += pronounce_fractional_da(number, places)
+            return re.sub(r'\s+', ' ', result).strip() or _NUM_STRING_DA[0]
 
 
-def pronounce_ordinal_da(number):
+def pronounce_ordinal_da(number, gender=GrammaticalGender.MASCULINE):
     """
     This function pronounces a number as an ordinal
 
@@ -487,6 +544,9 @@ def pronounce_ordinal_da(number):
 
     Args:
         number (int): the number to format
+        gender (GrammaticalGender): NEUTRAL gives the neuter "andet" for 2
+            (ICU RBNF da spellout-ordinal-neuter); the other ordinals have
+            one form
     Returns:
         (str): The pronounced number string.
     """
@@ -507,15 +567,38 @@ def pronounce_ordinal_da(number):
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
+    number = int(number)
     if number < 20:
+        if number == 2 and gender == GrammaticalGender.NEUTRAL:
+            return "andet"
         return ordinals[number]
+    if number >= 100:
+        last = number % 100
+        if last:
+            # the cardinal head is unchanged and "og" links the ordinal of
+            # the last group below 100 ("hundrede og første")
+            return pronounce_number_da(number - last) + " og " + \
+                pronounce_ordinal_da(last, gender)
+        # the last word of a round number is a scale word: hundrede and
+        # tusinde are the ordinals of 100 and 1000, larger ones take -te
+        # ("millionte", "milliardte")
+        head, _, scale = pronounce_number_da(number).rpartition(" ")
+        if scale in ("tusind", "tusinde"):
+            scale = "tusinde"
+        elif scale != "hundrede":
+            scale = scale.removesuffix("er") + "te"
+        return scale if head in ("", "en") else f"{head} {scale}"
     if 30 <= number < 40:
         # tredive -> tredivte, enogtredive -> enogtredivte: drop the
         # trailing unstressed -e and add -te (distinct from the plain
         # +ende suffix used everywhere else)
         return pronounce_number_da(number)[:-1] + "te"
-    # 20-29 and 40+ both just append the cardinal's usual +nde/+ende
     cardinal = pronounce_number_da(number)
+    if cardinal.endswith("tres"):
+        # tres + sende, as halvtreds + ende: the short series of
+        # Retskrivningsordbogen ("tressende")
+        return cardinal + "sende"
+    # 20-29 and 40+ both just append the cardinal's usual +nde/+ende
     return cardinal + ("nde" if cardinal[-1:] == 'e' else "ende")
 
 
@@ -536,6 +619,8 @@ def numbers_to_digits_da(text, short_scale=False,
     numbers_to_replace = \
         _extract_numbers_with_text_da(tokens, short_scale, ordinals, fractions)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -627,9 +712,27 @@ def _extract_number_with_text_da_helper(tokens, short_scale, ordinals):
         int or float, [Tokens]
     """
     if ordinals:
-        for token in tokens:
+        for idx, token in enumerate(tokens):
             ordinal = is_ordinal_da(token.word)
             if ordinal:
+                # the "og"-inverted compound ("en og tyvende" = en + og +
+                # tyvende = 1 + 20 = 21) names the smaller unit before the
+                # larger ordinal tens word (the old counting:
+                # "enerleddet først, deretter og, og så tierleddet", Store
+                # norske leksikon, "den gamle tellemåten"), so only a unit
+                # 1-9 before an ordinal ten 20-90 folds; that single-word prefix is the
+                # same reading is_ordinal_da already gives its glued
+                # spelling ("enogtyvende"). Without this the line reads as
+                # a cardinal and an unrelated ordinal, two spans, and the
+                # leftmost-separated rule answers the leading cardinal.
+                if idx >= 2 and tokens[idx - 1].word.lower() in _NUMBER_CONNECTORS:
+                    prefix_val = is_number_da(tokens[idx - 2].word.lower())
+                    if prefix_val in range(1, 10) and ordinal in range(20, 100, 10):
+                        glued = "".join(tok.word.lower()
+                                        for tok in tokens[idx - 2:idx + 1])
+                        compound = is_ordinal_da(glued)
+                        if compound:
+                            return compound, tokens[idx - 2:idx + 1]
                 return ordinal, [token]
 
     return _extract_real_number_with_text_da(tokens, short_scale)
@@ -657,10 +760,14 @@ def _extract_real_number_with_text_da(tokens, short_scale):
         _current_val = None
 
         word = token.word
+        # a sign after a summed part opens the next number: "5 og -3" is 5,
+        # then -3
+        opens_signed = bool(to_sum) and (
+            word in _NEGATIVES or word.startswith("-") and is_numeric_da(word))
 
         if word in _NUMBER_CONNECTORS and not number_words:
             continue
-        if word in (_NEGATIVES | _NUMBER_CONNECTORS | _COMMA):
+        if word in (_NEGATIVES | _NUMBER_CONNECTORS | _COMMA) and not opens_signed:
             number_words.append(token)
             if word in _COMMA:
                 _comma = token
@@ -669,8 +776,12 @@ def _extract_real_number_with_text_da(tokens, short_scale):
 
         prev_word = tokens[idx - 1].word if idx > 0 else ""
         next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
+        # a fraction after the digits of a decimal is a number of its own:
+        # "tre komma fem en halv" is 3.5, then 1/2
+        ends_decimal = bool(_comma) and idx - 1 > _comma.index and (
+            bool(is_fractional_da(word)) or bool(is_fractional_da(next_word)))
 
-        if word not in _STRING_LONG_SCALE and \
+        if opens_signed or ends_decimal or word not in _STRING_LONG_SCALE and \
                 word not in _DA_NUMBERS and \
                 word not in _MULTIPLIER and \
                 not is_numeric_da(word) and \
@@ -682,13 +793,17 @@ def _extract_real_number_with_text_da(tokens, short_scale):
                 # a leading "minus" negates the whole magnitude even when the
                 # sign never reached the summed parts, as with a scaled group
                 # ("minus en million" -> the product is 1000000, not -1000000
-                # until the marker is reapplied here)
+                # until the marker is reapplied here); so does the sign of
+                # leading digits ("-12")
                 magnitude = sum(abs(part) for part in to_sum)
-                val = -magnitude if any(t.word in _NEGATIVES
-                                        for t in number_words) else magnitude
+                val = -magnitude if to_sum[0] < 0 or any(
+                    t.word in _NEGATIVES for t in number_words) else magnitude
 
-            if number_words and (not all([w in _ARTICLES | _NEGATIVES
-                                          | _NUMBER_CONNECTORS for w in words_only])
+            # a signed part ends the number even after an article-only
+            # part: "en og -3" is 1, then -3
+            if number_words and (opens_signed
+                                 or not all([w in _ARTICLES | _NEGATIVES
+                                             | _NUMBER_CONNECTORS for w in words_only])
                                  or str(val) == number_words[-1].word):
                 break
             else:
@@ -725,10 +840,43 @@ def _extract_real_number_with_text_da(tokens, short_scale):
 
         # fraction handling
         _fraction_val = is_fractional_da(word, short_scale=short_scale)
+        if _fraction_val and _prev_val is not None \
+                and abs(_prev_val) > sys.float_info.max:
+            # a whole part past the float range takes no fraction: like the
+            # digit string "999...9.5", the mixed number is no number
+            number_words.clear()
+            to_sum.clear()
+            val = _val = _current_val = None
+            continue
         if _fraction_val:
             if _prev_val is not None and prev_word not in _ARTICLES and \
                     word not in _STRING_FRACTION_DA:  # sammensat brøk
-                _val = _prev_val + _fraction_val
+                if _prev_val != int(_prev_val):
+                    # a decimal is no whole part of a mixed number: "3.5 1/2"
+                    # is 3.5, then 1/2
+                    val = _prev_val
+                    if any(t.word in _NEGATIVES for t in number_words):
+                        val = -abs(val)
+                    number_words.pop(-1)
+                    break
+                if _prev_val == int(_prev_val) and 0 < _fraction_val < 1:
+                    whole = abs(int(_prev_val))
+                    mixed = float(whole + Fraction(_fraction_val))
+                    if not whole < mixed < whole + 1:
+                        # from 2**52 on no float keeps both parts: the whole
+                        # number keeps its digits and the fraction is a
+                        # number of its own ("9007199254740993 1/2")
+                        val = _prev_val
+                        if any(t.word in _NEGATIVES for t in number_words):
+                            val = -abs(val)
+                        number_words.pop(-1)
+                        break
+                    # the sign covers the whole mixed number: -5 1/2 is
+                    # -(5 + 1/2), and -0 1/2 is -0.5
+                    negative_whole = _prev_val < 0 or prev_word.startswith("-")
+                    _val = -mixed if negative_whole else mixed
+                else:
+                    _val = _prev_val + _fraction_val
                 if prev_word not in _NUMBER_CONNECTORS and tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])
             elif _prev_val is not None:
@@ -762,8 +910,8 @@ def _extract_real_number_with_text_da(tokens, short_scale):
         if not next_word and number_words:
             if to_sum:
                 magnitude = sum(abs(part) for part in to_sum)
-                val = -magnitude if any(t.word in _NEGATIVES
-                                        for t in number_words) else magnitude
+                val = -magnitude if to_sum[0] < 0 or any(
+                    t.word in _NEGATIVES for t in number_words) else magnitude
             else:
                 val = _val
 
@@ -828,10 +976,7 @@ def is_fractional_da(input_str, short_scale=False):
 
 def is_number_da(word: str):
     if is_numeric_da(word):
-        if word.isdigit():
-            return int(word)
-        else:
-            return float(word)
+        return numeric_value(word)
     elif word in _DA_NUMBERS:
         return _DA_NUMBERS.get(word)
     elif word in _STRING_LONG_SCALE:
@@ -853,7 +998,7 @@ def is_numeric_da(input_str):
     if input_str.endswith('.'):
         return False
     try:
-        float(input_str)
+        numeric_value(input_str)
         return True
     except ValueError:
         return False
@@ -960,12 +1105,13 @@ def _fold_scale_groups_da(text):
             # multiplier, a fraction or a non-number ends it. Guard the digit
             # test against overflow: a several-hundred-digit token is a number
             # but nowhere near a foldable addend, so reject it before float().
-            if w.lstrip('-').isdecimal():
-                val = int(w) if len(w.lstrip('-')) < 4 else None
+            digits = w.removeprefix('-')
+            if digits.isdecimal():
+                val = int(w) if len(digits) < 4 else None
             else:
                 val = is_number_da(w)
             if isinstance(val, (int, float)) and val is not True \
-                    and float(val).is_integer() and 0 <= val < 1000:
+                    and 0 <= val < 1000 and float(val).is_integer():
                 current += int(val)
                 saw = True
                 j += 1
@@ -1018,19 +1164,67 @@ def extract_number_da(text, short_scale=False, ordinals=False):
         (int) or (float) or False: The extracted number or False if no number
                                    was found
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "da", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     text = _expand_compound_numbers_da(text.lower())
     numbers = _extract_numbers_with_text_da(tokenize(text),
                                             short_scale, ordinals)
-    # if query ordinals only consider ordinals
+    # `ordinals=True` adds the ordinal reading, it does not replace the
+    # cardinal one, and an ordinal in the line wins over a cardinal beside
+    # it: "tre femte" is 5. Danish and German answer the same here, and both
+    # take the FIRST ordinal when a line holds several. English is not
+    # the anchor for either rule: it returns the LAST number of the
+    # line, so "fifth three" is 3 and "three fifth seven" is 7. Which
+    # rule this library should hold is open (panel item
+    # number-parser-ordinals-rule-v2); this code states what the two
+    # languages do, not what English does.
+    #
+    # The filter that used to stand here kept only a value that is a string
+    # ending in ".". `is_ordinal_da` answers the integer 5 for "femte", not
+    # the string "5.", so that filter matched nothing in Danish and every
+    # call with `ordinals=True` answered False, the real ordinals included.
+    # The preference is expressed against the words instead: the first
+    # ordinal token wins, which is what `_extract_number_with_text_da_helper`
+    # already does inside the extraction, and what German answers for the
+    # same shape. A word that `is_ordinal_da` reads as an ordinal and a
+    # speaker does not ("anden" is both "second" and "the duck") is matched
+    # here exactly as the helper matches it, so this adds no reading of its
+    # own; that ambiguity belongs to the table.
     if ordinals:
-        numbers = list(filter(lambda x: isinstance(x.value, str)
-                                        and x.value.endswith("."),
-                              numbers))
+        ord_tokens = tokenize(text)
+        for idx, token in enumerate(ord_tokens):
+            ordinal = is_ordinal_da(token.word)
+            if ordinal:
+                # the "og"-inverted compound ("en og tyvende" = en + og +
+                # tyvende = 1 + 20 = 21) names the smaller unit before the
+                # larger ordinal tens word (the old counting:
+                # "enerleddet først, deretter og, og så tierleddet", Store
+                # norske leksikon, "den gamle tellemåten"), so only a unit
+                # 1-9 before an ordinal ten 20-90 folds; that single-word prefix is the
+                # same reading is_ordinal_da already gives its glued
+                # spelling ("enogtyvende")
+                if idx >= 2 and ord_tokens[idx - 1].word.lower() in _NUMBER_CONNECTORS:
+                    prefix_val = is_number_da(ord_tokens[idx - 2].word.lower())
+                    if prefix_val in range(1, 10) and ordinal in range(20, 100, 10):
+                        glued = "".join(t.word.lower()
+                                        for t in ord_tokens[idx - 2:idx + 1])
+                        compound = is_ordinal_da(glued)
+                        if compound:
+                            return compound
+                return ordinal
 
     if not numbers:
         return False
+    number = numbers[0].value
+    if isinstance(number, int):
+        return number
     try:
-        number = float(numbers[0].value)
+        number = float(number)
     except (OverflowError, ValueError):
         return False
     if not isfinite(number):

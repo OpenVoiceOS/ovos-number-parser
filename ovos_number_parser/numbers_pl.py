@@ -13,11 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import sys
+from fractions import Fraction
+from decimal import Decimal
 import re
 from collections import OrderedDict
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, fits_str_limit, look_for_fractions, \
+    invert_dict, exact_int, ReplaceableNumber, partition_list, tokenize, Token, GrammaticalGender, scientific_parts
+
+#: the last word of a cardinal that agrees with a feminine or neuter noun
+#: (ICU RBNF pl spellout-cardinal-feminine and -neuter); a compound ending in
+#: 1 keeps "jeden" ("dwadzieścia jeden"), so only the bare 1 inflects
+_GENDERED_LAST_WORD_PL = {
+    GrammaticalGender.FEMININE: {"dwa": "dwie"},
+}
+_GENDERED_ONE_PL = {
+    GrammaticalGender.FEMININE: "jedna",
+    GrammaticalGender.NEUTRAL: "jedno",
+}
 
 _NUM_STRING_PL = {
     0: 'zero',
@@ -305,7 +319,8 @@ def nice_number_pl(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
-                        ordinals=False, scientific_run=False):
+                        ordinals=False, scientific_run=False,
+                        gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -318,6 +333,7 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "first" instead of "one"
+        gender (GrammaticalGender): gender of the noun a cardinal counts
     Returns:
         (str): The pronounced number
     """
@@ -327,9 +343,7 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus nieskończoność"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negatives of powers separately from the normal
@@ -369,6 +383,8 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
     # check for a direct match
     if num in number_names and not ordinals:
         result += number_names[num]
+    elif ordinals and num == int(num) and (word := _ordinal_pl(int(num))):
+        result += word
     else:
         def _sub_thousand(n, ordinals=False, iteration=0):
             assert 0 <= n <= 999
@@ -400,7 +416,7 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n >= max(_SHORT_SCALE_PL.keys()):
-                return "nieskończoność"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -414,7 +430,8 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
                 number = _sub_thousand(z, ordi, iteration=i)
 
                 if i:
-                    if i >= len(hundreds):
+                    if i >= len(hundreds) or \
+                            float(pow(1000, i)) not in _SHORT_SCALE_PL:
                         return ""
                     number += " "
                     if ordi:
@@ -472,18 +489,36 @@ def pronounce_number_pl(num, places=2, short_scale=True, scientific=False,
 
         result += _short_scale(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_pl(num, places, short_scale, scientific=True)
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "minus ") and num >= 1e6:
+        return result + pronounce_number_pl(
+            num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "minus " or not result):
+        result += "zero"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "minus " or not result):
-            result += "zero"
+    if not num == int(num) and places > 0:
         result += " przecinek"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
+    elif not ordinals:
+        *head, last = result.split(" ")
+        if abs(num) == 1:
+            last = _GENDERED_ONE_PL.get(gender, last)
+        last = _GENDERED_LAST_WORD_PL.get(gender, {}).get(last, last)
+        result = " ".join(head + [last])
+    else:
+        # every ordinal word agrees ("dwudziesta pierwsza"); a cardinal
+        # hundreds word stays ("sto dwudziesta pierwsza")
+        ordinal_words = set(_SHORT_ORDINAL_PL.values()) | set(_ORDINAL_HUNDREDS_PL.values())
+        *head, last = result.split(" ")
+        head = [_ordinal_gender_pl(w, gender) if w in ordinal_words else w
+                for w in head]
+        if last.endswith(("y", "i")) and last not in _NUM_STRING_PL.values():
+            last = _ordinal_gender_pl(last, gender)
+        result = " ".join(head + [last])
     return result
 
 
@@ -589,6 +624,8 @@ def numbers_to_digits_pl(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_pl(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -841,6 +878,7 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
     next_val = None
     negative = False
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -862,6 +900,36 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
             negative = True
             number_words.append(token)
             continue
+
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts ("-0 1/2" = -0.5);
+        # any other fraction is a number of its own ("3.5 1/2" is 3.5, then
+        # 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 \
+                and val is not False and val is not None:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                whole = abs(int(val))
+                mixed = float(whole + Fraction(float(a_pieces[0]))
+                              / Fraction(float(a_pieces[1])))
+                # the float must keep both parts: from 2**52 on it cannot, so
+                # the whole number keeps its digits and the fraction is a
+                # number of its own ("9007199254740993 1/2")
+                if whole < mixed < whole + 1:
+                    negative_whole = val < 0 or \
+                        tokens[idx - 1].word.startswith("-")
+                    val = -mixed if negative_whole else mixed
+                    number_words.append(token)
+            break
 
         if word not in string_num_scale and \
                 word not in _STRING_NUM_PL and \
@@ -889,12 +957,10 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
         else:
             number_words.append(token)
 
+        number_end = idx
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?
@@ -952,13 +1018,16 @@ def _extract_whole_number_with_text_pl(tokens, short_scale, ordinals):
             prev_val = val
 
         # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            aPieces = word.split('/')
-            if look_for_fractions(aPieces):
-                val = float(aPieces[0]) / float(aPieces[1])
-                current_val = val
-        else:
+        # look for fractions like "2/3". A digit fraction is a value of its
+        # own: the value of a number before it ("5 1/2") must not block it
+        aPieces = word.split('/')
+        if look_for_fractions(aPieces):
+            val = float(aPieces[0]) / float(aPieces[1])
+            if not val:
+                # a zero fraction is the number 0 ("0/2" reads as 0)
+                val = 0
+            current_val = val
+        elif val:
             if all([
                 prev_word in _SUMS,
                 word not in _SUMS,
@@ -1066,7 +1135,8 @@ def _initialize_number_data(short_scale):
     """
     multiplies = _MULTIPLIES_SHORT_SCALE_PL
 
-    string_num_scale = invert_dict(_SHORT_SCALE_PL)
+    string_num_scale = {word: exact_int(value)
+                        for value, word in _SHORT_SCALE_PL.items()}
     string_num_scale.update(generate_plurals_pl(string_num_scale))
     return multiplies, _STRING_SHORT_ORDINAL_PL, string_num_scale
 
@@ -1128,28 +1198,93 @@ _ORDINAL_HUNDREDS_PL = {
 }
 
 
-def pronounce_ordinal_pl(number):
+# Stems that join a count to "-tysięczny", "-milionowy", written as one word
+# (en.wiktionary "trzytysięczny", "pięciotysięczny", "dziesięciotysięczny",
+# "jedenastotysięczny", "dwudziestotysięczny", "stutysięczny",
+# "pięćsettysięczny"; M. Jagodziński, "Liczebniki": "2000. – dwutysięczny",
+# "1 500 000. – milion pięćsettysięczny").
+_ORDINAL_STEM_UNITS_PL = ["", "jedno", "dwu", "trzy", "cztero", "pięcio",
+                          "sześcio", "siedmio", "ośmio", "dziewięcio"]
+_ORDINAL_STEM_TEENS_PL = ["dziesięcio", "jedenasto", "dwunasto", "trzynasto",
+                          "czternasto", "piętnasto", "szesnasto",
+                          "siedemnasto", "osiemnasto", "dziewiętnasto"]
+_ORDINAL_STEM_TENS_PL = ["", "", "dwudziesto", "trzydziesto", "czterdziesto",
+                         "pięćdziesięcio", "sześćdziesięcio",
+                         "siedemdziesięcio", "osiemdziesięcio",
+                         "dziewięćdziesięcio"]
+_ORDINAL_STEM_HUNDREDS_PL = ["", "stu", "dwustu", "trzystu", "czterystu",
+                             "pięćset", "sześćset", "siedemset", "osiemset",
+                             "dziewięćset"]
+
+
+def _ordinal_stem_pl(n):
+    hundreds, rest = divmod(n, 100)
+    tens, units = divmod(rest, 10)
+    if tens == 1:
+        return _ORDINAL_STEM_HUNDREDS_PL[hundreds] + _ORDINAL_STEM_TEENS_PL[units]
+    return _ORDINAL_STEM_HUNDREDS_PL[hundreds] + _ORDINAL_STEM_TENS_PL[tens] + \
+        _ORDINAL_STEM_UNITS_PL[units]
+
+
+def _ordinal_pl(n):
+    """Masculine ordinal of a whole number. Tens and units are ordinal
+    ("dwudziesty pierwszy"); the hundreds and the groups before them stay
+    cardinal, and only the last word is ordinal when tens and units are
+    absent ("dwa tysiące setny", Jagodziński). Return None for 0 or when the
+    last non-zero group has no scale name."""
+    if n < 1:
+        return None
+    scale, group = 0, n
+    while group % 1000 == 0:
+        scale, group = scale + 1, group // 1000
+    head = (group - group % 1000) * 1000 ** scale
+    group %= 1000
+    if scale:
+        name = "tysięczny" if scale == 1 else _SHORT_ORDINAL_PL.get(1000 ** scale)
+        if name is None:
+            return None
+        word = ("" if group == 1 else _ordinal_stem_pl(group)) + name
+    else:
+        hundreds, rest = divmod(group, 100)
+        if not rest:
+            word = _ORDINAL_HUNDREDS_PL.get(group) or _ORDINAL_BASE_PL[group]
+        else:
+            words = [_NUM_STRING_PL[hundreds * 100]] if hundreds else []
+            if rest in _ORDINAL_BASE_PL:
+                words.append(_ORDINAL_BASE_PL[rest])
+            else:
+                words += [_ORDINAL_BASE_PL[rest - rest % 10],
+                          _ORDINAL_BASE_PL[rest % 10]]
+            word = " ".join(words)
+    if head:
+        word = f"{pronounce_number_pl(head)} {word}"
+    return word
+
+
+def _ordinal_gender_pl(word, gender):
+    """Inflect a masculine ordinal as an adjective: "pierwszy" -> "pierwsza",
+    "pierwsze"; "drugi" -> "druga", "drugie"; "trzeci" -> "trzecia",
+    "trzecie"."""
+    if gender == GrammaticalGender.FEMININE:
+        if word.endswith("y") or word.endswith("gi"):
+            return word[:-1] + "a"
+        return word + "a"
+    if gender == GrammaticalGender.NEUTRAL:
+        return word[:-1] + "e" if word.endswith("y") else word + "e"
+    return word
+
+
+def pronounce_ordinal_pl(number, gender=GrammaticalGender.MASCULINE):
     """
-    Pronounce a number as a Polish ordinal (masculine nominative).
+    Pronounce a number as a Polish ordinal in the nominative.
 
     Args:
         number (int): the number to pronounce
+        gender (GrammaticalGender): gender of the noun the ordinal agrees with
     Returns:
         (str): the ordinal in Polish
     """
     number = int(number)
     if number <= 0:
         raise ValueError("Polish ordinals start at 1")
-    if number in _SHORT_ORDINAL_PL:
-        return _SHORT_ORDINAL_PL[number]
-    if number in _ORDINAL_HUNDREDS_PL:
-        return _ORDINAL_HUNDREDS_PL[number]
-    if number < 100:
-        tens = number // 10 * 10
-        unit = number % 10
-        return f"{_SHORT_ORDINAL_PL[tens]} {_SHORT_ORDINAL_PL[unit]}"
-    last = number % 100
-    if last:
-        prefix = number - last
-        return f"{pronounce_number_pl(prefix)} {pronounce_ordinal_pl(last)}"
-    raise NotImplementedError(f"cannot pronounce {number} as a Polish ordinal")
+    return pronounce_number_pl(number, ordinals=True, gender=gender)

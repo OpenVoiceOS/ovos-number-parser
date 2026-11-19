@@ -105,8 +105,10 @@ class TestBasqueLongScale(unittest.TestCase):
         self.assertIsInstance(pronounce_number(1e-9, lang="eu"), str)
         self.assertIsInstance(pronounce_number(6.022e23, lang="eu"), str)
         self.assertIsInstance(pronounce_number(-1e-12, lang="eu"), str)
-        # a value that rounds away at the requested places carries no koma tail
-        self.assertNotIn('koma', pronounce_number(1e-9, lang="eu"))
+        # a value below the requested places reads up to its first digit
+        self.assertEqual(pronounce_number(1e-9, lang="eu"),
+                         pronounce_number(1e-9, lang="eu", places=9))
+        self.assertIn('bat', pronounce_number(1e-9, lang="eu"))
 
 
 class TestBasqueOrdinals(unittest.TestCase):
@@ -344,6 +346,30 @@ class TestBasqueNonDecimalUnicodeDigits(unittest.TestCase):
         self.assertEqual(extract_number('١', lang="eu"), 1)
         self.assertEqual(extract_number('٢', lang="eu"), 2)
         self.assertEqual(extract_number('٣', lang="eu"), 3)
+
+
+class TestBasqueOrdinalsUnderTheFlag(unittest.TestCase):
+    """ordinals=True reads the -garren ordinal (Euskaltzaindia Araua 18)."""
+
+    LINES = [("hirugarren atea", 3),       # the third door
+             ("bigarren aldiz", 2),         # for the second time
+             ("hamargarren eguna", 10),     # the tenth day
+             ("lehenengo lekua", 1)]        # the first place
+
+    def test_the_flag_reads_the_ordinal(self):
+        for line, value in self.LINES:
+            with self.subTest(line=line):
+                self.assertEqual(extract_number(line, lang="eu",
+                                                ordinals=True), value)
+
+    def test_without_the_flag_no_ordinal_is_read(self):
+        for line, _ in self.LINES:
+            with self.subTest(line=line):
+                self.assertIs(extract_number(line, lang="eu"), False)
+
+    def test_a_cardinal_still_reads_under_the_flag(self):
+        self.assertEqual(extract_number("bi eta hiru", lang="eu",
+                                        ordinals=True), 5)
 
 
 if __name__ == "__main__":

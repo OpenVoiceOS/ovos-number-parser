@@ -65,8 +65,9 @@ Nice to have:
 
 ## 3. Wire the dispatcher
 
-Add the language-prefix branch to each matching top-level function in
-`__init__.py` (`pronounce_number`, `extract_number`, `is_fractional`, ...).
+Add a branch on the bare language code (`lang2 == "<code>"`) to each matching
+top-level function in `__init__.py` (`pronounce_number`, `extract_number`,
+`is_fractional`, ...).
 
 ## 4. Tests
 

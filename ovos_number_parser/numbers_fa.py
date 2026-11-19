@@ -1,7 +1,9 @@
 import math
+from decimal import Decimal
 from enum import IntEnum
 
-from ovos_number_parser.util import (convert_to_mixed_fraction)
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, scientific_parts, \
+    round_half_up
 
 _FRACTION_STRING_FA = {
     2: 'دوم',
@@ -104,15 +106,6 @@ class NumberVariantFA(IntEnum):
     FORMAL = 1
 
 
-def _is_number(s):
-    try:
-        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
-        # string) carries no usable number and must not be treated as one
-        return math.isfinite(float(s))
-    except ValueError:
-        return False
-
-
 def _parse_sentence(text):
     for key, value in _COLLOQUIAL_VARIANT.items():
         text = text.replace(key, value)
@@ -181,9 +174,9 @@ def _parse_sentence(text):
             current_number += s
             s = 0
             mode = 'num'
-        elif _is_number(x):
+        elif is_numeric(x):
             current_words.append(x)
-            current_number = float(x)
+            current_number = numeric_value(x)
             finish_num()
         else:
             finish_num()
@@ -251,6 +244,22 @@ def extract_number_fa(text, ordinals=False):
                                    was found
 
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "fa", ordinals)
+    if _leftmost is not None:
+        return _leftmost
+    if ordinals:
+        # ordinals=True asks for the ordinal to be READ, and nothing read one:
+        # extract_numbers_fa below sees cardinals only, so the flag was a no-op
+        # for Farsi and a line never reached a second number span, which left
+        # the leftmost rule unable to answer.
+        for word in text.split():
+            ordinal = is_ordinal_fa(word)
+            if ordinal is not False:
+                return ordinal
     negative = False
     words = text.split()
     if words and words[0] == "منفی":
@@ -420,21 +429,28 @@ def pronounce_number_fa(number, places=2, scientific=False,
     if scientific:
         if number == 0:
             return "صفر"
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             return '{}{} ضرب در ده به توان {}{}'.format(
                 'منفی ' if float(n) < 0 else '',
                 pronounce_number_fa(
-                    abs(float(n)), places, False, ordinals=False),
+                    abs(n), places, False, ordinals=False),
                 'منفی ' if power < 0 else '',
                 pronounce_number_fa(abs(power), places, False, ordinals=False))
         return '{}{}'.format(
             'منفی ' if float(n) < 0 else '',
-            pronounce_number_fa(abs(float(n)), places, False, ordinals=False))
+            pronounce_number_fa(abs(n), places, False, ordinals=False))
+    if abs(number) >= 1000 ** len(_FARSI_BIG) or places > 0 and \
+            0 < abs(number) < 10 ** (1 - 3 * len(_FARSI_FRAC_BIG)):
+        # a magnitude or a fraction with no spoken name reads scientifically
+        return pronounce_number_fa(number, places, scientific=True)
     if ordinals:
         return _to_ordinal(number)
+    # the finest fraction word names the 11th decimal
+    most_places = 3 * len(_FARSI_FRAC_BIG) - 1
+    if places > most_places and not isinstance(number, int):
+        places = most_places
+        number = float(round_half_up(Decimal(str(number)), places))
     return _to_cardinal(number, places)
 
 
@@ -455,6 +471,73 @@ def is_fractional_fa(input_str, short_scale=True):
     word = input_str.strip()
     if word in _STRING_FRACTION_FA:
         return 1.0 / _STRING_FRACTION_FA[word]
+    return False
+
+
+#: The two attested spellings of "first". ``pronounce_ordinal_fa`` writes the
+#: suppletive ``اول`` and ``_to_ordinal`` writes ``یکم``; both are Persian for
+#: first, the second being the one dates use, so the reader accepts either.
+_ORDINAL_FIRST_FA = ("اول", "یکم")
+
+#: The suffixes the ordinal takes, longest first so ``ام`` is tried before
+#: ``م``. The first carries the zero-width non-joiner ``pronounce_ordinal_fa``
+#: writes after a vowel.
+_ORDINAL_SUFFIXES_FA = ("‌ام", "ام", "م")
+
+
+def is_ordinal_fa(input_str):
+    """Return the number a Farsi ordinal denotes, or False.
+
+    This reads back exactly what this module writes. ``pronounce_ordinal_fa``
+    builds an ordinal three ways -- the suppletive ``اول`` for 1, the named
+    forms of ``_FRACTION_STRING_FA`` up to 20, and otherwise the cardinal plus
+    ``م`` (``ام`` after a vowel) -- and each arm is inverted here, in that
+    order, because the named forms are irregular against the suffix rule:
+    ``سوم`` is third and stripping its ``م`` leaves ``سو``, which is not the
+    cardinal ``سه``.
+
+    No form is introduced here that the package does not already produce. The
+    ordinal vocabulary this accepts is the ordinal vocabulary
+    ``pronounce_ordinal_fa`` emits, and the round trip is asserted over a range
+    rather than assumed. Where a form is wrong it is already wrong in the
+    writing direction, for a speaker, and that is a defect of the table rather
+    than of this reader.
+
+    Args:
+        input_str (str): one word, as the tokenizer returns it
+    Returns:
+        (int) or False: the number, or False when the word is not an ordinal
+    """
+    s = str(input_str).strip().strip(".,!?;:،؛")
+    if not s:
+        return False
+    if s in _ORDINAL_FIRST_FA:
+        return 1
+    # the irregular named forms first: they do not obey the suffix rule
+    for value, word in _FRACTION_STRING_FA.items():
+        if s == word:
+            return value
+    for suffix in _ORDINAL_SUFFIXES_FA:
+        if not s.endswith(suffix) or len(s) == len(suffix):
+            continue
+        stem = s[:-len(suffix)]
+        candidates = [stem]
+        if stem.endswith("سو"):
+            # ``_to_ordinal`` writes a compound ending in سه as سوم ("بیست و
+            # سه" -> "بیست و سوم"), so undo that one substitution before
+            # reading the stem as a cardinal. Same rule, read backwards.
+            #
+            # The corrected form is tried FIRST, and that order is load
+            # bearing: extract_number_fa reads the leading cardinal of a line
+            # it cannot parse whole, so the raw stem "بیست و سو" answers 20
+            # and would win with a wrong value before the correction was ever
+            # reached. Measured: every compound ending in three, 23, 33, 43
+            # and so on, read as its leading ten that way.
+            candidates.insert(0, stem[:-2] + "سه")
+        for candidate in candidates:
+            value = extract_number_fa(candidate)
+            if value is not False and value == int(value) and value > 0:
+                return int(value)
     return False
 
 

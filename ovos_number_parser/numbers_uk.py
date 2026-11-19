@@ -12,11 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import sys
+from fractions import Fraction
+from decimal import Decimal
 import re
 from collections import OrderedDict
 
-from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions, invert_dict,
-                                     is_numeric, tokenize, partition_list, Token, ReplaceableNumber)
+from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions, invert_dict, exact_int,
+                                     is_numeric, numeric_value, fits_str_limit, tokenize, partition_list, Token, ReplaceableNumber,
+                                     GrammaticalGender, scientific_parts)
+
+#: the last word of a cardinal that agrees with a feminine or neuter noun
+#: (ICU RBNF uk spellout-cardinal-feminine and -neuter); the scale words
+#: before it keep their own agreement ("одна тисяча")
+_GENDERED_LAST_WORD_UK = {
+    GrammaticalGender.FEMININE: {"один": "одна", "два": "дві"},
+    GrammaticalGender.NEUTRAL: {"один": "одне"},
+}
 
 _NUM_STRING_UK = {
     0: "нуль",
@@ -112,72 +124,81 @@ _FRACTION_STRING_UK = {
 }
 
 _SHORT_SCALE_UK = OrderedDict([
-    (1e3, "тисяча"),
-    (1e6, "мільйон"),
-    (1e9, "мільярд"),
-    (1e18, "трильйон"),
-    (1e12, "більйон"),
-    (1e15, "квадрилліон"),
-    (1e18, "квінтиліон"),
-    (1e21, "секстильйон"),
-    (1e24, "септилліон"),
-    (1e27, "октиліон"),
-    (1e30, "нонільйон"),
-    (1e33, "дециліон"),
-    (1e36, "ундеціліон"),
-    (1e39, "дуодециліон"),
-    (1e42, "тредециліон"),
-    (1e45, "кваттордециліон"),
-    (1e48, "квіндециліон"),
-    (1e51, "сексдециліон"),
-    (1e54, "септендециліон"),
-    (1e57, "октодециліон"),
-    (1e60, "новемдециліон"),
-    (1e63, "вігінтильйон"),
-    (1e66, "унвігінтільйон"),
-    (1e69, "дуовігінтильйон"),
-    (1e72, "тревігінтильйон"),
-    (1e75, "кватторвігінтільйон"),
-    (1e78, "квінвігінтильйон"),
-    (1e81, "секснвігінтіліон"),
-    (1e84, "септенвігінтильйон"),
-    (1e87, "октовігінтиліон"),
-    (1e90, "новемвігінтільйон"),
-    (1e93, "тригінтильйон"),
+    (10 ** 3, "тисяча"),
+    (10 ** 6, "мільйон"),
+    (10 ** 9, "мільярд"),
+    (10 ** 12, "трильйон"),
+    (10 ** 15, "квадрильйон"),
+    (10 ** 18, "квінтильйон"),
+    (10 ** 21, "секстильйон"),
+    (10 ** 24, "септильйон"),
+    (10 ** 27, "октильйон"),
+    (10 ** 30, "нонільйон"),
+    (10 ** 33, "децильйон"),
+    (10 ** 36, "ундецильйон"),
+    (10 ** 39, "додецильйон"),
+    (10 ** 42, "тредецильйон"),
+    (10 ** 45, "кватордецильйон"),
+    (10 ** 48, "квіндецильйон"),
+    (10 ** 51, "сексдецильйон"),
+    (10 ** 54, "септендецильйон"),
+    (10 ** 57, "октодецильйон"),
+    (10 ** 60, "новемдецильйон"),
+    (10 ** 63, "вігінтильйон"),
+    (10 ** 66, "анвігінтильйон"),
+    (10 ** 69, "дуовігінтильйон"),
+    (10 ** 72, "тревігінтильйон"),
+    (10 ** 75, "кватторвігінтильйон"),
+    (10 ** 78, "квінвігінтильйон"),
+    (10 ** 81, "сексвігінтильйон"),
+    (10 ** 84, "септемвігінтильйон"),
+    (10 ** 87, "октовігінтильйон"),
+    (10 ** 90, "новемвігінтильйон"),
+    (10 ** 93, "трігінтильйон"),
 ])
 
 _LONG_SCALE_UK = OrderedDict([
-    (1e3, "тисяча"),
-    (1e6, "мільйон"),
-    (1e9, "мільярд"),
-    (1e12, "більйон"),
-    (1e15, "біліард"),
-    (1e18, "трильйон"),
-    (1e21, "трильярд"),
-    (1e24, "квадрилліон"),
-    (1e27, "квадрільярд"),
-    (1e30, "квінтиліон"),
-    (1e33, "квінтільярд"),
-    (1e36, "секстильйон"),
-    (1e39, "секстильярд"),
-    (1e42, "септилліон"),
-    (1e45, "септільярд"),
-    (1e48, "октиліон"),
-    (1e51, "октільярд"),
-    (1e54, "нонільйон"),
-    (1e57, "нонільярд"),
-    (1e60, "дециліон"),
-    (1e63, "дециліард"),
-    (1e66, "ундеціліон"),
-    (1e72, "дуодециліон"),
-    (1e78, "тредециліон"),
-    (1e84, "кваттордециліон"),
-    (1e90, "квіндециліон"),
-    (1e96, "сексдециліон"),
-    (1e102, "септендециліон"),
-    (1e108, "октодециліон"),
-    (1e114, "новемдециліон"),
-    (1e120, "вігінтильйон"),
+    (10 ** 3, "тисяча"),
+    (10 ** 6, "мільйон"),
+    (10 ** 9, "мільярд"),
+    (10 ** 12, "більйон"),
+    (10 ** 15, "більярд"),
+    (10 ** 18, "трильйон"),
+    (10 ** 21, "трильярд"),
+    (10 ** 24, "квадрильйон"),
+    (10 ** 27, "квадрильярд"),
+    (10 ** 30, "квінтильйон"),
+    (10 ** 33, "квінтильярд"),
+    (10 ** 36, "секстильйон"),
+    (10 ** 39, "секстильярд"),
+    (10 ** 42, "септильйон"),
+    (10 ** 45, "септильярд"),
+    (10 ** 48, "октильйон"),
+    (10 ** 51, "октильярд"),
+    (10 ** 54, "нонільйон"),
+    (10 ** 57, "нонільярд"),
+    (10 ** 60, "децильйон"),
+    (10 ** 63, "децильярд"),
+    (10 ** 66, "ундецильйон"),
+    (10 ** 69, "ундецильярд"),
+    (10 ** 72, "додецильйон"),
+    (10 ** 75, "додецильярд"),
+    (10 ** 78, "тредецильйон"),
+    (10 ** 81, "тредецильярд"),
+    (10 ** 84, "кватордецильйон"),
+    (10 ** 87, "кватордецильярд"),
+    (10 ** 90, "квіндецильйон"),
+    (10 ** 93, "квіндецильярд"),
+    (10 ** 96, "сексдецильйон"),
+    (10 ** 99, "сексдецильярд"),
+    (10 ** 102, "септендецильйон"),
+    (10 ** 105, "септендецильярд"),
+    (10 ** 108, "октодецильйон"),
+    (10 ** 111, "октодецильярд"),
+    (10 ** 114, "новемдецильйон"),
+    (10 ** 117, "новемдецильярд"),
+    (10 ** 120, "вігінтильйон"),
+    (10 ** 123, "вігінтильярд"),
 ])
 
 _ORDINAL_BASE_UK = {
@@ -211,71 +232,21 @@ _ORDINAL_BASE_UK = {
     1e2: "сотий",
     2e2: "двохсотий",
     3e2: "трьохсотий",
-    4e2: "чотирисотий",
+    4e2: "чотирьохсотий",
     5e2: "п'ятисотий",
-    6e2: "шістсотий",
+    6e2: "шестисотий",
     7e2: "семисотий",
     8e2: "восьмисотий",
     9e2: "дев'ятисотий",
     1e3: "тисячний"
 }
 
-_SHORT_ORDINAL_UK = {
-    1e6: "мільйон",
-    1e9: "мільярд",
-    1e18: "трильйон",
-    1e15: "квадрилліон",
-    1e18: "квінтильйон",
-    1e21: "секстильйон",
-    1e24: "септилліон",
-    1e27: "октиліон",
-    1e30: "нонільйон",
-    1e33: "дециліон",
-    1e36: "ундеціліон",
-    1e39: "дуодециліон",
-    1e42: "тредециліон",
-    1e45: "кваттордециліон",
-    1e48: "квіндециліон",
-    1e51: "сексдециліон",
-    1e54: "септендециліон",
-    1e57: "октодециліон",
-    1e60: "новемдециліон",
-    1e63: "вігінтильйон"
-}
+_SHORT_ORDINAL_UK = {n: word for n, word in _SHORT_SCALE_UK.items()
+                     if n >= 10 ** 6}
 _SHORT_ORDINAL_UK.update(_ORDINAL_BASE_UK)
 
-_LONG_ORDINAL_UK = {
-    1e6: "мільйон",
-    1e9: "мільярд",
-    1e12: "більйон",
-    1e15: "біліард",
-    1e18: "трильйон",
-    1e21: "трильярд",
-    1e24: "квадрилліон",
-    1e27: "квадрильярд",
-    1e30: "квінтиліон",
-    1e33: "квінтільярд",
-    1e36: "секстильйон",
-    1e39: "секстильярд",
-    1e42: "септилліон",
-    1e45: "септільярд",
-    1e48: "октиліон",
-    1e51: "октільярд",
-    1e54: "нонільйон",
-    1e57: "нонільярд",
-    1e60: "дециліон",
-    1e63: "дециліард",
-    1e66: "ундеціліон",
-    1e72: "дуодециліон",
-    1e78: "тредециліон",
-    1e84: "кваттордециліон",
-    1e90: "квіндециліон",
-    1e96: "сексдециліон",
-    1e102: "септендециліон",
-    1e108: "октодециліон",
-    1e114: "новемдециліон",
-    1e120: "вігінтильйон"
-}
+_LONG_ORDINAL_UK = {n: word for n, word in _LONG_SCALE_UK.items()
+                    if n >= 10 ** 6}
 _LONG_ORDINAL_UK.update(_ORDINAL_BASE_UK)
 
 
@@ -326,6 +297,8 @@ _MULTIPLIES_LONG_SCALE_UK = set(_LONG_SCALE_UK.values()) | \
 _MULTIPLIES_SHORT_SCALE_UK = set(_SHORT_SCALE_UK.values()) | \
                              generate_plurals_uk(_SHORT_SCALE_UK.values())
 
+_LONG_ONLY_MULTIPLIES_UK = _MULTIPLIES_LONG_SCALE_UK - _MULTIPLIES_SHORT_SCALE_UK
+
 # split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
 _FRACTION_MARKER = {"і", "та", "з", " "}
 
@@ -337,7 +310,6 @@ _STRING_NUM_UK = invert_dict(_NUM_STRING_UK)
 _STRING_NUM_UK.update(generate_plurals_uk(_STRING_NUM_UK))
 _STRING_NUM_UK.update(_PLURALS)
 _STRING_NUM_UK.update({
-    "трильйон": 1e18,
     "половина": 0.5, "половиною": 0.5, "половини": 0.5, "половин": 0.5, "половинами": 0.5, "пів": 0.5,
     "одна": 1, "одної": 1, "одній": 1, "одну": 1
 })
@@ -429,7 +401,7 @@ def nice_number_uk(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -442,6 +414,7 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "first" instead of "one"
+        gender (GrammaticalGender): gender of the noun a cardinal counts
     Returns:
         (str): The pronounced number
     """
@@ -452,9 +425,7 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "мінус нескінченність"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negative powers separately from the normal
@@ -512,6 +483,9 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
     # check for a direct match
     if num in number_names and not ordinals:
         result += number_names[num]
+    elif ordinals and num == int(num) and \
+            (word := _ordinal_uk(int(num), short_scale)):
+        result += word
     else:
         def _sub_thousand(n, ordinals=False):
             assert 0 <= n <= 999
@@ -529,7 +503,7 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n > max(_SHORT_SCALE_UK.keys()):
-                return "нескінченність"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -600,56 +574,26 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
             return res
 
         def _long_scale(n):
-            if n >= max(_LONG_SCALE_UK.keys()):
-                return "нескінченність"
-            ordi = ordinals
-            if int(n) != n:
-                ordi = False
+            if n > max(_LONG_SCALE_UK.keys()):
+                return ""
             n = int(n)
             assert 0 <= n
-            res = []
-            for i, z in enumerate(_split_by(n, 1000000)):
+            high, low = divmod(n, 1000000)
+            res = [pronounce_number_uk(low, places, True)] if low else []
+            for i, z in enumerate(_split_by(high, 1000), start=2):
                 if not z:
                     continue
-                number = pronounce_number_uk(z, places, True, scientific,
-                                             ordinals=ordi and not i)
-                # strip off the comma after the thousand
-                if i:
-                    if i >= len(hundreds):
-                        return ""
-                    # plus one as we skip 'thousand'
-                    # (and 'hundred', but this is excluded by index value)
-                    number = number.replace(',', '')
-
-                    if ordi:
-                        if (i + 1) * 1000000 in _LONG_ORDINAL_UK:
-                            if z == 1:
-                                number = _LONG_ORDINAL_UK[
-                                    (i + 1) * 1000000]
-                            else:
-                                number += _LONG_ORDINAL_UK[
-                                    (i + 1) * 1000000]
-                        else:
-                            if n not in _LONG_SCALE_UK:
-                                num = int("1" + "0" * (len(str(n)) // 3 * 3))
-
-                                if number[-3:] == "два":
-                                    number = number[:-1] + "ох"
-                                elif number[-2:] == "ри" or number[-2:] == "ре":
-                                    number = number[:-1] + "ьох"
-                                elif number[-1:] == "ь":
-                                    number = number[:-1] + "и"
-
-                                number += _LONG_SCALE_UK[num] + "ний"
-                            else:
-                                number = " " + _LONG_SCALE_UK[n] + "ний"
-                    elif z == 1:
-                        number = hundreds[i]
-                    elif z <= 4:
-                        number += " " + hundreds[i] + "а"
-                    else:
-                        number += " " + hundreds[i] + "ів"
-
+                name = _LONG_SCALE_UK.get(1000 ** i)
+                if name is None:
+                    return ""
+                if z == 1:
+                    number = name
+                elif z <= 4:
+                    number = pronounce_number_uk(z, places, True) + " " + \
+                        name + "а"
+                else:
+                    number = pronounce_number_uk(z, places, True) + " " + \
+                        name + "ів"
                 res.append(number)
             return " ".join(reversed(res))
 
@@ -658,18 +602,27 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_uk(num, places, short_scale, scientific=True)
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "мінус ") and num >= 1e6:
+        return result + pronounce_number_uk(
+            num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "мінус " or not result):
+        result += "нуль"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "мінус " or not result):
-            result += "нуль"
+    if not num == int(num) and places > 0:
         result += " крапка"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
+    elif not ordinals:
+        *head, last = result.split(" ")
+        last = _GENDERED_LAST_WORD_UK.get(gender, {}).get(last, last)
+        result = " ".join(head + [last])
+    elif result.endswith(("ий", "ій")):
+        *head, last = result.split(" ")
+        result = " ".join(head + [_ordinal_gender_uk(last, gender)])
     return result
 
 
@@ -690,9 +643,15 @@ def numbers_to_digits_uk(text, short_scale=True, ordinals=False):
     text = text.lower()
 
     tokens = tokenize(text)
+    # one scale for the whole text: a scale word only the long scale has
+    # ("більярд") sets the long scale
+    if any(token.word in _LONG_ONLY_MULTIPLIES_UK for token in tokens):
+        short_scale = False
     numbers_to_replace = \
         _extract_numbers_with_text_uk(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -934,9 +893,6 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
         The value parsed, and tokens that it corresponds to.
 
     """
-    number_token = [token for token in tokens if token.word.lower() in _MULTIPLIES_LONG_SCALE_UK]
-    if number_token:
-        short_scale = False
     multiplies, string_num_ordinal, string_num_scale = \
         _initialize_number_data(short_scale)
     number_words = []  # type: [Token]
@@ -945,6 +901,7 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
     next_val = None
     negative = False
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -973,6 +930,36 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
             if word not in _STRING_NUM_UK:
                 word = _text_uk_inflection_normalize(word, 1)
 
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts ("-0 1/2" = -0.5);
+        # any other fraction is a number of its own ("3.5 1/2" is 3.5, then
+        # 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 \
+                and val is not False and val is not None:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                whole = abs(int(val))
+                mixed = float(whole + Fraction(float(a_pieces[0]))
+                              / Fraction(float(a_pieces[1])))
+                # the float must keep both parts: from 2**52 on it cannot, so
+                # the whole number keeps its digits and the fraction is a
+                # number of its own ("9007199254740993 1/2")
+                if whole < mixed < whole + 1:
+                    negative_whole = val < 0 or \
+                        tokens[idx - 1].word.startswith("-")
+                    val = -mixed if negative_whole else mixed
+                    number_words.append(token)
+            break
+
         if word not in string_num_scale and \
                 word not in _STRING_NUM_UK and \
                 word not in _SUMS and \
@@ -994,16 +981,17 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
                 and prev_word not in _NEGATIVES:
 
             number_words = [token]
-        elif prev_word in _SUMS and word in _SUMS:
+        elif prev_word in _SUMS and word in _SUMS \
+                and not _STRING_NUM_UK.get(word, 100) < 100 <= _STRING_NUM_UK.get(prev_word, 0):
+            # two tens words are two numbers; a tens word after a
+            # hundreds word continues it ("триста сорок")
             number_words = [token]
         else:
             number_words.append(token)
+        number_end = idx
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?
@@ -1073,12 +1061,15 @@ def _extract_whole_number_with_text_uk(tokens, short_scale, ordinals):
         # so no per-token negation happens here
 
         # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            a_pieces = word.split('/')
-            if look_for_fractions(a_pieces):
-                val = float(a_pieces[0]) / float(a_pieces[1])
-        else:
+        # look for fractions like "2/3". A digit fraction is a value of its
+        # own: the value of a number before it ("5 1/2") must not block it
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces):
+            val = float(a_pieces[0]) / float(a_pieces[1])
+            if not val:
+                # a zero fraction is the number 0 ("0/2" reads as 0)
+                val = 0
+        elif val:
             # checking if word is digit in order not to substitute
             # existing calculated value
             new_word = re.sub(r'\.', '', word)
@@ -1194,7 +1185,8 @@ def _initialize_number_data(short_scale):
         else _STRING_LONG_ORDINAL_UK
 
     string_num_scale_uk = _SHORT_SCALE_UK if short_scale else _LONG_SCALE_UK
-    string_num_scale_uk = invert_dict(string_num_scale_uk)
+    string_num_scale_uk = {word: exact_int(value)
+                           for value, word in string_num_scale_uk.items()}
     string_num_scale_uk.update(generate_plurals_uk(string_num_scale_uk))
     return multiplies, string_num_ordinal_uk, string_num_scale_uk
 
@@ -1215,8 +1207,12 @@ def extract_number_uk(text, short_scale=True, ordinals=False):
                                    was found
 
     """
-    return _extract_number_with_text_uk(tokenize(text.lower()),
-                                        short_scale, ordinals).value
+    tokens = tokenize(text.lower())
+    # one scale for the whole text: a scale word only the long scale has
+    # ("більярд") sets the long scale
+    if any(token.word in _LONG_ONLY_MULTIPLIES_UK for token in tokens):
+        short_scale = False
+    return _extract_number_with_text_uk(tokens, short_scale, ordinals).value
 
 
 def is_fractional_uk(input_str, word, short_scale=True):
@@ -1415,28 +1411,94 @@ def plural_uk(num: int, one: str, few: str, many: str):
     return many
 
 
-def pronounce_ordinal_uk(number):
+def _ordinal_gender_uk(word, gender):
+    """Inflect a masculine ordinal as an adjective: "перший" -> "перша",
+    "перше"; the soft "третій" -> "третя", "третє"."""
+    if gender == GrammaticalGender.FEMININE:
+        return word[:-2] + "я" if word.endswith("ій") else word[:-2] + "а"
+    if gender == GrammaticalGender.NEUTRAL:
+        return word[:-2] + "є" if word.endswith("ій") else word[:-2] + "е"
+    return word
+
+
+# Stems that join a count to "-тисячний", "-мільйонний", written as one
+# word (en.wiktionary "двохтисячний", "трьохтисячний", "чотирьохтисячний",
+# "п'ятитисячний", "десятитисячний", "двадцятитисячний", "сорокатисячний",
+# "дев'яностотисячний", "стотисячний", "двохсоттисячний").
+_ORDINAL_STEM_UNITS_UK = ["", "одно", "двох", "трьох", "чотирьох", "п'яти",
+                          "шести", "семи", "восьми", "дев'яти"]
+_ORDINAL_STEM_TEENS_UK = ["десяти", "одинадцяти", "дванадцяти", "тринадцяти",
+                          "чотирнадцяти", "п'ятнадцяти", "шістнадцяти",
+                          "сімнадцяти", "вісімнадцяти", "дев'ятнадцяти"]
+_ORDINAL_STEM_TENS_UK = ["", "", "двадцяти", "тридцяти", "сорока",
+                         "п'ятдесяти", "шістдесяти", "сімдесяти",
+                         "вісімдесяти", "дев'яносто"]
+_ORDINAL_STEM_HUNDREDS_UK = ["", "сто", "двохсот", "трьохсот", "чотирьохсот",
+                             "п'ятисот", "шестисот", "семисот", "восьмисот",
+                             "дев'ятисот"]
+
+
+def _ordinal_stem_uk(n):
+    hundreds, rest = divmod(n, 100)
+    tens, units = divmod(rest, 10)
+    if tens == 1:
+        return _ORDINAL_STEM_HUNDREDS_UK[hundreds] + _ORDINAL_STEM_TEENS_UK[units]
+    return _ORDINAL_STEM_HUNDREDS_UK[hundreds] + _ORDINAL_STEM_TENS_UK[tens] + \
+        _ORDINAL_STEM_UNITS_UK[units]
+
+
+def _ordinal_uk(n, short_scale=True):
+    """Masculine ordinal of a whole number: the groups before the last
+    non-zero group stay cardinal ("дві тисячі п'ятий"). Return None for 0,
+    when that group has no scale name, or when the groups before it read
+    scientifically."""
+    if n < 1:
+        return None
+    scale, group = 0, n
+    while group % 1000 == 0:
+        scale, group = scale + 1, group // 1000
+    head = (group - group % 1000) * 1000 ** scale
+    group %= 1000
+    if scale:
+        name = (_SHORT_SCALE_UK if short_scale else _LONG_SCALE_UK).get(1000 ** scale)
+        if name is None:
+            return None
+        word = ("" if group == 1 else _ordinal_stem_uk(group)) + \
+            name.removesuffix("а") + "ний"
+    else:
+        hundreds, rest = divmod(group, 100)
+        if not rest:
+            word = _ORDINAL_BASE_UK[group]
+        else:
+            words = [_NUM_STRING_UK[hundreds * 100]] if hundreds else []
+            if rest in _ORDINAL_BASE_UK:
+                words.append(_ORDINAL_BASE_UK[rest])
+            else:
+                words += [_NUM_STRING_UK[rest - rest % 10],
+                          _ORDINAL_BASE_UK[rest % 10]]
+            word = " ".join(words)
+    if head:
+        head_words = pronounce_number_uk(head, short_scale=short_scale)
+        if head_words == pronounce_number_uk(head, short_scale=short_scale,
+                                               scientific=True):
+            return None
+        word = f"{head_words} {word}"
+    return word
+
+
+def pronounce_ordinal_uk(number, gender=GrammaticalGender.MASCULINE):
     """
-    Pronounce a number as a Ukrainian ordinal (masculine nominative).
+    Pronounce a number as a Ukrainian ordinal in the nominative.
 
     Only the final word is ordinal, preceding groups stay cardinal.
 
     Args:
         number (int): the number to pronounce
+        gender (GrammaticalGender): gender of the noun the ordinal agrees with
     Returns:
         (str): the ordinal in Ukrainian
     """
     number = int(number)
     if number <= 0:
         raise ValueError("Ukrainian ordinals start at 1")
-    if number in _ORDINAL_BASE_UK:
-        return _ORDINAL_BASE_UK[number]
-    if number < 100:
-        tens = number // 10 * 10
-        unit = number % 10
-        return f"{pronounce_number_uk(tens)} {_ORDINAL_BASE_UK[unit]}"
-    last = number % 100
-    if last:
-        prefix = number - last
-        return f"{pronounce_number_uk(prefix)} {pronounce_ordinal_uk(last)}"
-    raise NotImplementedError(f"cannot pronounce {number} as a Ukrainian ordinal")
+    return pronounce_number_uk(number, ordinals=True, gender=gender)

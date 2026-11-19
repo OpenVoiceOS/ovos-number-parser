@@ -27,7 +27,7 @@ Sources:
 import re
 from typing import Union
 
-from ovos_number_parser.util import GrammaticalGender
+from ovos_number_parser.util import GrammaticalGender, is_numeric
 
 # pan-Amazigh cardinals, masculine (pronunciation defaults)
 _UNITS_AMAZIGH_M = {0: "ilem", 1: "yiwen", 2: "sin", 3: "kṛaḍ", 4: "kuẓ",
@@ -360,6 +360,13 @@ def extract_number_kab(text: str, short_scale: bool = False,
     and the pan-Amazigh proposed system (descending magnitudes 
     without connectors like "sin igiman tam imda" = 2800).
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "kab", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     raw_tokens = text.split()
     strip_chars = _TRAILING_PUNCT + _LEADING_PUNCT
 
@@ -384,7 +391,8 @@ def extract_number_kab(text: str, short_scale: bool = False,
         m = re.fullmatch(r"-?\d+(?:[.,]\d+)?", tok)
         if m:
             num = m.group().replace(",", ".")
-            return float(num) if "." in num else int(num)
+            if is_numeric(num):
+                return float(num) if "." in num else int(num)
             
         if val is None:
             i += 1

@@ -1,7 +1,20 @@
-from math import isfinite
+"""Slovenian number words.
+
+Sources for the writer rules:
+
+* Slovenski pravopis, člen 544, quoted by ZRC SAZU, svetovalnica "Zapis
+  stotic": "Druge glavne števnike pišemo narazen: sto enajst, dva tisoč,
+  sedem milijonov, tristo tisoč sto".
+* Wiktionary, Module:number list/data/sl: 2000 is "dva tisoč" and its
+  ordinal is "dvatisoči". A count of 2 before tisoč or milijon is therefore
+  masculine.
+* Lektorsko društvo Slovenije, Jezikovni pogovor 2014: "leto 2002 pravilno
+  samo kot [dva tisoč dve]". The last digit keeps the counting form "dve".
+"""
+from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import (convert_to_mixed_fraction)
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, scientific_parts
 
 _NUM_STRING_SL = {
     0: 'nič',
@@ -222,9 +235,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus neskončno"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negatives of powers separately from the normal
@@ -293,7 +304,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
                 else:
                     qstr = digits[q]
                 return (qstr + "sto" + (
-                    " " + _sub_thousand(r, ordinals) if r else ""))
+                    " " + _sub_thousand(r, ordinals, is_male) if r else ""))
 
         def _plural_hundreds(n, hundred, ordi=True):
             if hundred[-3:] != "jon":
@@ -331,7 +342,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n >= max(_SHORT_SCALE_SL.keys()):
-                return "neskončno"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -352,8 +363,11 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
                 if z == 1 and i == 1:
                     number = ""
-                elif z > 100 and z % 100 == 2 and not ordi:
-                    number = _sub_thousand(z, not i and ordi, is_male=True)
+                elif z % 100 == 2 and i:
+                    # a count of tisoč or milijon ends in the masculine dva:
+                    # "dva tisoč", "sto dva tisoč"; the units group keeps the
+                    # counting form "dve"
+                    number = _sub_thousand(z, False, is_male=True)
                 elif z > 100 and z % 100 == 3 and not ordi:
                     number = _sub_thousand(z, not i and ordi) + "je"
                 elif z > 1 or i == 0 or ordi:
@@ -383,7 +397,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
         def _long_scale(n):
             if n >= max(_LONG_SCALE_SL.keys()):
-                return "neskončno"
+                return ""
             ordi = ordinals
             if int(n) != n:
                 ordi = False
@@ -456,17 +470,19 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "minus ") and num >= 1e6:
+        return result + pronounce_number_sl(
+            num, places, short_scale, scientific=True)
+
     if ordinals:
         result = result.replace(" ", "")
 
-    # deal with scientific notation unpronounceable as number
-    if (not result or result == "neskončno") and "e" in str(num):
-        return pronounce_number_sl(num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "minus " or not result):
+        result += "nič"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "minus " or not result):
-            result += "nič"
-
+    if not num == int(num) and places > 0:
         if int(abs(num)) % 100 == 1:
             result += " cela"
         elif int(abs(num)) % 100 == 2:
@@ -476,7 +492,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
         else:
             result += " celih"
 
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
@@ -622,14 +638,11 @@ def extract_number_sl(text, short_scale=True, ordinals=False):
 
         # digits, including comma decimals
         cleaned = token.replace(',', '.')
-        try:
-            val = float(cleaned)
-            if isfinite(val):
-                if val == int(val) and '.' not in cleaned:
-                    val = int(val)
-                return -val if negative else val
-        except ValueError:
-            pass
+        if is_numeric(cleaned):
+            val = numeric_value(cleaned)
+            if val == int(val) and '.' not in cleaned:
+                val = int(val)
+            return -val if negative else val
 
         if ordinals:
             val = is_ordinal_sl(token)

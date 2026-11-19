@@ -14,10 +14,51 @@
 # limitations under the License.
 #
 
+"""Dutch number words.
+
+Rules and sources:
+
+* Cardinals: Taaladvies.net (Nederlandse Taalunie), "Aaneenschrijven van
+  telwoorden (algemeen)", https://taaladvies.net/aaneenschrijven-van-telwoorden/
+  Cardinals are written as one word up to and including "duizend" ("135
+  honderdvijfendertig", "6000 zesduizend"). "Na het woord duizend (en
+  samenstellingen hiermee, zoals vierduizend) staat een spatie": 4002 is
+  "vierduizend twee" and 28 064 is "achtentwintigduizend vierenzestig".
+  "Miljoen en miljard zijn altijd aparte woorden": 3 000 000 is "drie miljoen".
+  Onze Taal, "Getallen uitschrijven",
+  https://onzetaal.nl/taalloket/getallen-uitschrijven, gives the same rule and
+  says it holds for cardinals and ordinals.
+* Ordinals: the same Taaladvies page ("Rangtelwoorden worden gevormd door
+  toevoeging van het achtervoegsel -ste, -de of -e aan het overeenkomstige
+  hoofdtelwoord. Met de hoofdtelwoorden een en drie corresponderen evenwel de
+  rangtelwoorden eerste en derde"; examples "102e honderdentweede", "3220e
+  drieduizend tweehonderdtwintigste", "4 000 000e vier miljoenste"). Onze Taal,
+  "Honderdeneende / honderdeneerste",
+  https://onzetaal.nl/taalloket/honderdeneende-honderdeneerste: "In
+  samengestelde rangtelwoorden ga je van het laatste deel uit:
+  negenhonderdzevende, driehonderdachtste, honderdeneerste"; the forms without
+  "en" ("honderdeerste") are correct as well. The suffix follows the last
+  part: 1 "eerste", 3 "derde", 8 "achtste", the other numbers up to 19 take
+  "-de", tens, "honderd", "duizend" and the scale words take "-ste". The
+  Wiktionary entries "eerste", "derde", "achtste" and "miljoenste" agree.
+  Onze Taal writes the 1001st as "duizendeneerste" and "duizendeerste" in
+  that page; the spacing rule of Taaladvies and of Onze Taal's "Getallen
+  uitschrijven" ("Deze regel geldt zowel voor hoofdtelwoorden als voor
+  rangtelwoorden") wins, so the 1001st is "duizend eerste".
+* Stress mark: Taaladvies.net, "Klemtoonteken (algemeen)": accents are only
+  needed where a misreading threatens, so a number inside a longer number
+  ("tweeduizend een", "honderdeen") takes no accent, and the numeral on its
+  own and before "miljoen" or "miljard" takes "één".
+* Trema: Taaladvies.net, "Klinkerbotsing" ("tweeëntwintig").
+"""
+
+import sys
+from fractions import Fraction
 from collections import OrderedDict
+from decimal import Decimal
 from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, Token, \
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, fits_str_limit, look_for_fractions, Token, \
     ReplaceableNumber, tokenize, partition_list, invert_dict
 
 _ARTICLES_NL = {'de', 'het'}
@@ -80,103 +121,103 @@ _LONG_SCALE_NL = OrderedDict([
     (100, 'honderd'),
     (1000, 'duizend'),
     (1000000, 'miljoen'),
-    (1e12, "biljoen"),
-    (1e18, 'triljoen'),
-    (1e24, "quadriljoen"),
-    (1e30, "quintillion"),
-    (1e36, "sextillion"),
-    (1e42, "septillion"),
-    (1e48, "octillion"),
-    (1e54, "nonillion"),
-    (1e60, "decillion"),
-    (1e66, "undecillion"),
-    (1e72, "duodecillion"),
-    (1e78, "tredecillion"),
-    (1e84, "quattuordecillion"),
-    (1e90, "quinquadecillion"),
-    (1e96, "sedecillion"),
-    (1e102, "septendecillion"),
-    (1e108, "octodecillion"),
-    (1e114, "novendecillion"),
-    (1e120, "vigintillion"),
-    (1e306, "unquinquagintillion"),
-    (1e312, "duoquinquagintillion"),
-    (1e336, "sesquinquagintillion"),
-    (1e366, "unsexagintillion")
+    (10 ** 12, "biljoen"),
+    (10 ** 18, 'triljoen'),
+    (10 ** 24, "quadriljoen"),
+    (10 ** 30, "quintillion"),
+    (10 ** 36, "sextillion"),
+    (10 ** 42, "septillion"),
+    (10 ** 48, "octillion"),
+    (10 ** 54, "nonillion"),
+    (10 ** 60, "decillion"),
+    (10 ** 66, "undecillion"),
+    (10 ** 72, "duodecillion"),
+    (10 ** 78, "tredecillion"),
+    (10 ** 84, "quattuordecillion"),
+    (10 ** 90, "quinquadecillion"),
+    (10 ** 96, "sedecillion"),
+    (10 ** 102, "septendecillion"),
+    (10 ** 108, "octodecillion"),
+    (10 ** 114, "novendecillion"),
+    (10 ** 120, "vigintillion"),
+    (10 ** 306, "unquinquagintillion"),
+    (10 ** 312, "duoquinquagintillion"),
+    (10 ** 336, "sesquinquagintillion"),
+    (10 ** 366, "unsexagintillion")
 ])
 
 _SHORT_SCALE_NL = OrderedDict([
     (100, 'honderd'),
     (1000, 'duizend'),
     (1000000, 'miljoen'),
-    (1e9, "miljard"),
-    (1e12, 'biljoen'),
-    (1e15, "quadrillion"),
-    (1e18, "quintiljoen"),
-    (1e21, "sextiljoen"),
-    (1e24, "septiljoen"),
-    (1e27, "octiljoen"),
-    (1e30, "noniljoen"),
-    (1e33, "deciljoen"),
-    (1e36, "undeciljoen"),
-    (1e39, "duodeciljoen"),
-    (1e42, "tredeciljoen"),
-    (1e45, "quattuordeciljoen"),
-    (1e48, "quinquadeciljoen"),
-    (1e51, "sedeciljoen"),
-    (1e54, "septendeciljoen"),
-    (1e57, "octodeciljoen"),
-    (1e60, "novendeciljoen"),
-    (1e63, "vigintiljoen"),
-    (1e66, "unvigintiljoen"),
-    (1e69, "uuovigintiljoen"),
-    (1e72, "tresvigintiljoen"),
-    (1e75, "quattuorvigintiljoen"),
-    (1e78, "quinquavigintiljoen"),
-    (1e81, "qesvigintiljoen"),
-    (1e84, "septemvigintiljoen"),
-    (1e87, "octovigintiljoen"),
-    (1e90, "novemvigintiljoen"),
-    (1e93, "trigintiljoen"),
-    (1e96, "untrigintiljoen"),
-    (1e99, "duotrigintiljoen"),
-    (1e102, "trestrigintiljoen"),
-    (1e105, "quattuortrigintiljoen"),
-    (1e108, "quinquatrigintiljoen"),
-    (1e111, "sestrigintiljoen"),
-    (1e114, "septentrigintiljoen"),
-    (1e117, "octotrigintiljoen"),
-    (1e120, "noventrigintiljoen"),
-    (1e123, "quadragintiljoen"),
-    (1e153, "quinquagintiljoen"),
-    (1e183, "sexagintiljoen"),
-    (1e213, "septuagintiljoen"),
-    (1e243, "octogintiljoen"),
-    (1e273, "nonagintiljoen"),
-    (1e303, "centiljoen"),
-    (1e306, "uncentiljoen"),
-    (1e309, "duocentiljoen"),
-    (1e312, "trescentiljoen"),
-    (1e333, "decicentiljoen"),
-    (1e336, "undecicentiljoen"),
-    (1e363, "viginticentiljoen"),
-    (1e366, "unviginticentiljoen"),
-    (1e393, "trigintacentiljoen"),
-    (1e423, "quadragintacentiljoen"),
-    (1e453, "quinquagintacentiljoen"),
-    (1e483, "sexagintacentiljoen"),
-    (1e513, "septuagintacentiljoen"),
-    (1e543, "ctogintacentiljoen"),
-    (1e573, "nonagintacentiljoen"),
-    (1e603, "ducentiljoen"),
-    (1e903, "trecentiljoen"),
-    (1e1203, "quadringentiljoen"),
-    (1e1503, "quingentiljoen"),
-    (1e1803, "sescentiljoen"),
-    (1e2103, "septingentiljoen"),
-    (1e2403, "octingentiljoen"),
-    (1e2703, "nongentiljoen"),
-    (1e3003, "milliniljoen")
+    (10 ** 9, "miljard"),
+    (10 ** 12, 'biljoen'),
+    (10 ** 15, "quadrillion"),
+    (10 ** 18, "quintiljoen"),
+    (10 ** 21, "sextiljoen"),
+    (10 ** 24, "septiljoen"),
+    (10 ** 27, "octiljoen"),
+    (10 ** 30, "noniljoen"),
+    (10 ** 33, "deciljoen"),
+    (10 ** 36, "undeciljoen"),
+    (10 ** 39, "duodeciljoen"),
+    (10 ** 42, "tredeciljoen"),
+    (10 ** 45, "quattuordeciljoen"),
+    (10 ** 48, "quinquadeciljoen"),
+    (10 ** 51, "sedeciljoen"),
+    (10 ** 54, "septendeciljoen"),
+    (10 ** 57, "octodeciljoen"),
+    (10 ** 60, "novendeciljoen"),
+    (10 ** 63, "vigintiljoen"),
+    (10 ** 66, "unvigintiljoen"),
+    (10 ** 69, "uuovigintiljoen"),
+    (10 ** 72, "tresvigintiljoen"),
+    (10 ** 75, "quattuorvigintiljoen"),
+    (10 ** 78, "quinquavigintiljoen"),
+    (10 ** 81, "qesvigintiljoen"),
+    (10 ** 84, "septemvigintiljoen"),
+    (10 ** 87, "octovigintiljoen"),
+    (10 ** 90, "novemvigintiljoen"),
+    (10 ** 93, "trigintiljoen"),
+    (10 ** 96, "untrigintiljoen"),
+    (10 ** 99, "duotrigintiljoen"),
+    (10 ** 102, "trestrigintiljoen"),
+    (10 ** 105, "quattuortrigintiljoen"),
+    (10 ** 108, "quinquatrigintiljoen"),
+    (10 ** 111, "sestrigintiljoen"),
+    (10 ** 114, "septentrigintiljoen"),
+    (10 ** 117, "octotrigintiljoen"),
+    (10 ** 120, "noventrigintiljoen"),
+    (10 ** 123, "quadragintiljoen"),
+    (10 ** 153, "quinquagintiljoen"),
+    (10 ** 183, "sexagintiljoen"),
+    (10 ** 213, "septuagintiljoen"),
+    (10 ** 243, "octogintiljoen"),
+    (10 ** 273, "nonagintiljoen"),
+    (10 ** 303, "centiljoen"),
+    (10 ** 306, "uncentiljoen"),
+    (10 ** 309, "duocentiljoen"),
+    (10 ** 312, "trescentiljoen"),
+    (10 ** 333, "decicentiljoen"),
+    (10 ** 336, "undecicentiljoen"),
+    (10 ** 363, "viginticentiljoen"),
+    (10 ** 366, "unviginticentiljoen"),
+    (10 ** 393, "trigintacentiljoen"),
+    (10 ** 423, "quadragintacentiljoen"),
+    (10 ** 453, "quinquagintacentiljoen"),
+    (10 ** 483, "sexagintacentiljoen"),
+    (10 ** 513, "septuagintacentiljoen"),
+    (10 ** 543, "ctogintacentiljoen"),
+    (10 ** 573, "nonagintacentiljoen"),
+    (10 ** 603, "ducentiljoen"),
+    (10 ** 903, "trecentiljoen"),
+    (10 ** 1203, "quadringentiljoen"),
+    (10 ** 1503, "quingentiljoen"),
+    (10 ** 1803, "sescentiljoen"),
+    (10 ** 2103, "septingentiljoen"),
+    (10 ** 2403, "octingentiljoen"),
+    (10 ** 2703, "nongentiljoen"),
+    (10 ** 3003, "milliniljoen")
 ])
 
 _ORDINAL_STRING_BASE_NL = {
@@ -207,17 +248,17 @@ _ORDINAL_STRING_BASE_NL = {
     70: "zeventigste",
     80: "tachtigste",
     90: "negentigste",
-    10e3: "honderdste",
+    100: "honderdste",
     1e3: "duizendste"
 }
 
 _SHORT_ORDINAL_STRING_NL = {
-    1e6: "miloenste",
+    1e6: "miljoenste",
     1e9: "miljardste",
     1e12: "biljoenste",
     1e15: "biljardste",
     1e18: "triljoenste",
-    1e21: "trijardste",
+    1e21: "triljardste",
     1e24: "quadriljoenste",
     1e27: "quadriljardste",
     1e30: "quintiljoenste",
@@ -227,12 +268,12 @@ _SHORT_ORDINAL_STRING_NL = {
 _SHORT_ORDINAL_STRING_NL.update(_ORDINAL_STRING_BASE_NL)
 
 _LONG_ORDINAL_STRING_NL = {
-    1e6: "miloenste",
+    1e6: "miljoenste",
     1e9: "miljardste",
     1e12: "biljoenste",
     1e15: "biljardste",
     1e18: "triljoenste",
-    1e21: "trijardste",
+    1e21: "triljardste",
     1e24: "quadriljoenste",
     1e27: "quadriljardste",
     1e30: "quintiljoenste",
@@ -400,55 +441,36 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
                                 places):  # fixed number of places even with
         # trailing zeros
         result = ""
-        num = round(num, places)
-        place = 10
-        while places > 0:  # doesn't work with 1.0001 and places = 2: int(
-            # number*place) % 10 > 0 and places > 0:
-            result += " " + _NUM_STRING_NL[int(num * place) % 10]
-            if int(num * place) % 10 == 1:
-                result += ''  # "1" is pronounced "eins" after the decimal
-                # point
-            place *= 10
-            places -= 1
+        for digit in f"{Decimal(str(num)):f}".split(".")[1][:places].ljust(places, "0"):
+            result += " " + _NUM_STRING_NL[int(digit)]
         return result
 
-    def pronounce_whole_number_nl(num, scale_level=0):
-        if num == 0:
-            return ''
-
+    def pronounce_whole_number_nl(num):
+        # Taaladvies.net, "Aaneenschrijven van telwoorden": a space follows
+        # "duizend" and its compounds, and "miljoen", "miljard" ... are
+        # separate words, so every group of the number is its own word.
         num = floor(num)
-        result = ''
-        last_triplet = num % 1000
-
-        if last_triplet == 1:
-            if scale_level == 0:
-                result += "een"
-            elif scale_level == 1:
-                # 1000 is "duizend", not "eenduizend" (same Taalunie rule)
-                result += 'duizend' + _EXTRA_SPACE_NL
-            else:
-                # from a million up the count word IS written ("één miljoen"):
-                # here "een" would read as the article "a million", so the
-                # accented "één" marks the numeral
-                result += "één " + _NUM_POWERS_OF_TEN[scale_level] + ' '
-        elif last_triplet > 1:
-            result += pronounce_triplet_nl(last_triplet)
-            if scale_level == 1:
-                # result += _EXTRA_SPACE_DA
-                result += 'duizend' + _EXTRA_SPACE_NL
-            if scale_level >= 2:
-                # if _EXTRA_SPACE_DA == '':
-                #    result += " "
-                result += " " + _NUM_POWERS_OF_TEN[scale_level] + ' '
-            if scale_level >= 2:
-                if scale_level % 2 == 0:
-                    result += ""  # Miljioen
-                result += ""  # Miljard, Miljoen
-
-        num = floor(num / 1000)
-        scale_level += 1
-        return pronounce_whole_number_nl(num,
-                                         scale_level) + result + ''
+        groups = []
+        scale_level = 0
+        while num:
+            triplet = num % 1000
+            if triplet:
+                if scale_level == 0:
+                    groups.append("een" if triplet == 1
+                                  else pronounce_triplet_nl(triplet))
+                elif scale_level == 1:
+                    # 1000 is "duizend", not "eenduizend" (same Taalunie rule)
+                    groups.append("duizend" if triplet == 1 else
+                                  pronounce_triplet_nl(triplet) + "duizend")
+                else:
+                    # from a million up the count word IS written; "één"
+                    # marks the numeral where "een" would read as the article
+                    count = "één" if triplet == 1 \
+                        else pronounce_triplet_nl(triplet)
+                    groups.append(count + " " + _NUM_POWERS_OF_TEN[scale_level])
+            num //= 1000
+            scale_level += 1
+        return " ".join(reversed(groups))
 
     result = ""
     if abs(number) >= 1000000000000000000000000:  # cannot do more than this
@@ -467,7 +489,6 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             return spoken
         else:
             whole_number_part = floor(number)
-            fractional_part = number - whole_number_part
             whole_spoken = pronounce_whole_number_nl(whole_number_part) or \
                 _NUM_STRING_NL[0]
             if whole_spoken == "een":
@@ -475,7 +496,7 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             result += whole_spoken
             if places > 0:
                 result += " komma"
-                result += pronounce_fractional_nl(fractional_part, places)
+                result += pronounce_fractional_nl(number, places)
             return result
 
 
@@ -483,28 +504,51 @@ def pronounce_ordinal_nl(number):
     """
     This function pronounces a number as an ordinal
 
-    1 -> first
-    2 -> second
+    1 -> eerste
+    2 -> tweede
+    101 -> honderdeerste
+    4002 -> vierduizend tweede
+    1000000 -> miljoenste
+
+    The ending follows the last part of the number: 1, 3 and 8 are irregular
+    ("eerste", "derde", "achtste"), the rest of 1 to 19 take "-de", and the
+    tens and the scale words take "-ste".
+
+    Sources: Taaladvies.net, "Aaneenschrijven van telwoorden (algemeen)"
+    (rangtelwoorden: "-ste, -de of -e" at the matching cardinal, "eerste" and
+    "derde" for 1 and 3, "drieduizend tweehonderdtwintigste", "vier
+    miljoenste"); Onze Taal, "Honderdeneende / honderdeneerste" ("In
+    samengestelde rangtelwoorden ga je van het laatste deel uit:
+    negenhonderdzevende, driehonderdachtste, honderdeneerste"); Onze Taal,
+    "Getallen uitschrijven" (the spacing rule holds for ordinals);
+    Wiktionary nl "eerste", "derde", "achtste".
 
     Args:
         number (int): the number to format
     Returns:
         (str): The pronounced number string.
     """
-    ordinals = ["nulste", "eerste", "tweede", "derde", "vierde", "vijfde",
-                "zesde", "zevende", "achtste"]
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
-    if number < 4:
-        return ordinals[number]
-    if number < 8:
-        return pronounce_number_nl(number) + "de"
-    if number < 9:
-        return pronounce_number_nl(number) + "ste"
-    if number < 20:
-        return pronounce_number_nl(number) + "de"
-    return pronounce_number_nl(number) + "ste"
+    number = int(number)
+    if number == 0:
+        return "nulste"
+    spoken = pronounce_number_nl(number)
+    if spoken == "één":
+        return "eerste"
+    if spoken.split(" ")[0] == "één" and len(spoken.split(" ")) == 2:
+        spoken = spoken.split(" ")[1]  # "één miljoen" -> "miljoenste"
+    last = number % 100
+    if last == 1:
+        return spoken[:-len("een")] + "eerste"
+    if last == 3:
+        return spoken[:-len("drie")] + "derde"
+    if last == 8:
+        return spoken + "ste"
+    if 0 < last < 20:
+        return spoken + "de"
+    return spoken + "ste"
 
 
 def numbers_to_digits_nl(text, short_scale=True, ordinals=False):
@@ -524,6 +568,8 @@ def numbers_to_digits_nl(text, short_scale=True, ordinals=False):
     numbers_to_replace = \
         _extract_numbers_with_text_nl(tokens, short_scale, ordinals)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -765,6 +811,7 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
     prev_val = None
     next_val = None
     to_sum = []
+    number_end = None
     for idx, token in enumerate(tokens):
         current_val = None
         if next_val:
@@ -778,6 +825,36 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
 
         prev_word = tokens[idx - 1].word if idx > 0 else ""
         next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
+
+        # a digit fraction right after a number ends that number. A proper
+        # fraction after a whole number completes it as a mixed number
+        # ("5 1/2" = 5.5) whose sign covers both parts ("-0 1/2" = -0.5);
+        # any other fraction is a number of its own ("3.5 1/2" is 3.5, then
+        # 1/2)
+        a_pieces = word.split('/')
+        if look_for_fractions(a_pieces) and number_end == idx - 1 \
+                and val is not False and val is not None:
+            fraction = float(a_pieces[0]) / float(a_pieces[1])
+            if val == int(val) and 0 < fraction < 1:
+                if abs(val) > sys.float_info.max:
+                    # like the digit string "999...9.5", a whole part past
+                    # the float range takes no fraction: no number
+                    val = False
+                    number_words = []
+                    to_sum = []
+                    break
+                whole = abs(int(val))
+                mixed = float(whole + Fraction(float(a_pieces[0]))
+                              / Fraction(float(a_pieces[1])))
+                # the float must keep both parts: from 2**52 on it cannot, so
+                # the whole number keeps its digits and the fraction is a
+                # number of its own ("9007199254740993 1/2")
+                if whole < mixed < whole + 1:
+                    negative_whole = val < 0 or \
+                        tokens[idx - 1].word.startswith("-")
+                    val = -mixed if negative_whole else mixed
+                    number_words.append(token)
+            break
 
         if word not in string_num_scale and \
                 word not in _STRING_NUM_NL and \
@@ -806,12 +883,10 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
         else:
             number_words.append(token)
 
+        number_end = idx
         # is this word already a number ?
         if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
+            val = numeric_value(word)
             current_val = val
 
         # is this word the name of a number ?
@@ -871,6 +946,9 @@ def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
             aPieces = word.split('/')
             if look_for_fractions(aPieces):
                 val = float(aPieces[0]) / float(aPieces[1])
+                if not val:
+                    # a zero fraction is the number 0 ("0/2" reads as 0)
+                    val = 0
                 current_val = val
 
         else:
@@ -987,10 +1065,54 @@ def _compound_value_nl(parts, short_scale=True):
     return total + current
 
 
+def _small_value_nl(word):
+    """The value of a number word worth less than 1000, else None."""
+    parts = _split_compound_number_nl(word) or [word]
+    if parts == [word] and word not in _STRING_NUM_NL:
+        return None
+    value = _compound_value_nl(parts)
+    return value if value is not None and 0 < value < 1000 else None
+
+
+def _glue_after_duizend_nl(words):
+    """Join the words that a space separates after "duizend": "vierduizend
+    twee" is the one number 4002, and "tweeduizend drie honderd vijftig" is
+    2350. "een" joins only before the end of the text or another number word:
+    "tweeduizend een maand" keeps the article."""
+    glued = []
+    i = 0
+    while i < len(words):
+        word = words[i]
+        if not glued or not glued[-1].endswith("duizend") \
+                or _small_value_nl(word) is None:
+            glued.append(word)
+            i += 1
+            continue
+        following = words[i + 1] if i + 1 < len(words) else None
+        if word == "een" and following is not None \
+                and _small_value_nl(following) is None \
+                and following not in _DECIMAL_MARKER_NL:
+            glued.append(word)
+            i += 1
+            continue
+        i += 1
+        if word in _STRING_NUM_NL and _STRING_NUM_NL[word] in range(2, 10) \
+                and following is not None and following.startswith("honderd"):
+            word += following
+            i += 1
+        if word.endswith("honderd") and i < len(words):
+            value = _small_value_nl(words[i])
+            if value is not None and value < 100:
+                word += words[i]
+                i += 1
+        glued[-1] += word
+    return glued
+
+
 def _expand_compound_numbers_nl(text, short_scale=True):
     """Rewrite compound number words as their digit value for parsing."""
     out = []
-    for w in text.split():
+    for w in _glue_after_duizend_nl(text.split()):
         parts = _split_compound_number_nl(w)
         if parts:
             value = _compound_value_nl(parts, short_scale)

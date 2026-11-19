@@ -23,13 +23,27 @@ Sources:
     - https://ordbokene.no (Språkrådet/UiB: Bokmålsordboka & Nynorskordboka;
       every pronounced form in this module is an attested entry)
 """
+import sys
+from fractions import Fraction
+from decimal import Decimal
 from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
-                                     ReplaceableNumber, Token, look_for_fractions)
+                                     ReplaceableNumber, Token, look_for_fractions,
+                                     GrammaticalGender, numeric_value, fits_str_limit)
 
 # indefinite articles are homographs of "one"
 _ARTICLES_NB = {'en', 'ei', 'et', 'ett'}
+
+#: the numeral 1 before a feminine or neuter noun. Wiktionary "ett" (Norwegian
+#: Bokmål, usage notes): the neuter numeral is "ett", and "the corresponding
+#: masculine and feminine forms are én and éi"; Wiktionary "ei" gives the
+#: unaccented feminine numeral "ei" ("Jeg trenger bare ei bok"). The sources
+#: cover the bare 1 only, so a number that ends in 1 keeps "en".
+_GENDERED_ONE_NB = {
+    GrammaticalGender.FEMININE: "ei",
+    GrammaticalGender.NEUTRAL: "ett",
+}
 
 _NUM_STRING_NB = {
     0: 'null',
@@ -289,17 +303,12 @@ def _pronounce_number(number, t, places=2):
     if number == int(number):
         return _pronounce_whole_number(number, t).strip()
     whole_number_part = floor(number)
-    fractional_part = number - whole_number_part
     result += _pronounce_whole_number(whole_number_part, t).strip() or \
         t.num_string[0]
     if places > 0:
         result += " komma"
-        num = round(fractional_part, places)
-        place = 10
-        while places > 0:
-            result += " " + t.num_string[int(num * place) % 10]
-            place *= 10
-            places -= 1
+        for digit in f"{Decimal(str(number)):f}".split(".")[1][:places].ljust(places, "0"):
+            result += " " + t.num_string[int(digit)]
     return result
 
 
@@ -359,7 +368,7 @@ def _is_numeric(input_str):
     if input_str.endswith('.'):
         return False
     try:
-        float(input_str)
+        numeric_value(input_str)
         return True
     except ValueError:
         return False
@@ -367,7 +376,7 @@ def _is_numeric(input_str):
 
 def _is_number(word, t):
     if _is_numeric(word):
-        return int(word) if word.isdigit() else float(word)
+        return numeric_value(word)
     if word in t.string_num:
         return t.string_num[word]
     if word in t.scale:
@@ -459,7 +468,7 @@ def _expand_compound_numbers(text, t):
             expanded.append(w)
 
     def _int_value(w):
-        if w.isdecimal():
+        if w.isdecimal() and _is_numeric(w):
             return int(w)
         if w in t.string_num:
             return t.string_num[w]
@@ -505,7 +514,7 @@ def _expand_compound_numbers(text, t):
                 break
             span_len = j - i + 1
             j += 1
-        if span_len > 1:
+        if span_len > 1 and fits_str_limit(total + current):
             out.append(str(total + current))
             i += span_len
         else:
@@ -588,10 +597,14 @@ def _extract_real_number_with_text(tokens, t):
         _prev_val = _current_val
         _current_val = None
         word = token.word
+        # a sign after a summed part opens the next number: "5 og -3" is 5,
+        # then -3
+        opens_signed = bool(to_sum) and (
+            word in t.negatives or word.startswith("-") and _is_numeric(word))
 
         if word in t.connectors and not number_words:
             continue
-        if word in (t.negatives | t.connectors | t.comma):
+        if word in (t.negatives | t.connectors | t.comma) and not opens_signed:
             number_words.append(token)
             if word in t.comma:
                 _comma = token
@@ -601,7 +614,7 @@ def _extract_real_number_with_text(tokens, t):
         prev_word = tokens[idx - 1].word if idx > 0 else ""
         next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
 
-        if word not in t.string_num and \
+        if opens_signed or word not in t.string_num and \
                 word not in t.scale and \
                 not _is_numeric(word) and \
                 not _is_fractional(word, t):
@@ -614,8 +627,11 @@ def _extract_real_number_with_text(tokens, t):
                 else:
                     val = sum(to_sum)
 
-            if number_words and (not all([w in t.articles | t.negatives
-                                          | t.connectors for w in words_only])
+            # a signed part ends the number even after an article-only
+            # part: "en og -3" is 1, then -3
+            if number_words and (opens_signed
+                                 or not all([w in t.articles | t.negatives
+                                             | t.connectors for w in words_only])
                                  or str(val) == number_words[-1].word):
                 break
             else:
@@ -646,10 +662,35 @@ def _extract_real_number_with_text(tokens, t):
             _val = _current_val = None
 
         _fraction_val = _is_fractional(word, t)
+        if _fraction_val and _prev_val is not None \
+                and abs(_prev_val) > sys.float_info.max:
+            # a whole part past the float range takes no fraction: like the
+            # digit string "999...9.5", the mixed number is no number
+            number_words.clear()
+            to_sum.clear()
+            val = _val = _current_val = None
+            continue
         if _fraction_val:
             if _prev_val is not None and prev_word not in t.articles and \
                     word not in t.string_fraction:  # compound fraction word
-                _val = _prev_val + _fraction_val
+                if _prev_val == int(_prev_val) and 0 < _fraction_val < 1:
+                    whole = abs(int(_prev_val))
+                    mixed = float(whole + Fraction(_fraction_val))
+                    if not whole < mixed < whole + 1:
+                        # from 2**52 on no float keeps both parts: the whole
+                        # number keeps its digits and the fraction is a
+                        # number of its own ("9007199254740993 1/2")
+                        val = _prev_val
+                        if any(tok.word in t.negatives for tok in number_words):
+                            val = -abs(val)
+                        number_words.pop(-1)
+                        break
+                    # the sign covers the whole mixed number: -5 1/2 is
+                    # -(5 + 1/2), and -0 1/2 is -0.5
+                    negative_whole = _prev_val < 0 or prev_word.startswith("-")
+                    _val = -mixed if negative_whole else mixed
+                else:
+                    _val = _prev_val + _fraction_val
                 if prev_word not in t.connectors and \
                         tokens[idx - 1] not in number_words:
                     number_words.append(tokens[idx - 1])
@@ -697,9 +738,28 @@ def _extract_real_number_with_text(tokens, t):
 
 def _extract_number_with_text(tokens, t, ordinals=False):
     if ordinals:
-        for token in tokens:
+        for idx, token in enumerate(tokens):
             ordinal = _is_ordinal(token.word, t)
             if ordinal is not False:
+                # the "og"-inverted compound ("en og tjuende" = en + og +
+                # tjuende = 1 + 20 = 21) names the smaller unit before the
+                # larger ordinal tens word (the old counting:
+                # "enerleddet først, deretter og, og så tierleddet", Store
+                # norske leksikon, "den gamle tellemåten"), so only a unit
+                # 1-9 before an ordinal ten 20-90 folds; that single-word prefix is the
+                # same arithmetic _is_ordinal already applies to its glued
+                # spelling ("enogtjuende"). Without this the line reads as
+                # a cardinal and an unrelated ordinal, two spans, and the
+                # leftmost-separated rule answers the leading cardinal.
+                if idx >= 2 and tokens[idx - 1].word.lower() in t.connectors:
+                    prefix_val = _word_value(tokens[idx - 2].word.lower(), t)
+                    if prefix_val in range(1, 10) and ordinal in range(20, 100, 10):
+                        glued = "".join(tok.word.lower()
+                                        for tok in tokens[idx - 2:idx + 1])
+                        compound = _is_ordinal(glued, t)
+                        if compound is not False:
+                            return ReplaceableNumber(
+                                compound, tokens[idx - 2:idx + 1])
                 return ReplaceableNumber(ordinal, [token])
     val, number_words = _extract_real_number_with_text(tokens, t)
     return ReplaceableNumber(val, number_words)
@@ -728,16 +788,45 @@ def _extract_numbers_with_text(tokens, t, ordinals=False, fractions=True):
 def _extract_number(text, t, ordinals=False):
     text = _expand_compound_numbers(text.lower(), t)
     if ordinals:
-        for word in text.split():
-            ordinal = _is_ordinal(word.strip(".,!?;:"), t)
+        # An ordinal in the line wins, and the first one wins when there are
+        # several. A line with no ordinal falls through to the cardinal
+        # below: ordinals=True asks for ordinals to be READ, it does not ask
+        # for cardinals to be dropped. Sixteen of the eighteen languages
+        # here already behave that way; nb and nn returned False.
+        #
+        # The "og"-inverted compound ("en og tjuende" = en + og + tjuende =
+        # 1 + 20 = 21) names a unit 1-9 before an ordinal ten 20-90, the
+        # order of the old counting ("enerleddet først, deretter og, og så
+        # tierleddet", Store norske leksikon, "den gamle tellemåten"). Any
+        # other pair ("to og tredje") stays two numbers. The prefix reads
+        # with the same arithmetic
+        # _is_ordinal already applies to its glued spelling ("enogtjuende").
+        # Without this, the scan below answers the ordinal word alone (20),
+        # the leftmost-separated rule's span-growth probe reads that answer
+        # as unrelated to the preceding cardinal, the line reaches two
+        # spans, and the leftmost one, the cardinal, wins (1).
+        # TestOgCompoundsUnderTheFlag in tests/test_number_parser_nb_nn.py
+        # pins the class with the da control beside it.
+        words = [w.strip(".,!?;:") for w in text.split()]
+        for i, word in enumerate(words):
+            ordinal = _is_ordinal(word, t)
             if ordinal is not False:
+                if i >= 2 and words[i - 1].lower() in t.connectors:
+                    prefix_val = _word_value(words[i - 2].lower(), t)
+                    if prefix_val in range(1, 10) and ordinal in range(20, 100, 10):
+                        glued = "".join(w.lower() for w in words[i - 2:i + 1])
+                        compound = _is_ordinal(glued, t)
+                        if compound is not False:
+                            return compound
                 return ordinal
-        return False
     numbers = _extract_numbers_with_text(tokenize(text), t)
     if not numbers:
         return False
+    number = numbers[0].value
+    if isinstance(number, int):
+        return number
     try:
-        number = float(numbers[0].value)
+        number = float(number)
     except (OverflowError, ValueError):
         return False
     if not isfinite(number):
@@ -753,6 +842,8 @@ def _numbers_to_digits(text, t, ordinals=False, fractions=True):
     numbers_to_replace = _extract_numbers_with_text(tokens, t, ordinals,
                                                     fractions)
     numbers_to_replace.sort(key=lambda number: number.start_index)
+    # a number that str() cannot write stays as written
+    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
 
     results = []
     for token in tokens:
@@ -799,15 +890,21 @@ def nice_number_nb(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_nb(number, places=2, short_scale=False,
-                        scientific=False, ordinals=False):
+                        scientific=False, ordinals=False,
+                        gender=GrammaticalGender.MASCULINE):
     """Convert a number to its spoken Bokmål equivalent.
 
     Uses the modern tens-first counting order ("tjueen") and the official
-    modern forms "sju"/"tjue" (1951 counting reform).
+    modern forms "sju"/"tjue" (1951 counting reform). The number 1 takes the
+    form of ``gender`` ("ei", "ett").
     """
     if ordinals:
         return pronounce_ordinal_nb(number)
-    return _pronounce_number(number, _TABLES_NB, places)
+    spoken = _pronounce_number(number, _TABLES_NB, places)
+    if abs(number) == 1:
+        *head, last = spoken.split(" ")
+        spoken = " ".join(head + [_GENDERED_ONE_NB.get(gender, last)])
+    return spoken
 
 
 def pronounce_ordinal_nb(number):
@@ -827,6 +924,13 @@ def is_fractional_nb(input_str, short_scale=False):
 
 def extract_number_nb(text, short_scale=False, ordinals=False):
     """Extract a number from Bokmål text, both counting traditions."""
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "nb", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     return _extract_number(text, _TABLES_NB, ordinals)
 
 

@@ -61,6 +61,7 @@ _GL = NumberVocabulary(
 
     NUMBER_OVERFLOW="número exageradamente grande",
     DEFAULT_SCALE=Scale.LONG,
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["e"],
 
     JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e un"
@@ -70,6 +71,8 @@ _GL = NumberVocabulary(
 
     DECIMAL_MARKER=["coma", "punto", ".", ","],
     NEGATIVE_SIGN=["menos"],
+    NEGATIVE_IDIOMS=[("polo", "menos"), ("ao", "menos"), ("a", "menos", "que"),
+                     ("máis", "ou", "menos")],
     UNITS={
         0: 'cero',
         1: 'un',
@@ -370,6 +373,13 @@ def extract_number_gl(
     """
     DEPRECATED
     """
+    # the leftmost number of a line whose numbers other words separate
+    # wins under ordinals=True, in every language (panel item
+    # number-parser-ordinals-rule-v2)
+    from ovos_number_parser.util import leftmost_separated_number
+    _leftmost = leftmost_separated_number(text, "gl", ordinals)
+    if _leftmost is not None:
+        return _leftmost
     warnings.warn(
         "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
         DeprecationWarning,

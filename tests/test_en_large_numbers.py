@@ -37,9 +37,10 @@ class TestEnglishLargeNumbers(unittest.TestCase):
         self.assertEqual(pronounce_number_en(-math.inf), "negative infinity")
 
     def test_roundtrip_named_values(self):
-        for x in [1e123, 1e126, 1e150, 1e153, 1e300, 1e303, 1e306]:
-            name = pronounce_number_en(x)
-            self.assertEqual(extract_number_en(name), x, name)
+        # each name is read back as the exact power of ten it spells
+        for exponent in [123, 126, 150, 153, 300, 303, 306]:
+            name = pronounce_number_en(float(f"1e{exponent}"))
+            self.assertEqual(extract_number_en(name), 10 ** exponent, name)
 
     def test_arbitrary_precision_int_never_empty(self):
         # Python bigints past the float ceiling must still name, never ""
@@ -65,9 +66,9 @@ class TestEnglishLargeNumbers(unittest.TestCase):
                          "minus zero point zero one")
 
     def test_googol(self):
-        self.assertEqual(extract_number_en("one googol"), 1e100)
-        self.assertEqual(extract_number_en("googol"), 1e100)
-        self.assertEqual(extract_number_en("two googol"), 2e100)
+        self.assertEqual(extract_number_en("one googol"), 10 ** 100)
+        self.assertEqual(extract_number_en("googol"), 10 ** 100)
+        self.assertEqual(extract_number_en("two googol"), 2 * 10 ** 100)
         # googolplex overflows a float and is not fabricated
         self.assertFalse(extract_number_en("googolplex"))
 
