@@ -3,9 +3,10 @@
 numtag finds every number in a text with its exact value as a digit string
 ("1002", "-2.5", "1/3") and its character span. The readers here convert
 each value once, at this boundary, to the ``int`` or ``float`` that the
-public API returns. A value that ``str`` cannot write as an ``int``, or that
-is no whole number and has no ``float``, is no number.
+public API returns. A value that ``str`` cannot write as an ``int`` is no
+number, as ``extract_number`` rules for the other languages.
 """
+import math
 import re
 import sys
 from fractions import Fraction
@@ -83,13 +84,13 @@ def _prepare(text: str) -> str:
 
 def number(value: str, kind: Kind = Kind.DECIMAL) -> Optional[Union[int, float]]:
     """The ``int`` or ``float`` of a numtag value of ``kind``, or None when
-    the value is an integer with more digits than ``str`` can write, or no
-    whole number past the range of a ``float``.
+    the value is an integer with more digits than ``str`` can write.
 
     A value that is no whole number is a ``float``. When the ``float`` has
-    no room for the part after the point, a decimal rounds half up to an
-    ``int``, and a mixed number ("9007199254740993 1/2") is its whole part,
-    so the whole part keeps every digit.
+    no room for the part after the point, or none for the value at all, a
+    decimal rounds half up to an ``int``, and a mixed number within the
+    range of a ``float`` ("9007199254740993 1/2") is its whole part, so the
+    whole part keeps every digit.
     """
     whole = value.lstrip("-").split(".")[0].split("/")[0]
     if len(whole) > sys.get_int_max_str_digits() > 0:
@@ -102,10 +103,10 @@ def number(value: str, kind: Kind = Kind.DECIMAL) -> Optional[Union[int, float]]
     except ValueError:
         return None
     except OverflowError:
-        return None
+        approx = math.inf
     if exact.denominator == 1 or (kind is Kind.FRACTION and approx.is_integer() and abs(exact) >= 1):
         return int(exact)
-    if approx.is_integer():
+    if approx.is_integer() or math.isinf(approx):
         rounded = (2 * abs(exact.numerator) + exact.denominator) // (2 * exact.denominator)
         return -rounded if exact < 0 else rounded
     return approx

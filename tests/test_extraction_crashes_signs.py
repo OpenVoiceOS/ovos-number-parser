@@ -179,11 +179,12 @@ class TestMixedNumber(unittest.TestCase):
         self.assertEqual(numbers_to_digits("5 min 1/2", "nl"), "5 min 0.5")
 
     def test_mixed_whole_part_past_float_range(self):
+        # 400 nines and one half is 10**400 - 1/2, which has no float and
+        # rounds half up to 10**400
         big = "9" * 400
         for lang in MIXED:
             with self.subTest(lang=lang):
-                self.assertEqual(extract_number(big + " 1/2", lang),
-                                 extract_number("zzz", lang))
+                self.assertEqual(extract_number(big + " 1/2", lang), 10 ** 400)
 
     def test_sign_covers_the_whole_mixed_number(self):
         # -5 1/2 is -(5 + 1/2)
@@ -214,14 +215,13 @@ class TestMixedNumber(unittest.TestCase):
                                  Fraction(-7, 2))
 
     def test_whole_part_past_float_range(self):
-        # the value has no float, so it is no number, as the digit string
-        # "999...9.5" is none
+        # the value has no float, so it rounds half up to an int, as the
+        # digit string "999...9.5" does
         big = "9" * 400
         for lang in ("da", "de", "nb", "nn"):
             with self.subTest(lang=lang):
-                self.assertEqual(extract_number(big + " 1/2", lang),
-                                 extract_number("zzz", lang))
-                self.assertFalse(extract_number(big + ".5", lang))
+                self.assertEqual(extract_number(big + " 1/2", lang), 10 ** 400)
+                self.assertEqual(extract_number(big + ".5", lang), 10 ** 400)
 
 
 class TestValuePastIntStringLimit(unittest.TestCase):
