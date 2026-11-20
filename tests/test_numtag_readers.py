@@ -71,6 +71,15 @@ class TestValues(unittest.TestCase):
             self.assertEqual(extract_number(nines + ".5", "es"), 10 ** 400)
             self.assertEqual(len(numbers_to_digits(nines + " y medio", "es")), 401)
 
+    def test_a_digit_run_str_cannot_write_is_no_number_and_never_raises(self):
+        for text in ("0." + "9" * 5000, "0," + "9" * 5000, "1/" + "9" * 5000):
+            for lang in ("en", "pt"):
+                with self.subTest(text=text[:3], lang=lang):
+                    self.assertIs(extract_number(text, lang), False)
+                    self.assertIs(extract_number(text, lang, ordinals=True), False)
+                    self.assertEqual(extract_number_spans(text, lang), [])
+                    self.assertEqual(numbers_to_digits(text, lang), text)
+
     def test_a_value_str_cannot_write_is_no_number(self):
         digits = "9" * (sys.get_int_max_str_digits() + 1)
         self.assertIsNone(numtag_readers.number(digits))

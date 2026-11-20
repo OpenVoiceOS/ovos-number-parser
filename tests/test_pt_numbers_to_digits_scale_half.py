@@ -109,5 +109,25 @@ class TestNumbersToDigitsScaleAndAHalf(unittest.TestCase):
                 self.assertEqual(numbers_to_digits(text, lang="pt"), expected)
 
 
+class TestFractionPastTheFloatRange(unittest.TestCase):
+    """A fraction whose whole part has no float writes its count in digits
+    and keeps the fraction words, as a smaller one does: it raises
+    nothing."""
+
+    def test_the_count_keeps_its_digits(self):
+        for text, expected, langs in (
+                ("9" * 309 + " e meio", "9" * 309 + " e meio",
+                 ("pt-PT", "pt-BR", "pt")),
+                ("1" + "0" * 400 + " e meio", "1" + "0" * 400 + " e meio",
+                 ("pt-PT", "pt-BR", "pt")),
+                ("9" * 400 + " e um quarto", "9" * 400 + " e 1 quarto",
+                 ("pt-PT",)),
+                ("nove centiliões e um quarto",
+                 str(9 * 10 ** 600) + " e 1 quarto", ("pt-PT", "pt"))):
+            for lang in langs:
+                with self.subTest(text=text[-16:], lang=lang):
+                    self.assertEqual(numbers_to_digits(text, lang=lang), expected)
+
+
 if __name__ == "__main__":
     unittest.main()

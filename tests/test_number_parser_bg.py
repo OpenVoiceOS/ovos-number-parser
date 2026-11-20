@@ -133,7 +133,7 @@ class TestBulgarianExtract(unittest.TestCase):
     def test_extract_ordinals(self):
         self.assertEqual(
             extract_number('това е третият път', lang="bg", ordinals=True),
-            False)  # inflected form is out of scope
+            3)  # "третият" is "трети" (third) with the full definite article
         self.assertEqual(extract_number('трети', lang="bg", ordinals=True), 3)
         self.assertEqual(
             extract_number('двадесет и първи', lang="bg", ordinals=True), 21)

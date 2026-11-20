@@ -13,6 +13,15 @@ from ovos_number_parser import (extract_number, extract_number_spans,
 CASES = [
     # kolm, in the allative "kolmele"
     ("et", "Saatsin kutse kolmele sõbrale.", 3),
+    # hogeita lau eta erdi, 24 and a half (Euskaltzaindia 203, EBO VI:
+    # "24,5: hogeita lau koma bost edo hogeita lau eta erdi"). The norm
+    # stars the shape with a noun after it ("*hogeita lau eta erdi euro",
+    # footnote 14), so the case has none.
+    ("eu", "Hogeita lau eta erdi.", 24.5),
+    ("eu", "Hogeita lau koma bost kilo.", 24.5),
+    # hogeita hamazortzi, 20 + 18 (Euskaltzaindia, Araua 7: 38 "hogeita
+    # hamazortzi")
+    ("eu", "Herriak hogeita hamazortzi etxe ditu.", 38),
     # viisi, in the genitive "viiden"
     ("fi", "Meillä on viiden hengen perhe.", 5),
     # viisitoista, in the inessive "viidessätoista"
@@ -30,8 +39,12 @@ CASES = [
 class TestShippedRoutes(unittest.TestCase):
 
     def test_the_routed_languages(self):
-        self.assertEqual(numtag_readers.NUMTAG_LANGS,
-                         frozenset({"et", "fi", "sk", "sl"}))
+        self.assertEqual(numtag_readers.NUMTAG_LANGS, frozenset({
+            "an", "ar", "ast", "az", "bg", "ca", "cs", "da",
+            "de", "el", "en", "es", "et", "eu", "fa", "fi",
+            "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
+            "kab", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
+            "ro", "ru", "sk", "sl", "sv", "tr", "uk"}))
 
     def test_extract_number_reads_through_numtag(self):
         for lang, text, value in CASES:
@@ -52,8 +65,8 @@ class TestShippedRoutes(unittest.TestCase):
         self.assertEqual(numbers_to_digits("Bilo jih je okoli dveh.", "sl"),
                          "Bilo jih je okoli 2.")
 
-    def test_a_language_outside_the_set_keeps_its_reader(self):
-        for lang in ("el", "es", "eu", "mwl", "oc", "ru", "tr"):
+    def test_a_language_numtag_does_not_read_is_not_routed(self):
+        for lang in ("ja", "lv", "ms"):
             with self.subTest(lang=lang):
                 self.assertFalse(numtag_readers.routed(lang))
 

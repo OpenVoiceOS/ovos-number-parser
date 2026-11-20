@@ -17,9 +17,14 @@ from numtag import Scale as NumtagScale
 
 from ovos_number_parser.util import Scale
 
-#: languages whose readers are numtag; every other language keeps its
-#: numbers_xx.py reader
-NUMTAG_LANGS = frozenset({"et", "fi", "sk", "sl"})
+#: languages whose readers are numtag: every language numtag reads. Every
+#: other language keeps its numbers_xx.py reader
+NUMTAG_LANGS = frozenset({
+    "an", "ar", "ast", "az", "bg", "ca", "cs", "da",
+    "de", "el", "en", "es", "et", "eu", "fa", "fi",
+    "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
+    "kab", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
+    "ro", "ru", "sk", "sl", "sv", "tr", "uk"})
 
 #: languages whose numbers_to_digits writes the cardinal words of a fraction
 #: in digits and keeps the fraction words ("dois e meio" is "2 e meio"); the
@@ -83,9 +88,11 @@ def number(value: str) -> Optional[Union[int, float]]:
         return None
     if "/" not in value and "." not in value:
         return int(value)
-    exact = Fraction(value)
     try:
+        exact = Fraction(value)
         approx = float(exact)
+    except ValueError:
+        return None
     except OverflowError:
         approx = math.inf
     if approx.is_integer() or math.isinf(approx):
@@ -143,11 +150,10 @@ def _fraction_words(text: str, lang: str, scale: Optional[Scale]) -> str:
 
 def _digits(mention: NumberMention, words: str, lang: str, scale: Optional[Scale]) -> str:
     """How numbers_to_digits writes one number, written as ``words``."""
-    value = number(mention.value)
     if mention.kind is Kind.FRACTION and _base(lang) in _FRACTION_WORDS_KEPT \
-            and not float(value).is_integer():
+            and Fraction(mention.value).denominator != 1:
         return _fraction_words(words, lang, scale)
-    return str(value)
+    return str(number(mention.value))
 
 
 def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None,
