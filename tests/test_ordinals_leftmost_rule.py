@@ -5,11 +5,10 @@ carries several numbers and ``extract_number`` is called with
 ``ordinals=True``, the number written first wins, whether it is the ordinal
 or the cardinal.
 
-The rule covers numbers that other words separate, and only those. Two
-adjacent number words are how a fraction is written ("two thirds", "zwei
-drittel"), and what they mean under the flag is open (T-4416, architecture).
-The tests below pin the adjacent readings as they stand, so a later answer to
-that question has to move them on purpose.
+The rule covers numbers that other words separate. numtag, which reads every
+language here, also reads two adjacent number words as two numbers (numtag
+docs/rulings.md, "The leftmost longest number"), so the rule reaches an
+adjacent pair too.
 """
 import unittest
 from unittest import mock
@@ -39,7 +38,7 @@ IDIOMATIC = [
     ("kab", extract_number_kab, "sin seg wis kṛaḍ", 2, 2),
 ]
 
-#: the locales the rule reaches today, with their own words for 2 and 3 and
+#: the locales the rule reaches, with their own words for 2 and 3 and
 #: the reading each order keeps once the flag is off. ``qzx`` is a filler: it
 #: spells no number in any of them, so it only keeps the two numbers apart.
 #: The flag-off values are not uniform, and that is the point of recording
@@ -70,20 +69,11 @@ REACHED = {
 }
 
 #: the pair written with no word between them, for each reached locale, and
-#: the number of spans the scanner reports. A cardinal followed by an ordinal
-#: is the fraction shape, and the scanner grows it into one span, so the rule
-#: never reaches it. Any other adjacency stays two spans and the rule does
-#: reach it. Kabyle writes its ordinal as a phrase, "wis kṛaḍ", so neither of
-#: its orders is one span and the rule reaches both. English reads both of
-#: its orders as one span. The fa pair is measured, not copied from a
-#: sibling: it collapses the cardinal-then-ordinal order to one span, as da,
-#: de, nb and nn do. The eu, ca, es, fr, gl and it readers are numtag, which
-#: reads two spans in both orders (numtag docs/rulings.md, "The leftmost
-#: longest number").
-ADJACENT_SPANS = {"da": (2, 1), "de": (2, 1), "kab": (2, 2), "en": (1, 1),
-                  "nb": (2, 1), "nn": (2, 1), "eu": (2, 2), "fa": (2, 1),
-                  "ca": (2, 2), "es": (2, 2), "fr": (2, 2), "gl": (2, 2),
-                  "it": (2, 2)}
+#: the number of spans the scanner reports. numtag reads the two words as two
+#: numbers in both orders, except fa, whose cardinal-then-ordinal order is
+#: one span.
+ADJACENT_SPANS = {lang: (2, 2) for lang in REACHED}
+ADJACENT_SPANS["fa"] = (2, 1)
 
 FILLER = "qzx"
 
@@ -104,13 +94,13 @@ class TestLeftmostSeparatedNumber(unittest.TestCase):
     def test_the_rule_does_not_apply_to_one_number(self):
         self.assertIsNone(leftmost_separated_number("zwei", "de", True))
 
-    def test_the_rule_does_not_apply_to_adjacent_words(self):
-        """Two adjacent number words are one span, so the helper stands
-        aside and the language's own reading answers."""
+    def test_the_rule_applies_to_adjacent_words(self):
+        """numtag reads two adjacent number words as two spans, so the
+        helper answers the first."""
         self.assertEqual(
-            len(extract_number_spans("zwei dritte", "de", ordinals=True)), 1)
-        self.assertIsNone(
-            leftmost_separated_number("zwei dritte", "de", True))
+            len(extract_number_spans("zwei dritte", "de", ordinals=True)), 2)
+        self.assertEqual(
+            leftmost_separated_number("zwei dritte", "de", True), 2)
 
     def test_a_line_with_no_number_is_not_the_rule(self):
         self.assertIsNone(leftmost_separated_number("qzx qzx", "de", True))
@@ -192,12 +182,12 @@ class TestEveryReachedLocale(unittest.TestCase):
 
 
 class TestTheFractionShapeIsUntouched(unittest.TestCase):
-    """T-4416 owns what an adjacent pair means; this pins where the line
-    falls today.
+    """A fraction keeps its reading, and the table records where the
+    scanner ends an adjacent pair.
 
-    The scanner grows a cardinal followed by an ordinal into one span,
-    which is the shape a fraction is written in, so the rule never reaches
-    it. That is what keeps "zwei drittel" two thirds.
+    "zwei drittel" is a fraction word after a count, so it stays two
+    thirds. "zwei dritte" is a count and an ordinal, which numtag reads as
+    two numbers.
     """
 
     def test_the_fraction_reading_survives(self):
