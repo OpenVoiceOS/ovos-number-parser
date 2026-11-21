@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.31.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.1a1) (2026-11-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.0a1...0.31.1a1)
+
+**Closed issues:**
+
+- numtag adapter: ordinals=True, digit strings in numbers\_to\_digits and value conversion differ from the old API [\#538](https://github.com/OpenVoiceOS/ovos-number-parser/issues/538)
+
+**Merged pull requests:**
+
+- fix: numtag adapter answers the old API values [\#539](https://github.com/OpenVoiceOS/ovos-number-parser/pull/539) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.0a1) (2026-11-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.30.3a1...0.31.0a1)
@@ -304,10 +316,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.43a1...0.24.44a1)
 
-**Merged pull requests:**
-
-- fix\(az\): correct the native ordinal and read pronounce\_ordinal with it [\#444](https://github.com/OpenVoiceOS/ovos-number-parser/pull/444) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.43a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.43a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.42a2...0.24.43a1)
@@ -327,7 +335,6 @@
 **Merged pull requests:**
 
 - test\(fr\): give the OQLF hyphenation reference its locator [\#463](https://github.com/OpenVoiceOS/ovos-number-parser/pull/463) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(it\): read ordinals with the Italian path [\#442](https://github.com/OpenVoiceOS/ovos-number-parser/pull/442) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.41a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.41a1) (2026-11-12)
 
@@ -368,7 +375,6 @@
 **Merged pull requests:**
 
 - fix\(fr\): read ordinals as the cardinal with -ième [\#448](https://github.com/OpenVoiceOS/ovos-number-parser/pull/448) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(en\): native ordinal for zero, round hundreds and units inside a number [\#443](https://github.com/OpenVoiceOS/ovos-number-parser/pull/443) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.34a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.34a1) (2026-11-12)
 
