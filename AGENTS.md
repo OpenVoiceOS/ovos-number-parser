@@ -28,7 +28,7 @@ uv venv .venv
 uv pip install -p .venv/bin/python --prerelease=allow -e . pytest
 ```
 
-Use uv, never pip. Build the venv inside the checkout.
+Build the venv inside the checkout.
 
 ## Run the tests
 
@@ -56,8 +56,9 @@ the [numtag](https://github.com/TigreGotico/numtag) repository.
    ([api.md](docs/api.md#readers-backed-by-numtag)).
 6. Never edit `ovos_number_parser/version.py`. The release workflow bumps it
    ([release_workflow.yml](.github/workflows/release_workflow.yml)).
-7. Write each commit message as a Conventional Commits message
-   ([conventional-label.yaml](.github/workflows/conventional-label.yaml)).
+7. Write the pull request title as a Conventional Commits message.
+   [conventional-label.yaml](.github/workflows/conventional-label.yaml) labels
+   the pull request from it.
 
 ## Before you push
 

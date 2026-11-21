@@ -4,7 +4,7 @@
 covers: every public function of ovos_number_parser with its parameters, defaults and examples
 source: ovos_number_parser/__init__.py (dispatchers), ovos_number_parser/numtag_readers.py (NUMTAG_LANGS), ovos_number_parser/util.py (enums)
 generated: no
-verify: python -m pytest tests/test_lang_parity.py tests/test_numtag_readers.py
+verify: python -m doctest docs/api.md
 see: languages.md, adding-a-language.md, ../README.md
 -->
 
@@ -27,12 +27,17 @@ A `lang` outside the supported set raises `NotImplementedError` in
 functions answer through unicode-rbnf or return the text unchanged:
 
 ```python
+>>> from ovos_number_parser import *
+>>> from ovos_number_parser.util import Scale
 >>> pronounce_number(5, "ja")
 '五'
 >>> pronounce_ordinal(5, "ja")
 '第五'
 >>> is_fractional("half", "ja")
+Traceback (most recent call last):
+    ...
 NotImplementedError: Unsupported language: 'ja'
+
 ```
 
 Every function returns `int`/`float`/`str`/`bool` as documented below. The
@@ -58,6 +63,7 @@ Convert a numeric value to its spoken form.
 'dvacet jedna'
 >>> pronounce_number(2023, "gl")
 'dous mil e vinte e tres'
+
 ```
 
 - `places`: decimal places to speak.
@@ -90,9 +96,9 @@ Spoken ordinal form (`1 -> "first"`). `short_scale`, `scale` and `case` work
 as in `pronounce_number`.
 
 English ordinals come from unicode-rbnf. French 0 and French values from
-10**15 also come from it. Azerbaijani and Spanish from 10**24, and Russian at
-10**100, reach unicode-rbnf too. It has no ordinal for them, and the call
-raises `NotImplementedError`.
+10**15 also come from it. Azerbaijani from 10**24, Spanish from 10**24 (from
+10**18 on the short scale) and Russian from 10**96 reach unicode-rbnf too. It
+has no ordinal for them, and the call raises `NotImplementedError`.
 
 ## `pronounce_fraction(fraction_word, lang, scale=None)`
 
@@ -105,6 +111,7 @@ Every other language uses the generic one.
 'três quartos'
 >>> pronounce_fraction("3/4", "en")
 'three quarters'
+
 ```
 
 ## `extract_number(text, lang, short_scale=None, ordinals=False, scale=None)`
@@ -119,6 +126,7 @@ Extract the first number found in a phrase. Returns `int`, `float`, or
 2023
 >>> extract_number("einundzwanzig Katzen", "de")
 21
+
 ```
 
 Compound-written languages (German, Dutch, Danish, Swedish) split words such
@@ -133,6 +141,7 @@ place of `short_scale`.
 1000000000000
 >>> extract_number("un billón", "es", short_scale=True)
 1000000000
+
 ```
 
 ## `extract_number_spans(text, lang, short_scale=None, ordinals=False, scale=None)`
@@ -146,6 +155,7 @@ and an empty list when the text holds no number.
 [NumberSpan(start=7, end=10, surface='two', value=2), NumberSpan(start=20, end=21, surface='3', value=3)]
 >>> extract_number_spans("nothing", "en")
 []
+
 ```
 
 ## `is_fractional(input_str, lang, short_scale=None, scale=None)`
@@ -168,6 +178,7 @@ the text intact.
 ```python
 >>> numbers_to_digits("set a timer for five minutes", "en")
 'set a timer for 5 minutes'
+
 ```
 
 ## Readers backed by numtag

@@ -116,10 +116,8 @@ Portuguese, Galician, Mirandese, Asturian and Aragonese share a declarative
 `NumberVocabulary` + `RomanceNumberExtractor` implementation in
 `ovos_number_parser.util`. Each language is described by its vocabulary
 (units, tens, hundreds, scales, ordinals, fractions, gender rules and joiner
-placement). The shared engine handles pronunciation and extraction for all
-of them. Numtag reads Portuguese, Galician, Mirandese, Asturian and Aragonese,
-so the engine does the speaking, `is_fractional` and `is_ordinal`. It is the
-path for a Romance language that numtag does not read.
+placement). The shared engine does the speaking, `is_fractional` and
+`is_ordinal` for all of them. Numtag reads their numbers.
 
 Portuguese distinguishes European and Brazilian variants (`pt-PT` reads
 16 as `dezasseis`, `pt-BR` as `dezesseis`) and inflects `um/uma`,

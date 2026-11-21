@@ -4,7 +4,7 @@
 covers: the development harnesses that compare pronounce_number with ICU RBNF and num2words
 source: benchmarks/icu_diff.py, benchmarks/multi_diff.py, ovos_number_parser/__init__.py:pronounce_number
 generated: no
-verify: python -I -c "import ovos_number_parser as o; print(o.pronounce_number(16, 'pt'))"
+verify: python -m doctest benchmarks/README.md (needs PyICU)
 see: ../docs/index.md, ../docs/api.md
 -->
 
@@ -30,7 +30,7 @@ development tool.
 A disagreement means one of the two is wrong, and which one is a question for
 the language's canonical grammar, never for ICU. Expected values in tests are
 justified by a cited source and are never pinned to ICU output. Real
-divergences found so far, all correct on both sides:
+divergences, all correct on both sides:
 
 | language | ours | ICU | why |
 | --- | --- | --- | --- |
@@ -51,6 +51,31 @@ language ICU is only pretending to support.
 Those 8 languages are precisely where we offer coverage ICU does not, and they
 must be validated against their own grammars instead.
 
+
+### Check the rows yourself
+
+Run these calls in the environment from the install step above. The rows of
+the table and the fallback locale come out as shown.
+
+```python
+>>> import icu
+>>> from ovos_number_parser import pronounce_number
+>>> def spell(code, number):
+...     speller = icu.RuleBasedNumberFormat(icu.URBNFRuleSetTag.SPELLOUT, icu.Locale(code))
+...     return pronounce_number(number, code), speller.format(number)
+>>> spell("en", 101)
+('one hundred and one', 'one hundred one')
+>>> spell("pt", 16)
+('dezasseis', 'dezesseis')
+>>> spell("pt", 10**9)
+('mil milhões', 'um bilhão')
+>>> spell("es", 10**9)
+('un millardo', 'mil millones')
+>>> galician = icu.RuleBasedNumberFormat(icu.URBNFRuleSetTag.SPELLOUT, icu.Locale("gl"))
+>>> galician.getLocale(icu.ULocDataLocaleType.ACTUAL_LOCALE).getName()
+'pt_PT'
+
+```
 
 ## `multi_diff.py`: three-way differential (ICU + num2words)
 
