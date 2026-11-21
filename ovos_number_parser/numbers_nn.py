@@ -178,7 +178,7 @@ def is_fractional_nn(input_str, short_scale=False):
     return _is_fractional(input_str, _TABLES_NN)
 
 
-def numbers_to_digits_nn(text, short_scale=False, ordinals=False):
+def numbers_to_digits_nn(text, short_scale=False, ordinals=False, fractions=True):
     """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "nn")``."""
     warn_reader_removed("numbers_to_digits_nn", 'ovos_number_parser.numbers_to_digits(text, "nn")')
     return numtag_readers.numbers_to_digits(text, "nn", Scale.SHORT if short_scale else Scale.LONG, ordinals)

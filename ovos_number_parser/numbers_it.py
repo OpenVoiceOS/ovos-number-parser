@@ -78,6 +78,8 @@ import re
 from ovos_number_parser.util import (convert_to_mixed_fraction, Scale,
                                      GrammaticalGender, NumberVocabulary,
                                      RomanceNumberExtractor, scientific_parts)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _SHORT_ORDINAL_STRING_IT = {
     1: 'primo',
@@ -935,3 +937,9 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False,
         for char in _num_str:
             result += " " + number_names[int(char)]
     return result
+
+
+def extract_number_it(text, short_scale=False, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "it")``."""
+    warn_reader_removed("extract_number_it", 'ovos_number_parser.extract_number(text, "it")')
+    return numtag_readers.extract_number(text, "it", short_scale, ordinals)

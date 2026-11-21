@@ -939,7 +939,7 @@ def is_fractional_nb(input_str, short_scale=False):
     return _is_fractional(input_str, _TABLES_NB)
 
 
-def numbers_to_digits_nb(text, short_scale=False, ordinals=False):
+def numbers_to_digits_nb(text, short_scale=False, ordinals=False, fractions=True):
     """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "nb")``."""
     warn_reader_removed("numbers_to_digits_nb", 'ovos_number_parser.numbers_to_digits(text, "nb")')
     return numtag_readers.numbers_to_digits(text, "nb", Scale.SHORT if short_scale else Scale.LONG, ordinals)

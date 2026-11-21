@@ -2,6 +2,8 @@ from decimal import Decimal
 from math import floor
 
 from ovos_number_parser.util import convert_to_mixed_fraction, invert_dict
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 
 _NUM_STRING_FY = {
@@ -325,3 +327,9 @@ def is_fractional_fy(input_str, short_scale=True):
     if input_str.lower() in fracts:
         return 1.0 / fracts[input_str.lower()]
     return False
+
+
+def extract_number_fy(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "fy")``."""
+    warn_reader_removed("extract_number_fy", 'ovos_number_parser.extract_number(text, "fy")')
+    return numtag_readers.extract_number(text, "fy", short_scale, ordinals)

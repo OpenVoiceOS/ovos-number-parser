@@ -1202,7 +1202,7 @@ def extract_number_da(text, short_scale=False, ordinals=False):
     return number
 
 
-def numbers_to_digits_da(text, short_scale=False, ordinals=False):
+def numbers_to_digits_da(text, short_scale=False, ordinals=False, fractions=True):
     """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "da")``."""
     warn_reader_removed("numbers_to_digits_da", 'ovos_number_parser.numbers_to_digits(text, "da")')
     return numtag_readers.numbers_to_digits(text, "da", Scale.SHORT if short_scale else Scale.LONG, ordinals)

@@ -1781,8 +1781,6 @@ class NumberSpan:
 #: characters that punctuate a word without belonging to it; a leading or
 #: trailing run of these is not part of a number's surface ("at 7," -> "7")
 _SPAN_PUNCTUATION = "\"'`´.,;:!?¡¿…()[]{}<>«»“”‘’"
-#: an aside in brackets, which a half may follow: "dois (aprox.) e meio"
-_BRACKETED = re.compile(r"\([^()]*\)|\[[^\[\]]*\]")
 
 
 def _word_spans(text: str) -> List[tuple]:

@@ -10,6 +10,8 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, invert_dict, scientific_parts
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _NUM_STRING_HR = {
     0: 'nula',
@@ -417,3 +419,7 @@ def is_fractional_hr(input_str, short_scale=True):
     return False
 
 
+def extract_number_hr(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "hr")``."""
+    warn_reader_removed("extract_number_hr", 'ovos_number_parser.extract_number(text, "hr")')
+    return numtag_readers.extract_number(text, "hr", short_scale, ordinals)

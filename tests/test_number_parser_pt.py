@@ -1,6 +1,6 @@
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, numbers_to_digits
 
 from ovos_number_parser.numbers_pt import (
     PortugueseVariant,
@@ -411,24 +411,24 @@ class TestNumbersToDigitsPt(unittest.TestCase):
 
     def test_simple_replacement(self):
         """Test simple number word replacement."""
-        self.assertEqual(PT_PT.numbers_to_digits("dezesseis"), "16")
-        self.assertEqual(PT_PT.numbers_to_digits("dezasseis"), "16")
+        self.assertEqual(numbers_to_digits("dezesseis", lang="pt-PT"), "16")
+        self.assertEqual(numbers_to_digits("dezasseis", lang="pt-PT"), "16")
 
     def test_complex_numbers(self):
         """Test complex number phrase replacement."""
-        result = PT_PT.numbers_to_digits("duzentos e cinquenta e três")
+        result = numbers_to_digits("duzentos e cinquenta e três", lang="pt-PT")
         self.assertEqual(result, "253")
 
     def test_mixed_text(self):
         """Test text with mixed words and numbers."""
-        result = PT_PT.numbers_to_digits("há duzentos e cinquenta carros")
+        result = numbers_to_digits("há duzentos e cinquenta carros", lang="pt-PT")
         self.assertIn("250", result)
         self.assertIn("há", result)
         self.assertIn("carros", result)
 
     def test_multiple_numbers(self):
         """Test text with multiple separate numbers."""
-        result = PT_PT.numbers_to_digits("dez carros e cinco pessoas")
+        result = numbers_to_digits("dez carros e cinco pessoas", lang="pt-PT")
         self.assertIn("10", result)
         self.assertIn("5", result)
         self.assertIn("carros", result)
@@ -437,24 +437,24 @@ class TestNumbersToDigitsPt(unittest.TestCase):
     def test_no_numbers(self):
         """Test text with no numbers."""
         original = "apenas palavras normais"
-        result = PT_PT.numbers_to_digits(original)
+        result = numbers_to_digits(original, lang="pt-PT")
         self.assertEqual(result, original)
 
     def test_edge_cases(self):
         """Test edge cases."""
         # Empty string
-        self.assertEqual(PT_PT.numbers_to_digits(""), "")
+        self.assertEqual(numbers_to_digits("", lang="pt-PT"), "")
 
         # Single word
-        self.assertEqual(PT_PT.numbers_to_digits("cinco"), "5")
+        self.assertEqual(numbers_to_digits("cinco", lang="pt-PT"), "5")
 
         # Just conjunction
-        self.assertEqual(PT_PT.numbers_to_digits("e"), "e")
+        self.assertEqual(numbers_to_digits("e", lang="pt-PT"), "e")
 
     def test_variant_differences(self):
         """Test that variants produce different results where expected."""
-        br_result = PT_BR.numbers_to_digits("dezesseis")
-        pt_result = PT_PT.numbers_to_digits("dezasseis")
+        br_result = numbers_to_digits("dezesseis", lang="pt-BR")
+        pt_result = numbers_to_digits("dezasseis", lang="pt-PT")
         self.assertEqual(br_result, "16")
         self.assertEqual(pt_result, "16")
 
@@ -568,7 +568,7 @@ class TestIntegrationScenarios(unittest.TestCase):
         ]
 
         for phrase in test_phrases:
-            result = PT_BR.numbers_to_digits(phrase)
+            result = numbers_to_digits(phrase, lang="pt-BR")
             # Should contain digits and preserve non-number words
             self.assertIsInstance(result, str)
             self.assertTrue(any(char.isdigit() for char in result))
@@ -584,7 +584,7 @@ class TestIntegrationScenarios(unittest.TestCase):
             self.assertFalse(result)
 
             # PT_PT.numbers_to_digits should handle gracefully
-            result = PT_PT.numbers_to_digits(invalid_input)
+            result = numbers_to_digits(invalid_input, lang="pt-PT")
             self.assertIsInstance(result, str)
 
     def test_large_number_limits(self):
@@ -681,7 +681,7 @@ class TestAdversarialNumberInputs(unittest.TestCase):
         self.assertEqual(extract_number("menos zero", lang="pt-PT"), 0)
 
     def test_numbers_to_digits_preserves_non_numbers(self):
-        self.assertEqual(PT_PT.numbers_to_digits("nada de números aqui"),
+        self.assertEqual(numbers_to_digits("nada de números aqui", lang="pt-PT"),
                          "nada de números aqui")
 
     def test_case_and_hyphen_insensitivity(self):
@@ -697,9 +697,9 @@ class TestRealSentences(unittest.TestCase):
         self.assertEqual(extract_number("há duzentos e cinquenta carros", lang="pt-BR"), 250)
 
     def test_numbers_to_digits_in_sentence(self):
-        self.assertEqual(PT_PT.numbers_to_digits("tenho vinte e um anos"),
+        self.assertEqual(numbers_to_digits("tenho vinte e um anos", lang="pt-PT"),
                          "tenho 21 anos")
-        result = PT_BR.numbers_to_digits("comprei dezesseis livros")
+        result = numbers_to_digits("comprei dezesseis livros", lang="pt-BR")
         self.assertIn("16", result)
 
     def test_fractions_in_speech(self):

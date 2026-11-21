@@ -1,6 +1,6 @@
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, numbers_to_digits
 
 from ovos_number_parser.util import GrammaticalGender
 from ovos_number_parser.numbers_an import AN
@@ -105,10 +105,10 @@ class TestExtractionAN(unittest.TestCase):
 
     # --- Text to Digits Conversion ---
     def test_numbers_to_digits(self):
-        self.assertEqual(AN.numbers_to_digits('docientos cincuanta'), '250')
-        self.assertEqual(AN.numbers_to_digits('un millón'), '1000000')
+        self.assertEqual(numbers_to_digits('docientos cincuanta', lang="an"), '250')
+        self.assertEqual(numbers_to_digits('un millón', lang="an"), '1000000')
         self.assertEqual(
-            AN.numbers_to_digits('bi ha docientos cincuanta coches'),
+            numbers_to_digits('bi ha docientos cincuanta coches', lang="an"),
             'bi ha 250 coches')
 
 

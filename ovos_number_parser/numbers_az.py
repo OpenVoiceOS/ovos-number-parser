@@ -17,6 +17,9 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, scientific_parts)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
+from ovos_number_parser.util import Scale
 
 _NUM_STRING_AZ = {
     0: 'sıfır',
@@ -548,3 +551,13 @@ def is_fractional_az(input_str, short_scale=True, spoken=True):
     return False
 
 
+def extract_number_az(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "az")``."""
+    warn_reader_removed("extract_number_az", 'ovos_number_parser.extract_number(text, "az")')
+    return numtag_readers.extract_number(text, "az", short_scale, ordinals)
+
+
+def numbers_to_digits_az(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "az")``."""
+    warn_reader_removed("numbers_to_digits_az", 'ovos_number_parser.numbers_to_digits(text, "az")')
+    return numtag_readers.numbers_to_digits(text, "az", Scale.SHORT if short_scale else Scale.LONG, ordinals)

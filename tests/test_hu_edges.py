@@ -1,17 +1,17 @@
 """Edge-path tests for the Hungarian number module."""
 import unittest
 
-from ovos_number_parser import extract_number_spans
-from ovos_number_parser.numbers_hu import extract_number_hu, nice_number_hu, pronounce_number_hu
+from ovos_number_parser import extract_number_spans, extract_number
+from ovos_number_parser.numbers_hu import nice_number_hu, pronounce_number_hu
 
 
 class TestHungarianEdges(unittest.TestCase):
     def test_negative_fraction(self):
         self.assertAlmostEqual(
-            extract_number_hu("mínusz két harmad"), -2 / 3)
+            extract_number("mínusz két harmad", lang="hu"), -2 / 3)
 
     def test_bare_egesz_defaults_to_tenths(self):
-        self.assertEqual(extract_number_hu("öt egész kettő"), 5.2)
+        self.assertEqual(extract_number("öt egész kettő", lang="hu"), 5.2)
 
 
     def test_extract_numbers(self):
@@ -54,10 +54,9 @@ class TestHungarianEdges(unittest.TestCase):
         self.assertEqual(pronounce_number_hu(1000000000), "egymilliárd")
 
     def test_large_number_round_trip(self):
-        from ovos_number_parser.numbers_hu import extract_number_hu
         for n in (1000001, 1001000, 1234567, 2001001, 1000000001,
                   1001000000):
-            self.assertEqual(extract_number_hu(pronounce_number_hu(n)), n, n)
+            self.assertEqual(extract_number(pronounce_number_hu(n), lang="hu"), n, n)
 
     def test_pronounce_ordinal_large(self):
         from ovos_number_parser.numbers_hu import pronounce_ordinal_hu

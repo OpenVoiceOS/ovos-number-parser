@@ -1,28 +1,28 @@
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, numbers_to_digits, numtag_readers
 
-from ovos_number_parser.numbers_en import (numbers_to_digits_en, pronounce_number_en, is_fractional_en, is_ordinal_en)
+from ovos_number_parser.numbers_en import (pronounce_number_en, is_fractional_en, is_ordinal_en)
 
 
 class TestNumberParserEN(unittest.TestCase):
     def test_numbers_to_digits_en(self):
-        self.assertEqual(numbers_to_digits_en('three billions'), '3000000000')
-        self.assertEqual(numbers_to_digits_en('two point five'), '2.5')
-        self.assertEqual(numbers_to_digits_en('two point forty two'), '2.42')
+        self.assertEqual(numbers_to_digits('three billions', lang="en"), '3000000000')
+        self.assertEqual(numbers_to_digits('two point five', lang="en"), '2.5')
+        self.assertEqual(numbers_to_digits('two point forty two', lang="en"), '2.42')
         # with ordinals off, "fifth" is left as a word: it must never be
         # reinterpreted as the reciprocal 1/5 (this used to read "march 0.2")
-        self.assertEqual(numbers_to_digits_en('march fifth two thousand twenty five', ordinals=False),
+        self.assertEqual(numtag_readers.numbers_to_digits('march fifth two thousand twenty five', "en", ordinals=False),
                          'march fifth 2025')
-        self.assertEqual(numbers_to_digits_en('march fifth', ordinals=True),
+        self.assertEqual(numtag_readers.numbers_to_digits('march fifth', "en", ordinals=True),
                          'march 5')
 
     def test_numbers_to_digits_en_preserves_leading_zeros(self):
         # live bug: a standalone digit run that is already digits must pass
         # through byte-for-byte, not get re-parsed and lose leading zeros
-        self.assertEqual(numbers_to_digits_en('code 007'), 'code 007')
+        self.assertEqual(numbers_to_digits('code 007', lang="en"), 'code 007')
         self.assertEqual(
-            numbers_to_digits_en('otp 4729 backup 007'),
+            numbers_to_digits('otp 4729 backup 007', lang="en"),
             'otp 4729 backup 007')
 
 
@@ -98,7 +98,7 @@ class TestNumberParserEN(unittest.TestCase):
     def test_hundred_and_units_combine(self):
         # "X hundred and Y" is a single number: hundreds and units must fuse
         # into one value, never split into "1 101" style fragments
-        self.assertEqual(numbers_to_digits_en("one hundred and one"), "101")
+        self.assertEqual(numbers_to_digits("one hundred and one", lang="en"), "101")
         self.assertEqual(extract_number("one hundred and one", lang="en"), 101)
         cases = {
             "two hundred and five": ("205", 205),
@@ -108,12 +108,12 @@ class TestNumberParserEN(unittest.TestCase):
             "one thousand one hundred and one": ("1101", 1101),
         }
         for text, (digits, value) in cases.items():
-            self.assertEqual(numbers_to_digits_en(text), digits, text)
+            self.assertEqual(numbers_to_digits(text, lang="en"), digits, text)
             self.assertEqual(extract_number(text, lang="en"), value, text)
 
     def test_hundred_and_units_in_context(self):
         self.assertEqual(
-            numbers_to_digits_en("it was one hundred and one degrees"),
+            numbers_to_digits("it was one hundred and one degrees", lang="en"),
             "it was 101 degrees")
 
     def test_large_ordinals_short_scale(self):

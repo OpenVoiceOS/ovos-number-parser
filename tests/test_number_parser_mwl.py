@@ -1,6 +1,6 @@
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, numbers_to_digits
 
 from ovos_number_parser.util import GrammaticalGender
 from ovos_number_parser.numbers_mwl import MWL, swap_gender_mwl
@@ -192,17 +192,17 @@ class TestDigitsMWL(unittest.TestCase):
     """Test MWL.numbers_to_digits function."""
 
     def test_basic_conversion(self):
-        self.assertEqual(MWL.numbers_to_digits("dieç beçs"), "10 beçs")
-        self.assertEqual(MWL.numbers_to_digits("bint'i un panes"), "21 panes")
-        self.assertEqual(MWL.numbers_to_digits("cien i dous dies"), "102 dies")
-        self.assertEqual(MWL.numbers_to_digits("un milhon de beçs"), "1000000 de beçs")
+        self.assertEqual(numbers_to_digits("dieç beçs", lang="mwl"), "10 beçs")
+        self.assertEqual(numbers_to_digits("bint'i un panes", lang="mwl"), "21 panes")
+        self.assertEqual(numbers_to_digits("cien i dous dies", lang="mwl"), "102 dies")
+        self.assertEqual(numbers_to_digits("un milhon de beçs", lang="mwl"), "1000000 de beçs")
 
     def test_decimal_conversion(self):
-        self.assertEqual(MWL.numbers_to_digits("la distáncia ye de trés bírgula catorze km"),
+        self.assertEqual(numbers_to_digits("la distáncia ye de trés bírgula catorze km", lang="mwl"),
                          "la distáncia ye de 3.14 km")
 
     def test_negative_conversion(self):
-        self.assertEqual(MWL.numbers_to_digits("temperatura de menos binte graus"), "temperatura de -20 graus")
+        self.assertEqual(numbers_to_digits("temperatura de menos binte graus", lang="mwl"), "temperatura de -20 graus")
 
 
 # ============================================================

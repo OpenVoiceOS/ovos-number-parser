@@ -640,3 +640,9 @@ def numbers_to_digits_en(text, short_scale=True, ordinals=False):
     """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "en")``."""
     warn_reader_removed("numbers_to_digits_en", 'ovos_number_parser.numbers_to_digits(text, "en")')
     return numtag_readers.numbers_to_digits(text, "en", Scale.SHORT if short_scale else Scale.LONG, ordinals)
+
+
+def extract_number_en(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "en")``."""
+    warn_reader_removed("extract_number_en", 'ovos_number_parser.extract_number(text, "en")')
+    return numtag_readers.extract_number(text, "en", short_scale, ordinals)

@@ -1,6 +1,6 @@
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, numbers_to_digits
 from ovos_number_parser.util import GrammaticalGender
 from ovos_number_parser.numbers_gl import GL
 
@@ -136,16 +136,16 @@ class TestExtractionGL(unittest.TestCase):
     # --- Text to Digits Conversion ---
     def test_numbers_to_digits(self):
         # Simple numbers
-        self.assertEqual(GL.numbers_to_digits('douscentos cincuenta'), '250')
-        self.assertEqual(GL.numbers_to_digits('un millón'), '1000000')
+        self.assertEqual(numbers_to_digits('douscentos cincuenta', lang="gl"), '250')
+        self.assertEqual(numbers_to_digits('un millón', lang="gl"), '1000000')
 
         # Numbers within a phrase
         phrase = 'hai douscentos cincuenta carros'
-        self.assertEqual(GL.numbers_to_digits(phrase), 'hai 250 carros')
+        self.assertEqual(numbers_to_digits(phrase, lang="gl"), 'hai 250 carros')
 
         # Test large numbers in phrase
         phrase_large = 'atopamos dous millóns cincocentos insectos'
-        self.assertEqual(GL.numbers_to_digits(phrase_large), 'atopamos 2000500 insectos')
+        self.assertEqual(numbers_to_digits(phrase_large, lang="gl"), 'atopamos 2000500 insectos')
 
 
 # ============================================================

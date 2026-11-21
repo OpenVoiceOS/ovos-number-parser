@@ -24,6 +24,8 @@ from decimal import Decimal
 from math import floor
 
 from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _NUM_STRING_ET = {
     0: 'null',
@@ -345,3 +347,7 @@ def is_fractional_et(input_str, short_scale=True):
     return False
 
 
+def extract_number_et(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "et")``."""
+    warn_reader_removed("extract_number_et", 'ovos_number_parser.extract_number(text, "et")')
+    return numtag_readers.extract_number(text, "et", short_scale, ordinals)

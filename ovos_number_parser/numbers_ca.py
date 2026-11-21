@@ -5,6 +5,8 @@ from typing import Optional, Union
 from ovos_number_parser.util import (convert_to_mixed_fraction, DigitPronunciation,
                                      Scale, GrammaticalGender, NumberVocabulary,
                                      RomanceNumberExtractor)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 # Fraction nouns, kept for the standalone ``nice_number_ca`` helper below.
 _FRACTION_STRING_CA = {
@@ -485,3 +487,9 @@ if __name__ == '__main__':
         print(f'{n} ->', CA.pronounce_number(n))
     print('10^9 ->', CA.pronounce_number(10 ** 9))
     print('10^12 ->', CA.pronounce_number(10 ** 12))
+
+
+def numbers_to_digits_ca(utterance: str) -> str:
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, "ca")``."""
+    warn_reader_removed("numbers_to_digits_ca", 'ovos_number_parser.numbers_to_digits(utterance, "ca")')
+    return numtag_readers.numbers_to_digits(utterance, "ca")

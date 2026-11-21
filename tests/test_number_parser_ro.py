@@ -10,7 +10,7 @@ and ordinals take the particles "al"/"a" ("al doilea"/"a doua").
 """
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, numbers_to_digits
 
 from ovos_number_parser.numbers_ro import RO
 from ovos_number_parser.util import GrammaticalGender
@@ -237,13 +237,13 @@ class TestExtractionRO(unittest.TestCase):
 class TestNumbersToDigitsRO(unittest.TestCase):
 
     def test_plain(self):
-        self.assertEqual(RO.numbers_to_digits("douăzeci și cinci"), "25")
-        self.assertEqual(RO.numbers_to_digits("două sute cincizeci"), "250")
-        self.assertEqual(RO.numbers_to_digits("un milion"), "1000000")
+        self.assertEqual(numbers_to_digits("douăzeci și cinci", lang="ro"), "25")
+        self.assertEqual(numbers_to_digits("două sute cincizeci", lang="ro"), "250")
+        self.assertEqual(numbers_to_digits("un milion", lang="ro"), "1000000")
 
     def test_in_sentence(self):
         self.assertEqual(
-            RO.numbers_to_digits("am douăzeci și cinci de mere și trei pere"),
+            numbers_to_digits("am douăzeci și cinci de mere și trei pere", lang="ro"),
             "am 25 de mere și 3 pere")
 
 

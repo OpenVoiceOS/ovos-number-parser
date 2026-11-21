@@ -3,6 +3,8 @@ from typing import Optional, Union
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, Scale, GrammaticalGender, DigitPronunciation,
                                      NumberVocabulary, RomanceNumberExtractor)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 
 def swap_gender_es(word: str, gender: GrammaticalGender) -> str:
@@ -510,3 +512,9 @@ def nice_number_es(number, speech=True, denominators=range(1, 21)):
             strNumber += 's'
 
     return strNumber
+
+
+def numbers_to_digits_es(utterance: str) -> str:
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, "es")``."""
+    warn_reader_removed("numbers_to_digits_es", 'ovos_number_parser.numbers_to_digits(utterance, "es")')
+    return numtag_readers.numbers_to_digits(utterance, "es")

@@ -19,6 +19,9 @@ from decimal import Decimal
 
 from ovos_number_parser.util import convert_to_mixed_fraction, invert_dict, GrammaticalGender, scientific_parts, \
     round_half_up
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
+from ovos_number_parser.util import Scale
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF ru spellout-cardinal-feminine and -neuter); the scale words
@@ -673,3 +676,13 @@ def is_fractional_ru(input_str, short_scale=True):
     return False
 
 
+def extract_number_ru(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "ru")``."""
+    warn_reader_removed("extract_number_ru", 'ovos_number_parser.extract_number(text, "ru")')
+    return numtag_readers.extract_number(text, "ru", short_scale, ordinals)
+
+
+def numbers_to_digits_ru(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "ru")``."""
+    warn_reader_removed("numbers_to_digits_ru", 'ovos_number_parser.numbers_to_digits(text, "ru")')
+    return numtag_readers.numbers_to_digits(text, "ru", Scale.SHORT if short_scale else Scale.LONG, ordinals)

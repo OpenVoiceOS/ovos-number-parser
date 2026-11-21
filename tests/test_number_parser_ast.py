@@ -1,6 +1,6 @@
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, numbers_to_digits
 
 from ovos_number_parser.util import GrammaticalGender
 from ovos_number_parser.numbers_ast import AST
@@ -156,20 +156,20 @@ class TestOrdinalsAST(unittest.TestCase):
 class TestNumbersToDigitsAST(unittest.TestCase):
 
     def test_simple(self):
-        self.assertEqual(AST.numbers_to_digits("dieciséis"), "16")
-        self.assertEqual(AST.numbers_to_digits("ventiuno"), "21")
+        self.assertEqual(numbers_to_digits("dieciséis", lang="ast"), "16")
+        self.assertEqual(numbers_to_digits("ventiuno", lang="ast"), "21")
 
     def test_phrase(self):
-        result = AST.numbers_to_digits("hai dos millones cincuenta persones")
+        result = numbers_to_digits("hai dos millones cincuenta persones", lang="ast")
         self.assertIn("2000050", result)
 
     def test_mixed(self):
-        result = AST.numbers_to_digits("merquei ventiuno panes")
+        result = numbers_to_digits("merquei ventiuno panes", lang="ast")
         self.assertEqual(result, "merquei 21 panes")
 
     def test_no_number(self):
         original = "nada equí"
-        self.assertEqual(AST.numbers_to_digits(original), original)
+        self.assertEqual(numbers_to_digits(original, lang="ast"), original)
 
 
 # ============================================================
@@ -245,7 +245,7 @@ class TestAdversarialAST(unittest.TestCase):
         self.assertFalse(extract_number("   ", lang="ast"))
 
     def test_numbers_to_digits_empty(self):
-        self.assertEqual(AST.numbers_to_digits(""), "")
+        self.assertEqual(numbers_to_digits("", lang="ast"), "")
 
     def test_junk_around_number(self):
         self.assertEqual(extract_number("xyz ventiuno qqq", lang="ast"), 21)

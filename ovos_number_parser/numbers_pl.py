@@ -17,6 +17,9 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, invert_dict, GrammaticalGender, scientific_parts
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
+from ovos_number_parser.util import Scale
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF pl spellout-cardinal-feminine and -neuter); a compound ending in
@@ -602,17 +605,6 @@ def is_fractional_pl(input_str, short_scale=True):
     return False
 
 
-def normalize_word_pl(word):
-    if word.startswith('jedn'):
-        suffix = 'ą', 'ej', 'ym'
-        if word.endswith(suffix):
-            return 'jedna'
-    if word == 'dwie':
-        return 'dwa'
-
-    return word
-
-
 _ORDINAL_HUNDREDS_PL = {
     200: "dwusetny", 300: "trzechsetny", 400: "czterechsetny",
     500: "pięćsetny", 600: "sześćsetny", 700: "siedemsetny",
@@ -710,3 +702,15 @@ def pronounce_ordinal_pl(number, gender=GrammaticalGender.MASCULINE):
     if number <= 0:
         raise ValueError("Polish ordinals start at 1")
     return pronounce_number_pl(number, ordinals=True, gender=gender)
+
+
+def extract_number_pl(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "pl")``."""
+    warn_reader_removed("extract_number_pl", 'ovos_number_parser.extract_number(text, "pl")')
+    return numtag_readers.extract_number(text, "pl", short_scale, ordinals)
+
+
+def numbers_to_digits_pl(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "pl")``."""
+    warn_reader_removed("numbers_to_digits_pl", 'ovos_number_parser.numbers_to_digits(text, "pl")')
+    return numtag_readers.numbers_to_digits(text, "pl", Scale.SHORT if short_scale else Scale.LONG, ordinals)

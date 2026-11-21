@@ -553,7 +553,7 @@ def is_numeric_de(input_str):
         return False
 
 
-def numbers_to_digits_de(text, short_scale=False, ordinals=False):
+def numbers_to_digits_de(text, short_scale=False, ordinals=False, fractions=True):
     """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "de")``."""
     warn_reader_removed("numbers_to_digits_de", 'ovos_number_parser.numbers_to_digits(text, "de")')
     return numtag_readers.numbers_to_digits(text, "de", Scale.SHORT if short_scale else Scale.LONG, ordinals)

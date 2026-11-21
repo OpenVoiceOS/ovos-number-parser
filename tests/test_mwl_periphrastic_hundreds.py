@@ -10,7 +10,7 @@ Source: reviewed by a native central-dialect Mirandese speaker (2025-10-12).
 """
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, numbers_to_digits
 
 from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.util import GrammaticalGender
@@ -59,9 +59,9 @@ class TestMwlHundredsExtract(unittest.TestCase):
         self.assertEqual(extract_number("dous milhones i quinhentos", lang="mwl"), 2_000_500)
 
     def test_numbers_to_digits_accepts_both(self):
-        self.assertEqual(MWL.numbers_to_digits("hai dous cientos i cinquenta carros"),
+        self.assertEqual(numbers_to_digits("hai dous cientos i cinquenta carros", lang="mwl"),
                          "hai 250 carros")
-        self.assertEqual(MWL.numbers_to_digits("hai duzientos i cinquenta carros"),
+        self.assertEqual(numbers_to_digits("hai duzientos i cinquenta carros", lang="mwl"),
                          "hai 250 carros")
 
 

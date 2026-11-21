@@ -131,6 +131,8 @@ import warnings
 from ovos_number_parser.util import (Scale, GrammaticalGender,
                                      DigitPronunciation,
                                      NumberVocabulary, RomanceNumberExtractor)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 
 class PortugueseVariant(str, Enum):
@@ -711,3 +713,14 @@ if __name__ == "__main__":
     print(f"0/20: {pronounce_fraction_pt('0/20')}")
     print(f"1/0: {pronounce_fraction_pt('1/0')}")
     print(f"0/0: {pronounce_fraction_pt('0/0')}")
+
+
+def numbers_to_digits_pt(
+        utterance: str,
+        scale: Optional[Scale] = None,
+        variant: PortugueseVariant = PortugueseVariant.PT
+) -> str:
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, "pt-PT")``."""
+    warn_reader_removed("numbers_to_digits_pt", 'ovos_number_parser.numbers_to_digits(utterance, "pt-PT")')
+    lang = "pt-PT" if variant == PortugueseVariant.PT else "pt-BR"
+    return numtag_readers.numbers_to_digits(utterance, lang, scale)

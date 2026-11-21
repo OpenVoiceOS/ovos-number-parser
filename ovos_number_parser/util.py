@@ -225,24 +225,6 @@ def exact_int(value: Any) -> Any:
     return value
 
 
-def exact_sum(values: List[Union[int, float]]) -> float:
-    """
-    Add numbers as the decimals their literals spell.
-
-    Spoken decimal digits are summed one place at a time ("eins Komma eins
-    vier" is 1 + 0.1 + 0.04), and float addition gives 1.1400000000000001.
-    ``repr`` keeps the written digits of each part, so the sum is exact
-    before it becomes a float.
-
-    Args:
-        values: the parts of one number
-
-    Returns:
-        float nearest to the exact sum
-    """
-    return float(sum(Decimal(repr(value)) for value in values))
-
-
 def is_numeric(input_str: str) -> bool:
     """
     Return True if the input string represents a valid number, otherwise False.

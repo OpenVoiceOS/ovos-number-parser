@@ -6,7 +6,7 @@ Occitan numeral/ordinal entries and languagesandnumbers.com.
 """
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, numbers_to_digits
 
 from ovos_number_parser.numbers_oc import OC, pluralize_oc
 from ovos_number_parser.util import GrammaticalGender
@@ -256,12 +256,12 @@ class TestExtractOC(unittest.TestCase):
 
 class TestNumbersToDigitsOC(unittest.TestCase):
     def test_replace(self):
-        self.assertEqual(OC.numbers_to_digits("i a vint e un gats"), "i a 21 gats")
-        self.assertEqual(OC.numbers_to_digits("dos cents trenta quatre ostals"),
+        self.assertEqual(numbers_to_digits("i a vint e un gats", lang="oc"), "i a 21 gats")
+        self.assertEqual(numbers_to_digits("dos cents trenta quatre ostals", lang="oc"),
                          "234 ostals")
 
     def test_passthrough(self):
-        self.assertEqual(OC.numbers_to_digits("bon jorn amics"), "bon jorn amics")
+        self.assertEqual(numbers_to_digits("bon jorn amics", lang="oc"), "bon jorn amics")
 
 
 class TestRoundTripOC(unittest.TestCase):

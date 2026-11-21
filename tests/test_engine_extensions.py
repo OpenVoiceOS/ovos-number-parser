@@ -8,6 +8,7 @@ that the test asserts the knob's effect, not any single language's data.
 import unittest
 from dataclasses import replace
 
+from ovos_number_parser import numbers_to_digits
 from ovos_number_parser.numbers_gl import _GL
 from ovos_number_parser.util import (GrammaticalGender, RomanceNumberExtractor)
 
@@ -157,11 +158,10 @@ class TestFractionOne(unittest.TestCase):
 
 class TestNumbersToDigitsTrailingJoiner(unittest.TestCase):
     def test_trailing_joiner_left_in_text(self):
-        eng = _engine()
-        self.assertEqual(eng.numbers_to_digits("vinte e dous gatos e un can"),
+        self.assertEqual(numbers_to_digits("vinte e dous gatos e un can", "gl"),
                          "22 gatos e 1 can")
         # a joiner that does not extend the number stays in the sentence
-        self.assertEqual(eng.numbers_to_digits("tres e logo catro"),
+        self.assertEqual(numbers_to_digits("tres e logo catro", "gl"),
                          "3 e logo 4")
 
 

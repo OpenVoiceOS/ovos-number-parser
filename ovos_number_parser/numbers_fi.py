@@ -22,6 +22,8 @@ from decimal import Decimal
 from math import floor
 
 from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _NUM_STRING_FI = {
     0: 'nolla',
@@ -337,3 +339,7 @@ def is_fractional_fi(input_str, short_scale=True):
     return False
 
 
+def extract_number_fi(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "fi")``."""
+    warn_reader_removed("extract_number_fi", 'ovos_number_parser.extract_number(text, "fi")')
+    return numtag_readers.extract_number(text, "fi", short_scale, ordinals)

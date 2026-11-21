@@ -29,6 +29,8 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import convert_to_mixed_fraction, invert_dict, scientific_parts
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _NUM_STRING_BG = {
     0: 'нула',
@@ -442,3 +444,9 @@ def is_fractional_bg(input_str, short_scale=True):
     if input_str.lower() in fractions:
         return 1.0 / fractions[input_str.lower()]
     return False
+
+
+def extract_number_bg(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "bg")``."""
+    warn_reader_removed("extract_number_bg", 'ovos_number_parser.extract_number(text, "bg")')
+    return numtag_readers.extract_number(text, "bg", short_scale, ordinals)

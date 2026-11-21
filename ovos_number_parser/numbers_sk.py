@@ -19,6 +19,8 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, scientific_parts)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _NUM_STRING_SK = {
     0: 'nula',
@@ -468,3 +470,9 @@ def pronounce_ordinal_sk(number):
         joiner = " " if prefix % 1000000 == 0 else ""
         return pronounce_number_sk(prefix) + joiner + pronounce_ordinal_sk(last)
     raise NotImplementedError(f"cannot pronounce {number} as a Slovak ordinal")
+
+
+def extract_number_sk(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "sk")``."""
+    warn_reader_removed("extract_number_sk", 'ovos_number_parser.extract_number(text, "sk")')
+    return numtag_readers.extract_number(text, "sk", short_scale, ordinals)

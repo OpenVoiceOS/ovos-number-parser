@@ -16,6 +16,9 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, invert_dict, GrammaticalGender, scientific_parts)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
+from ovos_number_parser.util import Scale
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF uk spellout-cardinal-feminine and -neuter); the scale words
@@ -729,3 +732,15 @@ def pronounce_ordinal_uk(number, gender=GrammaticalGender.MASCULINE):
     if number <= 0:
         raise ValueError("Ukrainian ordinals start at 1")
     return pronounce_number_uk(number, ordinals=True, gender=gender)
+
+
+def extract_number_uk(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "uk")``."""
+    warn_reader_removed("extract_number_uk", 'ovos_number_parser.extract_number(text, "uk")')
+    return numtag_readers.extract_number(text, "uk", short_scale, ordinals)
+
+
+def numbers_to_digits_uk(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "uk")``."""
+    warn_reader_removed("numbers_to_digits_uk", 'ovos_number_parser.numbers_to_digits(text, "uk")')
+    return numtag_readers.numbers_to_digits(text, "uk", Scale.SHORT if short_scale else Scale.LONG, ordinals)

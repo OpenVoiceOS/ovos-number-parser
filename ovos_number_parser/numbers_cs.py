@@ -2,6 +2,9 @@ from decimal import Decimal
 from collections import OrderedDict
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, GrammaticalGender, scientific_parts)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
+from ovos_number_parser.util import Scale
 
 #: the last word of a cardinal that agrees with a feminine or neuter noun
 #: (ICU RBNF cs spellout-cardinal-feminine and -neuter). The masculine keeps
@@ -685,3 +688,15 @@ def pronounce_ordinal_cs(number, gender=GrammaticalGender.MASCULINE,
         raise ValueError("Czech ordinals start at 1")
     return pronounce_number_cs(number, short_scale=short_scale, ordinals=True,
                                gender=gender)
+
+
+def extract_number_cs(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "cs")``."""
+    warn_reader_removed("extract_number_cs", 'ovos_number_parser.extract_number(text, "cs")')
+    return numtag_readers.extract_number(text, "cs", short_scale, ordinals)
+
+
+def numbers_to_digits_cs(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "cs")``."""
+    warn_reader_removed("numbers_to_digits_cs", 'ovos_number_parser.numbers_to_digits(text, "cs")')
+    return numtag_readers.numbers_to_digits(text, "cs", Scale.SHORT if short_scale else Scale.LONG, ordinals)
