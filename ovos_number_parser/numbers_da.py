@@ -568,6 +568,9 @@ def pronounce_ordinal_da(number, gender=GrammaticalGender.MASCULINE):
     if number < 0 or number != int(number):
         return number
     number = int(number)
+    if number >= 10 ** 24:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a Danish ordinal")
     if number < 20:
         if number == 2 and gender == GrammaticalGender.NEUTRAL:
             return "andet"
