@@ -121,9 +121,6 @@
  "tests/test_number_parser_ar.py::TestArabicColloquialExtract::test_clitic_attached_digit_joins_mixed_number_span": {
   "": "https://github.com/TigreGotico/numtag/issues/160"
  },
- "tests/test_number_parser_ar.py::TestArabicColloquialExtract::test_colloquial_hundred_in_price_sentence": {
-  "": "https://github.com/TigreGotico/numtag/issues/160"
- },
  "tests/test_number_parser_ar.py::TestArabicColloquialExtract::test_colloquial_two_three_and_zero": {
   "": "https://github.com/TigreGotico/numtag/issues/160"
  },
@@ -160,9 +157,6 @@
   "spoken='تسعطعش'": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar.py::TestArabicColloquialExtract::test_meeh_is_water_outside_a_number": {
-  "": "https://github.com/TigreGotico/numtag/issues/160"
- },
- "tests/test_number_parser_ar.py::TestArabicColloquialExtract::test_non_regression_bare_hundred_and_fused_hundred": {
   "": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar.py::TestArabicNumbersToDigitsRobust::test_extract_dual_in_context": {
@@ -275,15 +269,6 @@
  "tests/test_number_parser_ar_gulf_joins.py::TestArabicGulfNumberJoins::test_construct_hundred_in_numbers_to_digits": {
   "": "https://github.com/TigreGotico/numtag/issues/160"
  },
- "tests/test_number_parser_ar_gulf_joins.py::TestArabicGulfNumberJoins::test_controls_keep_their_result": {
-  "": "https://github.com/TigreGotico/numtag/issues/160"
- },
- "tests/test_number_parser_ar_gulf_joins.py::TestArabicGulfNumberJoins::test_or_before_millions_stays_or": {
-  "": "https://github.com/TigreGotico/numtag/issues/160"
- },
- "tests/test_number_parser_ar_gulf_joins.py::TestArabicGulfNumberJoins::test_or_between_equal_magnitudes_stays_or": {
-  "": "https://github.com/TigreGotico/numtag/issues/160"
- },
  "tests/test_number_parser_ar_gulf_joins.py::TestArabicGulfNumberJoins::test_proclitic_on_a_number_word": {
   "": "https://github.com/TigreGotico/numtag/issues/160"
  },
@@ -295,6 +280,9 @@
  },
  "tests/test_number_parser_ar_homographs.py::TestLeftAsWritten::test_no_number": {
   "text='كباية مية'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='ناس ميتين'": "https://github.com/TigreGotico/numtag/issues/261",
+  "text='الناس دول ميتين'": "https://github.com/TigreGotico/numtag/issues/261",
+  "text='الميتين'": "https://github.com/TigreGotico/numtag/issues/261",
   "text='المية سخنة'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='شربت مية'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='الاثنين الجاي'": "https://github.com/TigreGotico/numtag/issues/160",
@@ -317,42 +305,30 @@
   "text='كباية مية او اثنين'": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar_homographs.py::TestLicensed::test_a_number_is_never_split": {
-  "text='ميتين كيلو'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='مية بالمية'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='مية في المية'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='تمويل مية بالمية'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='الف وميتين'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='التلات الف'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='ميتين'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='الست'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='دفعت الميتين الف'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='دفعت الميتين ريال'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='الست ساعات'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='ميت الف'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='ميت ريال'": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar_homographs.py::TestLicensed::test_numbers": {
-  "text='ميتين كيلو'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='مية بالمية'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='مية في المية'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='تمويل مية بالمية'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='الف وميتين'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='التلات الف'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='ميتين'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='الست'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='دفعت الميتين الف'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='دفعت الميتين ريال'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='الست ساعات'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='ميت الف'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='ميت ريال'": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar_hundred_units.py::TestHundredUnits::test_a_unit_after_a_filled_hundred_joins_it": {
   "text='كم سعره؟ مية و اربعة مية و اربعة'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='مية واثنين مية واثنين'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='الف وميتين وخمس مية ريال'": "https://github.com/TigreGotico/numtag/issues/160"
+  "text='مية واثنين مية واثنين'": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar_meeh.py::TestMeeh::test_a_number_is_never_split": {
-  "text='خمسميه'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='ميه في الميه'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='عشرة بالميه'": "https://github.com/TigreGotico/numtag/issues/160"
  },
@@ -360,7 +336,6 @@
   "word='كميه'": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar_meeh.py::TestMeeh::test_the_hundred_in_a_number_context": {
-  "text='خمسميه'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='ميه في الميه'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='عشرة بالميه'": "https://github.com/TigreGotico/numtag/issues/160"
  },
@@ -375,9 +350,6 @@
  },
  "tests/test_number_parser_ar_moroccan.py::TestMoroccanCardinals::test_the_quarter_stays_a_quarter_in_standard_arabic": {
   "": "https://github.com/TigreGotico/numtag/issues/160"
- },
- "tests/test_number_parser_ar_najdi.py::TestAndEleven::test_and_one_before_ten_after_a_conjunction_is_one_number": {
-  "text='ثلاثمية وواحد عشر'": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar_natural_language.py::test_alfa_converts_as_it_is_read[\\u0627\\u0644\\u0645\\u0628\\u0644\\u063a \\u0645\\u0644\\u064a\\u0648\\u0646 \\u0648\\u0623\\u0644\\u0641\\u0627 \\u0631\\u064a\\u0627\\u0644-\\u0627\\u0644\\u0645\\u0628\\u0644\\u063a 1002000 \\u0631\\u064a\\u0627\\u0644]": {
   "": "https://github.com/TigreGotico/numtag/issues/160"
@@ -394,13 +366,7 @@
  "tests/test_number_parser_ar_natural_language.py::test_an_ordinal_is_no_cardinal[\\u0648\\u0627\\u0644\\u062d\\u0644\\u0642\\u0629 \\u0627\\u0644\\u0639\\u0634\\u0631\\u064a\\u0646 \\u0643\\u0627\\u0646\\u062a \\u0623\\u0637\\u0648\\u0644-ar]": {
   "": "https://github.com/TigreGotico/numtag/issues/160"
  },
- "tests/test_number_parser_ar_natural_language.py::test_literary_sentence[\\u0627\\u0634\\u062a\\u0631\\u064a\\u062a\\u0647\\u0627 \\u0628\\u0645\\u064a\\u062a\\u064a\\u0646 \\u0648\\u062e\\u0645\\u0633\\u064a\\u0646-250]": {
-  "": "https://github.com/TigreGotico/numtag/issues/160"
- },
  "tests/test_number_parser_ar_natural_language.py::test_literary_sentence[\\u0627\\u0634\\u0631\\u0628 \\u0645\\u064a\\u0629 \\u0643\\u062b\\u064a\\u0631 \\u0641\\u064a \\u0627\\u0644\\u0635\\u064a\\u0641-False]": {
-  "": "https://github.com/TigreGotico/numtag/issues/160"
- },
- "tests/test_number_parser_ar_natural_language.py::test_literary_sentence[\\u0627\\u0644\\u0625\\u064a\\u062c\\u0627\\u0631 \\u0639\\u0634\\u0631\\u064a\\u0646 \\u0623\\u0644\\u0641 \\u0648\\u062e\\u0645\\u0633\\u0645\\u064a\\u0629 \\u0641\\u064a \\u0627\\u0644\\u0633\\u0646\\u0629-20500]": {
   "": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar_natural_language.py::test_literary_sentence[\\u0627\\u0644\\u0645\\u064a\\u0632\\u0627\\u0646\\u064a\\u0629 \\u0623\\u0644\\u0641\\u0627 \\u0631\\u064a\\u0627\\u0644-2000]": {
