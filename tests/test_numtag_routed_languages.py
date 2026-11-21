@@ -40,7 +40,7 @@ class TestShippedRoutes(unittest.TestCase):
 
     def test_the_routed_languages(self):
         self.assertEqual(numtag_readers.NUMTAG_LANGS, frozenset({
-            "an", "ar", "ast", "az", "bg", "ca", "cs", "da",
+            "an", "ast", "az", "bg", "ca", "cs", "da",
             "de", "el", "en", "es", "et", "eu", "fa", "fi",
             "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
             "kab", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
@@ -66,7 +66,7 @@ class TestShippedRoutes(unittest.TestCase):
                          "Bilo jih je okoli 2.")
 
     def test_a_language_numtag_does_not_read_is_not_routed(self):
-        for lang in ("ja", "lv", "ms"):
+        for lang in ("ar", "ar-SA", "ja", "lv", "ms"):
             with self.subTest(lang=lang):
                 self.assertFalse(numtag_readers.routed(lang))
 

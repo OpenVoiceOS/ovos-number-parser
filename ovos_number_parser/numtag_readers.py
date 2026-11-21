@@ -17,10 +17,12 @@ from numtag import Scale as NumtagScale
 
 from ovos_number_parser.util import Scale
 
-#: languages whose readers are numtag: every language numtag reads. Every
-#: other language keeps its numbers_xx.py reader
+#: languages whose readers are numtag: every language numtag reads, except
+#: ar, whose numbers_ar.py reader also reads the spoken lects (ميتين,
+#: ثلاثمية) that numtag's Arabic lexicon does not. Every other language
+#: keeps its numbers_xx.py reader
 NUMTAG_LANGS = frozenset({
-    "an", "ar", "ast", "az", "bg", "ca", "cs", "da",
+    "an", "ast", "az", "bg", "ca", "cs", "da",
     "de", "el", "en", "es", "et", "eu", "fa", "fi",
     "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
     "kab", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
