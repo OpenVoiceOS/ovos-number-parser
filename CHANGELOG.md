@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.0a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.0a1) (2026-11-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.30.3a1...0.31.0a1)
+
+**Merged pull requests:**
+
+- feat: route every numtag language through numtag [\#521](https://github.com/OpenVoiceOS/ovos-number-parser/pull/521) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.30.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.30.3a1) (2026-11-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.30.2a1...0.30.3a1)
@@ -299,7 +307,6 @@
 **Merged pull requests:**
 
 - fix\(az\): correct the native ordinal and read pronounce\_ordinal with it [\#444](https://github.com/OpenVoiceOS/ovos-number-parser/pull/444) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(es\): read ordinals in the feminine and route pronounce\_ordinal to the Castilian engine [\#441](https://github.com/OpenVoiceOS/ovos-number-parser/pull/441) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.43a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.43a1) (2026-11-12)
 
@@ -362,7 +369,6 @@
 
 - fix\(fr\): read ordinals as the cardinal with -ième [\#448](https://github.com/OpenVoiceOS/ovos-number-parser/pull/448) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 - fix\(en\): native ordinal for zero, round hundreds and units inside a number [\#443](https://github.com/OpenVoiceOS/ovos-number-parser/pull/443) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-- fix\(ru\): zero ordinal, the count before a scale word, and the long scale [\#440](https://github.com/OpenVoiceOS/ovos-number-parser/pull/440) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.34a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.34a1) (2026-11-12)
 
