@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.30.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.30.3a1) (2026-11-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.30.2a1...0.30.3a1)
+
+**Closed issues:**
+
+- pronounce\_ordinal raises or returns digits for long numbers in nine languages [\#537](https://github.com/OpenVoiceOS/ovos-number-parser/issues/537)
+
+**Merged pull requests:**
+
+- fix: read ordinals of long numbers in words or decline with a named error [\#540](https://github.com/OpenVoiceOS/ovos-number-parser/pull/540) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.30.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.30.2a1) (2026-11-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.30.1a1...0.30.2a1)
@@ -326,10 +338,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.38a1...0.24.39a1)
 
-**Merged pull requests:**
-
-- fix\(he\): numbers\_to\_digits keeps the ו before a new number [\#437](https://github.com/OpenVoiceOS/ovos-number-parser/pull/437) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.38a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.38a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.37a1...0.24.38a1)
@@ -368,17 +376,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.31a1...0.24.32a1)
 
-**Merged pull requests:**
-
-- fix\(oc\): read the 8th and 80th spellings a native speaker reported [\#438](https://github.com/OpenVoiceOS/ovos-number-parser/pull/438) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.31a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.31a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.30a1...0.24.31a1)
-
-**Merged pull requests:**
-
-- fix\(de\): extract\_number answers False when the line holds no number [\#439](https://github.com/OpenVoiceOS/ovos-number-parser/pull/439) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.30a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.30a1) (2026-11-12)
 
@@ -798,11 +798,11 @@
 
 ## [0.18.9a27](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a27) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a1...0.18.9a27)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a2...0.18.9a27)
 
-## [0.18.9a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a1) (2026-07-18)
+## [0.18.9a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a2) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a25...0.18.9a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a25...0.18.9a2)
 
 ## [0.18.9a25](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a25) (2026-07-18)
 
@@ -894,15 +894,15 @@
 
 ## [0.18.9a3](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a3) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a2...0.18.9a3)
-
-## [0.18.9a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a2) (2026-07-18)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a28...0.18.9a2)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a28...0.18.9a3)
 
 ## [0.18.9a28](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a28) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a5...0.18.9a28)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a1...0.18.9a28)
+
+## [0.18.9a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a1) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a5...0.18.9a1)
 
 ## [0.18.9a5](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a5) (2026-07-18)
 
