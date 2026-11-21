@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.1a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.1a2) (2026-11-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.1a1...0.31.1a2)
+
+**Merged pull requests:**
+
+- docs: README, docs index, navigation and agent hints [\#548](https://github.com/OpenVoiceOS/ovos-number-parser/pull/548) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.1a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.1a1) (2026-11-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.0a1...0.31.1a1)
@@ -355,10 +363,6 @@
 ## [0.24.38a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.38a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.37a1...0.24.38a1)
-
-**Merged pull requests:**
-
-- fix\(pt\): "e meio" after a scale word is half of that scale [\#445](https://github.com/OpenVoiceOS/ovos-number-parser/pull/445) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.37a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.37a1) (2026-11-12)
 
