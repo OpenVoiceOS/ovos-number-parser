@@ -15,84 +15,76 @@ from unicode_rbnf import RbnfEngine, FormatPurpose
 
 from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_an import AN
-from ovos_number_parser.numbers_ar import pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, \
-    extract_numbers_ar, numbers_to_digits_ar, \
-    is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang, resolve_ar_lect
-from ovos_number_parser.numbers_az import numbers_to_digits_az, extract_number_az, is_fractional_az, pronounce_number_az
-from ovos_number_parser.numbers_bg import numbers_to_digits_bg, pronounce_number_bg, extract_number_bg, \
-    is_fractional_bg, nice_number_bg
-from ovos_number_parser.numbers_ca import (numbers_to_digits_ca, pronounce_number_ca,
-    is_fractional_ca, extract_number_ca, CA)
-from ovos_number_parser.numbers_cs import numbers_to_digits_cs, pronounce_number_cs, is_fractional_cs, \
-    extract_number_cs, pronounce_ordinal_cs
-from ovos_number_parser.numbers_da import numbers_to_digits_da, pronounce_number_da, is_fractional_da, is_ordinal_da, \
-    pronounce_ordinal_da, extract_number_da
-from ovos_number_parser.numbers_de import numbers_to_digits_de, pronounce_number_de, pronounce_ordinal_de, \
-    is_ordinal_de, is_fractional_de, extract_number_de
-from ovos_number_parser.numbers_en import numbers_to_digits_en, is_ordinal_en, pronounce_number_en, extract_number_en, \
-    is_fractional_en
-from ovos_number_parser.numbers_el import pronounce_number_el, pronounce_ordinal_el, \
-    extract_number_el, is_fractional_el, is_ordinal_el
-from ovos_number_parser.numbers_es import (numbers_to_digits_es, pronounce_number_es, extract_number_es,
-                                           is_fractional_es, fraction_noun_es, ES)
-from ovos_number_parser.numbers_eu import pronounce_number_eu, extract_number_eu, is_fractional_eu, \
-    pronounce_ordinal_eu, is_ordinal_eu
-from ovos_number_parser.numbers_et import pronounce_number_et, pronounce_ordinal_et, extract_number_et, \
-    is_fractional_et, is_ordinal_et, nice_number_et
-from ovos_number_parser.numbers_fa import pronounce_number_fa, extract_number_fa, is_fractional_fa, \
-    pronounce_ordinal_fa
-from ovos_number_parser.numbers_fi import pronounce_number_fi, pronounce_ordinal_fi, extract_number_fi, \
-    is_fractional_fi, is_ordinal_fi, nice_number_fi
-from ovos_number_parser.numbers_fr import (extract_number_fr, is_fractional_fr, FR,
-                                             FR_BE, FR_CH)
-from ovos_number_parser.numbers_fy import numbers_to_digits_fy, pronounce_number_fy, pronounce_ordinal_fy, \
-    extract_number_fy, is_fractional_fy, nice_number_fy
-from ovos_number_parser.numbers_gl import GL, pronounce_number_gl, extract_number_gl, is_fractional_gl, \
-    numbers_to_digits_gl, pronounce_ordinal_gl, is_ordinal_gl, pronounce_fraction_gl
-from ovos_number_parser.numbers_hr import pronounce_number_hr, pronounce_ordinal_hr, extract_number_hr, \
-    is_fractional_hr, nice_number_hr, numbers_to_digits_hr
-from ovos_number_parser.numbers_he import pronounce_number_he, pronounce_ordinal_he, \
-    extract_number_he, is_fractional_he, is_ordinal_he, nice_number_he, numbers_to_digits_he
-from ovos_number_parser.numbers_hu import pronounce_number_hu, pronounce_ordinal_hu, extract_number_hu, \
-    is_fractional_hu, is_ordinal_hu, nice_number_hu, pronounce_scientific_hu
-from ovos_number_parser.numbers_id import (pronounce_number_id, pronounce_number_ms,
-                                           pronounce_ordinal_id, pronounce_ordinal_ms,
-                                           extract_number_id, extract_number_ms,
-                                           is_fractional_id, is_fractional_ms,
-                                           nice_number_id, nice_number_ms,
-                                           numbers_to_digits_id, numbers_to_digits_ms)
-from ovos_number_parser.numbers_it import (extract_number_it, pronounce_number_it, pronounce_ordinal_it,
-                                            is_fractional_it, IT)
-from ovos_number_parser.numbers_kab import (pronounce_number_kab, pronounce_ordinal_kab, extract_number_kab,
-                                             is_fractional_kab, is_ordinal_kab, numbers_to_digits_kab)
+from ovos_number_parser.numbers_ar import (
+    pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, extract_numbers_ar,
+    numbers_to_digits_ar, is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang,
+    resolve_ar_lect)
+from ovos_number_parser.numbers_az import is_fractional_az, pronounce_number_az
+from ovos_number_parser.numbers_bg import pronounce_number_bg, is_fractional_bg, nice_number_bg
+from ovos_number_parser.numbers_ca import pronounce_number_ca, is_fractional_ca, CA
+from ovos_number_parser.numbers_cs import (
+    pronounce_number_cs, is_fractional_cs, pronounce_ordinal_cs)
+from ovos_number_parser.numbers_da import (
+    pronounce_number_da, is_fractional_da, is_ordinal_da, pronounce_ordinal_da)
+from ovos_number_parser.numbers_de import (
+    pronounce_number_de, pronounce_ordinal_de, is_ordinal_de, is_fractional_de)
+from ovos_number_parser.numbers_en import is_ordinal_en, pronounce_number_en, is_fractional_en
+from ovos_number_parser.numbers_el import (
+    pronounce_number_el, pronounce_ordinal_el, is_fractional_el, is_ordinal_el)
+from ovos_number_parser.numbers_es import (
+    pronounce_number_es, is_fractional_es, fraction_noun_es, ES)
+from ovos_number_parser.numbers_eu import (
+    pronounce_number_eu, is_fractional_eu, pronounce_ordinal_eu, is_ordinal_eu)
+from ovos_number_parser.numbers_et import (
+    pronounce_number_et, pronounce_ordinal_et, is_fractional_et, is_ordinal_et, nice_number_et)
+from ovos_number_parser.numbers_fa import (
+    pronounce_number_fa, is_fractional_fa, pronounce_ordinal_fa)
+from ovos_number_parser.numbers_fi import (
+    pronounce_number_fi, pronounce_ordinal_fi, is_fractional_fi, is_ordinal_fi, nice_number_fi)
+from ovos_number_parser.numbers_fr import is_fractional_fr, FR, FR_BE, FR_CH
+from ovos_number_parser.numbers_fy import (
+    pronounce_number_fy, pronounce_ordinal_fy, is_fractional_fy, nice_number_fy)
+from ovos_number_parser.numbers_gl import (
+    GL, pronounce_number_gl, is_fractional_gl, pronounce_ordinal_gl, is_ordinal_gl,
+    pronounce_fraction_gl)
+from ovos_number_parser.numbers_hr import (
+    pronounce_number_hr, pronounce_ordinal_hr, is_fractional_hr, nice_number_hr)
+from ovos_number_parser.numbers_he import (
+    pronounce_number_he, pronounce_ordinal_he, is_fractional_he, is_ordinal_he, nice_number_he)
+from ovos_number_parser.numbers_hu import (
+    pronounce_number_hu, pronounce_ordinal_hu, is_fractional_hu, is_ordinal_hu, nice_number_hu,
+    pronounce_scientific_hu)
+from ovos_number_parser.numbers_id import (
+    pronounce_number_id, pronounce_number_ms, pronounce_ordinal_id, pronounce_ordinal_ms,
+    extract_number_ms, is_fractional_id, is_fractional_ms, nice_number_id, nice_number_ms,
+    numbers_to_digits_ms)
+from ovos_number_parser.numbers_it import (
+    pronounce_number_it, pronounce_ordinal_it, is_fractional_it, IT)
+from ovos_number_parser.numbers_kab import (
+    pronounce_number_kab, pronounce_ordinal_kab, is_fractional_kab, is_ordinal_kab)
 from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.numbers_oc import OC
-from ovos_number_parser.numbers_nb import (nice_number_nb, pronounce_number_nb,
-                                           pronounce_ordinal_nb, is_ordinal_nb,
-                                           is_fractional_nb, extract_number_nb,
-                                           numbers_to_digits_nb)
-from ovos_number_parser.numbers_nn import (nice_number_nn, pronounce_number_nn,
-                                           pronounce_ordinal_nn, is_ordinal_nn,
-                                           is_fractional_nn, extract_number_nn,
-                                           numbers_to_digits_nn)
-from ovos_number_parser.numbers_nl import numbers_to_digits_nl, pronounce_number_nl, pronounce_ordinal_nl, \
-    extract_number_nl, is_fractional_nl
-from ovos_number_parser.numbers_pl import numbers_to_digits_pl, pronounce_number_pl, extract_number_pl, \
-    is_fractional_pl, pronounce_ordinal_pl
+from ovos_number_parser.numbers_nb import (
+    nice_number_nb, pronounce_number_nb, pronounce_ordinal_nb, is_ordinal_nb, is_fractional_nb)
+from ovos_number_parser.numbers_nn import (
+    nice_number_nn, pronounce_number_nn, pronounce_ordinal_nn, is_ordinal_nn, is_fractional_nn)
+from ovos_number_parser.numbers_nl import (
+    pronounce_number_nl, pronounce_ordinal_nl, is_fractional_nl)
+from ovos_number_parser.numbers_pl import (
+    pronounce_number_pl, is_fractional_pl, pronounce_ordinal_pl)
 from ovos_number_parser.numbers_pt import PortugueseVariant, PT_PT, PT_BR
 from ovos_number_parser.numbers_ro import RO
-from ovos_number_parser.numbers_ru import numbers_to_digits_ru, pronounce_number_ru, extract_number_ru, is_fractional_ru, \
-    _ordinal_ru
-from ovos_number_parser.numbers_sk import numbers_to_digits_sk, pronounce_number_sk, is_fractional_sk, \
-    extract_number_sk, pronounce_ordinal_sk, nice_number_sk
-from ovos_number_parser.numbers_sl import pronounce_number_sl, extract_number_sl, is_fractional_sl, \
-    is_ordinal_sl, nice_number_sl
-from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, extract_number_sv, \
-    is_fractional_sv
-from ovos_number_parser.numbers_tr import numbers_to_digits_tr, pronounce_number_tr, \
-    pronounce_ordinal_tr, extract_number_tr, is_fractional_tr, nice_number_tr
-from ovos_number_parser.numbers_uk import numbers_to_digits_uk, pronounce_number_uk, extract_number_uk, \
-    is_fractional_uk, pronounce_ordinal_uk
+from ovos_number_parser.numbers_ru import pronounce_number_ru, is_fractional_ru, _ordinal_ru
+from ovos_number_parser.numbers_sk import (
+    pronounce_number_sk, is_fractional_sk, pronounce_ordinal_sk, nice_number_sk)
+from ovos_number_parser.numbers_sl import (
+    pronounce_number_sl, is_fractional_sl, is_ordinal_sl, nice_number_sl)
+from ovos_number_parser.numbers_sv import (
+    pronounce_number_sv, pronounce_ordinal_sv, is_fractional_sv)
+from ovos_number_parser.numbers_tr import (
+    pronounce_number_tr, pronounce_ordinal_tr, is_fractional_tr, nice_number_tr)
+from ovos_number_parser.numbers_uk import (
+    pronounce_number_uk, is_fractional_uk, pronounce_ordinal_uk)
 from ovos_number_parser.numbers_az import nice_number_az
 from ovos_number_parser.numbers_ca import nice_number_ca
 from ovos_number_parser.numbers_cs import nice_number_cs
@@ -565,10 +557,7 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
     """
     if numtag_readers.routed(lang):
         return numtag_readers.numbers_to_digits(utterance, lang, scale)
-    converted = _number_words_to_digits(utterance, lang, scale)
-    if _base_lang(lang) in ("nb", "nn", "no"):
-        # nb and nn keep the output of their converter
-        return converted
+    converted = _number_words_to_digits(utterance, lang)
     return _keep_digit_strings(utterance, converted, lang, scale)
 
 
@@ -616,57 +605,12 @@ def _is_number_word(word: str, lang: str, scale: Optional[Scale]) -> bool:
         _numeric_value(f"2 {word}", lang, None, False, scale) not in (None, 2)
 
 
-def _number_words_to_digits(utterance: str, lang: str,
-                            scale: Optional[Scale]) -> str:
+def _number_words_to_digits(utterance: str, lang: str) -> str:
     """Dispatch to the converter of the language."""
-    scale = _resolve_scale(lang, scale)
-    lang2 = _base_lang(lang)
-    if lang2 == "en":
-        # English has its own converter, which reads compound ordinals
-        # ("the twenty fifth" -> 25) and never mistakes a singular ordinal for a
-        # fraction. The generic fallback did neither.
-        return numbers_to_digits_en(utterance, short_scale=scale == Scale.SHORT)
-    if lang2 == "ast":
-        return AST.numbers_to_digits(utterance)
-    if lang2 == "oc":
-        return OC.numbers_to_digits(utterance, scale=scale)
-    if lang2 == "an":
-        return AN.numbers_to_digits(utterance)
-    if lang2 == "fy":
-        return numbers_to_digits_fy(utterance)
-    if lang2 == "gl":
-        return numbers_to_digits_gl(utterance)
-    if lang2 == "de":
-        return numbers_to_digits_de(utterance)
-    if lang2 == "pt":
-        return PT_BR.numbers_to_digits(utterance, scale=scale) if "br" in lang.lower() \
-            else PT_PT.numbers_to_digits(utterance, scale=scale)
-    if lang2 == "mwl":
-        return MWL.numbers_to_digits(utterance, scale=scale)
-    if lang2 == "ro":
-        return RO.numbers_to_digits(utterance, scale=scale)
-    if lang2 == "bg":
-        return numbers_to_digits_bg(utterance)
-    if lang2 == "hr":
-        return numbers_to_digits_hr(utterance)
-    if lang2 == "ru":
-        return numbers_to_digits_ru(utterance)
-    if lang2 == "sk":
-        return numbers_to_digits_sk(utterance)
-    if lang2 == "id":
-        return numbers_to_digits_id(utterance)
-    if lang2 == "ms":
-        return numbers_to_digits_ms(utterance)
-    if lang2 == "tr":
-        return numbers_to_digits_tr(utterance)
-    if lang2 == "uk":
-        return numbers_to_digits_uk(utterance)
     if _is_ar(lang):
         return numbers_to_digits_ar(utterance, lang)
-    if lang2 == "kab":
-        return numbers_to_digits_kab(utterance)
-    if lang2 == "he":
-        return numbers_to_digits_he(utterance)
+    if _base_lang(lang) == "ms":
+        return numbers_to_digits_ms(utterance)
     return _numbers_to_digits_generic(utterance, lang)
 
 
@@ -1768,17 +1712,9 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
 _COMPOUND_NUMERAL_JOIN = re.compile(r"(?<=[^\W\d_])[-_](?=[^\W\d_])",
                                     re.UNICODE)
 
-#: languages whose numerals carry a *meaningful* internal hyphen, where the
-#: separator is not interchangeable with a space. Hungarian spells numbers
-#: above two thousand with a hyphen at the thousand boundary
-#: ("kétezer-ötszáz" = 2500), so rewriting it to a space loses the tail.
-_HYPHENATED_NUMERAL_LANGS = ("hu",)
 
-
-def _unglue_compound_numerals(text: str, lang: str) -> str:
+def _unglue_compound_numerals(text: str) -> str:
     """Normalise "-"/"_" written between letters to a space."""
-    if _base_lang(lang) in _HYPHENATED_NUMERAL_LANGS:
-        return text
     return _COMPOUND_NUMERAL_JOIN.sub(" ", text)
 
 
@@ -1808,43 +1744,6 @@ def extract_number(text: str, lang: str,
     if numtag_readers.routed(lang):
         return numtag_readers.extract_number(text, lang, short_scale, ordinals, scale)
     value = _extract_number(text, lang, short_scale, ordinals, scale)
-    if _base_lang(lang) == "pt":
-        # Portuguese gives the number written first: "ganhou mil euros e
-        # comprou duas dúzias" is 1000, where the reader alone adds up 12024.
-        # The reader reads the text up to the end of that number, so a sign
-        # before it stays: "menos dois graus e três" is -2. A half counts the
-        # unit before it (numbers_pt docstring). When only "e", marks and an
-        # aside in brackets stand between the number and the half, the unit
-        # is the number: "dois (aprox.) e meio" is 2.5. A word between them
-        # is the unit, so the half is no part of the number: "uma hora e
-        # meia" is 1. A mark that ends a number ends it here too: "dois, e
-        # meio" is 2, and a sentence ends at ".", "!", "?" or "…" before a
-        # capital.
-        spans = extract_number_spans(text, lang, short_scale, ordinals, scale)
-        if len(spans) > 1:
-            first, second = spans[0], spans[1]
-            between = text[first.end:second.start]
-            gap = between.split()
-            sentence_end = any(
-                word[-1] in ".!?…" and nxt.lstrip(_SPAN_PUNCTUATION)[:1].isupper()
-                for word, nxt in zip(gap, gap[1:] + [second.surface]))
-            words = [w for w in (w.strip(_SPAN_PUNCTUATION).lower()
-                                 for w in _BRACKETED.sub(" ", between).split()) if w]
-            joins_half = second.surface.lower() in ("meio", "meia") and \
-                words == ["e"] and not sentence_end and \
-                between.lstrip()[:1] not in tuple(",;:!?")
-            # the span leaves out an opening mark glued to the number, and a
-            # lone decimal mark before its digits (",5" is 0.5, "...5" is 5)
-            head = text[:first.start]
-            point = head[-1:] if head[-1:] in ".," and \
-                head[-2:-1] not in (".", ",") and first.surface[:1].isdigit() else ""
-            head = head[:len(head) - len(point)].rstrip(_SPAN_PUNCTUATION) + point
-            # a joined half is read with a plain " e " in place of the marks,
-            # so it is half of a scale word as in "um milhão, e meio"
-            number = text[first.start:first.end]
-            if joins_half:
-                number += " e " + second.surface
-            value = _extract_number(head + number, lang, short_scale, ordinals, scale)
     # an integer that str() cannot write is no number, as a digit string
     # longer than the integer string conversion limit is none
     return value if fits_str_limit(value) else False
@@ -1856,91 +1755,13 @@ def _extract_number(text: str, lang: str, short_scale: Optional[bool],
     if not isinstance(text, str):
         # non-string input carries no number to extract
         return False
-    text = _unglue_compound_numerals(text, lang)
+    text = _unglue_compound_numerals(text)
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
-    lang2 = _base_lang(lang)
-    if lang2 == "en":
-        return extract_number_en(text, short_scale, ordinals)
-    if lang2 == "az":
-        return extract_number_az(text, short_scale, ordinals)
     if _is_ar(lang):
         return extract_number_ar(text, ordinals, lect=resolve_ar_lect(lang))
-    if lang2 == "bg":
-        return extract_number_bg(text, short_scale, ordinals)
-    if lang2 == "ca":
-        return CA.extract_number(text, ordinals=ordinals, scale=scale)
-    if lang2 == "cs":
-        return extract_number_cs(text, short_scale, ordinals)
-    if lang2 == "da":
-        return extract_number_da(text, short_scale, ordinals)
-    if lang2 == "de":
-        return extract_number_de(text, short_scale, ordinals)
-    if lang2 == "el":
-        return extract_number_el(text, ordinals)
-    if lang2 == "es":
-        return extract_number_es(text, short_scale, ordinals)
-    if lang2 == "gl":
-        return extract_number_gl(text, short_scale, ordinals)
-    if lang2 == "eu":
-        return extract_number_eu(text, short_scale, ordinals)
-    if lang2 == "et":
-        return extract_number_et(text, short_scale, ordinals)
-    if lang2 == "fa":
-        return extract_number_fa(text, ordinals)
-    if lang2 == "fi":
-        return extract_number_fi(text, short_scale, ordinals)
-    if lang2 == "fr":
-        return extract_number_fr(text, short_scale, ordinals)
-    if lang2 == "id":
-        return extract_number_id(text, short_scale, ordinals)
-    if lang2 == "it":
-        return extract_number_it(text, short_scale, ordinals)
-    if lang2 == "ms":
+    if _base_lang(lang) == "ms":
         return extract_number_ms(text, short_scale, ordinals)
-    if lang2 == "tr":
-        return extract_number_tr(text, short_scale, ordinals)
-    if lang2 == "kab":
-        return extract_number_kab(text, short_scale, ordinals)
-    if lang2 == "fy":
-        return extract_number_fy(text, short_scale, ordinals)
-    if lang2 == "nn":
-        return extract_number_nn(text, short_scale, ordinals)
-    if lang2 in ("nb", "no"):
-        return extract_number_nb(text, short_scale, ordinals)
-    if lang2 == "nl":
-        return extract_number_nl(text, short_scale, ordinals)
-    if lang2 == "pl":
-        return extract_number_pl(text, short_scale, ordinals)
-    if lang2 == "pt":
-        return PT_BR.extract_number(text, scale=scale, ordinals=ordinals) if "br" in lang.lower() \
-            else PT_PT.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang2 == "mwl":
-        return MWL.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang2 == "ro":
-        return RO.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang2 == "ast":
-        return AST.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang2 == "oc":
-        return OC.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang2 == "an":
-        return AN.extract_number(text, scale=scale, ordinals=ordinals)
-    if lang2 == "ru":
-        return extract_number_ru(text, short_scale, ordinals)
-    if lang2 == "sk":
-        return extract_number_sk(text, short_scale, ordinals)
-    if lang2 == "sv":
-        return extract_number_sv(text, short_scale, ordinals)
-    if lang2 == "uk":
-        return extract_number_uk(text, short_scale, ordinals)
-    if lang2 == "hr":
-        return extract_number_hr(text, short_scale, ordinals)
-    if lang2 == "he":
-        return extract_number_he(text, ordinals)
-    if lang2 == "hu":
-        return extract_number_hu(text, short_scale, ordinals)
-    if lang2 == "sl":
-        return extract_number_sl(text, short_scale, ordinals)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 

@@ -30,7 +30,8 @@ from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
                                      ReplaceableNumber, Token, look_for_fractions,
-                                     GrammaticalGender, numeric_value, fits_str_limit)
+                                     GrammaticalGender, numeric_value, Scale, warn_reader_removed)
+from ovos_number_parser import numtag_readers
 
 #: the last word of a whole number before a common-gender (FEMININE) or neuter
 #: noun (ICU RBNF da spellout-cardinal-common and -neuter: "hundrede og en",
@@ -603,42 +604,6 @@ def pronounce_ordinal_da(number, gender=GrammaticalGender.MASCULINE):
         return cardinal + "sende"
     # 20-29 and 40+ both just append the cardinal's usual +nde/+ende
     return cardinal + ("nde" if cardinal[-1:] == 'e' else "ende")
-
-
-def numbers_to_digits_da(text, short_scale=False,
-                               ordinals=False, fractions=True):
-    """
-    Convert words in a string into their equivalent numbers.
-    Args:
-        text str:
-        short_scale boolean: True if short scale numberres should be used.
-        ordinals boolean: True if ordinals (e.g. first, second, third) should
-                          be parsed to their number values (1, 2, 3...)
-    Returns:
-        str
-        The original text, with numbers subbed in where appropriate.
-    """
-    tokens = tokenize(text)
-    numbers_to_replace = \
-        _extract_numbers_with_text_da(tokens, short_scale, ordinals, fractions)
-    numbers_to_replace.sort(key=lambda number: number.start_index)
-    # a number that str() cannot write stays as written
-    numbers_to_replace = [n for n in numbers_to_replace if fits_str_limit(n.value)]
-
-    results = []
-    for token in tokens:
-        if not numbers_to_replace or \
-                token.index < numbers_to_replace[0].start_index:
-            results.append(token.word)
-        else:
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].start_index:
-                results.append(str(numbers_to_replace[0].value))
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].end_index:
-                numbers_to_replace.pop(0)
-
-    return ' '.join(results)
 
 
 def _extract_numbers_with_text_da(tokens, short_scale=False,
@@ -1235,3 +1200,9 @@ def extract_number_da(text, short_scale=False, ordinals=False):
     if number.is_integer():
         number = int(number)
     return number
+
+
+def numbers_to_digits_da(text, short_scale=False, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "da")``."""
+    warn_reader_removed("numbers_to_digits_da", 'ovos_number_parser.numbers_to_digits(text, "da")')
+    return numtag_readers.numbers_to_digits(text, "da", Scale.SHORT if short_scale else Scale.LONG, ordinals)

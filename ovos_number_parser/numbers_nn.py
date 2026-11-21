@@ -21,8 +21,9 @@ from ovos_number_parser.util import invert_dict
 
 from ovos_number_parser.numbers_nb import (
     _NorwegianTables, _nice_number, _pronounce_number, _pronounce_ordinal,
-    _is_ordinal, _is_fractional, _extract_number, _numbers_to_digits,
-    _NUM_STRING_NB, _SCALE_ORDER_NB)
+    _is_ordinal, _is_fractional, _NUM_STRING_NB, _SCALE_ORDER_NB)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import Scale, warn_reader_removed
 
 _ARTICLES_NN = {'ein', 'ei', 'eit', 'eitt'}
 
@@ -177,19 +178,7 @@ def is_fractional_nn(input_str, short_scale=False):
     return _is_fractional(input_str, _TABLES_NN)
 
 
-def extract_number_nn(text, short_scale=False, ordinals=False):
-    """Extract a number from Nynorsk text, both counting traditions."""
-    # the leftmost number of a line whose numbers other words separate
-    # wins under ordinals=True, in every language (panel item
-    # number-parser-ordinals-rule-v2)
-    from ovos_number_parser.util import leftmost_separated_number
-    _leftmost = leftmost_separated_number(text, "nn", ordinals)
-    if _leftmost is not None:
-        return _leftmost
-    return _extract_number(text, _TABLES_NN, ordinals)
-
-
-def numbers_to_digits_nn(text, short_scale=False, ordinals=False,
-                         fractions=True):
-    """Replace spoken Nynorsk numbers in a text with digits."""
-    return _numbers_to_digits(text, _TABLES_NN, ordinals, fractions)
+def numbers_to_digits_nn(text, short_scale=False, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "nn")``."""
+    warn_reader_removed("numbers_to_digits_nn", 'ovos_number_parser.numbers_to_digits(text, "nn")')
+    return numtag_readers.numbers_to_digits(text, "nn", Scale.SHORT if short_scale else Scale.LONG, ordinals)

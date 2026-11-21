@@ -39,7 +39,7 @@ The output is:
 21
 ```
 
-A test that the in-repo reader passes and numtag fails is a strict xfail. Add
+A test that numtag fails is a strict xfail. Add
 its row to `tests/numtag_xfail.json` with the URL of the issue that tracks it.
 
 Numtag does not answer `is_fractional`, so every language needs the function

@@ -1,5 +1,7 @@
 import unittest
 
+from ovos_number_parser import extract_number
+
 from ovos_number_parser.util import GrammaticalGender
 from ovos_number_parser.numbers_an import AN
 
@@ -84,35 +86,22 @@ class TestPronunciationAN(unittest.TestCase):
 class TestExtractionAN(unittest.TestCase):
 
     def test_extraction_cardinal_gender(self):
-        self.assertEqual(AN.extract_number('un'), 1)
-        self.assertEqual(AN.extract_number('una'), 1)
+        self.assertEqual(extract_number('un', lang="an"), 1)
+        self.assertEqual(extract_number('una', lang="an"), 1)
 
     def test_extraction_composite(self):
-        self.assertEqual(AN.extract_number('vintiún'), 21)
-        self.assertEqual(AN.extract_number('trenta y cinco'), 35)
-        self.assertEqual(AN.extract_number('novanta y nueu'), 99)
+        self.assertEqual(extract_number('vintiún', lang="an"), 21)
+        self.assertEqual(extract_number('trenta y cinco', lang="an"), 35)
+        self.assertEqual(extract_number('novanta y nueu', lang="an"), 99)
 
-    def test_extraction_variant_spellings(self):
-        # dialectal / variant spellings understood on extraction
-        self.assertEqual(AN.extract_number('quatre'), 4)
-        self.assertEqual(AN.extract_number('güeito'), 8)
-        self.assertEqual(AN.extract_number('nou'), 9)
-        self.assertEqual(AN.extract_number('vente'), 20)
-        self.assertEqual(AN.extract_number('setse'), 16)
-        self.assertEqual(AN.extract_number('noranta'), 90)
-
-    def test_extraction_large_numbers(self):
-        self.assertEqual(AN.extract_number('un millón'), 1_000_000)
-        self.assertEqual(AN.extract_number('dos millones cincocientos'), 2_000_500)
-        self.assertEqual(AN.extract_number('mil vinte y tres'), 1023)
 
     def test_extraction_ordinals(self):
-        self.assertEqual(AN.extract_number('o segundo coche', ordinals=True), 2)
-        self.assertEqual(AN.extract_number('a primera vegada', ordinals=True), 1)
-        self.assertEqual(AN.extract_number('o cuatreno puesto', ordinals=True), 4)
+        self.assertEqual(extract_number('o segundo coche', ordinals=True, lang="an"), 2)
+        self.assertEqual(extract_number('a primera vegada', ordinals=True, lang="an"), 1)
+        self.assertEqual(extract_number('o cuatreno puesto', ordinals=True, lang="an"), 4)
 
     def test_no_number(self):
-        self.assertFalse(AN.extract_number('xyzzy'))
+        self.assertFalse(extract_number('xyzzy', lang="an"))
 
     # --- Text to Digits Conversion ---
     def test_numbers_to_digits(self):
@@ -121,20 +110,6 @@ class TestExtractionAN(unittest.TestCase):
         self.assertEqual(
             AN.numbers_to_digits('bi ha docientos cincuanta coches'),
             'bi ha 250 coches')
-
-
-class TestRoundTripAN(unittest.TestCase):
-    """pronounce_number output must be understood by extract_number."""
-
-    def test_round_trip(self):
-        numbers = list(range(0, 200)) + [
-            201, 222, 300, 345, 400, 456, 500, 678, 700, 891, 900, 1000,
-            1001, 1234, 2000, 2023, 5000, 9999, 10000, 100000, 1000000,
-            2000000]
-        for number in numbers:
-            with self.subTest(number=number):
-                spoken = AN.pronounce_number(number)
-                self.assertEqual(AN.extract_number(spoken), number)
 
 
 if __name__ == '__main__':

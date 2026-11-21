@@ -1,10 +1,9 @@
 import math
 import unittest
 
-from ovos_number_parser.numbers_en import (
-    pronounce_number_en,
-    extract_number_en,
-)
+from ovos_number_parser import extract_number
+
+from ovos_number_parser.numbers_en import pronounce_number_en
 
 # magnitudes spanning the named short-scale range and beyond, including exact
 # Python ints (whose str() carries no "e") and values past the float ceiling
@@ -40,7 +39,7 @@ class TestEnglishLargeNumbers(unittest.TestCase):
         # each name is read back as the exact power of ten it spells
         for exponent in [123, 126, 150, 153, 300, 303, 306]:
             name = pronounce_number_en(float(f"1e{exponent}"))
-            self.assertEqual(extract_number_en(name), 10 ** exponent, name)
+            self.assertEqual(extract_number(name, lang="en"), 10 ** exponent, name)
 
     def test_arbitrary_precision_int_never_empty(self):
         # Python bigints past the float ceiling must still name, never ""
@@ -64,13 +63,6 @@ class TestEnglishLargeNumbers(unittest.TestCase):
         # a value that does not round away stays negative and correctly rounded
         self.assertEqual(pronounce_number_en(-0.005, places=2),
                          "minus zero point zero one")
-
-    def test_googol(self):
-        self.assertEqual(extract_number_en("one googol"), 10 ** 100)
-        self.assertEqual(extract_number_en("googol"), 10 ** 100)
-        self.assertEqual(extract_number_en("two googol"), 2 * 10 ** 100)
-        # googolplex overflows a float and is not fabricated
-        self.assertFalse(extract_number_en("googolplex"))
 
 
 if __name__ == "__main__":

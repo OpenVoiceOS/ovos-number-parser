@@ -1,10 +1,8 @@
 """Edge-path tests for the Hungarian number module."""
 import unittest
 
-from ovos_number_parser.numbers_hu import (extract_number_hu,
-                                           extract_numbers_hu,
-                                           nice_number_hu,
-                                           pronounce_number_hu)
+from ovos_number_parser import extract_number_spans
+from ovos_number_parser.numbers_hu import extract_number_hu, nice_number_hu, pronounce_number_hu
 
 
 class TestHungarianEdges(unittest.TestCase):
@@ -15,16 +13,13 @@ class TestHungarianEdges(unittest.TestCase):
     def test_bare_egesz_defaults_to_tenths(self):
         self.assertEqual(extract_number_hu("öt egész kettő"), 5.2)
 
-    def test_non_number_compound_rejected(self):
-        self.assertIsNone(
-            __import__("ovos_number_parser.numbers_hu",
-                       fromlist=["_parse_number_word_hu"]
-                       )._parse_number_word_hu("macskaegér"))
 
     def test_extract_numbers(self):
-        self.assertEqual(extract_numbers_hu("öt macska és három kutya"),
-                         [5, 3])
-        self.assertEqual(extract_numbers_hu("nincs itt szám"), [])
+        for text, expected in (("öt macska és három kutya", [5, 3]),
+                               ("nincs itt szám", [])):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    [span.value for span in extract_number_spans(text, "hu")], expected)
 
     def test_nice_number(self):
         self.assertEqual(nice_number_hu(4.5), "4 és fél")

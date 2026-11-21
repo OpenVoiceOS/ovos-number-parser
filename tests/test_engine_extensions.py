@@ -84,26 +84,6 @@ class TestJoinerOnScaleRemainder(unittest.TestCase):
                          "mil douscentos e trinta e catro")
 
 
-class TestMultiplyHundreds(unittest.TestCase):
-    def test_hundred_word_multiplies_preceding_units(self):
-        eng = _engine(MULTIPLY_HUNDREDS=True)
-        self.assertEqual(eng.extract_number("dous cen"), 200)
-        self.assertEqual(eng.extract_number("tres cen corenta e cinco"), 345)
-
-    def test_bare_hundred_still_one_hundred(self):
-        eng = _engine(MULTIPLY_HUNDREDS=True)
-        self.assertEqual(eng.extract_number("cen"), 100)
-
-    def test_higher_groups_untouched(self):
-        # only the sub-hundred residue multiplies: 2000 + 3*100
-        eng = _engine(MULTIPLY_HUNDREDS=True)
-        self.assertEqual(eng.extract_number("dous mil tres cen"), 2300)
-
-    def test_default_additive(self):
-        eng = _engine()
-        self.assertEqual(eng.extract_number("dous cen"), 102)
-
-
 class TestOrdinalPrefix(unittest.TestCase):
     PREFIX = {GrammaticalGender.MASCULINE: "al", GrammaticalGender.FEMININE: "a"}
 

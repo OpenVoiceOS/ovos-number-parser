@@ -3,7 +3,6 @@ number it reads, and reads a spoken ordinal under ordinals=True."""
 import unittest
 
 from ovos_number_parser import extract_number
-from ovos_number_parser.numbers_de import extract_number_de
 
 
 class TestNoNumberIsFalse(unittest.TestCase):
@@ -16,7 +15,7 @@ class TestNoNumberIsFalse(unittest.TestCase):
         for line, _ in self.LINES + [("hallo wie geht es dir", None)]:
             with self.subTest(line=line):
                 self.assertIs(extract_number(line, lang="de"), False)
-                self.assertIs(extract_number_de(line), False)
+                self.assertIs(extract_number(line, lang="de"), False)
 
     def test_the_ordinal_reads_under_the_flag(self):
         for line, value in self.LINES:

@@ -1,9 +1,9 @@
 import unittest
 
-from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
-                                numbers_to_digits, pronounce_number,
+from ovos_number_parser import (extract_number, extract_number_spans, is_fractional,
+                                is_ordinal, numbers_to_digits, pronounce_number,
                                 pronounce_ordinal)
-from ovos_number_parser.numbers_et import extract_numbers_et, nice_number_et
+from ovos_number_parser.numbers_et import nice_number_et
 
 
 class TestPronounceNumberEt(unittest.TestCase):
@@ -140,10 +140,11 @@ class TestLongScaleEt(unittest.TestCase):
 
 class TestExtractNumbersEt(unittest.TestCase):
     def test_multiple(self):
-        self.assertEqual(
-            extract_numbers_et("kaks kassi ja kolm koera"), [2, 3])
-        self.assertEqual(
-            extract_numbers_et("miinus viis ja kakskümmend"), [-5, 20])
+        for text, expected in (("kaks kassi ja kolm koera", [2, 3]),
+                               ("miinus viis ja kakskümmend", [-5, 20])):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    [span.value for span in extract_number_spans(text, "et")], expected)
 
 
 class TestMiscEt(unittest.TestCase):

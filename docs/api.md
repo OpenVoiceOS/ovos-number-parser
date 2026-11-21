@@ -190,10 +190,11 @@ the text intact.
 
 `extract_number`, `extract_number_spans` and `numbers_to_digits` read a
 language through [numtag](https://github.com/TigreGotico/numtag) when its
-language code is in `ovos_number_parser.numtag_readers.NUMTAG_LANGS`. Every
-other language keeps its `numbers_<code>.py` reader. A test that numtag reads
-differently from the old reader is a strict xfail, and its reason is the URL of
-the issue that tracks the difference.
+language code is in `ovos_number_parser.numtag_readers.NUMTAG_LANGS`. Malay
+(`ms`) and the ISO 639-3 codes of the Arabic lects keep the reader in their
+`numbers_<code>.py` module. A test that numtag reads differently from the
+earlier reader is a strict xfail, and its reason is the URL of the issue that
+tracks the difference.
 
 numtag gives each value as an exact digit string. The readers convert it to
 the `int` or `float` the API returns. A value that is no whole number is a

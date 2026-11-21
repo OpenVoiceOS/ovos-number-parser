@@ -226,11 +226,3 @@ if __name__ == '__main__':
     print('1st (f):', AN.pronounce_ordinal(1, GrammaticalGender.FEMININE))
     print('4th (m):', AN.pronounce_ordinal(4))
     print('11th:', AN.pronounce_ordinal(11))
-
-    print('\n--- Extraction ---')
-    print("'un millón' ->", AN.extract_number('un millón'))
-    print("'trenta y cinco' ->", AN.extract_number('trenta y cinco'))
-    print("'vintiún' ->", AN.extract_number('vintiún'))
-
-    print('\n--- numbers_to_digits ---')
-    print(AN.numbers_to_digits('bi ha docientos cincuanta personas'))

@@ -1,7 +1,6 @@
 import unittest
 
-from ovos_number_parser.numbers_id import (extract_number_id,
-                                           extract_number_ms)
+from ovos_number_parser import extract_number
 
 
 class TestIndonesianMalayZeroDenominator(unittest.TestCase):
@@ -9,14 +8,14 @@ class TestIndonesianMalayZeroDenominator(unittest.TestCase):
     parse."""
 
     def test_zero_denominator_does_not_raise(self):
-        for extract in (extract_number_id, extract_number_ms):
-            self.assertFalse(extract("1/0"))
-            self.assertFalse(extract("5/0"))
+        for lang in ("id", "ms"):
+            self.assertFalse(extract_number("1/0", lang))
+            self.assertFalse(extract_number("5/0", lang))
 
     def test_valid_fractions_unchanged(self):
-        for extract in (extract_number_id, extract_number_ms):
-            self.assertEqual(extract("3/4"), 0.75)
-            self.assertEqual(extract("1/2"), 0.5)
+        for lang in ("id", "ms"):
+            self.assertEqual(extract_number("3/4", lang), 0.75)
+            self.assertEqual(extract_number("1/2", lang), 0.5)
 
 
 if __name__ == "__main__":

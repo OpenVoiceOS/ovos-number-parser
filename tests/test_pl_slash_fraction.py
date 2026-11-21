@@ -1,6 +1,6 @@
 import unittest
 
-from ovos_number_parser.numbers_pl import extract_number_pl
+from ovos_number_parser import extract_number
 
 
 class TestPolishSlashFraction(unittest.TestCase):
@@ -8,12 +8,12 @@ class TestPolishSlashFraction(unittest.TestCase):
     it is the final token."""
 
     def test_bare_slash_fraction(self):
-        self.assertEqual(extract_number_pl("3/4"), 0.75)
-        self.assertEqual(extract_number_pl("1/2"), 0.5)
-        self.assertEqual(extract_number_pl("0/5"), 0.0)
+        self.assertEqual(extract_number("3/4", lang="pl"), 0.75)
+        self.assertEqual(extract_number("1/2", lang="pl"), 0.5)
+        self.assertEqual(extract_number("0/5", lang="pl"), 0.0)
 
     def test_slash_fraction_in_sentence(self):
-        self.assertEqual(extract_number_pl("mam 3/4 jabłka"), 0.75)
+        self.assertEqual(extract_number("mam 3/4 jabłka", lang="pl"), 0.75)
 
 
 if __name__ == "__main__":

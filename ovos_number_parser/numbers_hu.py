@@ -7,8 +7,9 @@ pairs follow the "milliomodik" and "milliárdodik" pattern.
 from decimal import Decimal, ROUND_HALF_UP
 from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
-    scientific_parts
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import convert_to_mixed_fraction, scientific_parts, warn_reader_removed
+
 _NUM_STRING_HU = {
     0: 'nulla',
     1: 'egy',
@@ -375,82 +376,14 @@ def pronounce_ordinal_hu(number):
         return root + "edik" if vtype == 1 else root + "adik"
 
 
-_MINUS_HU = ("mínusz", "minusz")
-
 # word → value map used to split compound numbers, including the allomorphs
 # that only appear inside compounds ("két", "huszon")
 _STRING_NUM_HU = {word: val for val, word in _NUM_STRING_HU.items()}
 _STRING_NUM_HU["két"] = 2
 _STRING_NUM_HU["huszon"] = 20
-_STRING_NUM_HU["tizen"] = 10
 
-_STRING_SCALE_HU = {
-    'ezer': 1000,
-    'millió': 1000000,
-    'milliárd': 1000000000,
-    'billió': 1000000000000,
-    'billiárd': 1000000000000000,
-    'trillió': 1000000000000000000,
-    'trilliárd': 1000000000000000000000,
-}
-
-_DECIMAL_SUFFIXES_HU = {word: 10 ** places for places, word
-                        in enumerate(_FRACTION_SUFFIXES_HU, start=1)}
 
 _STRING_FRACTION_HU = {word: val for val, word in _FRACTION_STRING_HU.items()}
-
-
-def _split_compound_number_hu(word):
-    """Split an agglutinated Hungarian number word into its vocabulary parts.
-
-    Returns the list of matched (word, value) parts, or None if the word is
-    not entirely composed of number vocabulary.
-    """
-    vocab = dict(_STRING_NUM_HU)
-    vocab.update(_STRING_SCALE_HU)
-    keys = sorted(vocab, key=len, reverse=True)
-    parts = []
-    rest = word
-    while rest:
-        for key in keys:
-            if rest.startswith(key):
-                parts.append((key, vocab[key]))
-                rest = rest[len(key):]
-                break
-        else:
-            return None
-    return parts
-
-
-def _compound_value_hu(parts):
-    """Evaluate the value of the parts of a split Hungarian compound number."""
-    total = 0
-    current = 0
-    for _, val in parts:
-        if val == 100:
-            current = (current or 1) * 100
-        elif val >= 1000:
-            total += (current or 1) * val
-            current = 0
-        else:
-            current += val
-    return total + current
-
-
-def _parse_number_word_hu(word):
-    """Parse a single Hungarian number word (possibly compound, possibly
-    hyphenated) into its value, or None."""
-    word = word.lower().strip().replace('-', '')
-    if not word:
-        return None
-    if word in _STRING_NUM_HU:
-        return _STRING_NUM_HU[word]
-    if word in _STRING_SCALE_HU:
-        return _STRING_SCALE_HU[word]
-    parts = _split_compound_number_hu(word)
-    if parts:
-        return _compound_value_hu(parts)
-    return None
 
 
 _ORDINAL_REVERSE_HU = {}
@@ -490,108 +423,6 @@ def is_fractional_hu(input_str, short_scale=True):
 
 
 def extract_number_hu(text, short_scale=True, ordinals=False):
-    """
-    Extract the first number from Hungarian text.
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): ignored, Hungarian uses its own scale words
-        ordinals (bool): consider ordinal numbers ("második" → 2)
-    Returns:
-        (int, float or False): the extracted number or False if no number
-                               was found
-    """
-    tokens = [t.strip('.,!?;:').lower() for t in text.split()]
-    tokens = [t for t in tokens if t]
-    for idx, token in enumerate(tokens):
-        negative = idx > 0 and tokens[idx - 1] in _MINUS_HU
-
-        # digits, including comma decimals
-        cleaned = token.replace(',', '.')
-        if is_numeric(cleaned):
-            val = numeric_value(cleaned)
-            if val == int(val) and '.' not in cleaned:
-                val = int(val)
-            return -val if negative else val
-
-        if ordinals:
-            val = is_ordinal_hu(token)
-            if val is not False:
-                return -val if negative else val
-
-        frac = is_fractional_hu(token)
-        if frac:
-            # "két harmad" → 2/3
-            prev = _parse_number_word_hu(tokens[idx - 1]) if idx > 0 else None
-            if prev is not None:
-                if idx > 1 and tokens[idx - 2] in _MINUS_HU:
-                    negative = True
-                return -prev * frac if negative else prev * frac
-            return -frac if negative else frac
-
-        val = _parse_number_word_hu(token)
-        if val is None:
-            continue
-
-        # "két harmad" → 2/3
-        if idx + 1 < len(tokens):
-            frac = is_fractional_hu(tokens[idx + 1])
-            if frac:
-                return -val * frac if negative else val * frac
-
-        # decimals: "öt egész két tized"
-        if idx + 2 < len(tokens) and tokens[idx + 1] == 'egész':
-            frac_val = _parse_number_word_hu(tokens[idx + 2])
-            if frac_val is not None and idx + 3 < len(tokens) and \
-                    tokens[idx + 3] in _DECIMAL_SUFFIXES_HU:
-                val = float(Decimal(val) + Decimal(frac_val)
-                            / _DECIMAL_SUFFIXES_HU[tokens[idx + 3]])
-            elif frac_val is not None:
-                # bare "egész" defaults to tenths
-                val += frac_val / 10
-        return -val if negative else val
-    return False
-
-
-def extract_numbers_hu(text, short_scale=True, ordinals=False):
-    """
-    Extract all numbers from Hungarian text.
-
-    Args:
-        text (str): the string to extract numbers from
-        short_scale (bool): ignored, Hungarian uses its own scale words
-        ordinals (bool): consider ordinal numbers
-    Returns:
-        list: list of extracted numbers
-    """
-    tokens = text.split()
-    results = []
-    i = 0
-    while i < len(tokens):
-        # try progressively shorter tails so multi-token values
-        # ("öt egész két tized") are consumed as one number
-        val = extract_number_hu(" ".join(tokens[i:]), short_scale, ordinals)
-        if val is False:
-            break
-        # find where this number starts and how many tokens it spans
-        start = i
-        while extract_number_hu(" ".join(tokens[start + 1:]), short_scale,
-                                ordinals) == val \
-                and extract_number_hu(" ".join(tokens[start:start + 1]),
-                                      short_scale, ordinals) is False:
-            start += 1
-        end = start + 1
-        while end <= len(tokens) and extract_number_hu(
-                " ".join(tokens[start:end]), short_scale, ordinals) != val:
-            end += 1
-        # absorb a trailing decimal/fraction suffix ("öt egész két tized"
-        # matches at three tokens through the bare-egész default, but the
-        # suffix belongs to the same number)
-        while end < len(tokens) and \
-                tokens[end].strip(".,!?;:").lower() in _DECIMAL_SUFFIXES_HU \
-                and extract_number_hu(" ".join(tokens[start:end + 1]),
-                                      short_scale, ordinals) == val:
-            end += 1
-        results.append(val)
-        i = max(end, start + 1)
-    return results
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "hu")``."""
+    warn_reader_removed("extract_number_hu", 'ovos_number_parser.extract_number(text, "hu")')
+    return numtag_readers.extract_number(text, "hu", short_scale, ordinals)

@@ -1,8 +1,7 @@
 import math
 import re
 
-from ovos_number_parser.util import (convert_to_mixed_fraction, is_numeric,
-                                     look_for_fractions, Scale, GrammaticalGender,
+from ovos_number_parser.util import (convert_to_mixed_fraction, Scale, GrammaticalGender,
                                      NumberVocabulary, RomanceNumberExtractor,
                                      DigitPronunciation)
 
@@ -500,50 +499,6 @@ def pronounce_number_fr(number, places=2):
     """
     return FR.pronounce_number(number, places)
 
-# "quatre-vingt(s)" (80) and "quatre-vingt-dix" (90) are vigesimal: the shared
-# engine accumulates by addition, so "quatre" + "vingt" would give 24. This
-# hook collapses "quatre-vingt(s)" - spaced or hyphenated, any case - into a
-# single token the vocabulary maps to 80, after which every 80/90 compound is a
-# plain addition: 80, 80+1=81, 80+10=90, 80+11=91, 80+10+9=99.
-_VIGESIMAL_RE_FR = re.compile(r"\bquatre[\s-]vingts?\b", re.IGNORECASE)
-
-# a bare-digit ordinal such as "2nde" / "21ème" reduces to its digits so the
-# engine reads the cardinal ("la 2nde place" -> 2)
-_NUMERIC_ORDINAL_RE_FR = re.compile(
-    r"\b(\d+)(?:ers?|res?|ère|nde?|ièmes?|èmes?|es?)\b", re.IGNORECASE)
-
-
-def _collapse_vigesimal_fr(text):
-    """Collapse "quatre-vingt(s)" to a single 80 token for the shared engine."""
-    return _VIGESIMAL_RE_FR.sub("quatrevingts", text)
-
-
-def _extract_fraction_fr(text):
-    """Resolve a French numerator fraction, or None when there is no fraction.
-
-    French fraction nouns are invariable and multiply the preceding cardinal
-    numerator ("un demi" = 1/2, "deux tiers" = 2/3, "trois quarts" = 3/4),
-    unlike the shared engine's "and a half" additive model, so they are
-    resolved here. Also handles a bare "n/m" slash fraction.
-    """
-    for token in text.replace("-", " ").split():
-        if "/" in token:
-            pieces = token.split("/")
-            if look_for_fractions(pieces):
-                return float(pieces[0]) / float(pieces[1])
-    words = text.replace("-", " ").split()
-    for idx, word in enumerate(words):
-        frac = is_fractional_fr(word)
-        if frac is not False:
-            if idx == 0:
-                return frac
-            numerator = FR.extract_number(" ".join(words[:idx]),
-                                          scale=_FR.DEFAULT_SCALE)
-            if numerator is False:
-                return frac
-            return numerator * frac
-    return None
-
 
 def nice_number_fr(number, speech=True, denominators=range(1, 21)):
     """ French helper for nice_number
@@ -924,72 +879,6 @@ def _number_ordinal_fr(words, i):
             return strOrd, i + 1
 
     return None
-
-
-def extract_number_fr(text, short_scale=True, ordinals=False):
-    """Extract a number from standard-French (France) text.
-
-    Delegates to the shared :class:`RomanceNumberExtractor`. The heavy legacy
-    recursive parser is replaced by a French :class:`NumberVocabulary` plus two
-    French hooks: a vigesimal collapse of "quatre-vingt(s)" so 80/90 compounds
-    add correctly, and a numerator-fraction resolver for the invariable "demi"/
-    "tiers"/"quart".
-
-    French keeps the composite tens the Académie française prescribes: the
-    seventies compose as 60 + teens ("soixante-dix" 70, "soixante et onze" 71,
-    "soixante-douze" 72 … "soixante-dix-neuf" 79); the eighties as 4 × 20
-    ("quatre-vingts" 80, "quatre-vingt-un" 81 … "quatre-vingt-neuf" 89) and the
-    nineties as 80 + teens ("quatre-vingt-dix" 90, "quatre-vingt-onze" 91 …
-    "quatre-vingt-dix-neuf" 99). The conjunction "et" appears only in "vingt et
-    un" (21), "trente et un" (31) … "soixante et un" (61) and "soixante et
-    onze" (71); never in "quatre-vingt-un" (81) or "quatre-vingt-onze" (91).
-    "cent" takes the plural -s only when it closes a round number ("deux cents"
-    200, but "deux cent un" 201); "mille" is invariable ("deux mille"). Both
-    the traditional spaced spellings and the hyphenated forms of the 1990
-    rectifications orthographiques ("vingt-et-un", "trois-cent-cinquante") are
-    accepted on input.
-
-    Sources: Académie française, "Questions de langue - Nombres (écriture,
-    accord)" (https://www.academie-francaise.fr/questions-de-langue#57_strong-em-nombres-em-strong)
-    and the 1990 rectifications orthographiques, Journal officiel de la
-    République française, "Les rectifications de l'orthographe", 6 December
-    1990 (deposited under ~/AgentWorkspaces/papers/general/).
-
-    The scale is always the long scale used in France (milliard 10^9, billion
-    10^12); ``short_scale`` is kept for API compatibility but does not change
-    the result.
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): accepted for API compatibility; France always uses
-            the long scale
-        ordinals (bool): also recognise ordinal words
-    Returns:
-        (int, float) or False: the extracted number, or False if none is found
-    """
-    # the leftmost number of a line whose numbers other words separate
-    # wins under ordinals=True, in every language (panel item
-    # number-parser-ordinals-rule-v2)
-    from ovos_number_parser.util import leftmost_separated_number
-    _leftmost = leftmost_separated_number(text, "fr", ordinals)
-    if _leftmost is not None:
-        return _leftmost
-    if not isinstance(text, str):
-        return False
-
-    # reduce bare-digit ordinals to their digits so the engine reads them
-    prepared = _NUMERIC_ORDINAL_RE_FR.sub(r"\1", text)
-
-    # French numerator fractions ("un demi", "deux tiers", "2/3") multiply
-    # rather than add, so they are resolved before the cardinal engine
-    fraction = _extract_fraction_fr(prepared)
-    if fraction is not None:
-        return fraction
-
-    prepared = _collapse_vigesimal_fr(prepared)
-    result = FR.extract_number(prepared, ordinals=ordinals,
-                               scale=_FR.DEFAULT_SCALE)
-    return result
 
 
 def is_fractional_fr(input_str, short_scale=True):

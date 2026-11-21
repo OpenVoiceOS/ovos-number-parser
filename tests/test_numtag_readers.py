@@ -30,9 +30,8 @@ class TestRouting(unittest.TestCase):
                              "Compraram 1000 2400 de ovos.")
 
     def test_an_unrouted_language_keeps_its_reader(self):
-        with routed():
-            self.assertFalse(numtag_readers.routed("pt-PT"))
-            self.assertEqual(extract_number("dois mil e vinte", "pt-PT"), 2020)
+        self.assertFalse(numtag_readers.routed("ms"))
+        self.assertEqual(extract_number("dua puluh satu", "ms"), 21)
 
     def test_region_and_alias_tags_follow_the_language(self):
         with routed("pt", "nb"):

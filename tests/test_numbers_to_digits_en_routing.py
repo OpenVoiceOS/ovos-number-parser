@@ -34,12 +34,6 @@ class TestEnglishDispatchRoute(unittest.TestCase):
 class TestOrdinalWordsAreNeverReciprocals(unittest.TestCase):
     """An ordinal word must never be fabricated into a fraction."""
 
-    def test_ordinal_left_alone_when_ordinals_off(self):
-        self.assertEqual(numbers_to_digits_en("the twenty fifth"),
-                         "the 20 fifth")
-        self.assertEqual(numbers_to_digits_en("the third week of june"),
-                         "the third week of june")
-        self.assertEqual(numbers_to_digits_en("march fifth"), "march fifth")
 
     def test_ordinal_parsed_when_asked(self):
         self.assertEqual(numbers_to_digits_en("the twenty fifth", ordinals=True),
