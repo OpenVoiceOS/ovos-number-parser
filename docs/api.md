@@ -1,5 +1,16 @@
 # API reference
 
+<!-- agent-hint
+covers: every public function of ovos_number_parser with its parameters, defaults and examples
+source: ovos_number_parser/__init__.py (dispatchers), ovos_number_parser/numtag_readers.py (NUMTAG_LANGS), ovos_number_parser/util.py (enums)
+generated: no
+verify: python -m pytest tests/test_lang_parity.py tests/test_numtag_readers.py
+see: languages.md, adding-a-language.md, ../README.md
+-->
+
+This page lists each public function, its parameters and an example. Read it
+when you need the exact call for reading a number or for speaking one.
+
 All public functions live in the top-level `ovos_number_parser` package and
 take a BCP-47 language code (`lang`). The primary language subtag selects the
 parser and must match exactly, in any letter case and with `-` or `_` between
@@ -52,7 +63,7 @@ Convert a numeric value to its spoken form.
 
 A whole number past the largest scale compound a language uses is read in
 scientific form. Romanian reads `10 ** 24` as `"un milion de trilioane"` and
-`10 ** 27` as `"unu virgulă zero ori zece la puterea douăzeci și șapte"`.
+`10 ** 27` as `"unu ori zece la puterea douăzeci și șapte"`.
 Belgian and Swiss French (`fr-BE`, `fr-CH`) read 70 and 90 as `septante` and
 `nonante`, and Swiss French reads 80 as `huitante`. Their ordinals use the same
 words (`septantième`, `nonantième`, `huitantième`).
@@ -64,8 +75,16 @@ implementation use the unicode-rbnf fallback.
 
 ## `pronounce_fraction(fraction_word, lang, scale=Scale.LONG)`
 
-Speak a fraction string such as `"3/4"`. Currently implemented for Portuguese
-and Mirandese.
+Speak a fraction string such as `"3/4"`. Portuguese, Asturian, Catalan,
+Occitan, Aragonese, Mirandese, Galician and Romanian have their own writers.
+Every other language uses the generic one.
+
+```python
+>>> pronounce_fraction("3/4", "pt")
+'três quartos'
+>>> pronounce_fraction("3/4", "en")
+'three quarters'
+```
 
 ## `extract_number(text, lang, short_scale=True, ordinals=False)`
 
@@ -92,7 +111,9 @@ Use `extract_number` to pull fractions out of longer phrases.
 ## `is_ordinal(input_str, lang)`
 
 Exact-match test for an ordinal word (`"third"` → `3`, otherwise `False`).
-Implemented for `en`, `pt`, `mwl`, `de` and `da`.
+The [language table](languages.md#language-table) shows which languages have a
+dedicated reader. The others look the word up among their `pronounce_ordinal`
+forms.
 
 ## `numbers_to_digits(utterance, lang, scale=Scale.LONG)`
 
@@ -134,4 +155,4 @@ nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr and uk.
 - `DigitPronunciation`: full-number vs digit-by-digit reading styles.
 
 ---
-[Home](../README.md) · [Language notes →](languages.md)
+[Index](index.md) · [← Home](../README.md) · [Language notes →](languages.md)

@@ -1,6 +1,76 @@
 # Language notes
 
-Per-language behaviour that goes beyond the support matrix in the README.
+<!-- agent-hint
+covers: which of the 40 languages read through numtag, which use the in-repo reader, and the rules of single languages
+source: ovos_number_parser/numtag_readers.py:NUMTAG_LANGS, ovos_number_parser/__init__.py (dispatchers), ovos_number_parser/numbers_<code>.py
+generated: no
+verify: python -m pytest tests/test_numtag_routed_languages.py tests/test_lang_parity.py
+see: api.md, adding-a-language.md, ../README.md
+-->
+
+This page shows how each of the 40 languages is read and spoken. It then
+gives the rules of single languages and the known gaps.
+
+## Language table
+
+Words are read in one of two ways. Thirty-nine languages read through
+[numtag](https://github.com/TigreGotico/numtag). Their codes are in
+`NUMTAG_LANGS` in `ovos_number_parser/numtag_readers.py`. Malay (`ms`) reads
+with the reader in `ovos_number_parser/numbers_id.py`. The functions
+`extract_number`, `extract_number_spans` and `numbers_to_digits` follow this
+route.
+
+Every language speaks numbers with its own `pronounce_number_<code>` writer.
+The `pronounce_*` writers are in this repository for all languages.
+`is_fractional` and `is_ordinal` never use numtag. The last column shows
+whether `is_ordinal` has a dedicated reader or looks the word up among the
+`pronounce_ordinal` forms.
+
+| Code | Language | Reads words with | `is_ordinal` |
+|------|----------|------------------|--------------|
+| `ar` | Arabic | numtag | dedicated |
+| `an` | Aragonese | numtag | dedicated |
+| `ast` | Asturian | numtag | dedicated |
+| `az` | Azerbaijani | numtag | reverse lookup |
+| `eu` | Basque | numtag | dedicated |
+| `bg` | Bulgarian | numtag | reverse lookup |
+| `ca` | Catalan | numtag | dedicated |
+| `hr` | Croatian | numtag | reverse lookup |
+| `cs` | Czech | numtag | reverse lookup |
+| `da` | Danish | numtag | dedicated |
+| `nl` | Dutch | numtag | reverse lookup |
+| `en` | English | numtag | dedicated |
+| `et` | Estonian | numtag | dedicated |
+| `fi` | Finnish | numtag | dedicated |
+| `fr` | French | numtag | reverse lookup |
+| `gl` | Galician | numtag | dedicated |
+| `de` | German | numtag | dedicated |
+| `el` | Greek | numtag | dedicated |
+| `he` | Hebrew | numtag | dedicated |
+| `hu` | Hungarian | numtag | dedicated |
+| `id` | Indonesian | numtag | reverse lookup |
+| `it` | Italian | numtag | reverse lookup |
+| `kab` | Kabyle | numtag | dedicated |
+| `ms` | Malay | in-repo reader | reverse lookup |
+| `mwl` | Mirandese | numtag | dedicated |
+| `nb` | Norwegian Bokmål | numtag | dedicated |
+| `nn` | Norwegian Nynorsk | numtag | dedicated |
+| `oc` | Occitan | numtag | dedicated |
+| `fa` | Persian | numtag | reverse lookup |
+| `pl` | Polish | numtag | reverse lookup |
+| `pt` | Portuguese | numtag | dedicated |
+| `ro` | Romanian | numtag | dedicated |
+| `ru` | Russian | numtag | reverse lookup |
+| `sk` | Slovak | numtag | reverse lookup |
+| `sl` | Slovenian | numtag | dedicated |
+| `es` | Spanish | numtag | reverse lookup |
+| `sv` | Swedish | numtag | reverse lookup |
+| `tr` | Turkish | numtag | reverse lookup |
+| `uk` | Ukrainian | numtag | reverse lookup |
+| `fy` | West Frisian | numtag | reverse lookup |
+
+A code with a region (`pt-BR`, `fr-BE`) uses the language of its first
+subtag. `no` reads as `nb`, `azj` as `az`, `ekk` as `et` and `pes` as `fa`.
 
 ## Germanic compound numbers (de, nl, da, sv, fy)
 
@@ -18,10 +88,9 @@ compound and the spaced form parse:
 
 Dutch diacritics (`één`, `drieëntwintig`) are normalized before parsing.
 West Frisian diacritics (`sân`, `hûndert`, `tûzen`) are likewise normalized,
-and the variant spellings without the etymological `-s-` (`sechtjin`,
-`sechtich`) are accepted alongside the standard `sechstjin`/`sechstich`.
-Danish accepts both the standard spellings (`elleve`, `halvtreds`,
-`halvfjerds`) and the legacy variants kept for backward compatibility.
+and the standard spellings `sechstjin` and `sechstich` read as 16 and 60.
+Danish reads the standard spellings `elleve`, `halvtreds` and `halvfjerds`
+as 11, 50 and 70.
 
 ## Czech declensions
 
@@ -47,12 +116,10 @@ Portuguese distinguishes European and Brazilian variants (`pt-PT` reads
 16 as `dezasseis`, `pt-BR` as `dezesseis`) and inflects `um/uma`,
 `dois/duas` and the hundreds (`duzentos/duzentas`) for grammatical gender.
 
-Aragonese pronounces the general forms of the current academic norm
-(`cuatre`, `ueito`, `deciséis`, `vintiún`, `trenta y cinco`, `cient`) and
-accepts the dialectal variants (`quatre`, `güeito`, `setse`, `vente`,
-`noranta`) on extraction. Ordinals use the characteristic `-eno` series
-(`cuatreno`, `cinqueno`, `onceno`). Tens ordinals above the attested range
-follow the same productive `-eno` pattern.
+Aragonese pronounces 4, 8, 16, 21, 35 and 100 as `cuatre`, `ueito`,
+`deciséis`, `vintiún`, `trenta y cinco` and `cient`. It reads the variants
+`quatre`, `vente` and `noranta` as 4, 20 and 90. Ordinals use the `-eno`
+series (`cuatreno`, `cinqueno`).
 
 ## Spanish and Catalan
 
@@ -64,8 +131,9 @@ hundreds (`quinientos`, `setecientos`, `novecientos`), scale words including
 ## English
 
 `extract_number` understands the `and` connector inside a number
-(`one hundred and one` = 101), digit grouping (`1,000,000`) and spoken-style
-comma pauses (`two thousand, twenty three`).
+(`one hundred and one` = 101) and digit grouping (`1,000,000`). A comma
+between two number words ends the number: `two thousand, twenty three` reads
+as 2000, and `two thousand twenty three` reads as 2023.
 
 ## Kabyle
 
@@ -75,8 +143,8 @@ for everyday counting above ten (`ḥḍac` = 11, `ɛecrin` = 20, `mya` = 100,
 `alef` = 1000). Pronunciation uses the Amazigh forms for 0-10 and the
 Arabic-derived forms above ten, joining compounds with the conjunction `u`
 with the unit before the ten (`waḥed u ɛecrin` = 21). Extraction accepts
-both systems, feminine forms (`yiwet`, `snat`), additive Amazigh compounds
-(`mraw d yiwen` = 11) and diacritic-stripped spellings (`hdac`).
+both systems, feminine forms (`yiwet`, `snat`) and diacritic-stripped
+spellings (`hdac` = 11).
 
 Ordinals use `amezwaru` (f. `tamezwarut`) for "first" and `wis`/`tis` +
 cardinal otherwise. The only attested fraction noun is `azgen` (half).
@@ -89,8 +157,8 @@ omitted.
 ## Persian
 
 Numbers are written and parsed in Persian script (`بیست و یک` = 21). Both
-extraction and pronunciation cover units through millions, including decimal
-readings.
+extraction and pronunciation cover units through millions. Pronunciation reads
+2.5 as `دو و نیم`.
 
 ## Known gaps
 
@@ -98,17 +166,18 @@ These are cases where the generic parity fallback (see below) is in use and
 its result is rougher than a dedicated implementation would be: the call still
 returns, it is just less polished:
 
-- `fr`, `it`, `eu`, `fa` and other languages marked `·` for `numbers_to_digits`
-  in the README matrix rely on the generic span-replacement fallback.
-- Polish extraction does not merge `tysiąc` groups written with the singular
-  form (`jeden tysiąc jeden`). Plural forms (`dwa tysiące trzy`) work.
-- Czech pronounces four-digit numbers date-style (`1234` →
-  `dvanáct třicet čtyři`), which extraction does not reverse.
+- A comma between two number words ends the number in English:
+  `extract_number("two thousand, twenty three", "en")` is 2000. The output of
+  `pronounce_number(2023, "en")`, `two thousand, twenty three`, does not read
+  back as 2023. Czech output such as `tisíc, dvě stě třicet čtyři` reads back
+  as 1000.
+- Kabyle `mraw d yiwen` and `mraw u yiwen` read as 10, not 11.
+- Aragonese `güeito` and `setse` read as no number.
 
 ## Full function parity
 
 Every supported language provides every public function. Where a language
-has no hand-written implementation, a documented generic fallback fills in:
+has no hand-written implementation, a generic fallback fills in:
 
 - `pronounce_fraction` reuses the language's `nice_number` fraction wording
   (which carries its plural/declension rules) and spells out any digits. The
@@ -118,15 +187,12 @@ has no hand-written implementation, a documented generic fallback fills in:
 - `is_ordinal` falls back to a reverse lookup over `pronounce_ordinal`
   (1–100, round hundreds, 1000, 1000000), registering both `-o`/`-a`
   grammatical-gender variants.
-- `numbers_to_digits` falls back to replacing maximal spoken-number spans
-  found by `extract_number`, joining across connector words (`vingt et un`,
-  `sto in ena`) only when the combined words read as one larger number.
-  Languages whose hand-written converters stopped at twenty or mishandled
-  compound and comma-grouped numbers (az, ca, cs, da, en, es, nl, pl) now
-  use this path.
+- `pronounce_number` and `pronounce_ordinal` fall back to
+  [unicode-rbnf](https://github.com/rhasspy/unicode-rbnf) for the values that
+  a language writer does not cover.
 
 The parity guarantee is enforced by `tests/test_lang_parity.py`, which runs
 every public function against every supported language.
 
 ---
-[← API reference](api.md) · [Home](../README.md) · [Adding a language →](adding-a-language.md)
+[Index](index.md) · [← API reference](api.md) · [Adding a language →](adding-a-language.md)
