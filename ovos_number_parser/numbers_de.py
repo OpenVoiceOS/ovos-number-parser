@@ -441,6 +441,9 @@ def pronounce_ordinal_de(number):
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
+    elif number >= 10 ** 24:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a German ordinal")
     number = int(number)
     last = number % 100
     if 0 < last < 20:
