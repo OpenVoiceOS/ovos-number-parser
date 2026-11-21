@@ -1557,6 +1557,9 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
             text = engine.format_number(number, form).text
     except Exception as err:
         raise NotImplementedError(f"Unsupported language: '{lang}'") from err
+    if ordinals and any(char.isdigit() for char in text):
+        raise NotImplementedError(
+            f"'{lang}' has no spoken ordinal for {number}")
     text = text.translate(_RBNF_CHARACTER_FIXES.get(locale, {}))
     for wrong, right in _RBNF_SCRIPT_FIXES.get(base, {}).items():
         text = text.replace(wrong, right)
