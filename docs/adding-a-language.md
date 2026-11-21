@@ -34,8 +34,12 @@ A language reads through numtag when its code is in `NUMTAG_LANGS` in
 21
 ```
 
-A test that the old reader passes and numtag fails is a strict xfail. Add its
-row to `tests/numtag_xfail.json` with the URL of the issue that tracks it.
+A test that the in-repo reader passes and numtag fails is a strict xfail. Add
+its row to `tests/numtag_xfail.json` with the URL of the issue that tracks it.
+
+Numtag does not answer `is_fractional`, so every language needs the function
+from the speaking steps below. `is_ordinal` needs none, because it falls back
+to a lookup over `pronounce_ordinal`.
 
 ## Add speaking
 
@@ -51,7 +55,11 @@ hand, follow these steps.
 3. Add `if lang2 == "<code>":` branches to `_pronounce_number_dispatch` and to
    `pronounce_ordinal`.
 4. Add the code to `LANGS` in `tests/test_lang_parity.py`.
-5. Add `tests/test_number_parser_<code>.py` with spoken forms for a fixed set
+5. Add `is_fractional_<code>(input_str, short_scale=True)` and an
+   `if lang2 == "<code>":` branch in `is_fractional`. That function ends in
+   `NotImplementedError` for a code with no branch, and
+   `test_is_fractional` in the parity test fails for it.
+6. Add `tests/test_number_parser_<code>.py` with spoken forms for a fixed set
    of values (0 to 20, the tens, 100, 101, 123, 999, 1000, 2023). Take each
    expected form from a grammar or from native usage, never from the output
    of the code under test.
@@ -68,9 +76,9 @@ as a template: `numbers_de.py` for compound words, `numbers_cs.py` or
 ## Add reading without numtag
 
 A language that numtag does not read keeps an `extract_number_<code>` function
-in its module. Add `if lang2 == "<code>":` branches to `extract_number`,
-`is_fractional` and `numbers_to_digits` in `__init__.py`. Malay (`ms`) works
-this way.
+in its module. Add `if lang2 == "<code>":` branches to `_extract_number`,
+`_number_words_to_digits` and `is_fractional` in `__init__.py`. Malay (`ms`)
+works this way.
 
 ## Check the result
 

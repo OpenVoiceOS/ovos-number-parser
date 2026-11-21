@@ -16,6 +16,7 @@ words, in 40 languages. Thirty-nine languages read through numtag. The
 | `ovos_number_parser/numbers_<code>.py` | The writers and the in-repo readers of one language |
 | `ovos_number_parser/util.py` | `NumberVocabulary`, `RomanceNumberExtractor` and the enums |
 | `tests/` | The test suite. `tests/numtag_xfail.json` lists strict xfails with issue URLs |
+| `benchmarks/` | The ICU differential harness ([benchmarks/README.md](benchmarks/README.md)) |
 | `examples/` | Runnable scripts |
 | `docs/` | The documentation. [docs/index.md](docs/index.md) sets the reading order |
 
@@ -41,18 +42,22 @@ the [numtag](https://github.com/TigreGotico/numtag) repository.
 ## Hard rules
 
 1. A language reads through numtag when its code is in `NUMTAG_LANGS`. Add
-   reading as a numtag lexicon, not as a new reader here
+   reading as a numtag lexicon, not as a reader here
    ([adding-a-language.md](docs/adding-a-language.md)).
-2. A test that numtag reads differently from the old reader is a strict xfail
-   in `tests/numtag_xfail.json`, with the URL of its issue.
+2. A test where numtag reads differently from the in-repo reader is a strict
+   xfail in `tests/numtag_xfail.json`, with the URL of its issue
+   ([api.md](docs/api.md#readers-backed-by-numtag)).
 3. Every language provides every public function. `tests/test_lang_parity.py`
-   enforces this.
+   enforces this ([languages.md](docs/languages.md#full-function-parity)).
 4. Take each expected form in a test from reference material or native usage,
-   never from the output of the code under test.
-5. `is_fractional` and `is_ordinal` never use numtag.
-6. Never edit `ovos_number_parser/version.py`. The release workflow bumps it.
-7. Squash to one commit with a Conventional Commits message. Open the pull
-   request against `dev` as a draft.
+   never from the output of the code under test
+   ([adding-a-language.md](docs/adding-a-language.md#add-speaking)).
+5. `is_fractional` and `is_ordinal` never use numtag
+   ([api.md](docs/api.md#readers-backed-by-numtag)).
+6. Never edit `ovos_number_parser/version.py`. The release workflow bumps it
+   ([release_workflow.yml](.github/workflows/release_workflow.yml)).
+7. Write each commit message as a Conventional Commits message
+   ([conventional-label.yaml](.github/workflows/conventional-label.yaml)).
 
 ## Before you push
 

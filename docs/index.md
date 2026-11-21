@@ -15,9 +15,11 @@ This page lists every page under `docs/` in reading order. Start with the
 |------|--------------------|
 | [API reference](api.md) | Every public function with its parameters, defaults and an example |
 | [Language notes](languages.md) | Which languages read through numtag, which use the in-repo reader, and the rules of single languages |
-| [Adding a language](adding-a-language.md) | The steps to add reading and speaking for a new language |
+| [Adding a language](adding-a-language.md) | The steps to add reading and speaking for another language |
 
-Runnable scripts are in [`examples/`](../examples/). Rules for agents that
+Runnable scripts are in [`examples/`](../examples/). The differential
+harnesses against ICU and num2words are in
+[`benchmarks/`](../benchmarks/README.md). Rules for agents that
 change this repository are in [AGENTS.md](../AGENTS.md).
 
 ---

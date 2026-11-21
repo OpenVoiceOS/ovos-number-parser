@@ -20,8 +20,10 @@ with the reader in `ovos_number_parser/numbers_id.py`. The functions
 `extract_number`, `extract_number_spans` and `numbers_to_digits` follow this
 route.
 
-Every language speaks numbers with its own `pronounce_number_<code>` writer.
-The `pronounce_*` writers are in this repository for all languages.
+Every language speaks numbers with a writer in this repository. Most have a
+`pronounce_number_<code>` function. Aragonese, Asturian, Occitan and Romanian
+speak through the `AN`, `AST`, `OC` and `RO` engine objects. English ordinals
+come from unicode-rbnf.
 `is_fractional` and `is_ordinal` never use numtag. The last column shows
 whether `is_ordinal` has a dedicated reader or looks the word up among the
 `pronounce_ordinal` forms.
@@ -75,8 +77,8 @@ subtag. `no` reads as `nb`, `azj` as `az`, `ekk` as `et` and `pes` as `fa`.
 ## Germanic compound numbers (de, nl, da, sv, fy)
 
 These languages write numbers as single compound words. The extractors split
-them into their component number words and evaluate the result, so both the
-compound and the spaced form parse:
+them into their component number words and evaluate the result. The compound
+form reads as one number:
 
 | Language | Example | Value |
 |----------|---------|-------|
@@ -85,6 +87,11 @@ compound and the spaced form parse:
 | Danish   | `toogfyrre`, `nihundredenioghalvfems` | 42, 999 |
 | Swedish  | `tjugoen`, `etthundratjugotre`, `tvåtusen tjugotre` | 21, 123, 2023 |
 | West Frisian | `ienentweintich`, `twahûnderttrijeentweintich` | 21, 223 |
+
+Only Swedish also reads the spaced form (`tjugo en` is 21). The spaced forms
+of the other four give wrong values: `ein und zwanzig` (de) is 1,
+`een en twintig` (nl) is 1, `to og fyrre` (da) is 2, `ien en tweintich` (fy)
+is 1 and `zwei hundert drei und vierzig` (de) is 203.
 
 Dutch diacritics (`één`, `drieëntwintig`) are normalized before parsing.
 West Frisian diacritics (`sân`, `hûndert`, `tûzen`) are likewise normalized,
@@ -110,7 +117,9 @@ Portuguese, Galician, Mirandese, Asturian and Aragonese share a declarative
 `ovos_number_parser.util`. Each language is described by its vocabulary
 (units, tens, hundreds, scales, ordinals, fractions, gender rules and joiner
 placement). The shared engine handles pronunciation and extraction for all
-of them. This is the preferred path for adding new Romance languages.
+of them. Numtag reads Portuguese, Galician, Mirandese, Asturian and Aragonese,
+so the engine does the speaking, `is_fractional` and `is_ordinal`. It is the
+path for a Romance language that numtag does not read.
 
 Portuguese distinguishes European and Brazilian variants (`pt-PT` reads
 16 as `dezasseis`, `pt-BR` as `dezesseis`) and inflects `um/uma`,
@@ -162,9 +171,9 @@ extraction and pronunciation cover units through millions. Pronunciation reads
 
 ## Known gaps
 
-These are cases where the generic parity fallback (see below) is in use and
-its result is rougher than a dedicated implementation would be: the call still
-returns, it is just less polished:
+These languages read through numtag, so each gap below is a value that numtag
+reads wrong. `extract_number` returns early through the numtag reader, and no
+fallback runs:
 
 - A comma between two number words ends the number in English:
   `extract_number("two thousand, twenty three", "en")` is 2000. The output of
@@ -172,7 +181,10 @@ returns, it is just less polished:
   back as 2023. Czech output such as `tisíc, dvě stě třicet čtyři` reads back
   as 1000.
 - Kabyle `mraw d yiwen` and `mraw u yiwen` read as 10, not 11.
-- Aragonese `güeito` and `setse` read as no number.
+- Aragonese `güeito`, `setse` and `quatorze` read as no number.
+- English `twenty twenty three` reads as 20.
+- The spaced forms of German, Dutch, Danish and West Frisian give wrong values (see
+  [Germanic compound numbers](#germanic-compound-numbers-de-nl-da-sv-fy)).
 
 ## Full function parity
 
@@ -187,9 +199,12 @@ has no hand-written implementation, a generic fallback fills in:
 - `is_ordinal` falls back to a reverse lookup over `pronounce_ordinal`
   (1–100, round hundreds, 1000, 1000000), registering both `-o`/`-a`
   grammatical-gender variants.
-- `pronounce_number` and `pronounce_ordinal` fall back to
-  [unicode-rbnf](https://github.com/rhasspy/unicode-rbnf) for the values that
-  a language writer does not cover.
+- `pronounce_ordinal` uses [unicode-rbnf](https://github.com/rhasspy/unicode-rbnf)
+  for English and for a few values of other languages (see
+  `pronounce_ordinal` in the [API reference](api.md)).
+  `pronounce_number` reads a value past the scale table of a writer in
+  scientific form: `pronounce_number(10**100, "de")` is
+  `'eins mal zehn hoch einhundert'`.
 
 The parity guarantee is enforced by `tests/test_lang_parity.py`, which runs
 every public function against every supported language.
