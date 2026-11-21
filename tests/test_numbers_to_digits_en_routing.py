@@ -17,10 +17,11 @@ class TestEnglishDispatchRoute(unittest.TestCase):
     """English must reach numbers_to_digits_en, not the generic fallback."""
 
     def test_ordinal_compound_is_not_arithmetic(self):
-        # the generic fallback turned the ordinal into the reciprocal 1/5;
-        # the ordinal word stays, as in "the twenty first" -> "the 20 first"
+        # the generic fallback turned the ordinal into the reciprocal 1/5.
+        # "twenty fifth" is one ordinal, the 25th, and numbers_to_digits
+        # keeps an ordinal as written (docs/api.md, "Readers backed by numtag")
         self.assertEqual(numbers_to_digits("the twenty fifth", "en"),
-                         "the 20 fifth")
+                         "the twenty fifth")
 
     def test_plain_sentences_unchanged(self):
         self.assertEqual(numbers_to_digits("two thousand and one", "en"), "2001")

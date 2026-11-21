@@ -109,8 +109,9 @@ the text intact.
 `extract_number`, `extract_number_spans` and `numbers_to_digits` read a
 language through [numtag](https://github.com/TigreGotico/numtag) when its
 language code is in `ovos_number_parser.numtag_readers.NUMTAG_LANGS`. Every
-other language keeps its `numbers_<code>.py` reader. A language joins the set
-when numtag passes that language's tests in this repository.
+other language keeps its `numbers_<code>.py` reader. A test that numtag reads
+differently from the old reader is a strict xfail, and its reason is the URL of
+the issue that tracks the difference.
 
 numtag gives each value as an exact digit string. The readers convert it to
 the `int` or `float` the API returns. A value that is no whole number is a
@@ -122,7 +123,9 @@ digits of its value when it gets `ordinals=True`.
 `is_fractional` and `is_ordinal` answer a question about one
 word, which numtag does not read, so they keep the parser for every language.
 
-The set holds et, fi, sk and sl.
+The set holds every language numtag reads: an, ar, ast, az, bg, ca, cs, da,
+de, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, id, it, kab, mwl, nb,
+nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr and uk.
 
 ## Enums
 

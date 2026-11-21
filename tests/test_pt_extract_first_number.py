@@ -171,6 +171,7 @@ class TestSpanValuesStayWritable(unittest.TestCase):
         for text in (digits + " centiliões", digits + " centiliões e dois"):
             with self.subTest(text=text[-20:]):
                 spans = extract_number_spans(text, "pt-PT")
+                self.assertTrue(spans)
                 self.assertEqual(spans[0].surface, digits)
                 self.assertEqual(spans[0].value, 10 ** 4000 - 1)
                 for span in spans:
