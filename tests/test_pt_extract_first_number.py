@@ -170,9 +170,7 @@ class TestSpanValuesStayWritable(unittest.TestCase):
         digits = "9" * 4000
         for text in (digits + " centiliões", digits + " centiliões e dois"):
             with self.subTest(text=text[-20:]):
-                for span in extract_number_spans(text, "pt-PT"):
-                    str(span.value)
-                    self.assertNotIn(digits, span.surface)
+                self.assertEqual(extract_number_spans(text, "pt-PT"), [])
                 self.assertIs(extract_number(text, lang="pt-PT"), False)
 
 

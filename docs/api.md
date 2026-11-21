@@ -117,9 +117,10 @@ numtag gives each value as an exact digit string. The readers convert it to
 the `int` or `float` the API returns. A value that is no whole number is a
 `float`. When the `float` has no room for the part after the point, or none
 for the value at all, a decimal rounds half up to an `int`. A mixed number
-within the range of a `float` is its whole part (`"9007199254740993 1/2"` is
-9007199254740993). An integer with more digits than `str` can write is no
-number.
+is a `float` (`5 1/2` is 5.5). Only when the `float` has no room for the
+fraction, and the whole part is within the range of a `float`, is it the whole
+part (`"9007199254740993 1/2"` is 9007199254740993). An integer with more
+digits than `str` can write is no number.
 
 Under `ordinals=True`, `extract_number` answers the first number of the
 line, ordinal or cardinal (`"tre femte"` is 3 in Danish, `"femte tre"` is 5).
