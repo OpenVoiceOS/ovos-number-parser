@@ -1,93 +1,100 @@
 # Adding a language
 
-Every language lives in its own module, `ovos_number_parser/numbers_<code>.py`,
-and is wired into the dispatcher functions in `ovos_number_parser/__init__.py`.
+<!-- agent-hint
+covers: the steps to add reading (words to digits) and speaking (digits to words) for a language
+source: ovos_number_parser/numtag_readers.py:NUMTAG_LANGS, ovos_number_parser/__init__.py (dispatchers), ovos_number_parser/util.py:NumberVocabulary, tests/test_numtag_routed_languages.py, tests/test_lang_parity.py
+generated: no
+verify: diff <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/p' docs/adding-a-language.md | sed -e 1d -e '$d' | python -) <(sed -n '/^\x60\x60\x60text/,/^\x60\x60\x60$/p' docs/adding-a-language.md | sed -e 1d -e '$d')
+see: languages.md, api.md, https://github.com/TigreGotico/numtag/blob/dev/docs/adding-a-language.md
+-->
 
-## 1. Pick the implementation style
+This page tells you how to add a language to this library. Reading and
+speaking are two separate jobs with two separate homes. Reading is done by
+numtag. Speaking is done by a `pronounce_*` writer in this repository.
 
-**Romance languages** (or any language with unit/ten/hundred/scale structure
-and joiner words) should use the declarative vocabulary engine: describe the
-language, don't reimplement the algorithm:
+## Add reading
+
+Reading means `extract_number`, `extract_number_spans` and `numbers_to_digits`.
+A language reads through numtag when its code is in `NUMTAG_LANGS` in
+`ovos_number_parser/numtag_readers.py`. Follow these steps.
+
+1. Add a numtag lexicon for the language. Use the guide
+   [Adding a language](https://github.com/TigreGotico/numtag/blob/dev/docs/adding-a-language.md)
+   in the numtag repository. Release numtag, and raise the floor of `numtag` in
+   `pyproject.toml` to the release that has the lexicon.
+2. Add the language code to `NUMTAG_LANGS`.
+3. Add the code to the set in `test_the_routed_languages` in
+   `tests/test_numtag_routed_languages.py`. Add a case to `CASES` in that file
+   with a sentence and its value from hand arithmetic on the words.
+4. Run the check below. It must show the value of your case.
 
 ```python
-from ovos_number_parser.util import NumberVocabulary, RomanceNumberExtractor, Scale
-
-_XX = NumberVocabulary(
-    LANG="xx-XX",
-    JOIN_WORD=["e"],
-    JOINER_ON_TWENTYS=True,
-    JOINER_ON_HUNDREDS=False,
-    JOINER_ON_THOUSANDS=False,
-    DECIMAL_MARKER=["coma", ".", ","],
-    NEGATIVE_SIGN=["menos"],
-    HUNDRED_PARTICLE="cento",
-    UNITS={0: "...", 1: "...", ...},
-    TENS={...},
-    HUNDREDS={...},
-    SHORT_SCALE={...},
-    LONG_SCALE={...},
-    ORDINAL_UNITS={...},
-    FRACTION={...},
-    ...
-)
-XX = RomanceNumberExtractor(_XX)
+from ovos_number_parser import extract_number
+print(extract_number("hogeita bat", "eu"))
 ```
 
-See `numbers_gl.py` or `numbers_ast.py` for complete worked examples, and the
-`NumberVocabulary` docstrings in `util.py` for every knob. Languages with
-articled scale groups ("o mie"), a count-to-scale linker word
-("douăzeci **de** mii"), multiplicative hundreds words ("două sute" = 200)
-or particle-based ordinals ("al doilea"/"a doua") can describe those with
-`SCALE_ONE`, `SCALE_LINKER`, `SCALE_GENDERS`, `MULTIPLY_HUNDREDS`,
-`FRACTION_ONE`, `JOINER_ON_SCALE_REMAINDER` and the `ORDINAL_PREFIX` family.
-See `numbers_ro.py` for a worked example.
+The output is:
 
-**Other language families** implement the functions directly. Use an existing
-module of the same family as a template:
+```text
+21
+```
 
-- Germanic compound-word languages: `numbers_de.py` (includes the
-  compound-splitting helpers).
-- Slavic languages with declension: `numbers_cs.py` or `numbers_ru.py`.
-- Token-based summing parsers: `numbers_en.py`.
+A test that the in-repo reader passes and numtag fails is a strict xfail. Add
+its row to `tests/numtag_xfail.json` with the URL of the issue that tracks it.
 
-## 2. Functions to provide
+Numtag does not answer `is_fractional`, so every language needs the function
+from the speaking steps below. `is_ordinal` needs none, because it falls back
+to a lookup over `pronounce_ordinal`.
 
-At minimum:
+## Add speaking
 
-- `pronounce_number_<code>(number, places=2, ...)`
-- `extract_number_<code>(text, short_scale=True, ordinals=False)`
+Speaking means `pronounce_number`, `pronounce_ordinal`, `pronounce_fraction`
+and the `nice_number_<code>` helper. A language with no writer of its own uses
+[unicode-rbnf](https://github.com/rhasspy/unicode-rbnf). To write the forms by
+hand, follow these steps.
 
-Nice to have:
+1. Create `ovos_number_parser/numbers_<code>.py` with
+   `pronounce_number_<code>(number, places=2, short_scale=True, scientific=False, ordinals=False)`.
+   Add `pronounce_ordinal_<code>(number)` for ordinals.
+2. Import the functions in `ovos_number_parser/__init__.py`.
+3. Add `if lang2 == "<code>":` branches to `_pronounce_number_dispatch` and to
+   `pronounce_ordinal`.
+4. Add the code to `LANGS` in `tests/test_lang_parity.py`.
+5. Add `is_fractional_<code>(input_str, short_scale=True)` and an
+   `if lang2 == "<code>":` branch in `is_fractional`. That function ends in
+   `NotImplementedError` for a code with no branch, and
+   `test_is_fractional` in the parity test fails for it.
+6. Add `tests/test_number_parser_<code>.py` with spoken forms for a fixed set
+   of values (0 to 20, the tens, 100, 101, 123, 999, 1000, 2023). Take each
+   expected form from a grammar or from native usage, never from the output
+   of the code under test.
 
-- `is_fractional_<code>`, `is_ordinal_<code>`
-- `pronounce_ordinal_<code>`
-- `numbers_to_digits_<code>`
+For a Romance language with unit, ten, hundred and scale words and joiner
+words, describe the language with `NumberVocabulary` and
+`RomanceNumberExtractor` from `ovos_number_parser/util.py`. `numbers_gl.py` and
+`numbers_ast.py` are worked examples. `numbers_ro.py` shows the knobs for
+articled scale groups, a linker word between count and scale, multiplicative
+hundreds and particle ordinals. Other families use a module of the same family
+as a template: `numbers_de.py` for compound words, `numbers_cs.py` or
+`numbers_ru.py` for declension, `numbers_en.py` for plain summing.
 
-## 3. Wire the dispatcher
+## Add reading without numtag
 
-Add a branch on the bare language code (`lang2 == "<code>"`) to each matching
-top-level function in `__init__.py` (`pronounce_number`, `extract_number`,
-`is_fractional`, ...).
+A language that numtag does not read keeps an `extract_number_<code>` function
+in its module. Add `if lang2 == "<code>":` branches to `_extract_number`,
+`_number_words_to_digits` and `is_fractional` in `__init__.py`. Malay (`ms`)
+works this way.
 
-## 4. Tests
+## Check the result
 
-Add `tests/test_number_parser_<code>.py` with three parts (see any existing
-language test for the pattern):
+Run the parity test. It calls every public function for every language in its
+`LANGS` list.
 
-1. **Pronounce anchors**: hand-verified spoken forms for a fixed set of
-   values (0-20, tens, 100, 101, 123, 999, 1000, 2023, 1e6, ...).
-2. **Extract anchors**: the same table driven in reverse.
-3. **Round-trip sweep**: `extract_number(pronounce_number(n))` must return
-   `n` over a wide range. This catches vocabulary typos and asymmetries
-   cheaply.
+```bash
+python -m pytest tests/test_lang_parity.py tests/test_numtag_routed_languages.py
+```
 
-Anchor expectations must come from reference material or native usage.
-Never trust engine output you have not verified. A wrong anchor locks the
-bug in.
-
-## 5. README
-
-Add the language row to the support matrix in `README.md`.
+Add a row to the [language table](languages.md#language-table).
 
 ---
-[← Language notes](languages.md) · [Home](../README.md)
+[Index](index.md) · [← Language notes](languages.md) · [Home →](../README.md)

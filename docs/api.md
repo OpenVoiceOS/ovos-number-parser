@@ -1,5 +1,16 @@
 # API reference
 
+<!-- agent-hint
+covers: every public function of ovos_number_parser with its parameters, defaults and examples
+source: ovos_number_parser/__init__.py (dispatchers), ovos_number_parser/numtag_readers.py (NUMTAG_LANGS), ovos_number_parser/util.py (enums)
+generated: no
+verify: sed '/^\x60\x60\x60/d' docs/api.md | python -m doctest -o ELLIPSIS -o NORMALIZE_WHITESPACE /dev/stdin
+see: languages.md, adding-a-language.md, ../README.md
+-->
+
+This page lists each public function, its parameters and an example. Read it
+when you need the exact call for reading a number or for speaking one.
+
 All public functions live in the top-level `ovos_number_parser` package and
 take a BCP-47 language code (`lang`). The primary language subtag selects the
 parser and must match exactly, in any letter case and with `-` or `_` between
@@ -8,13 +19,25 @@ subtags, so `"pt-BR"`, `"pt_PT"` and `"pt"` all reach the Portuguese parser
 Portuguese), while `"fil"` (Filipino) does not reach the Finnish parser.
 
 All 40 supported languages provide every public function. Where a language has
-no hand-written implementation, a documented generic fallback fills in:
-`pronounce_number` / `pronounce_ordinal` use
-[unicode-rbnf](https://github.com/rhasspy/unicode-rbnf). The rest use the
-parity fallbacks described in
-[Full function parity](languages.md#full-function-parity). A `lang` outside the
-supported set (or a value the fallback genuinely cannot handle) raises
-`NotImplementedError`.
+no hand-written implementation, a generic fallback fills in, as
+[Full function parity](languages.md#full-function-parity) describes.
+
+A `lang` outside the supported set raises `NotImplementedError` in
+`extract_number`, `extract_number_spans` and `is_fractional`. The other
+functions answer through unicode-rbnf or return the text unchanged:
+
+```python
+>>> from ovos_number_parser import pronounce_number, pronounce_ordinal, is_fractional
+>>> pronounce_number(5, "ja")
+'五'
+>>> pronounce_ordinal(5, "ja")
+'第五'
+>>> is_fractional("half", "ja")
+Traceback (most recent call last):
+    ...
+NotImplementedError: Unsupported language: 'ja'
+
+```
 
 Every function returns `int`/`float`/`str`/`bool` as documented below. The
 extraction and classification helpers return `False` (not `None`) when no
@@ -28,22 +51,32 @@ fraction with a spoken denominator, e.g. `nice_number_de(5.5)` →
 `"5 und ein halb"`) has no top-level dispatcher and is only exposed
 per-language.
 
-## `pronounce_number(number, lang, places=3, short_scale=True, scientific=False, ordinals=False, digits=..., gender=...)`
+## `pronounce_number(number, lang, places=3, short_scale=None, scientific=False, ordinals=False, digits=None, gender=GrammaticalGender.MASCULINE, scale=None, case=None)`
 
 Convert a numeric value to its spoken form.
 
 ```python
+>>> from ovos_number_parser import pronounce_number
 >>> pronounce_number(4.5, "en")
 'four point five'
 >>> pronounce_number(21, "cs")
 'dvacet jedna'
 >>> pronounce_number(2023, "gl")
 'dous mil e vinte e tres'
+
 ```
 
 - `places`: decimal places to speak.
 - `short_scale`: short vs long scale for large numbers
-  (https://en.wikipedia.org/wiki/Names_of_large_numbers).
+  (https://en.wikipedia.org/wiki/Names_of_large_numbers). `None` keeps the
+  scale of the language.
+- `scale`: a `Scale` value that takes the place of `short_scale`.
+  `pronounce_number(10**9, "en", scale=Scale.LONG)` is
+  `'one thousand million'`.
+- `case`: `"nominative"` or `"oblique"` (also `"genitive"`, `"accusative"`) for
+  Arabic. Other languages ignore it. Arabic raises `ValueError` for any other
+  value. `pronounce_number(2, "ar", case="genitive")` is `'اثنين'`, and the
+  default is `'اثنان'`.
 - `scientific`: read `5e-6` style notation aloud.
 - `ordinals`: speak `"first"` instead of `"one"`.
 - `digits`: `DigitPronunciation` enum for digit-by-digit reading styles.
@@ -52,39 +85,84 @@ Convert a numeric value to its spoken form.
 
 A whole number past the largest scale compound a language uses is read in
 scientific form. Romanian reads `10 ** 24` as `"un milion de trilioane"` and
-`10 ** 27` as `"unu virgulă zero ori zece la puterea douăzeci și șapte"`.
+`10 ** 27` as `"unu ori zece la puterea douăzeci și șapte"`.
 Belgian and Swiss French (`fr-BE`, `fr-CH`) read 70 and 90 as `septante` and
 `nonante`, and Swiss French reads 80 as `huitante`. Their ordinals use the same
 words (`septantième`, `nonantième`, `huitantième`).
 
-## `pronounce_ordinal(number, lang, short_scale=True, gender=...)`
+## `pronounce_ordinal(number, lang, short_scale=None, gender=GrammaticalGender.MASCULINE, scale=None, case=None)`
 
-Spoken ordinal form (`1 -> "first"`). Languages without a handwritten
-implementation use the unicode-rbnf fallback.
+Spoken ordinal form (`1 -> "first"`). `short_scale`, `scale` and `case` work
+as in `pronounce_number`.
 
-## `pronounce_fraction(fraction_word, lang, scale=Scale.LONG)`
+English ordinals come from unicode-rbnf. French 0 and French values from
+10**15 also come from it. Azerbaijani from 10**24, Spanish from 10**24 (from
+10**18 on the short scale) and Russian from 10**96 (on the short scale, its default) reach unicode-rbnf too. It
+has no ordinal for them, and the call raises `NotImplementedError`.
 
-Speak a fraction string such as `"3/4"`. Currently implemented for Portuguese
-and Mirandese.
+## `pronounce_fraction(fraction_word, lang, scale=None)`
 
-## `extract_number(text, lang, short_scale=True, ordinals=False)`
+Speak a fraction string such as `"3/4"`. Portuguese, Asturian, Catalan,
+Occitan, Aragonese, Mirandese, Galician and Romanian have their own writers.
+Every other language uses the generic one.
+
+```python
+>>> from ovos_number_parser import pronounce_fraction
+>>> pronounce_fraction("3/4", "pt")
+'três quartos'
+>>> pronounce_fraction("3/4", "en")
+'three quarters'
+
+```
+
+## `extract_number(text, lang, short_scale=None, ordinals=False, scale=None)`
 
 Extract the first number found in a phrase. Returns `int`, `float`, or
 `False` when the text contains no number.
 
 ```python
+>>> from ovos_number_parser import extract_number
 >>> extract_number("set a timer for twenty one minutes", "en")
 21
 >>> extract_number("dos mil veintitrés", "es")
 2023
 >>> extract_number("einundzwanzig Katzen", "de")
 21
+
 ```
 
 Compound-written languages (German, Dutch, Danish, Swedish) split words such
 as `einundzwanzig`, `eenentwintig`, `toogfyrre` or `tjugoen` automatically.
 
-## `is_fractional(input_str, lang, short_scale=True)`
+`short_scale=None` keeps the scale of the language. Spanish `billón` is
+10**12 by default and 10**9 with `short_scale=True`. A `scale` value takes the
+place of `short_scale`.
+
+```python
+>>> from ovos_number_parser import extract_number
+>>> extract_number("un billón", "es")
+1000000000000
+>>> extract_number("un billón", "es", short_scale=True)
+1000000000
+
+```
+
+## `extract_number_spans(text, lang, short_scale=None, ordinals=False, scale=None)`
+
+Find every number in a text together with the characters it occupies. It
+returns a list of `NumberSpan(start, end, surface, value)`, sorted by `start`,
+and an empty list when the text holds no number.
+
+```python
+>>> from ovos_number_parser import extract_number_spans
+>>> extract_number_spans("I have two cats and 3 dogs", "en")
+[NumberSpan(start=7, end=10, surface='two', value=2), NumberSpan(start=20, end=21, surface='3', value=3)]
+>>> extract_number_spans("nothing", "en")
+[]
+
+```
+
+## `is_fractional(input_str, lang, short_scale=None, scale=None)`
 
 Exact-match test for a fraction word (`"half"` → `0.5`, otherwise `False`).
 Use `extract_number` to pull fractions out of longer phrases.
@@ -92,16 +170,20 @@ Use `extract_number` to pull fractions out of longer phrases.
 ## `is_ordinal(input_str, lang)`
 
 Exact-match test for an ordinal word (`"third"` → `3`, otherwise `False`).
-Implemented for `en`, `pt`, `mwl`, `de` and `da`.
+The [language table](languages.md#language-table) shows which languages have a
+dedicated reader. The others look the word up among their `pronounce_ordinal`
+forms.
 
-## `numbers_to_digits(utterance, lang, scale=Scale.LONG)`
+## `numbers_to_digits(utterance, lang, scale=None)`
 
 Rewrite the written numbers inside a phrase as digits, keeping the rest of
 the text intact.
 
 ```python
+>>> from ovos_number_parser import numbers_to_digits
 >>> numbers_to_digits("set a timer for five minutes", "en")
 'set a timer for 5 minutes'
+
 ```
 
 ## Readers backed by numtag
@@ -146,4 +228,4 @@ nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr and uk.
 - `DigitPronunciation`: full-number vs digit-by-digit reading styles.
 
 ---
-[Home](../README.md) · [Language notes →](languages.md)
+[Index](index.md) · [← Home](../README.md) · [Language notes →](languages.md)
