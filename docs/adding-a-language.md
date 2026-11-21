@@ -4,7 +4,7 @@
 covers: the steps to add reading (words to digits) and speaking (digits to words) for a language
 source: ovos_number_parser/numtag_readers.py:NUMTAG_LANGS, ovos_number_parser/__init__.py (dispatchers), ovos_number_parser/util.py:NumberVocabulary, tests/test_numtag_routed_languages.py, tests/test_lang_parity.py
 generated: no
-verify: python -m pytest tests/test_numtag_routed_languages.py tests/test_lang_parity.py
+verify: diff <(sed -n '/^\x60\x60\x60python/,/^\x60\x60\x60$/p' docs/adding-a-language.md | sed -e 1d -e '$d' | python -) <(sed -n '/^\x60\x60\x60text/,/^\x60\x60\x60$/p' docs/adding-a-language.md | sed -e 1d -e '$d')
 see: languages.md, api.md, https://github.com/TigreGotico/numtag/blob/dev/docs/adding-a-language.md
 -->
 
@@ -29,8 +29,13 @@ A language reads through numtag when its code is in `NUMTAG_LANGS` in
 4. Run the check below. It must show the value of your case.
 
 ```python
->>> from ovos_number_parser import extract_number
->>> extract_number("hogeita bat", "eu")
+from ovos_number_parser import extract_number
+print(extract_number("hogeita bat", "eu"))
+```
+
+The output is:
+
+```text
 21
 ```
 

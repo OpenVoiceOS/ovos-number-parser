@@ -4,7 +4,7 @@
 covers: what ovos-number-parser does, how to install it, a first example and where the docs are
 source: ovos_number_parser/__init__.py (public functions), ovos_number_parser/numtag_readers.py:NUMTAG_LANGS, pyproject.toml
 generated: no
-verify: python -I examples/extract.py
+verify: diff <(grep -E '^(from |import |print\()' README.md | python -) <(grep -E '^print\(' README.md | sed 's/^print(.*)  *# //')
 see: docs/index.md, docs/api.md, docs/languages.md, docs/adding-a-language.md, AGENTS.md
 -->
 
@@ -31,26 +31,24 @@ uv pip install ovos-number-parser
 ## 30-second quickstart
 
 ```python
-from ovos_number_parser import (pronounce_number, pronounce_ordinal,
-                                 extract_number, numbers_to_digits,
-                                 is_fractional, is_ordinal)
+from ovos_number_parser import pronounce_number, pronounce_ordinal, extract_number, numbers_to_digits, is_fractional, is_ordinal
 
 # digits -> words
-pronounce_number(3.5, "en")               # 'three point five'
-pronounce_number(2023, "en")              # 'two thousand, twenty three'
-pronounce_ordinal(21, "en")               # 'twenty-first'
+print(pronounce_number(3.5, "en"))  # three point five
+print(pronounce_number(2023, "en"))  # two thousand, twenty three
+print(pronounce_ordinal(21, "en"))  # twenty-first
 
 # words -> digits
-extract_number("three point five liters", "en")          # 3.5
-extract_number("dos mil veintitrés", "es")               # 2023
-numbers_to_digits("set a timer for five minutes", "en")  # 'set a timer for 5 minutes'
+print(extract_number("three point five liters", "en"))  # 3.5
+print(extract_number("dos mil veintitrés", "es"))  # 2023
+print(numbers_to_digits("set a timer for five minutes", "en"))  # set a timer for 5 minutes
 
 # classification helpers
-is_fractional("half", "en")               # 0.5
-is_ordinal("third", "en")                 # 3
+print(is_fractional("half", "en"))  # 0.5
+print(is_ordinal("third", "en"))  # 3
 
 # no number in the text -> False
-extract_number("hello world", "en")       # False
+print(extract_number("hello world", "en"))  # False
 ```
 
 Pass a different language code and the same calls work. See
@@ -68,8 +66,8 @@ Speech-to-text emits numbers as words. Most downstream systems want digits.
 ```python
 from ovos_number_parser import numbers_to_digits, extract_number
 
-numbers_to_digits("i need twenty three of them", "en")   # 'i need 23 of them'
-extract_number("three point five liters", "en")          # 3.5
+print(numbers_to_digits("i need twenty three of them", "en"))  # i need 23 of them
+print(extract_number("three point five liters", "en"))  # 3.5
 ```
 
 → [`examples/asr_itn.py`](examples/asr_itn.py)
@@ -82,9 +80,8 @@ Expand numbers into words *before* synthesis so the voice reads them naturally
 ```python
 from ovos_number_parser import pronounce_number
 
-pronounce_number(1234.56, "en", places=2)
-# 'one thousand, two hundred and thirty four point five six'
-pronounce_number(-3.5, "en")               # 'minus three point five'
+print(pronounce_number(1234.56, "en", places=2))  # one thousand, two hundred and thirty four point five six
+print(pronounce_number(-3.5, "en"))  # minus three point five
 ```
 
 → [`examples/tts_normalization.py`](examples/tts_normalization.py)
@@ -97,9 +94,9 @@ model.
 ```python
 from ovos_number_parser import extract_number, is_fractional, is_ordinal
 
-extract_number("shipped in three boxes", "en")   # 3
-is_ordinal("second", "en")                        # 2
-is_fractional("quarter", "en")                    # 0.25
+print(extract_number("shipped in three boxes", "en"))  # 3
+print(is_ordinal("second", "en"))  # 2
+print(is_fractional("quarter", "en"))  # 0.25
 ```
 
 With `ordinals=True`, a line that holds several numbers with other words
@@ -153,7 +150,7 @@ Languages whose numerals inflect accept a `gender` argument:
 from ovos_number_parser import pronounce_number
 from ovos_number_parser.util import GrammaticalGender
 
-pronounce_number(2, "pt", gender=GrammaticalGender.FEMININE)  # 'duas'
+print(pronounce_number(2, "pt", gender=GrammaticalGender.FEMININE))  # duas
 ```
 
 ## Documentation

@@ -4,7 +4,7 @@
 covers: every public function of ovos_number_parser with its parameters, defaults and examples
 source: ovos_number_parser/__init__.py (dispatchers), ovos_number_parser/numtag_readers.py (NUMTAG_LANGS), ovos_number_parser/util.py (enums)
 generated: no
-verify: python -m doctest docs/api.md
+verify: sed '/^\x60\x60\x60/d' docs/api.md | python -m doctest -o ELLIPSIS -o NORMALIZE_WHITESPACE /dev/stdin
 see: languages.md, adding-a-language.md, ../README.md
 -->
 
@@ -27,8 +27,7 @@ A `lang` outside the supported set raises `NotImplementedError` in
 functions answer through unicode-rbnf or return the text unchanged:
 
 ```python
->>> from ovos_number_parser import *
->>> from ovos_number_parser.util import Scale
+>>> from ovos_number_parser import pronounce_number, pronounce_ordinal, is_fractional
 >>> pronounce_number(5, "ja")
 '五'
 >>> pronounce_ordinal(5, "ja")
@@ -57,6 +56,7 @@ per-language.
 Convert a numeric value to its spoken form.
 
 ```python
+>>> from ovos_number_parser import pronounce_number
 >>> pronounce_number(4.5, "en")
 'four point five'
 >>> pronounce_number(21, "cs")
@@ -97,7 +97,7 @@ as in `pronounce_number`.
 
 English ordinals come from unicode-rbnf. French 0 and French values from
 10**15 also come from it. Azerbaijani from 10**24, Spanish from 10**24 (from
-10**18 on the short scale) and Russian from 10**96 reach unicode-rbnf too. It
+10**18 on the short scale) and Russian from 10**96 (on the short scale, its default) reach unicode-rbnf too. It
 has no ordinal for them, and the call raises `NotImplementedError`.
 
 ## `pronounce_fraction(fraction_word, lang, scale=None)`
@@ -107,6 +107,7 @@ Occitan, Aragonese, Mirandese, Galician and Romanian have their own writers.
 Every other language uses the generic one.
 
 ```python
+>>> from ovos_number_parser import pronounce_fraction
 >>> pronounce_fraction("3/4", "pt")
 'três quartos'
 >>> pronounce_fraction("3/4", "en")
@@ -120,6 +121,7 @@ Extract the first number found in a phrase. Returns `int`, `float`, or
 `False` when the text contains no number.
 
 ```python
+>>> from ovos_number_parser import extract_number
 >>> extract_number("set a timer for twenty one minutes", "en")
 21
 >>> extract_number("dos mil veintitrés", "es")
@@ -137,6 +139,7 @@ as `einundzwanzig`, `eenentwintig`, `toogfyrre` or `tjugoen` automatically.
 place of `short_scale`.
 
 ```python
+>>> from ovos_number_parser import extract_number
 >>> extract_number("un billón", "es")
 1000000000000
 >>> extract_number("un billón", "es", short_scale=True)
@@ -151,6 +154,7 @@ returns a list of `NumberSpan(start, end, surface, value)`, sorted by `start`,
 and an empty list when the text holds no number.
 
 ```python
+>>> from ovos_number_parser import extract_number_spans
 >>> extract_number_spans("I have two cats and 3 dogs", "en")
 [NumberSpan(start=7, end=10, surface='two', value=2), NumberSpan(start=20, end=21, surface='3', value=3)]
 >>> extract_number_spans("nothing", "en")
@@ -176,6 +180,7 @@ Rewrite the written numbers inside a phrase as digits, keeping the rest of
 the text intact.
 
 ```python
+>>> from ovos_number_parser import numbers_to_digits
 >>> numbers_to_digits("set a timer for five minutes", "en")
 'set a timer for 5 minutes'
 

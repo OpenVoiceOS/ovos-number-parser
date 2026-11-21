@@ -4,7 +4,7 @@
 covers: the development harnesses that compare pronounce_number with ICU RBNF and num2words
 source: benchmarks/icu_diff.py, benchmarks/multi_diff.py, ovos_number_parser/__init__.py:pronounce_number
 generated: no
-verify: python -m doctest benchmarks/README.md (needs PyICU)
+verify: python -m doctest benchmarks/README.md
 see: ../docs/index.md, ../docs/api.md
 -->
 
@@ -41,10 +41,11 @@ divergences, all correct on both sides:
 
 ### Locales ICU cannot judge
 
-ICU resolves a locale it has no rules for by falling back to another one, and
-the substitute is **not** necessarily English. It hands `gl`, `eu`, `oc`,
-`ast`, `an`, `mwl`, `kab` and `fy` a *Portuguese* formatter. Scoring Galician
-against Portuguese spellings produces confident nonsense, so the harness asks
+ICU resolves a locale it has no rules for by falling back to the default
+locale of the process, and that is **not** necessarily English. It has no
+rules for `gl`, `eu`, `oc`, `ast`, `an`, `mwl`, `kab` and `fy`. On a machine
+with a Portuguese default locale it hands them a *Portuguese* formatter.
+Scoring Galician against Portuguese spellings produces confident nonsense, so the harness asks
 ICU which locale it actually resolved to (`ACTUAL_LOCALE`) and excludes any
 language ICU is only pretending to support.
 
@@ -54,12 +55,14 @@ must be validated against their own grammars instead.
 
 ### Check the rows yourself
 
-Run these calls in the environment from the install step above. The rows of
-the table and the fallback locale come out as shown.
+Run these calls in the environment from the install step above. They need
+PyICU. The block sets the default locale to English first, so the fallback
+locale does not depend on the machine.
 
 ```python
 >>> import icu
 >>> from ovos_number_parser import pronounce_number
+>>> icu.Locale.setDefault(icu.Locale("en"))
 >>> def spell(code, number):
 ...     speller = icu.RuleBasedNumberFormat(icu.URBNFRuleSetTag.SPELLOUT, icu.Locale(code))
 ...     return pronounce_number(number, code), speller.format(number)
@@ -73,7 +76,7 @@ the table and the fallback locale come out as shown.
 ('un millardo', 'mil millones')
 >>> galician = icu.RuleBasedNumberFormat(icu.URBNFRuleSetTag.SPELLOUT, icu.Locale("gl"))
 >>> galician.getLocale(icu.ULocDataLocaleType.ACTUAL_LOCALE).getName()
-'pt_PT'
+'en'
 
 ```
 
