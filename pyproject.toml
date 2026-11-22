@@ -23,7 +23,7 @@ classifiers = [
 dependencies = [
     "quebra_frases>=0.3.7",
     "unicode-rbnf>=2.5.0",
-    "numtag>=0.19.21a1",
+    "numtag>=0.19.22a1",
 ]
 dynamic = ["version"]
 
