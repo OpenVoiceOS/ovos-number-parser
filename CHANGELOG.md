@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.1a4](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.1a4) (2026-11-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.1a3...0.31.1a4)
+
+**Merged pull requests:**
+
+- test: follow numtag 0.19.2a1 [\#555](https://github.com/OpenVoiceOS/ovos-number-parser/pull/555) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.1a3](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.1a3) (2026-11-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.1a2...0.31.1a3)
