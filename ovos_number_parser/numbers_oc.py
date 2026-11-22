@@ -17,18 +17,13 @@ Notes on the grammar encoded below:
 - Occitan uses the long scale (milion, miliard).
 """
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 
 from ovos_number_parser.util import (Scale, GrammaticalGender, NumberVocabulary,
                                      RomanceNumberExtractor)
 
 _FEM_SPECIAL = {"un": "una", "dos": "doas", "mièg": "mièja"}
 _MASC_SPECIAL = {v: k for k, v in _FEM_SPECIAL.items()}
-
-# standalone fraction spellings for 1/2: "mièg"/"mièja" take nothing before
-# them ("mièja liura" = half a pound); "mèg"/"mèja" are other forms of the
-# same word (issue #302)
-_HALF_WORDS = {"mièg", "mièja", "mèg", "mèja"}
 
 
 def swap_gender_oc(word: str, gender: GrammaticalGender) -> str:
@@ -277,34 +272,3 @@ _OC = OccitanVocabulary(
 )
 
 OC = RomanceNumberExtractor(_OC)
-
-
-def is_half_word(word: str) -> bool:
-    """True for the spellings of the half fraction: mièg, mièja, mèg, mèja."""
-    return word.lower() in _HALF_WORDS
-
-
-class OCExtractorMixin:
-    """Overwrites to give the half word the behavior issue #302 reports."""
-
-    def extract_number(self,
-                       text: str,
-                       ordinals: bool = False,
-                       scale: Scale = None,
-                       ) -> Union[int, float, bool]:
-        # "mièg"/"mièja"/"mèg"/"mèja" standalone and bare ("Portaràs mièja
-        # liura de salsissa") and when preceded by a fraction in the 1-|
-        # position all read one half
-        result = super().extract_number(text, ordinals=ordinals, scale=scale)
-        if result is not False:
-            return result
-        if isinstance(text, str) and is_half_word(text.strip()):
-            return 0.5
-        return False
-
-
-class OCCExtractor(OCExtractorMixin, RomanceNumberExtractor):
-    pass
-
-
-OC = OCCExtractor(_OC)

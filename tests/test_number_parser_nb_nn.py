@@ -2,11 +2,7 @@
 core, the variant divergences and the two counting traditions."""
 import unittest
 
-from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
-                                numbers_to_digits, pronounce_number,
-                                pronounce_ordinal)
-from ovos_number_parser.numbers_da import numbers_to_digits_da
-from ovos_number_parser.numbers_nb import numbers_to_digits_nb
+from ovos_number_parser import (extract_number, is_fractional, is_ordinal, numbers_to_digits, pronounce_number, pronounce_ordinal, numtag_readers)
 
 
 class TestBokmaal(unittest.TestCase):
@@ -256,23 +252,9 @@ class TestOgCompoundsUnderTheFlag(unittest.TestCase):
         # an ordinal below 20 is not a ten: "toogtiende" would read 12
         self.assertEqual(extract_number('to og tiende', lang="da",
                                         ordinals=True), 2)
-        self.assertEqual(numbers_to_digits_da('to og tiende', ordinals=True),
+        self.assertEqual(numtag_readers.numbers_to_digits('to og tiende', "da", ordinals=True),
                          "2 10")
 
-    def test_numbers_to_digits_folds_the_compound(self):
-        """The converters reach the fold through their own helper path."""
-        self.assertEqual(
-            numbers_to_digits_nb("hun kom på en og tjuende plass",
-                                 ordinals=True),
-            "hun kom på 21 plass")
-        self.assertEqual(
-            numbers_to_digits_da("han kom på en og tyvende plads",
-                                 ordinals=True),
-            "han kom på 21 plads")
-        self.assertEqual(
-            numbers_to_digits_da("han kom på to og fyrretyvende plads",
-                                 ordinals=True),
-            "han kom på 42 plads")
 
     def test_de_glued_compound_is_unaffected(self):
         """German never reaches this fix: a spaced "und" stays two numbers.

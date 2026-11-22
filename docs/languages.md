@@ -16,9 +16,12 @@ gives the rules of single languages and the known gaps.
 Words are read in one of two ways. Thirty-nine languages read through
 [numtag](https://github.com/TigreGotico/numtag). Their codes are in
 `NUMTAG_LANGS` in `ovos_number_parser/numtag_readers.py`. Malay (`ms`) reads
-with the reader in `ovos_number_parser/numbers_id.py`. The functions
-`extract_number`, `extract_number_spans` and `numbers_to_digits` follow this
-route.
+with the reader in `ovos_number_parser/numbers_id.py`. The ISO 639-3 codes of
+Modern Standard Arabic and its lects (`arb`, `ars`, `acw`, `afb`, `arz`,
+`apc`, `ajp`, `acm`, `ary`, `aeb`, `ayl`) read with the reader in
+`ovos_number_parser/numbers_ar.py`; the code `ar` reads through numtag. The
+functions `extract_number`, `extract_number_spans` and `numbers_to_digits`
+follow this route.
 
 Every language speaks numbers with a writer in this repository. Most have a
 `pronounce_number_<code>` function. Aragonese, Asturian, Occitan and Romanian

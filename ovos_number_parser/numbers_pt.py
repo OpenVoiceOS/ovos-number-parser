@@ -131,6 +131,8 @@ import warnings
 from ovos_number_parser.util import (Scale, GrammaticalGender,
                                      DigitPronunciation,
                                      NumberVocabulary, RomanceNumberExtractor)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 
 class PortugueseVariant(str, Enum):
@@ -623,27 +625,6 @@ def is_ordinal_pt(input_str: str) -> bool:
     return PT_PT.is_ordinal(input_str)
 
 
-def extract_number_pt(
-        text: str,
-        ordinals: bool = False,
-        scale: Optional[Scale] = None,
-        variant: PortugueseVariant = PortugueseVariant.PT
-) -> Union[int, float, bool]:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if variant == PortugueseVariant.PT:
-        scale = scale or PT_PT.vocab.DEFAULT_SCALE
-        return PT_PT.extract_number(text, ordinals, scale)
-    scale = scale or PT_BR.vocab.DEFAULT_SCALE
-    return PT_BR.extract_number(text, ordinals, scale)
-
-
 def pronounce_number_pt(
         number: Union[int, float],
         places: int = 5,
@@ -666,27 +647,6 @@ def pronounce_number_pt(
         return PT_PT.pronounce_number(number, places, scale, ordinals, digits, gender)
     scale = scale or PT_BR.vocab.DEFAULT_SCALE
     return PT_BR.pronounce_number(number, places, scale, ordinals, digits, gender)
-
-
-def numbers_to_digits_pt(
-        utterance: str,
-        scale: Optional[Scale] = None,
-        variant: PortugueseVariant = PortugueseVariant.PT
-) -> str:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if variant == PortugueseVariant.PT:
-        scale = scale or PT_PT.vocab.DEFAULT_SCALE
-        return PT_PT.numbers_to_digits(utterance, scale)
-    scale = scale or PT_BR.vocab.DEFAULT_SCALE
-    return PT_BR.numbers_to_digits(utterance, scale)
-
 
 
 def pronounce_fraction_pt(word: str,
@@ -743,35 +703,6 @@ if __name__ == "__main__":
     print(
         f"1,000,000,000,000th (PT, long): {pronounce_number_pt(1_000_000_000_000, ordinals=True, variant=PortugueseVariant.PT, scale=Scale.LONG)}")
 
-    print("\n--- Testing numbers_to_digits_pt (BR) ---")
-    print(f"'quinhentos e cinquenta' -> '{numbers_to_digits_pt('quinhentos e cinquenta')}'")
-    print(f"'um milhão' -> '{numbers_to_digits_pt('um milhão')}'")
-    print(f"'dezesseis' -> '{numbers_to_digits_pt('dezesseis')}'")
-    print(f"'há duzentos e cinquenta carros' -> '{numbers_to_digits_pt('há duzentos e cinquenta carros')}'")
-
-    print("\n--- Testing numbers_to_digits_pt (PT) ---")
-    print(
-        f"'quinhentos e cinquenta' -> '{numbers_to_digits_pt('quinhentos e cinquenta', variant=PortugueseVariant.PT)}'")
-    print(f"'um milhão' -> '{numbers_to_digits_pt('um milhão', variant=PortugueseVariant.PT)}'")
-    print(f"'dezasseis' -> '{numbers_to_digits_pt('dezasseis', variant=PortugueseVariant.PT)}'")
-
-    print("\n--- Testing Ordinal Extraction ---")
-    print(f"'o segundo carro' -> {extract_number_pt('o segundo carro', ordinals=True)}")
-    print(f"'primeiro lugar' -> {extract_number_pt('primeiro lugar', ordinals=True)}")
-    print(f"'o milésimo dia' -> {extract_number_pt('o milésimo dia', ordinals=True)}")
-    print(f"'a milésima vez' -> {extract_number_pt('a milésima vez', ordinals=True)}")
-    print(f"'a primeira vez' -> {extract_number_pt('a primeira vez', ordinals=True)}")
-    print(f"'a sexagésima quarta vez' -> {extract_number_pt('a sexagésima quarta vez', ordinals=True)}")
-
-    print("\n--- Testing Cardinal Extraction ---")
-    print(f"'um' -> {extract_number_pt('um')}")
-    print(f"'uma' -> {extract_number_pt('uma')}")
-    print(f"'vinte e um' -> {extract_number_pt('vinte e um')}")
-    print(f"'um milhão' -> {extract_number_pt('um milhão')}")
-    print(f"'dois milhões e quinhentos' -> {extract_number_pt('dois milhões e quinhentos')}")
-    print(f"'mil e vinte e três' -> {extract_number_pt('mil e vinte e três')}")
-    print(f"'trinta e cinco vírgula quatro' -> {extract_number_pt('trinta e cinco vírgula quatro')}")
-
     print("\n--- Testing Fractions ---")
     print(f"1/2: {pronounce_fraction_pt('1/2')}")
     print(f"2/2: {pronounce_fraction_pt('2/2')}")
@@ -782,3 +713,14 @@ if __name__ == "__main__":
     print(f"0/20: {pronounce_fraction_pt('0/20')}")
     print(f"1/0: {pronounce_fraction_pt('1/0')}")
     print(f"0/0: {pronounce_fraction_pt('0/0')}")
+
+
+def numbers_to_digits_pt(
+        utterance: str,
+        scale: Optional[Scale] = None,
+        variant: PortugueseVariant = PortugueseVariant.PT
+) -> str:
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, "pt-PT")``."""
+    warn_reader_removed("numbers_to_digits_pt", 'ovos_number_parser.numbers_to_digits(utterance, "pt-PT")')
+    lang = "pt-PT" if variant == PortugueseVariant.PT else "pt-BR"
+    return numtag_readers.numbers_to_digits(utterance, lang, scale)

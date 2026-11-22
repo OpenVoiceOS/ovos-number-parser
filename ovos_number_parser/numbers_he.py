@@ -8,7 +8,6 @@ value times two (``מאתיים`` = 200, ``אלפיים`` = 2000). Niqqud (vowel
 points and cantillation marks) is stripped before matching.
 """
 
-import re
 
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
     scientific_parts
@@ -315,8 +314,6 @@ def _build_lookup():
  _FRACTIONS_LOOKUP) = _build_lookup()
 
 _TEEN_SECOND_LOOKUP = {"עשר", "עשרה"}
-_MINUS_LOOKUP = {"מינוס", "פחות"}
-_DECIMAL_LOOKUP = {"נקודה"}
 _HUNDRED_WORDS = {_HUNDRED_HE: 100}
 _HUNDRED_MULT_LOOKUP = {_HUNDREDS_PLURAL_HE}
 
@@ -373,52 +370,6 @@ def _parse_ordinal_span(tokens, i):
         if value is not None and float(value).is_integer():
             return int(value), i + (j - 0)
     return None, i
-
-
-def extract_numbers_he(text, short_scale=True, ordinals=False):
-    """
-    Takes in a string and extracts a list of numbers.
-
-    Accepts both genders of the numerals, the construct-state forms and
-    the dual forms מאתיים/אלפיים.
-
-    Args:
-        text (str): the string to extract numbers from
-        short_scale (bool): ignored, Hebrew scale words are unambiguous
-        ordinals (bool): consider ordinal numbers ("שלישי" = 3)
-    Returns:
-        list: list of extracted numbers as floats
-    """
-    tokens = _tokenize_he(text)
-    results = []
-    i = 0
-    n = len(tokens)
-    while i < n:
-        tok = tokens[i]
-        negative = False
-        if tok in _MINUS_LOOKUP and i + 1 < n:
-            negative = True
-            i += 1
-            tok = tokens[i]
-        if ordinals:
-            value, j = _parse_ordinal_span(tokens, i)
-            if value is not None:
-                results.append(-value if negative else value)
-                i = j
-                continue
-        value, j = _parse_number_span(tokens, i)
-        if value is None:
-            i += 1
-            continue
-        # decimal part: "נקודה" + digit words
-        if j < n and tokens[j] in _DECIMAL_LOOKUP:
-            frac, j2 = _parse_decimal_part(tokens, j + 1)
-            if frac is not None:
-                value += frac
-                j = j2
-        results.append(-value if negative else value)
-        i = j
-    return results
 
 
 def _component_value(tokens, k):
@@ -554,88 +505,6 @@ def _parse_number_span(tokens, i):
     if not started:
         return None, i
     return total + current, j
-
-
-def _parse_decimal_part(tokens, i):
-    """Parse the digit words following "נקודה".
-
-    Returns (fraction, next_index) or (None, i)."""
-    n = len(tokens)
-    digits = []
-    j = i
-    while j < n and tokens[j] in _UNITS_LOOKUP and \
-            _UNITS_LOOKUP[tokens[j]] <= 9 and \
-            not (j + 1 < n and tokens[j + 1] in _TEEN_SECOND_LOOKUP) and \
-            not (j + 1 < n and tokens[j + 1] in _HUNDRED_MULT_LOOKUP):
-        digits.append(_UNITS_LOOKUP[tokens[j]])
-        j += 1
-    if digits:
-        return sum(d / 10 ** (k + 1) for k, d in enumerate(digits)), j
-    return None, i
-
-
-_WORD_RE = re.compile(r'\S+')
-#: a ו that _detach_conjunction split off and the converter left alone: it
-#: goes back onto the digits or the word after it
-_CONJUNCTION_DIGITS_RE = re.compile(r'(?<!\S)ו (?=\S)')
-#: a ו the writer typed as a word of its own
-_OWN_WORD_CONJUNCTION_RE = re.compile(r'(?<!\S)ו(?!\S)')
-#: the private-use characters that can stand in for such a ו while the
-#: converter runs, so that neither the converter nor the re-glue above
-#: touches it; the first one absent from the input is used
-_PRIVATE_USE = range(0xE000, 0xF900)
-
-
-def _detach_conjunction(match):
-    """Put a space after a ו written onto a number word.
-
-    The shared converter then reads the ו as a connector: it joins the parts
-    of one number ("אלף וחמישים" is 1050) and stays a word before a number
-    that starts anew ("מכונית ושלוש אופניים")."""
-    word = match.group(0)
-    tokens = _tokenize_he(word)
-    if len(tokens) == 2 and tokens[0] == "ו" and word[0] == "ו":
-        return "ו " + word[1:]
-    return word
-
-
-def numbers_to_digits_he(utterance: str) -> str:
-    """Replace spoken Hebrew number spans with digits.
-
-    A ו attached to a number word that starts a new number stays, glued to
-    the digits: "יש לי מכונית ושלוש אופניים" becomes "יש לי מכונית ו3
-    אופניים", while "אלף וחמישים" becomes "1050".
-    """
-    # deferred: the shared converter lives in the package root, which imports
-    # this module
-    from ovos_number_parser import _numbers_to_digits_generic
-    placeholder = next(chr(c) for c in _PRIVATE_USE if chr(c) not in utterance)
-    held = _OWN_WORD_CONJUNCTION_RE.sub(placeholder, utterance)
-    spaced = _WORD_RE.sub(_detach_conjunction, held)
-    # "מאות" is no number alone but multiplies the unit before it
-    converted = _numbers_to_digits_generic(
-        spaced, "he", continues=lambda word: word in _HUNDRED_MULT_LOOKUP)
-    return _CONJUNCTION_DIGITS_RE.sub("ו", converted).replace(placeholder, "ו")
-
-
-def extract_number_he(text, ordinals=False):
-    """
-    Extract the first number found in Hebrew text.
-
-    Args:
-        text (str): the string to extract a number from
-        ordinals (bool): consider ordinal numbers ("שלישי" = 3)
-    Returns:
-        (int, float or False): the extracted number, or False if the text
-                               contains no number
-    """
-    numbers = extract_numbers_he(text, ordinals=ordinals)
-    if not numbers:
-        return False
-    value = numbers[0]
-    if isinstance(value, float) and value.is_integer():
-        return int(value)
-    return value
 
 
 def is_fractional_he(input_str, short_scale=True):

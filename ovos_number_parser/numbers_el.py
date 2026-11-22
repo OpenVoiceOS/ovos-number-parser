@@ -8,8 +8,7 @@ spellings, and unaccented input: matching is done on text with the Greek
 tonos and diaeresis stripped and the final sigma folded.
 """
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
-    scientific_parts
+from ovos_number_parser.util import convert_to_mixed_fraction, scientific_parts
 
 # tonos/diaeresis stripping + final sigma folding, applied after casefold
 _NORM_TABLE = {ord(a): b for a, b in zip("άέήίόύώϊϋΐΰς", "αεηιουωιυιυσ")}
@@ -311,10 +310,6 @@ def _build_lookup():
 (_UNITS_LOOKUP, _TENS_LOOKUP, _HUNDREDS_LOOKUP, _SCALES_LOOKUP,
  _FRACTIONS_LOOKUP) = _build_lookup()
 
-_MINUS_LOOKUP = {_normalize_el(w) for w in ("μείον", "πλην")}
-_DECIMAL_LOOKUP = {_normalize_el("κόμμα")}
-_AND_WORD = _normalize_el("και")
-
 
 def _gendered(masculine):
     """The three gender forms of an ordinal given the masculine in -ος."""
@@ -398,175 +393,6 @@ def _parse_ordinal_span(tokens, i):
     if j == i:
         return None, i
     return value, j
-
-
-def _parse_number_span(tokens, i):
-    """Parse one number starting at tokens[i].
-
-    Returns (value, next_index); value is None if no number starts here.
-    Within a three-digit group only descending ranks are accepted
-    (hundreds, then tens, then units), so adjacent separate numbers
-    ("ένα δύο") are not merged."""
-    total = 0
-    current = 0
-    started = False
-    last_rank = 4
-    last_scale = None
-    n = len(tokens)
-    j = i
-    while j < n:
-        tok = tokens[j]
-        if tok == _AND_WORD and started and j + 1 < n and \
-                tokens[j + 1] in _FRACTIONS_LOOKUP:
-            j += 1
-            continue
-        if is_numeric(tok):
-            if started:
-                break
-            value = numeric_value(tok)
-            if value == int(value):
-                value = int(value)
-            return value, j + 1
-        if tok in _HUNDREDS_LOOKUP and last_rank > 3:
-            current += _HUNDREDS_LOOKUP[tok]
-            started = True
-            last_rank = 3
-            j += 1
-            continue
-        if tok in _TENS_LOOKUP and last_rank > 2:
-            current += _TENS_LOOKUP[tok]
-            started = True
-            last_rank = 2
-            j += 1
-            continue
-        if tok in _UNITS_LOOKUP and last_rank > 1:
-            current += _UNITS_LOOKUP[tok]
-            started = True
-            last_rank = 1
-            j += 1
-            continue
-        if tok in _SCALES_LOOKUP:
-            scale = _SCALES_LOOKUP[tok]
-            if started and current == 0:
-                # a bare scale word directly after another scale word
-                if last_scale is not None and scale < last_scale:
-                    # descending sequence ("εκατομμύριο χίλια"): add one of it
-                    total += scale
-                    last_scale = scale
-                    j += 1
-                    continue
-                if last_scale is not None and scale == last_scale:
-                    break  # a repeat of the same scale ends the number
-                # ascending sequence ("χίλια δισεκατομμύρια"): the smaller
-                # scale multiplies the larger one that follows
-                total *= scale
-                last_scale = scale
-                j += 1
-                continue
-            total += (current if current else 1) * scale
-            current = 0
-            started = True
-            last_rank = 4
-            last_scale = scale
-            j += 1
-            continue
-        if tok in _FRACTIONS_LOOKUP:
-            current += _FRACTIONS_LOOKUP[tok]
-            started = True
-            j += 1
-            break  # a fraction noun ends the number
-        break
-    if not started:
-        return None, i
-    return total + current, j
-
-
-def _parse_decimal_part(tokens, i):
-    """Parse what follows "κόμμα".
-
-    A run of bare digit words is read digit by digit
-    ("κόμμα ένα τέσσερα" = .14); otherwise the following number N with d
-    integer digits is N / 10^d ("κόμμα είκοσι πέντε" = .25).
-
-    Returns (fraction, next_index) or (None, i)."""
-    n = len(tokens)
-    digits = []
-    j = i
-    while j < n and tokens[j] in _UNITS_LOOKUP and \
-            _UNITS_LOOKUP[tokens[j]] <= 9:
-        digits.append(_UNITS_LOOKUP[tokens[j]])
-        j += 1
-    if digits:
-        return sum(d / 10 ** (k + 1) for k, d in enumerate(digits)), j
-    value, j = _parse_number_span(tokens, i)
-    if value is None or value != int(value):
-        return None, i
-    return value / 10 ** len(str(int(value))), j
-
-
-def extract_numbers_el(text, short_scale=True, ordinals=False):
-    """
-    Takes in a string and extracts a list of numbers.
-
-    Accepts every gender variant of the numerals and unaccented input.
-
-    Args:
-        text (str): the string to extract numbers from
-        short_scale (bool): ignored, Greek scale words are unambiguous
-        ordinals (bool): consider ordinal numbers ("τρίτος" = 3)
-    Returns:
-        list: list of extracted numbers as floats
-    """
-    tokens = _tokenize_el(text)
-    results = []
-    i = 0
-    n = len(tokens)
-    while i < n:
-        tok = tokens[i]
-        negative = False
-        if tok in _MINUS_LOOKUP and i + 1 < n:
-            negative = True
-            i += 1
-            tok = tokens[i]
-        if ordinals:
-            value, j = _parse_ordinal_span(tokens, i)
-            if value is not None:
-                results.append(-value if negative else value)
-                i = j
-                continue
-        value, j = _parse_number_span(tokens, i)
-        if value is None:
-            i += 1
-            continue
-        # decimal part: "κόμμα" + digits or a number
-        if j < n and tokens[j] in _DECIMAL_LOOKUP:
-            frac, j2 = _parse_decimal_part(tokens, j + 1)
-            if frac is not None:
-                value += frac
-                j = j2
-        results.append(-value if negative else value)
-        i = j
-    return results
-
-
-def extract_number_el(text, ordinals=False):
-    """
-    Extract the first number found in Modern Greek text.
-
-    Args:
-        text (str): the string to extract a number from
-        ordinals (bool): consider ordinal numbers ("τρίτος" = 3)
-    Returns:
-        (int, float or False): the extracted number, or False if the text
-                               contains no number
-    """
-    numbers = extract_numbers_el(text, ordinals=ordinals)
-    if not numbers:
-        return False
-    value = numbers[0]
-    if isinstance(value, float) and value.is_integer():
-        return int(value)
-    return value
 
 
 def is_fractional_el(input_str, short_scale=True):

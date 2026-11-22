@@ -300,23 +300,6 @@ def is_ordinal_mwl(input_str: str) -> bool:
     return MWL.is_ordinal(input_str)
 
 
-def extract_number_mwl(
-        text: str,
-        ordinals: bool = False,
-        scale: Optional[Scale] = None
-) -> Union[int, float, bool]:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    scale = scale or MWL.vocab.DEFAULT_SCALE
-    return MWL.extract_number(text, ordinals, scale)
-
-
 def pronounce_number_mwl(
         number: Union[int, float],
         places: int = 5,
@@ -335,23 +318,6 @@ def pronounce_number_mwl(
     )
     scale = scale or MWL.vocab.DEFAULT_SCALE
     return MWL.pronounce_number(number, places, scale, ordinals, digits, gender)
-
-
-def numbers_to_digits_mwl(
-        utterance: str,
-        scale: Optional[Scale] = None
-) -> str:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    scale = scale or MWL.vocab.DEFAULT_SCALE
-    return MWL.numbers_to_digits(utterance, scale)
-
 
 
 def pronounce_fraction_mwl(word: str, scale: Optional[Scale] = None) -> str:
@@ -398,32 +364,6 @@ if __name__ == "__main__":
     print(f"1000th: {MWL.pronounce_number(1000, ordinals=True)}")
     print(f"1,000,000th: {MWL.pronounce_number(1_000_000, ordinals=True)}")
     print(f"1,000,000,000,000th (long): {MWL.pronounce_number(1_000_000_000_000, ordinals=True, scale=Scale.LONG)}")
-
-    print("\n--- Testing MWL.numbers_to_digits ---")
-    print(f"'duzientos i cinquenta' -> '{MWL.numbers_to_digits('duzientos i cinquenta')}'")
-    print(f"'un milhon' -> '{MWL.numbers_to_digits('un milhon')}'")
-    print(f"'zasseis' -> '{MWL.numbers_to_digits('zasseis')}'")
-    print(f"'hai duzientos i cinquenta carros' -> '{MWL.numbers_to_digits('hai duzientos i cinquenta carros')}'")
-
-    print("\n--- Testing Ordinal Extraction ---")
-    print(f"'l segundo carro' -> {MWL.extract_number('l segundo carro', ordinals=True)}")
-    print(f"'purmerio lugar' -> {MWL.extract_number('purmerio lugar', ordinals=True)}")
-    print(f"'l milésimo die' -> {MWL.extract_number('l milésimo dia', ordinals=True)}")
-    print(f"'la milésima beç' -> {MWL.extract_number('la milésima beç', ordinals=True)}")
-    print(f"'la purmeria beç' -> {MWL.extract_number('la purmeria beç', ordinals=True)}")
-    print(f"'la sessagésima quarta beç' -> {MWL.extract_number('la sessagésima quarta beç', ordinals=True)}")
-
-    print("\n--- Testing Cardinal Extraction ---")
-    print(f"'un' -> {MWL.extract_number('un')}")
-    print(f"'ũa' -> {MWL.extract_number('ũa')}")
-    print(f"'bint'i un' ->", MWL.extract_number("bint'i un"))
-    print(f"'bint'i ũa' ->", MWL.extract_number("bint'i ũa"))
-    print(f"'bint'i dous' ->", MWL.extract_number("bint'i dous"))
-    print(f"'bint'i dues' ->", MWL.extract_number("bint'i dues"))
-    print(f"'un milhon' -> {MWL.extract_number('un milhon')}")
-    print(f"'dous milhones e quinhentos' -> {MWL.extract_number('dous milhones i quinhentos')}")
-    print(f"'mil i binte i trés' -> {MWL.extract_number('mil i binte i trés')}")
-    print(f"'trinta i cinco bírgula quatro' -> {MWL.extract_number('trinta i cinco bírgula quatro')}")
 
     print("\n--- Testing Fractions ---")
     print(f"1/2: {MWL.pronounce_fraction('1/2')}")

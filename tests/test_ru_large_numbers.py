@@ -1,8 +1,9 @@
 import math
 import unittest
 
-from ovos_number_parser.numbers_ru import (pronounce_number_ru,
-                                           extract_number_ru)
+from ovos_number_parser import extract_number
+
+from ovos_number_parser.numbers_ru import pronounce_number_ru
 from ovos_number_parser.numbers_de import pronounce_number_de
 
 INF_WORD = "бесконечность"
@@ -57,23 +58,23 @@ class TestRussianBareThousandAfterScale(unittest.TestCase):
     additive group, not multiply the larger scale by itself."""
 
     def test_million_plus_bare_thousand(self):
-        self.assertEqual(extract_number_ru("миллион тысяча пятьсот"), 1001500)
-        self.assertEqual(extract_number_ru("миллион тысяча"), 1001000)
+        self.assertEqual(extract_number("миллион тысяча пятьсот", lang="ru"), 1001500)
+        self.assertEqual(extract_number("миллион тысяча", lang="ru"), 1001000)
         self.assertEqual(
-            extract_number_ru("миллиард миллион тысяча"), 1001001000)
+            extract_number("миллиард миллион тысяча", lang="ru"), 1001001000)
 
     def test_regular_scale_composition_unchanged(self):
-        self.assertEqual(extract_number_ru("сто тысяч"), 100000)
-        self.assertEqual(extract_number_ru("двести тысяч пятьсот"), 200500)
+        self.assertEqual(extract_number("сто тысяч", lang="ru"), 100000)
+        self.assertEqual(extract_number("двести тысяч пятьсот", lang="ru"), 200500)
         self.assertEqual(
-            extract_number_ru("два миллиона триста тысяч"), 2300000)
+            extract_number("два миллиона триста тысяч", lang="ru"), 2300000)
 
     def test_round_trip_million_boundary(self):
         for number in [1001710, 4001978, 7001935, -1001710, 1001000,
                        1000001, 1234567]:
             with self.subTest(number=number):
                 spoken = pronounce_number_ru(number)
-                self.assertEqual(extract_number_ru(spoken), number)
+                self.assertEqual(extract_number(spoken, lang="ru"), number)
 
 
 if __name__ == "__main__":

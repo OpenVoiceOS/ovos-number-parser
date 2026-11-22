@@ -495,11 +495,6 @@ def nice_number_ms(number, speech=True, denominators=range(1, 21)):
     return _nice_number(number, _MS, speech, denominators)
 
 
-def extract_number_id(text, short_scale=True, ordinals=False):
-    """Extract a number from Indonesian text; False if none found."""
-    return _extract_number(text, _ID, ordinals)
-
-
 def extract_number_ms(text, short_scale=True, ordinals=False):
     """Extract a number from Malay text; False if none found."""
     return _extract_number(text, _MS, ordinals)
@@ -513,11 +508,6 @@ def is_fractional_id(input_str, short_scale=True, spoken=True):
 def is_fractional_ms(input_str, short_scale=True, spoken=True):
     """Check if Malay text is a fraction word; the fraction or False."""
     return _is_fractional(input_str, _MS, spoken)
-
-
-def numbers_to_digits_id(utterance, short_scale=True, ordinals=False):
-    """Replace spoken Indonesian numbers in a string with digits."""
-    return _numbers_to_digits(utterance, _ID)
 
 
 def numbers_to_digits_ms(utterance, short_scale=True, ordinals=False):

@@ -243,13 +243,3 @@ if __name__ == '__main__':
     print('1st (f):', AST.pronounce_ordinal(1, GrammaticalGender.FEMININE))
     print('23rd (m):', AST.pronounce_ordinal(23))
     print('100th:', AST.pronounce_ordinal(100))
-
-    print('\n--- Extraction ---')
-    print("'un millón' ->", AST.extract_number('un millón'))
-    print("'dos millones trescientos' ->", AST.extract_number('dos millones trescientos'))
-    print("'ventiuno' ->", AST.extract_number('ventiuno'))
-    print("'tres cuartos' (fraction word) ->", AST.extract_number('tres cuartos'))
-
-    print('\n--- numbers_to_digits ---')
-    print(AST.numbers_to_digits('hai dos millones cincuenta persoas'))
-    print(AST.numbers_to_digits('merquei ventiuno panes'))

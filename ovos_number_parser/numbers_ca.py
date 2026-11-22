@@ -5,6 +5,8 @@ from typing import Optional, Union
 from ovos_number_parser.util import (convert_to_mixed_fraction, DigitPronunciation,
                                      Scale, GrammaticalGender, NumberVocabulary,
                                      RomanceNumberExtractor)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 # Fraction nouns, kept for the standalone ``nice_number_ca`` helper below.
 _FRACTION_STRING_CA = {
@@ -478,38 +480,6 @@ def is_fractional_ca(input_str, short_scale=True):
     return CA.is_fractional(input_str)
 
 
-def extract_number_ca(text, short_scale=False, ordinals=False):
-    """
-    DEPRECATED
-    """
-    # the leftmost number of a line whose numbers other words separate
-    # wins under ordinals=True, in every language (panel item
-    # number-parser-ordinals-rule-v2)
-    from ovos_number_parser.util import leftmost_separated_number
-    _leftmost = leftmost_separated_number(text, "ca", ordinals)
-    if _leftmost is not None:
-        return _leftmost
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    scale = Scale.SHORT if short_scale else Scale.LONG
-    return CA.extract_number(text, ordinals=ordinals, scale=scale)
-
-
-def numbers_to_digits_ca(utterance: str) -> str:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return CA.numbers_to_digits(utterance)
-
-
 if __name__ == '__main__':
     print('--- Catalan number tests ---')
     for n in (16, 21, 42, 66, 99, 100, 101, 123, 200, 500, 999, 1000, 2023,
@@ -517,6 +487,9 @@ if __name__ == '__main__':
         print(f'{n} ->', CA.pronounce_number(n))
     print('10^9 ->', CA.pronounce_number(10 ** 9))
     print('10^12 ->', CA.pronounce_number(10 ** 12))
-    print("'vint-i-un' ->", CA.extract_number('vint-i-un'))
-    print("'un milió dos-cents trenta-quatre mil sis-cents' ->",
-          CA.extract_number('un milió dos-cents trenta-quatre mil sis-cents'))
+
+
+def numbers_to_digits_ca(utterance: str) -> str:
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, "ca")``."""
+    warn_reader_removed("numbers_to_digits_ca", 'ovos_number_parser.numbers_to_digits(utterance, "ca")')
+    return numtag_readers.numbers_to_digits(utterance, "ca")

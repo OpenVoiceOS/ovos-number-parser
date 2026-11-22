@@ -1,14 +1,14 @@
 """Edge-path tests for the Slovenian number module."""
 import unittest
 
-from ovos_number_parser.numbers_sl import (extract_number_sl, is_ordinal_sl,
-                                           nice_number_sl,
-                                           pronounce_number_sl)
+from ovos_number_parser import extract_number
+
+from ovos_number_parser.numbers_sl import is_ordinal_sl, nice_number_sl, pronounce_number_sl
 
 
 class TestSlovenianEdges(unittest.TestCase):
     def test_decimal_digit_run_stops_at_word(self):
-        self.assertEqual(extract_number_sl("pet celih dve mačke"), 5.2)
+        self.assertEqual(extract_number("pet celih dve mačke", lang="sl"), 5.2)
 
     def test_long_scale_pronounce(self):
         self.assertEqual(pronounce_number_sl(1000000, short_scale=False),
@@ -23,16 +23,13 @@ class TestSlovenianEdges(unittest.TestCase):
         self.assertEqual(nice_number_sl(4.5, speech=False), "4 1/2")
 
     def test_declined_scale_words(self):
-        self.assertEqual(extract_number_sl("pet milijonov"), 5000000)
-        self.assertEqual(extract_number_sl("trije milijoni"), 3000000)
+        self.assertEqual(extract_number("pet milijonov", lang="sl"), 5000000)
+        self.assertEqual(extract_number("trije milijoni", lang="sl"), 3000000)
 
     def test_ordinal_pronounce_flag(self):
         self.assertEqual(pronounce_number_sl(3, ordinals=True), "tretji")
         self.assertEqual(pronounce_number_sl(21, ordinals=True),
                          "enaindvajseti")
-
-
-
 
 
 class TestSlovenianPronounceLegacy(unittest.TestCase):
@@ -51,15 +48,15 @@ class TestSlovenianPronounceLegacy(unittest.TestCase):
     def test_long_scale(self):
         self.assertEqual(
             pronounce_number_sl(1000000000, short_scale=False), "milijarda")
-        self.assertEqual(extract_number_sl("milijarda"), 1000000000)
+        self.assertEqual(extract_number("milijarda", lang="sl"), 1000000000)
         self.assertEqual(
-            extract_number_sl("dva bilijona", short_scale=False),
+            extract_number("dva bilijona", short_scale=False, lang="sl"),
             2000000000000)
 
     def test_large_composite_round_trip(self):
         for n in (1234567, 2000001, 100100100):
             spoken = pronounce_number_sl(n)
-            self.assertEqual(extract_number_sl(spoken), n, spoken)
+            self.assertEqual(extract_number(spoken, lang="sl"), n, spoken)
 
 
 class TestSlovenianLongScaleMixedMagnitudes(unittest.TestCase):
@@ -95,7 +92,7 @@ class TestSlovenianLongScaleMixedMagnitudes(unittest.TestCase):
         for n in cases:
             spoken = pronounce_number_sl(n, short_scale=False)
             self.assertEqual(
-                extract_number_sl(spoken, short_scale=False), n, spoken)
+                extract_number(spoken, short_scale=False, lang="sl"), n, spoken)
 
     def test_pure_tiers_unchanged(self):
         # regression guard: single-tier groups keep their established forms
@@ -150,32 +147,32 @@ class TestSlovenianCompoundOrdinals(unittest.TestCase):
 
     def test_extract_compound_ordinal_in_sentence(self):
         self.assertEqual(
-            extract_number_sl("stoprvi poskus", ordinals=True), 101)
+            extract_number("stoprvi poskus", ordinals=True, lang="sl"), 101)
         self.assertEqual(
-            extract_number_sl("stopetdeseti dan", ordinals=True), 150)
+            extract_number("stopetdeseti dan", ordinals=True, lang="sl"), 150)
 
 
 class TestSlovenianAdversarial(unittest.TestCase):
     def test_empty_and_junk(self):
-        self.assertFalse(extract_number_sl(""))
-        self.assertFalse(extract_number_sl("   "))
-        self.assertFalse(extract_number_sl("brez številk tukaj"))
+        self.assertFalse(extract_number("", lang="sl"))
+        self.assertFalse(extract_number("   ", lang="sl"))
+        self.assertFalse(extract_number("brez številk tukaj", lang="sl"))
 
     def test_mixed_case(self):
-        self.assertEqual(extract_number_sl("PetInDvajset"), 25)
-        self.assertEqual(extract_number_sl("STO"), 100)
+        self.assertEqual(extract_number("PetInDvajset", lang="sl"), 25)
+        self.assertEqual(extract_number("STO", lang="sl"), 100)
 
     def test_punctuation_affixes(self):
-        self.assertEqual(extract_number_sl("imam petindvajset!"), 25)
-        self.assertEqual(extract_number_sl("dvesto..."), 200)
-        self.assertEqual(extract_number_sl("koliko? sto"), 100)
+        self.assertEqual(extract_number("imam petindvajset!", lang="sl"), 25)
+        self.assertEqual(extract_number("dvesto...", lang="sl"), 200)
+        self.assertEqual(extract_number("koliko? sto", lang="sl"), 100)
 
     def test_dual_forms_in_context(self):
         # the dual: two takes "dva"/"dve" and dual noun agreement
-        self.assertEqual(extract_number_sl("dve uri"), 2)
-        self.assertEqual(extract_number_sl("dva dni"), 2)
-        self.assertEqual(extract_number_sl("dve minuti"), 2)
-        self.assertEqual(extract_number_sl("dva milijona"), 2000000)
+        self.assertEqual(extract_number("dve uri", lang="sl"), 2)
+        self.assertEqual(extract_number("dva dni", lang="sl"), 2)
+        self.assertEqual(extract_number("dve minuti", lang="sl"), 2)
+        self.assertEqual(extract_number("dva milijona", lang="sl"), 2000000)
 
 
 if __name__ == "__main__":

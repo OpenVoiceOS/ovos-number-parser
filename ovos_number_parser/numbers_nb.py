@@ -32,7 +32,8 @@ from math import floor, isfinite
 
 from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize,
                                      ReplaceableNumber, Token, look_for_fractions,
-                                     GrammaticalGender, numeric_value, fits_str_limit)
+                                     GrammaticalGender, numeric_value, fits_str_limit, Scale, warn_reader_removed)
+from ovos_number_parser import numtag_readers
 
 # indefinite articles are homographs of "one"
 _ARTICLES_NB = {'en', 'ei', 'et', 'ett'}
@@ -938,19 +939,7 @@ def is_fractional_nb(input_str, short_scale=False):
     return _is_fractional(input_str, _TABLES_NB)
 
 
-def extract_number_nb(text, short_scale=False, ordinals=False):
-    """Extract a number from Bokmål text, both counting traditions."""
-    # the leftmost number of a line whose numbers other words separate
-    # wins under ordinals=True, in every language (panel item
-    # number-parser-ordinals-rule-v2)
-    from ovos_number_parser.util import leftmost_separated_number
-    _leftmost = leftmost_separated_number(text, "nb", ordinals)
-    if _leftmost is not None:
-        return _leftmost
-    return _extract_number(text, _TABLES_NB, ordinals)
-
-
-def numbers_to_digits_nb(text, short_scale=False, ordinals=False,
-                         fractions=True):
-    """Replace spoken Bokmål numbers in a text with digits."""
-    return _numbers_to_digits(text, _TABLES_NB, ordinals, fractions)
+def numbers_to_digits_nb(text, short_scale=False, ordinals=False, fractions=True):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "nb")``."""
+    warn_reader_removed("numbers_to_digits_nb", 'ovos_number_parser.numbers_to_digits(text, "nb")')
+    return numtag_readers.numbers_to_digits(text, "nb", Scale.SHORT if short_scale else Scale.LONG, ordinals)

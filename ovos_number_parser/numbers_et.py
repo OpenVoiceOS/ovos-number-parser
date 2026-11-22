@@ -23,7 +23,9 @@ References:
 from decimal import Decimal
 from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value
+from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _NUM_STRING_ET = {
     0: 'null',
@@ -86,9 +88,6 @@ _FRACTION_STRING_ET = {
     19: 'üheksateistkümnendik',
     20: 'kahekümnendik',
 }
-
-_MINUS_ET = ("miinus",)
-_DECIMAL_MARKER_ET = ("koma",)
 
 
 def _pronounce_below_1000_et(num):
@@ -303,90 +302,6 @@ def nice_number_et(number, speech=True, denominators=range(1, 21)):
     return '{} ja {}'.format(whole, frac)
 
 
-# word → value map used to split compound numbers, including the suffixes
-# that only appear inside compounds ("teist", "kümmend", "sada")
-_STRING_NUM_ET = {word: val for val, word in _NUM_STRING_ET.items()}
-
-_COMPOUND_MULTIPLIERS_ET = {
-    'kümmend': 10,
-    'sada': 100,
-}
-
-_SCALE_WORDS_ET = {
-    'tuhat': 1000,
-    'tuhande': 1000,
-    'miljon': 10 ** 6,
-    'miljonit': 10 ** 6,
-    'miljard': 10 ** 9,
-    'miljardit': 10 ** 9,
-    'biljon': 10 ** 12,
-    'biljonit': 10 ** 12,
-}
-
-
-def _split_compound_number_et(word):
-    """Split an agglutinated Estonian numeral ("kakskümmend", "viissada")
-    into its vocabulary parts.
-
-    Returns the list of matched (word, value) parts, or None if the word is
-    not entirely composed of number vocabulary.
-    """
-    vocab = dict(_STRING_NUM_ET)
-    vocab.update(_COMPOUND_MULTIPLIERS_ET)
-    vocab['teist'] = 'teen'
-    keys = sorted(vocab, key=len, reverse=True)
-    parts = []
-    rest = word
-    while rest:
-        for key in keys:
-            if rest.startswith(key):
-                parts.append((key, vocab[key]))
-                rest = rest[len(key):]
-                break
-        else:
-            return None
-    return parts
-
-
-def _compound_value_et(parts):
-    """Evaluate the value of a split Estonian compound numeral."""
-    current = 0
-    last_unit = 0
-    for word, val in parts:
-        if val == 'teen':  # "teist" turns the preceding unit into a teen
-            current += 10
-            last_unit = 0
-        elif word in _COMPOUND_MULTIPLIERS_ET:
-            mult = _COMPOUND_MULTIPLIERS_ET[word]
-            if last_unit:
-                current += last_unit * (mult - 1)
-            else:
-                current += mult
-            last_unit = 0
-        else:
-            current += val
-            last_unit = val
-    return current
-
-
-def _parse_number_word_et(word):
-    """Parse a single Estonian numeral word (possibly compound) into its
-    value, or None."""
-    word = word.lower().strip().replace('-', '')
-    if not word:
-        return None
-    if word in _STRING_NUM_ET:
-        return _STRING_NUM_ET[word]
-    if word in _COMPOUND_MULTIPLIERS_ET:
-        return _COMPOUND_MULTIPLIERS_ET[word]
-    if word in _SCALE_WORDS_ET:
-        return _SCALE_WORDS_ET[word]
-    parts = _split_compound_number_et(word)
-    if parts:
-        return _compound_value_et(parts)
-    return None
-
-
 _ORDINAL_REVERSE_ET = {}
 
 
@@ -432,135 +347,7 @@ def is_fractional_et(input_str, short_scale=True):
     return False
 
 
-def _extract_span_et(tokens, idx):
-    """Parse the number starting at tokens[idx].
-
-    Returns (value, next_index) or None. Numerals above the hundreds are
-    written as separate words in Estonian, so consecutive number tokens are
-    accumulated: "kakskümmend üks" = 21, "kaks tuhat viissada" = 2500.
-    """
-    token = tokens[idx]
-
-    if token == 'poolteist':
-        return 1.5, idx + 1
-
-    # digits, including comma decimals
-    cleaned = token.replace(',', '.')
-    if is_numeric(cleaned):
-        val = numeric_value(cleaned)
-        if val == int(val) and '.' not in cleaned:
-            val = int(val)
-        return val, idx + 1
-
-    frac = is_fractional_et(token)
-    if frac:
-        return frac, idx + 1
-
-    if _parse_number_word_et(token) is None:
-        return None
-
-    # accumulate the separately written numeral words
-    total = 0
-    current = 0
-    prev = None
-    end = idx
-    while end < len(tokens):
-        word = tokens[end]
-        if word in _SCALE_WORDS_ET:
-            total += (current or 1) * _SCALE_WORDS_ET[word]
-            current = 0
-            prev = None
-            end += 1
-            continue
-        val = _parse_number_word_et(word)
-        if val is None:
-            break
-        # a number word only continues the span while values descend
-        # ("kakskümmend üks"); otherwise it starts a new number
-        if prev is not None and val >= prev:
-            break
-        current += val
-        prev = val
-        end += 1
-    val = total + current
-
-    # "kaks kolmandikku" → 2/3
-    if end < len(tokens):
-        frac = is_fractional_et(tokens[end])
-        if frac:
-            return val * frac, end + 1
-
-    # decimals: "viis koma kaks kolm" → 5.23
-    if end + 1 < len(tokens) and tokens[end] in _DECIMAL_MARKER_ET:
-        digits = []
-        j = end + 1
-        while j < len(tokens):
-            d = _parse_number_word_et(tokens[j])
-            if d is None or d > 9:
-                break
-            digits.append(str(d))
-            j += 1
-        if digits:
-            return float(str(val) + '.' + ''.join(digits)), j
-    return val, end
-
-
 def extract_number_et(text, short_scale=True, ordinals=False):
-    """
-    Extract the first number from Estonian text.
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): ignored, Estonian uses its own scale words
-        ordinals (bool): consider ordinal numbers ("teine" → 2)
-    Returns:
-        (int, float or False): the extracted number or False if no number
-                               was found
-    """
-    tokens = [t.strip('.,!?;:').lower() for t in text.split()]
-    tokens = [t for t in tokens if t]
-    for idx in range(len(tokens)):
-        negative = idx > 0 and tokens[idx - 1] in _MINUS_ET
-        if ordinals:
-            val = is_ordinal_et(tokens[idx])
-            if val is not False:
-                return -val if negative else val
-        span = _extract_span_et(tokens, idx)
-        if span is None:
-            continue
-        val = span[0]
-        return -val if negative else val
-    return False
-
-
-def extract_numbers_et(text, short_scale=True, ordinals=False):
-    """
-    Extract all numbers from Estonian text.
-
-    Args:
-        text (str): the string to extract numbers from
-        short_scale (bool): ignored, Estonian uses its own scale words
-        ordinals (bool): consider ordinal numbers
-    Returns:
-        list: list of extracted numbers
-    """
-    tokens = [t.strip('.,!?;:').lower() for t in text.split()]
-    tokens = [t for t in tokens if t]
-    results = []
-    idx = 0
-    while idx < len(tokens):
-        negative = tokens[idx] in _MINUS_ET and idx + 1 < len(tokens)
-        start = idx + 1 if negative else idx
-        if ordinals and start < len(tokens):
-            val = is_ordinal_et(tokens[start])
-            if val is not False:
-                results.append(-val if negative else val)
-                idx = start + 1
-                continue
-        span = _extract_span_et(tokens, start) if start < len(tokens) else None
-        if span is None:
-            idx += 1
-            continue
-        val, idx = span
-        results.append(-val if negative else val)
-    return results
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "et")``."""
+    warn_reader_removed("extract_number_et", 'ovos_number_parser.extract_number(text, "et")')
+    return numtag_readers.extract_number(text, "et", short_scale, ordinals)

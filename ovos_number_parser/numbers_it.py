@@ -74,11 +74,12 @@ import collections
 from decimal import Decimal
 
 import re
-from typing import Optional, Union
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, Scale,
                                      GrammaticalGender, NumberVocabulary,
                                      RomanceNumberExtractor, scientific_parts)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _SHORT_ORDINAL_STRING_IT = {
     1: 'primo',
@@ -550,104 +551,9 @@ for _s in ('mille', 'mila', 'milione', 'milioni', 'miliardo', 'miliardi',
 for _full in ('venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta',
               'settanta', 'ottanta', 'novanta'):
     _MORPHEMES_IT[_full[:-1]] = _full
-# longest surface first, so "trenta" wins over "trent" and "sette" over "sei"
-_MORPHEME_SURFACES_IT = sorted(_MORPHEMES_IT, key=len, reverse=True)
 
 
-def _split_fused_it(word: str) -> str:
-    """Break a fused Italian numeral into space-separated morphemes.
-
-    Restores the accent (ventitré -> ventitre) and the vowel elided before
-    "uno"/"otto" in the tens and hundreds (ventuno -> venti uno, centotto ->
-    cento otto). A word that does not decompose cleanly into numeral morphemes
-    is returned unchanged, so non-numbers ("trentini") stay non-numbers.
-    """
-    w = word.lower().replace('é', 'e').replace('è', 'e')
-    # cento elides its final -o before uno and before any o-word (otto,
-    # ottanta...): "centuno", "centottanta", "trecentottantotto". Restore the
-    # dropped vowel so the morpheme splitter sees "cento" + remainder.
-    w = w.replace('centuno', 'centouno').replace('centott', 'centoott')
-    out = []
-    i = 0
-    while i < len(w):
-        for surf in _MORPHEME_SURFACES_IT:
-            if w.startswith(surf, i):
-                out.append(_MORPHEMES_IT[surf])
-                i += len(surf)
-                break
-        else:
-            return word
-    return ' '.join(out)
-
-
-class ItalianNumberExtractor(RomanceNumberExtractor):
-    """Italian number engine.
-
-    Adds the one Italian-specific surface convention the shared engine does not
-    model: cardinals are written as a single fused word. The extractor splits
-    each fused token back into numeral morphemes before delegating to the shared
-    vocabulary-driven parser.
-    """
-
-    def _presplit(self, text: str) -> str:
-        # a comma glued to a word is a group separator ("duemila, ventitre"),
-        # not part of the number
-        text = re.sub(r"(?<=[^\W\d]),", " ", text)
-        return " ".join(_split_fused_it(tok) for tok in text.split())
-
-    def extract_number(self,
-                       text: str,
-                       ordinals: bool = False,
-                       scale: Optional[Scale] = None
-                       ) -> Union[int, float, bool]:
-        if isinstance(text, str):
-            text = self._presplit(text)
-        return super().extract_number(text, ordinals=ordinals, scale=scale)
-
-    def numbers_to_digits(self,
-                          utterance: str,
-                          scale: Optional[Scale] = None) -> str:
-        return super().numbers_to_digits(self._presplit(utterance), scale=scale)
-
-
-IT = ItalianNumberExtractor(_IT)
-
-
-def extract_number_it(text, short_scale=False, ordinals=False):
-    """Extract a number from Italian text.
-
-    Delegates to the shared :class:`RomanceNumberExtractor`. Italian writes each
-    cardinal as a single fused word, so a per-language splitter first tokenises
-    the fused form back into numeral morphemes, restoring the vowel elided
-    before "uno"/"otto" (ventuno -> venti uno, centotto -> cento otto) and the
-    accented -tré ending (ventitré -> venti tre). These fusion, elision and
-    accent rules follow the Accademia della Crusca consulenza "Quarantaquattro
-    gatti in fila per sei col resto di due, o di quando e come scrivere i numeri
-    in lettere"
-    (https://accademiadellacrusca.it/it/consulenza/quarantaquattro-gatti-in-
-    fila-per-sei-col-resto-di-due-o-di-quando-e-come-scrivere-i-numeri-in-
-    lettere/1077): the tens drop their final vowel before "uno" and "otto"
-    (ventuno, ventotto, trentuno, quarantotto), "tre" is written "-tré" in every
-    compound, "cento" is invariable and "mille" pluralises to "mila" (duemila).
-    The ``scale`` defaults to the long scale used in Italy (miliardo 10^9,
-    bilione 10^12).
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): use the short scale instead of the default long scale
-        ordinals (bool): also recognise ordinal words
-    Returns:
-        (int, float) or False: the extracted number, or False if none is found
-    """
-    # the leftmost number of a line whose numbers other words separate
-    # wins under ordinals=True, in every language (panel item
-    # number-parser-ordinals-rule-v2)
-    from ovos_number_parser.util import leftmost_separated_number
-    _leftmost = leftmost_separated_number(text, "it", ordinals)
-    if _leftmost is not None:
-        return _leftmost
-    scale = Scale.SHORT if short_scale else _IT.DEFAULT_SCALE
-    return IT.extract_number(text, ordinals=ordinals, scale=scale)
+IT = RomanceNumberExtractor(_IT)
 
 
 def nice_number_it(number, speech=True, denominators=range(1, 21)):
@@ -1031,3 +937,9 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False,
         for char in _num_str:
             result += " " + number_names[int(char)]
     return result
+
+
+def extract_number_it(text, short_scale=False, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "it")``."""
+    warn_reader_removed("extract_number_it", 'ovos_number_parser.extract_number(text, "it")')
+    return numtag_readers.extract_number(text, "it", short_scale, ordinals)

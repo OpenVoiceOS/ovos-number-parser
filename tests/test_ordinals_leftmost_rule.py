@@ -13,14 +13,13 @@ adjacent pair too.
 import unittest
 from unittest import mock
 
-from ovos_number_parser import (extract_number_ca, extract_number_da,
-                                extract_number_de, extract_number_en,
-                                extract_number_es, extract_number_eu,
-                                extract_number_fa, extract_number_fr,
-                                extract_number_gl, extract_number_it,
-                                extract_number_kab, extract_number_nb,
-                                extract_number_nn, extract_number_spans)
+from ovos_number_parser import extract_number, extract_number_spans
 from ovos_number_parser.util import leftmost_separated_number
+
+
+def reader(lang):
+    return lambda line, ordinals: extract_number(line, lang, ordinals=ordinals)
+
 
 #: idiomatic lines that hold an ordinal and a cardinal with other words
 #: between them. The two lines of a pair carry the same two numbers in the
@@ -28,44 +27,41 @@ from ovos_number_parser.util import leftmost_separated_number
 #: that always prefers one class fails one line of the pair.
 IDIOMATIC = [
     #  lang, extract, line, under ordinals=True, under ordinals=False
-    ("en", extract_number_en, "the third of two", 3, 2),
-    ("en", extract_number_en, "two of the third", 2, 2),
-    ("de", extract_number_de, "das dritte von zwei", 3, 2),
-    ("de", extract_number_de, "zwei von dem dritten", 2, 2),
-    ("da", extract_number_da, "den tredje af to", 3, 2),
-    ("da", extract_number_da, "to af den tredje", 2, 2),
-    ("kab", extract_number_kab, "wis kṛaḍ seg sin", 3, 3),
-    ("kab", extract_number_kab, "sin seg wis kṛaḍ", 2, 2),
+    ("en", reader("en"), "the third of two", 3, 2),
+    ("en", reader("en"), "two of the third", 2, 2),
+    ("de", reader("de"), "das dritte von zwei", 3, 2),
+    ("de", reader("de"), "zwei von dem dritten", 2, 2),
+    ("da", reader("da"), "den tredje af to", 3, 2),
+    ("da", reader("da"), "to af den tredje", 2, 2),
+    ("kab", reader("kab"), "wis kṛaḍ seg sin", 3, 2),
+    ("kab", reader("kab"), "sin seg wis kṛaḍ", 2, 2),
 ]
 
 #: the locales the rule reaches, with their own words for 2 and 3 and
 #: the reading each order keeps once the flag is off. ``qzx`` is a filler: it
 #: spells no number in any of them, so it only keeps the two numbers apart.
-#: The flag-off values are not uniform, and that is the point of recording
-#: them: Kabyle reads its ordinal phrase as 3 without the flag. English read
-#: nothing at all on the ordinal-first line until a lone ordinal stopped
-#: ending the scan; it now reads the cardinal, as da and de do.
+#: Without the flag an ordinal is no number, so each order answers the
+#: cardinal, 2.
 REACHED = {
     #        extract,            card,   ordinal,     off(O x C), off(C x O)
-    "da": (extract_number_da, "to", "tredje", 2, 2),
-    "de": (extract_number_de, "zwei", "dritte", 2, 2),
+    "da": (reader("da"), "to", "tredje", 2, 2),
+    "de": (reader("de"), "zwei", "dritte", 2, 2),
     # T-3864: the cardinal is read under the flag again, so the line reaches
     # two spans and the rule answers.
-    "nb": (extract_number_nb, "to", "tredje", 2, 2),
-    "nn": (extract_number_nn, "to", "tredje", 2, 2),
+    "nb": (reader("nb"), "to", "tredje", 2, 2),
+    "nn": (reader("nn"), "to", "tredje", 2, 2),
     # the extractors consult is_ordinal_eu and is_ordinal_fa under the flag
-    "eu": (extract_number_eu, "bi", "hirugarren", 2, 2),
-    "fa": (extract_number_fa, "دو", "سوم", 2, 2),
-    "kab": (extract_number_kab, "sin", "wis kṛaḍ", 3, 2),
-    "en": (extract_number_en, "two", "third", 2, 2),
+    "eu": (reader("eu"), "bi", "hirugarren", 2, 2),
+    "fa": (reader("fa"), "دو", "سوم", 2, 2),
+    "kab": (reader("kab"), "sin", "wis kṛaḍ", 2, 2),
+    "en": (reader("en"), "two", "third", 2, 2),
     # T-4415 ended the Romance sum of two separated numbers, and numtag reads
-    # them as two. Without the flag the it reader still reads "terzo" as
-    # the fraction 1/3 and adds it.
-    "ca": (extract_number_ca, "dos", "tercer", 2, 2),
-    "es": (extract_number_es, "dos", "tercero", 2, 2),
-    "fr": (extract_number_fr, "deux", "troisième", 2, 2),
-    "gl": (extract_number_gl, "dous", "terceiro", 2, 2),
-    "it": (extract_number_it, "due", "terzo", 2 + 1 / 3, 2 / 3),
+    # them as two.
+    "ca": (reader("ca"), "dos", "tercer", 2, 2),
+    "es": (reader("es"), "dos", "tercero", 2, 2),
+    "fr": (reader("fr"), "deux", "troisième", 2, 2),
+    "gl": (reader("gl"), "dous", "terceiro", 2, 2),
+    "it": (reader("it"), "due", "terzo", 2, 2),
 }
 
 #: the pair written with no word between them, for each reached locale, and
@@ -190,11 +186,12 @@ class TestTheFractionShapeIsUntouched(unittest.TestCase):
     two numbers.
     """
 
+
     def test_the_fraction_reading_survives(self):
         self.assertAlmostEqual(
-            extract_number_de("zwei drittel", ordinals=True), 2 / 3)
+            extract_number("zwei drittel", "de", ordinals=True), 2 / 3)
         self.assertAlmostEqual(
-            extract_number_de("zwei drittel", ordinals=False), 2 / 3)
+            extract_number("zwei drittel", "de", ordinals=False), 2 / 3)
 
     def test_the_scanner_draws_the_line_where_the_table_says(self):
         for lang, (extract, card, ordinal, _, _) in REACHED.items():
@@ -213,8 +210,8 @@ class TestTheFractionShapeIsUntouched(unittest.TestCase):
         scanner never reads a Kabyle pair as one span and the rule reaches
         both orders, including the one written with nothing between them.
         "sin wis kṛaḍ" answered 3 before the rule and answers 2 under it."""
-        self.assertEqual(extract_number_kab("sin wis kṛaḍ", ordinals=True), 2)
-        self.assertEqual(extract_number_kab("wis kṛaḍ sin", ordinals=True), 3)
+        self.assertEqual(extract_number("sin wis kṛaḍ", "kab", ordinals=True), 2)
+        self.assertEqual(extract_number("wis kṛaḍ sin", "kab", ordinals=True), 3)
 
 
 if __name__ == "__main__":

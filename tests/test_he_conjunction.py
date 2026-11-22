@@ -8,8 +8,7 @@ numbers_to_digits keeps it.
 """
 import unittest
 
-from ovos_number_parser import extract_number, numbers_to_digits
-from ovos_number_parser.numbers_he import extract_numbers_he
+from ovos_number_parser import extract_number, extract_number_spans, numbers_to_digits
 
 
 class TestConjunctionBeforeANewNumber(unittest.TestCase):
@@ -98,10 +97,12 @@ class TestComponentsDescend(unittest.TestCase):
              ("מאה עשרים ושלוש", [123]),
              ("אלף תשע מאות שמונים וחמש", [1985])]
 
+
     def test_each_number(self):
         for text, expected in self.CASES:
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_he(text), expected)
+                self.assertEqual(
+                    [span.value for span in extract_number_spans(text, "he")], expected)
 
     def test_extract_number_takes_the_first(self):
         self.assertEqual(extract_number("שלושה וארבעה", lang="he"), 3)

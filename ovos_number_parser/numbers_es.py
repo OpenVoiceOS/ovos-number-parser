@@ -1,9 +1,10 @@
 import unicodedata
-from typing import List, Optional, Union
+from typing import Optional, Union
 
-from ovos_number_parser.util import (convert_to_mixed_fraction, tokenize, Token,
-                                     Scale, GrammaticalGender, DigitPronunciation,
+from ovos_number_parser.util import (convert_to_mixed_fraction, Scale, GrammaticalGender, DigitPronunciation,
                                      NumberVocabulary, RomanceNumberExtractor)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 
 def swap_gender_es(word: str, gender: GrammaticalGender) -> str:
@@ -423,38 +424,6 @@ def fraction_noun_es(denominator: int, plural: bool = False) -> str:
     return pluralize_es(noun) if plural else noun
 
 
-def extract_number_es(text, short_scale=True, ordinals=False):
-    """Extract a number from Castilian Spanish text.
-
-    Delegates to the shared :class:`RomanceNumberExtractor`. The Spanish
-    vocabulary follows RAE, *Ortografía de la lengua española* (2010, p. 671):
-    the twenties are written solid ("veintiuno".."veintinueve") while from
-    thirty on the parts stand apart ("treinta y uno"), "y" joins only tens to
-    units, and "cien" apocopates to "ciento" inside compounds.
-
-    This low-level entry point defaults ``short_scale`` to ``True``. The public
-    :func:`ovos_number_parser.extract_number` wrapper instead resolves the scale
-    from the language configuration, applying the long scale used in Spain
-    (millón 10^6, billón 10^12) that Castilian Spanish speakers expect.
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): use the short scale (default) instead of the long scale
-        ordinals (bool): also recognise ordinal words
-    Returns:
-        (int, float) or False: the extracted number, or False if none is found
-    """
-    # the leftmost number of a line whose numbers other words separate
-    # wins under ordinals=True, in every language (panel item
-    # number-parser-ordinals-rule-v2)
-    from ovos_number_parser.util import leftmost_separated_number
-    _leftmost = leftmost_separated_number(text, "es", ordinals)
-    if _leftmost is not None:
-        return _leftmost
-    scale = Scale.SHORT if short_scale else _ES.DEFAULT_SCALE
-    return ES.extract_number(text, ordinals=ordinals, scale=scale)
-
-
 def is_fractional_es(input_str, short_scale=True):
     """Return the fractional value of a Spanish fraction word, else False."""
     return ES.is_fractional(input_str)
@@ -475,11 +444,6 @@ def pronounce_number_es(number, places=2, short_scale=False):
     scale = Scale.SHORT if short_scale else _ES.DEFAULT_SCALE
     return ES.pronounce_number(number, places=places, scale=scale,
                                digits=DigitPronunciation.DIGIT_BY_DIGIT)
-
-
-def numbers_to_digits_es(utterance: str) -> str:
-    """Replace written numbers in Spanish text with their digit equivalents."""
-    return ES.numbers_to_digits(utterance)
 
 
 def nice_number_es(number, speech=True, denominators=range(1, 21)):
@@ -548,3 +512,9 @@ def nice_number_es(number, speech=True, denominators=range(1, 21)):
             strNumber += 's'
 
     return strNumber
+
+
+def numbers_to_digits_es(utterance: str) -> str:
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, "es")``."""
+    warn_reader_removed("numbers_to_digits_es", 'ovos_number_parser.numbers_to_digits(utterance, "es")')
+    return numtag_readers.numbers_to_digits(utterance, "es")

@@ -1,7 +1,8 @@
 import unittest
 
-from ovos_number_parser.numbers_it import (extract_number_it,
-                                           pronounce_number_it)
+from ovos_number_parser import extract_number
+
+from ovos_number_parser.numbers_it import pronounce_number_it
 
 
 class TestItalianScaleSpacing(unittest.TestCase):
@@ -17,19 +18,19 @@ class TestItalianScaleSpacing(unittest.TestCase):
         for n in list(range(100000, 1000000, 337)) + [
                 101000, 123456, 150000, 200000, 555555, 987654, 999999]:
             spoken = pronounce_number_it(n)
-            self.assertEqual(extract_number_it(spoken), n,
+            self.assertEqual(extract_number(spoken, lang="it"), n,
                              f"roundtrip failed for {n} -> {spoken!r}")
 
     def test_negative_hundred_thousands_roundtrip(self):
         for n in [-101000, -123456, -150000, -999000]:
             spoken = pronounce_number_it(n)
-            self.assertEqual(extract_number_it(spoken), n,
+            self.assertEqual(extract_number(spoken, lang="it"), n,
                              f"roundtrip failed for {n} -> {spoken!r}")
 
     def test_millions_still_roundtrip(self):
         for n in [1000000, 2500000, 101000000]:
             spoken = pronounce_number_it(n)
-            self.assertEqual(extract_number_it(spoken), n,
+            self.assertEqual(extract_number(spoken, lang="it"), n,
                              f"roundtrip failed for {n} -> {spoken!r}")
 
 

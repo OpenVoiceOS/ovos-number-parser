@@ -14,7 +14,7 @@ Sources for the writer rules:
 from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, scientific_parts
+from ovos_number_parser.util import convert_to_mixed_fraction, scientific_parts
 
 _NUM_STRING_SL = {
     0: 'nič',
@@ -499,83 +499,11 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
     return result
 
 
-_MINUS_SL = ("minus",)
-
-_DECIMAL_MARKERS_SL = ("cela", "celi", "cele", "celih")
-
 # unit word → value map, including the allomorphs used inside compounds
 _STRING_NUM_SL = {word: val for val, word in _NUM_STRING_SL.items()}
 _STRING_NUM_SL["en"] = 1
 _STRING_NUM_SL["eno"] = 1
 _STRING_NUM_SL["dva"] = 2
-_STRING_NUM_SL["trije"] = 3
-
-# scale stems match declined forms too ("milijona", "milijonov", ...)
-_SCALE_STEMS_SHORT_SL = {
-    'tisoč': 1000,
-    'milijon': 1000000,
-    'bilijon': 1000000000,
-    'trilijon': 1000000000000,
-    'kvadrilijon': 1000000000000000,
-    'kvintilijon': 1000000000000000000,
-}
-
-_SCALE_STEMS_LONG_SL = {
-    'tisoč': 1000,
-    'milijon': 1000000,
-    'milijard': 1000000000,
-    'bilijon': 1000000000000,
-    'bilijard': 1000000000000000,
-    'trilijon': 1000000000000000000,
-}
-
-_TENS_WORDS_SL = {word: val for val, word in _NUM_STRING_SL.items()
-                  if 20 <= val <= 90 and val % 10 == 0}
-
-
-def _parse_number_word_sl(word):
-    """Parse a single Slovenian number word into its value, or None.
-
-    Handles simple words ("pet"), in-compounds ("enaindvajset" = 21) and
-    hundred compounds ("dvesto" = 200, "sto" = 100).
-    """
-    word = word.lower().strip()
-    if not word:
-        return None
-    if word in _STRING_NUM_SL:
-        return _STRING_NUM_SL[word]
-    if word == "sto":
-        return 100
-    # "enaindvajset" → ena + in + dvajset
-    for tens_word, tens_val in _TENS_WORDS_SL.items():
-        if word.endswith(tens_word):
-            prefix = word[:-len(tens_word)]
-            if prefix.endswith("in"):
-                unit = prefix[:-2]
-                if unit in _STRING_NUM_SL and _STRING_NUM_SL[unit] < 10:
-                    return tens_val + _STRING_NUM_SL[unit]
-    # "dvesto", "tristo", "sto petdeset" (remainder is a separate token)
-    if word.endswith("sto"):
-        prefix = word[:-3]
-        if not prefix:
-            return 100
-        if prefix in _STRING_NUM_SL and _STRING_NUM_SL[prefix] < 10:
-            return _STRING_NUM_SL[prefix] * 100
-    return None
-
-
-def _parse_scale_word_sl(word, short_scale=True):
-    """Return the scale value for a (possibly declined) Slovenian scale word."""
-    word = word.lower().strip()
-    stems = _SCALE_STEMS_SHORT_SL if short_scale else _SCALE_STEMS_LONG_SL
-    # "milijarda" is unambiguous and only exists in the long scale
-    if word.startswith("milijard") and len(word) - len("milijard") <= 2:
-        return 1000000000
-    for stem, val in stems.items():
-        if word == stem or (word.startswith(stem) and
-                            len(word) - len(stem) <= 2):
-            return val
-    return None
 
 
 def is_fractional_sl(input_str, short_scale=True):
@@ -618,91 +546,3 @@ def is_ordinal_sl(input_str):
     return _ORDINAL_REVERSE_SL.get(input_str.lower().strip(), False)
 
 
-def extract_number_sl(text, short_scale=True, ordinals=False):
-    """
-    Extract the first number from Slovenian text.
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): use short (True) or long (False) scale
-        ordinals (bool): consider ordinal numbers ("drugi" → 2)
-    Returns:
-        (int, float or False): the extracted number or False if no number
-                               was found
-    """
-    tokens = [t.strip('.,!?;:').lower() for t in text.split()]
-    tokens = [t for t in tokens if t]
-
-    for idx, token in enumerate(tokens):
-        negative = idx > 0 and tokens[idx - 1] in _MINUS_SL
-
-        # digits, including comma decimals
-        cleaned = token.replace(',', '.')
-        if is_numeric(cleaned):
-            val = numeric_value(cleaned)
-            if val == int(val) and '.' not in cleaned:
-                val = int(val)
-            return -val if negative else val
-
-        if ordinals:
-            val = is_ordinal_sl(token)
-            if val is not False:
-                return -val if negative else val
-
-        if _parse_number_word_sl(token) is None and \
-                _parse_scale_word_sl(token, short_scale) is None:
-            frac = is_fractional_sl(token)
-            if frac:
-                return -frac if negative else frac
-            continue
-
-        # accumulate a run of number/scale words starting here
-        total = 0
-        current = 0
-        j = idx
-        while j < len(tokens):
-            tok = tokens[j]
-            scale = _parse_scale_word_sl(tok, short_scale)
-            if scale is not None:
-                total += (current or 1) * scale
-                current = 0
-                j += 1
-                continue
-            v = _parse_number_word_sl(tok)
-            if v is None:
-                try:
-                    v = int(tok)
-                except ValueError:
-                    v = None
-            if v is None:
-                break
-            if v == 100 or (v % 100 == 0 and v < 1000 and current == 0):
-                # "sto" after a unit multiplies implicitly only in compounds,
-                # standalone "sto"/"dvesto" tokens are additive values
-                current += v
-            else:
-                current += v
-            j += 1
-        val = total + current
-
-        # decimals: "pet celih dve tri" → 5.23
-        if j < len(tokens) and tokens[j] in _DECIMAL_MARKERS_SL:
-            digits = ""
-            k = j + 1
-            while k < len(tokens):
-                d = _parse_number_word_sl(tokens[k])
-                if d is None or d > 9:
-                    break
-                digits += str(d)
-                k += 1
-            if digits:
-                val = float(f"{val}.{digits}")
-
-        # fractions: "dve tretjini" → 2/3
-        elif j < len(tokens):
-            frac = is_fractional_sl(tokens[j])
-            if frac:
-                val = val * frac
-
-        return -val if negative else val
-    return False

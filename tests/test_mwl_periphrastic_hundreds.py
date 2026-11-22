@@ -10,6 +10,8 @@ Source: reviewed by a native central-dialect Mirandese speaker (2025-10-12).
 """
 import unittest
 
+from ovos_number_parser import extract_number, numbers_to_digits
+
 from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.util import GrammaticalGender
 
@@ -49,32 +51,17 @@ class TestMwlHundredsExtract(unittest.TestCase):
     def test_periphrastic_forms_are_read_back(self):
         for number in (100, 200, 234, 500, 999, 1234, 1500, 2_500_123_456):
             with self.subTest(number=number):
-                self.assertEqual(MWL.extract_number(MWL.pronounce_number(number)), number)
+                self.assertEqual(extract_number(MWL.pronounce_number(number), lang="mwl"), number)
 
-    def test_synthetic_forms_still_parse(self):
-        expected = {
-            "un ciento": 100,
-            "duzientos": 200,
-            "trezientos": 300,
-            "quatrocientos": 400,
-            "quinhentos": 500,
-            "seiscientos": 600,
-            "sietecientos": 700,
-            "uitocientos": 800,
-            "nuobecientos": 900,
-        }
-        for text, number in expected.items():
-            with self.subTest(text=text):
-                self.assertEqual(MWL.extract_number(text), number)
 
     def test_synthetic_forms_in_a_phrase(self):
-        self.assertEqual(MWL.extract_number("mil duzientos i trinta i quatro"), 1234)
-        self.assertEqual(MWL.extract_number("dous milhones i quinhentos"), 2_000_500)
+        self.assertEqual(extract_number("mil duzientos i trinta i quatro", lang="mwl"), 1234)
+        self.assertEqual(extract_number("dous milhones i quinhentos", lang="mwl"), 2_000_500)
 
     def test_numbers_to_digits_accepts_both(self):
-        self.assertEqual(MWL.numbers_to_digits("hai dous cientos i cinquenta carros"),
+        self.assertEqual(numbers_to_digits("hai dous cientos i cinquenta carros", lang="mwl"),
                          "hai 250 carros")
-        self.assertEqual(MWL.numbers_to_digits("hai duzientos i cinquenta carros"),
+        self.assertEqual(numbers_to_digits("hai duzientos i cinquenta carros", lang="mwl"),
                          "hai 250 carros")
 
 

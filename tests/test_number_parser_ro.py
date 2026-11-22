@@ -10,6 +10,8 @@ and ordinals take the particles "al"/"a" ("al doilea"/"a doua").
 """
 import unittest
 
+from ovos_number_parser import extract_number, numbers_to_digits
+
 from ovos_number_parser.numbers_ro import RO
 from ovos_number_parser.util import GrammaticalGender
 
@@ -140,64 +142,64 @@ class TestPronunciationRO(unittest.TestCase):
 class TestExtractionRO(unittest.TestCase):
 
     def test_units_and_gender_variants(self):
-        self.assertEqual(RO.extract_number("unu"), 1)
-        self.assertEqual(RO.extract_number("una"), 1)
-        self.assertEqual(RO.extract_number("un milion"), 1_000_000)
-        self.assertEqual(RO.extract_number("doi"), 2)
-        self.assertEqual(RO.extract_number("două"), 2)
-        self.assertEqual(RO.extract_number("doisprezece"), 12)
-        self.assertEqual(RO.extract_number("douăsprezece"), 12)
+        self.assertEqual(extract_number("unu", lang="ro"), 1)
+        self.assertEqual(extract_number("una", lang="ro"), 1)
+        self.assertEqual(extract_number("un milion", lang="ro"), 1_000_000)
+        self.assertEqual(extract_number("doi", lang="ro"), 2)
+        self.assertEqual(extract_number("două", lang="ro"), 2)
+        self.assertEqual(extract_number("doisprezece", lang="ro"), 12)
+        self.assertEqual(extract_number("douăsprezece", lang="ro"), 12)
 
     def test_si_joins(self):
-        self.assertEqual(RO.extract_number("douăzeci și unu"), 21)
-        self.assertEqual(RO.extract_number("douăzeci și una"), 21)
-        self.assertEqual(RO.extract_number("treizeci și cinci"), 35)
-        self.assertEqual(RO.extract_number("nouăzeci și nouă"), 99)
+        self.assertEqual(extract_number("douăzeci și unu", lang="ro"), 21)
+        self.assertEqual(extract_number("douăzeci și una", lang="ro"), 21)
+        self.assertEqual(extract_number("treizeci și cinci", lang="ro"), 35)
+        self.assertEqual(extract_number("nouăzeci și nouă", lang="ro"), 99)
 
     def test_hundreds_multiply(self):
-        self.assertEqual(RO.extract_number("o sută"), 100)
-        self.assertEqual(RO.extract_number("două sute"), 200)
-        self.assertEqual(RO.extract_number("două sute treizeci și cinci"), 235)
-        self.assertEqual(RO.extract_number("nouă sute nouăzeci și nouă"), 999)
+        self.assertEqual(extract_number("o sută", lang="ro"), 100)
+        self.assertEqual(extract_number("două sute", lang="ro"), 200)
+        self.assertEqual(extract_number("două sute treizeci și cinci", lang="ro"), 235)
+        self.assertEqual(extract_number("nouă sute nouăzeci și nouă", lang="ro"), 999)
 
     def test_de_insertion(self):
         # "de" is number-internal when it links a count to a scale word
-        self.assertEqual(RO.extract_number("douăzeci de mii"), 20_000)
-        self.assertEqual(RO.extract_number("douăzeci și una de mii"), 21_000)
-        self.assertEqual(RO.extract_number("o sută de milioane"), 100_000_000)
-        self.assertEqual(RO.extract_number("patruzeci și cinci de mii"), 45_000)
+        self.assertEqual(extract_number("douăzeci de mii", lang="ro"), 20_000)
+        self.assertEqual(extract_number("douăzeci și una de mii", lang="ro"), 21_000)
+        self.assertEqual(extract_number("o sută de milioane", lang="ro"), 100_000_000)
+        self.assertEqual(extract_number("patruzeci și cinci de mii", lang="ro"), 45_000)
 
     def test_thousands(self):
-        self.assertEqual(RO.extract_number("o mie"), 1000)
-        self.assertEqual(RO.extract_number("două mii"), 2000)
-        self.assertEqual(RO.extract_number("două mii unu"), 2001)
-        self.assertEqual(RO.extract_number("o mie două sute"), 1200)
+        self.assertEqual(extract_number("o mie", lang="ro"), 1000)
+        self.assertEqual(extract_number("două mii", lang="ro"), 2000)
+        self.assertEqual(extract_number("două mii unu", lang="ro"), 2001)
+        self.assertEqual(extract_number("o mie două sute", lang="ro"), 1200)
         self.assertEqual(
-            RO.extract_number("un milion două sute treizeci și patru de mii "
-                              "cinci sute șaizeci și șapte"),
+            extract_number("un milion două sute treizeci și patru de mii "
+                              "cinci sute șaizeci și șapte", lang="ro"),
             1_234_567)
 
     def test_colloquial_teens(self):
         # short spoken forms are accepted for extraction only
-        self.assertEqual(RO.extract_number("unșpe"), 11)
-        self.assertEqual(RO.extract_number("doișpe"), 12)
-        self.assertEqual(RO.extract_number("paișpe"), 14)
-        self.assertEqual(RO.extract_number("șaișpe"), 16)
-        self.assertEqual(RO.extract_number("nouășpe"), 19)
+        self.assertEqual(extract_number("unșpe", lang="ro"), 11)
+        self.assertEqual(extract_number("doișpe", lang="ro"), 12)
+        self.assertEqual(extract_number("paișpe", lang="ro"), 14)
+        self.assertEqual(extract_number("șaișpe", lang="ro"), 16)
+        self.assertEqual(extract_number("nouășpe", lang="ro"), 19)
 
     def test_decimals(self):
-        self.assertEqual(RO.extract_number("cinci virgulă doi"), 5.2)
-        self.assertEqual(RO.extract_number("trei virgulă paisprezece"), 3.14)
-        self.assertEqual(RO.extract_number("zece virgulă zero cinci"), 10.05)
+        self.assertEqual(extract_number("cinci virgulă doi", lang="ro"), 5.2)
+        self.assertEqual(extract_number("trei virgulă paisprezece", lang="ro"), 3.14)
+        self.assertEqual(extract_number("zece virgulă zero cinci", lang="ro"), 10.05)
 
     def test_negative(self):
-        self.assertEqual(RO.extract_number("minus zece"), -10)
-        self.assertEqual(RO.extract_number("minus cinci virgulă doi"), -5.2)
+        self.assertEqual(extract_number("minus zece", lang="ro"), -10)
+        self.assertEqual(extract_number("minus cinci virgulă doi", lang="ro"), -5.2)
 
     def test_fractions(self):
-        self.assertEqual(RO.extract_number("doi și jumătate"), 2.5)
-        self.assertEqual(RO.extract_number("două treimi"), 2 / 3)
-        self.assertEqual(RO.extract_number("trei sferturi"), 3 / 4)
+        self.assertEqual(extract_number("doi și jumătate", lang="ro"), 2.5)
+        self.assertEqual(extract_number("două treimi", lang="ro"), 2 / 3)
+        self.assertEqual(extract_number("trei sferturi", lang="ro"), 3 / 4)
         self.assertEqual(RO.is_fractional("jumătate"), 1 / 2)
         self.assertEqual(RO.is_fractional("treime"), 1 / 3)
         self.assertEqual(RO.is_fractional("sfert"), 1 / 4)
@@ -206,12 +208,12 @@ class TestExtractionRO(unittest.TestCase):
         self.assertFalse(RO.is_fractional("pisică"))
 
     def test_ordinals(self):
-        self.assertEqual(RO.extract_number("al doilea om", ordinals=True), 2)
-        self.assertEqual(RO.extract_number("a treia oară", ordinals=True), 3)
-        self.assertEqual(RO.extract_number("primul loc", ordinals=True), 1)
-        self.assertEqual(RO.extract_number("prima oară", ordinals=True), 1)
+        self.assertEqual(extract_number("al doilea om", ordinals=True, lang="ro"), 2)
+        self.assertEqual(extract_number("a treia oară", ordinals=True, lang="ro"), 3)
+        self.assertEqual(extract_number("primul loc", ordinals=True, lang="ro"), 1)
+        self.assertEqual(extract_number("prima oară", ordinals=True, lang="ro"), 1)
         self.assertEqual(
-            RO.extract_number("al douăzeci și unulea etaj", ordinals=True), 21)
+            extract_number("al douăzeci și unulea etaj", ordinals=True, lang="ro"), 21)
         self.assertEqual(RO.is_ordinal("al doilea"), 2)
         self.assertEqual(RO.is_ordinal("doua"), 2)
         self.assertEqual(RO.is_ordinal("primul"), 1)
@@ -220,28 +222,28 @@ class TestExtractionRO(unittest.TestCase):
         self.assertFalse(RO.is_ordinal("pisică"))
 
     def test_digits_win(self):
-        self.assertEqual(RO.extract_number("7"), 7)
-        self.assertEqual(RO.extract_number("am 7 mere"), 7)
-        self.assertEqual(RO.extract_number("3,5"), 3.5)
+        self.assertEqual(extract_number("7", lang="ro"), 7)
+        self.assertEqual(extract_number("am 7 mere", lang="ro"), 7)
+        self.assertEqual(extract_number("3,5", lang="ro"), 3.5)
 
     def test_no_number(self):
-        self.assertFalse(RO.extract_number("nicio cifră aici"))
+        self.assertFalse(extract_number("nicio cifră aici", lang="ro"))
 
     def test_in_sentence(self):
-        self.assertEqual(RO.extract_number("am douăzeci și cinci de mere"), 25)
-        self.assertEqual(RO.extract_number("peste trei zile"), 3)
+        self.assertEqual(extract_number("am douăzeci și cinci de mere", lang="ro"), 25)
+        self.assertEqual(extract_number("peste trei zile", lang="ro"), 3)
 
 
 class TestNumbersToDigitsRO(unittest.TestCase):
 
     def test_plain(self):
-        self.assertEqual(RO.numbers_to_digits("douăzeci și cinci"), "25")
-        self.assertEqual(RO.numbers_to_digits("două sute cincizeci"), "250")
-        self.assertEqual(RO.numbers_to_digits("un milion"), "1000000")
+        self.assertEqual(numbers_to_digits("douăzeci și cinci", lang="ro"), "25")
+        self.assertEqual(numbers_to_digits("două sute cincizeci", lang="ro"), "250")
+        self.assertEqual(numbers_to_digits("un milion", lang="ro"), "1000000")
 
     def test_in_sentence(self):
         self.assertEqual(
-            RO.numbers_to_digits("am douăzeci și cinci de mere și trei pere"),
+            numbers_to_digits("am douăzeci și cinci de mere și trei pere", lang="ro"),
             "am 25 de mere și 3 pere")
 
 
@@ -254,17 +256,17 @@ class TestRoundTripRO(unittest.TestCase):
             2_000_000_001]
         for n in values:
             spoken = RO.pronounce_number(n)
-            self.assertEqual(RO.extract_number(spoken), n, spoken)
+            self.assertEqual(extract_number(spoken, lang="ro"), n, spoken)
 
     def test_round_trip_feminine(self):
         for n in (1, 2, 12, 22, 42, 101):
             spoken = RO.pronounce_number(n, gender=GrammaticalGender.FEMININE)
-            self.assertEqual(RO.extract_number(spoken), n, spoken)
+            self.assertEqual(extract_number(spoken, lang="ro"), n, spoken)
 
     def test_round_trip_ordinals(self):
         for n in (1, 2, 3, 7, 10, 13, 20, 21, 45, 100, 1000):
             spoken = RO.pronounce_ordinal(n)
-            self.assertEqual(RO.extract_number(spoken, ordinals=True), n, spoken)
+            self.assertEqual(extract_number(spoken, ordinals=True, lang="ro"), n, spoken)
             # is_ordinal only matches single ordinal words (plus particle)
             if len(spoken.split()) <= 2:
                 self.assertEqual(RO.is_ordinal(spoken), n, spoken)
@@ -272,7 +274,7 @@ class TestRoundTripRO(unittest.TestCase):
     def test_round_trip_decimals(self):
         for n in (0.5, 5.2, 3.14, 12.34, 100.01):
             spoken = RO.pronounce_number(n)
-            self.assertAlmostEqual(RO.extract_number(spoken), n, places=2,
+            self.assertAlmostEqual(extract_number(spoken, lang="ro"), n, places=2,
                                    msg=spoken)
 
 

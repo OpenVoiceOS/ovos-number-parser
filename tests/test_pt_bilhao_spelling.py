@@ -44,7 +44,7 @@ class TestBilhaoSpelling(unittest.TestCase):
 
     def test_the_spelling_follows_the_scale(self):
         # under the short scale "bilião" is 10^9 in pt-PT; so is "bilhão"
-        self.assertEqual(PT_PT.extract_number("um bilhão", scale=Scale.SHORT),
+        self.assertEqual(extract_number("um bilhão", lang="pt-PT", scale=Scale.SHORT),
                          10 ** 9)
 
     def test_milhao_has_one_spelling(self):
