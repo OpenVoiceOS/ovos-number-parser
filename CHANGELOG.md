@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.3a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.3a1) (2026-11-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.2a1...0.31.3a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): numtag reads the spoken hundreds and ثلثمية; drop 665 xfail rows [\#565](https://github.com/OpenVoiceOS/ovos-number-parser/pull/565) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.2a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.2a1) (2026-11-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.1a6...0.31.2a1)
