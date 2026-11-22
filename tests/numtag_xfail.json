@@ -557,8 +557,6 @@
   "": "https://github.com/TigreGotico/numtag/issues/161"
  },
  "tests/test_number_parser_cs.py::TestCzechExtract::test_extract_negative_and_decimal": {
-  "spoken='mínus sedm'": "https://github.com/TigreGotico/numtag/issues/163",
-  "spoken='mínus čtyřicet dva'": "https://github.com/TigreGotico/numtag/issues/163",
   "spoken='dva tečka pět'": "https://github.com/TigreGotico/numtag/issues/163",
   "spoken='tři tečka jedna čtyři'": "https://github.com/TigreGotico/numtag/issues/163",
   "spoken='mínus tři tečka pět'": "https://github.com/TigreGotico/numtag/issues/163",
@@ -576,8 +574,6 @@
   "number=9999": "https://github.com/TigreGotico/numtag/issues/157"
  },
  "tests/test_number_parser_cs.py::TestCzechRoundTrip::test_round_trip_negative_and_decimal": {
-  "number=-7": "https://github.com/TigreGotico/numtag/issues/163",
-  "number=-42": "https://github.com/TigreGotico/numtag/issues/163",
   "number=2.5": "https://github.com/TigreGotico/numtag/issues/163",
   "number=3.14": "https://github.com/TigreGotico/numtag/issues/163",
   "number=-3.5": "https://github.com/TigreGotico/numtag/issues/163",
