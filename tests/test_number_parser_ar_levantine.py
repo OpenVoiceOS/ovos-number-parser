@@ -113,14 +113,18 @@ class TestLevantineCardinals(unittest.TestCase):
 
     def test_a_composed_number_reads_back(self):
         for value in (13, 22, 33, 350, 3500, 13500, 2018):
-            spoken = pronounce_number(value, lang="apc")
-            self.assertEqual(extract_number(spoken, lang="apc"), value, spoken)
+            with self.subTest(value=value):
+                spoken = pronounce_number(value, lang="apc")
+                self.assertEqual(extract_number(spoken, lang="apc"), value, spoken)
 
     def test_tnen_is_two_only_in_context(self):
         """تنين is also "dragon" (English Wiktionary, تنين, Arabic, Etymology 1)."""
-        self.assertEqual(extract_number("عندي تنين ريال", lang="apc"), 2)
-        self.assertEqual(numbers_to_digits("عندي تنين ريال", lang="apc"), "عندي 2 ريال")
-        self.assertEqual(numbers_to_digits("رأيت تنين في الفيلم", lang="apc"), "رأيت تنين في الفيلم")
+        with self.subTest(case='extract_number("عندي تنين ريال", lang="apc")'):
+            self.assertEqual(extract_number("عندي تنين ريال", lang="apc"), 2)
+        with self.subTest(case='numbers_to_digits("عندي تنين ريال", lang="apc")'):
+            self.assertEqual(numbers_to_digits("عندي تنين ريال", lang="apc"), "عندي 2 ريال")
+        with self.subTest(case='numbers_to_digits("رأيت تنين في الفيلم", lang="apc")'):
+            self.assertEqual(numbers_to_digits("رأيت تنين في الفيلم", lang="apc"), "رأيت تنين في الفيلم")
 
     def test_the_definite_dragon_is_no_number_in_any_lect(self):
         for lang in ("ar", "ar-EG", "arz", "apc"):
@@ -144,23 +148,35 @@ class TestLevantineCardinals(unittest.TestCase):
     def test_the_lect_is_off_again_after_a_call(self):
         """The lect of one call must not reach the next call, nor a helper that
         reads without setting a lect of its own."""
-        self.assertEqual(extract_number("عندي تنين ريال", lang="apc"), 2)
-        self.assertEqual(numbers_to_digits("عندي تنين ريال", lang="apc"), "عندي 2 ريال")
-        self.assertEqual(_tokenize_ar("تنين"), ["تنين"])
-        self.assertIs(extract_number("عندي تنين ريال", lang="ar"), False)
-        self.assertEqual(numbers_to_digits("عندي تنين ريال", lang="ar"), "عندي تنين ريال")
+        with self.subTest(case='extract_number("عندي تنين ريال", lang="apc")'):
+            self.assertEqual(extract_number("عندي تنين ريال", lang="apc"), 2)
+        with self.subTest(case='numbers_to_digits("عندي تنين ريال", lang="apc")'):
+            self.assertEqual(numbers_to_digits("عندي تنين ريال", lang="apc"), "عندي 2 ريال")
+        with self.subTest(case='_tokenize_ar("تنين")'):
+            self.assertEqual(_tokenize_ar("تنين"), ["تنين"])
+        with self.subTest(case='extract_number("عندي تنين ريال", lang="ar")'):
+            self.assertIs(extract_number("عندي تنين ريال", lang="ar"), False)
+        with self.subTest(case='numbers_to_digits("عندي تنين ريال", lang="ar")'):
+            self.assertEqual(numbers_to_digits("عندي تنين ريال", lang="ar"), "عندي تنين ريال")
 
     def test_a_lect_keeps_the_conjunction_the_way_standard_arabic_does(self):
         """A و written onto a number word stays in the text under every lect."""
-        self.assertEqual(numbers_to_digits("كتاب وأربعة", lang="ar"), "كتاب و4")
-        self.assertEqual(numbers_to_digits("كتاب وتلتة", lang="apc"), "كتاب و3")
-        self.assertEqual(numbers_to_digits("1 وتلتة", lang="apc"), "1 و3")
-        self.assertEqual(numbers_to_digits("كتاب وتنين ريال", lang="apc"), "كتاب و2 ريال")
+        with self.subTest(case='numbers_to_digits("كتاب وأربعة", lang="ar")'):
+            self.assertEqual(numbers_to_digits("كتاب وأربعة", lang="ar"), "كتاب و4")
+        with self.subTest(case='numbers_to_digits("كتاب وتلتة", lang="apc")'):
+            self.assertEqual(numbers_to_digits("كتاب وتلتة", lang="apc"), "كتاب و3")
+        with self.subTest(case='numbers_to_digits("1 وتلتة", lang="apc")'):
+            self.assertEqual(numbers_to_digits("1 وتلتة", lang="apc"), "1 و3")
+        with self.subTest(case='numbers_to_digits("كتاب وتنين ريال", lang="apc")'):
+            self.assertEqual(numbers_to_digits("كتاب وتنين ريال", lang="apc"), "كتاب و2 ريال")
 
     def test_apc_reads_its_own_three_and_attributive_teens(self):
-        self.assertEqual(extract_number("تلتة آلاف", lang="apc"), 3000)
-        self.assertEqual(extract_number("تنعشر ألف", lang="apc"), 12000)
-        self.assertEqual(extract_number("تنعشر ألف", lang="ar"), 1000)
+        with self.subTest(case='extract_number("تلتة آلاف", lang="apc")'):
+            self.assertEqual(extract_number("تلتة آلاف", lang="apc"), 3000)
+        with self.subTest(case='extract_number("تنعشر ألف", lang="apc")'):
+            self.assertEqual(extract_number("تنعشر ألف", lang="apc"), 12000)
+        with self.subTest(case='extract_number("تنعشر ألف", lang="ar")'):
+            self.assertEqual(extract_number("تنعشر ألف", lang="ar"), 1000)
 
     def test_feminine_keeps_the_literary_words_below_twenty(self):
         self.assertEqual(pronounce_number(3, lang="apc", gender="feminine"), "ثلاث")

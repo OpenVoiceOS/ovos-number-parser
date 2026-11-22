@@ -438,6 +438,8 @@ def pronounce_ordinal_de(number):
 
 def _get_ordinal_index(input_str: str, type_: type = str):
     warn_reader_removed("_get_ordinal_index", 'ovos_number_parser.is_ordinal(text, "de")')
+    if input_str.endswith(".") and is_numeric_de(input_str[:-1]):
+        return type_(input_str.replace(".", ""))
     value = numtag_readers.is_ordinal(input_str, "de")
     return type_(value) if value else value
 

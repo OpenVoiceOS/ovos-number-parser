@@ -128,11 +128,16 @@ class TestFractionsOC(unittest.TestCase):
         self.assertEqual(OC.pronounce_fraction("1/5"), "un cinquen")
 
     def test_is_fractional(self):
-        self.assertEqual(is_fractional("mièg", "oc"), 0.5)
-        self.assertEqual(is_fractional("mièja", "oc"), 0.5)
-        self.assertEqual(is_fractional("tèrç", "oc"), 1 / 3)
-        self.assertEqual(is_fractional("quart", "oc"), 0.25)
-        self.assertFalse(is_fractional("ostal", "oc"))
+        with self.subTest(case='is_fractional("mièg", "oc")'):
+            self.assertEqual(is_fractional("mièg", "oc"), 0.5)
+        with self.subTest(case='is_fractional("mièja", "oc")'):
+            self.assertEqual(is_fractional("mièja", "oc"), 0.5)
+        with self.subTest(case='is_fractional("tèrç", "oc")'):
+            self.assertEqual(is_fractional("tèrç", "oc"), 1 / 3)
+        with self.subTest(case='is_fractional("quart", "oc")'):
+            self.assertEqual(is_fractional("quart", "oc"), 0.25)
+        with self.subTest(case='is_fractional("ostal", "oc")'):
+            self.assertFalse(is_fractional("ostal", "oc"))
 
 
 class TestExtractOC(unittest.TestCase):

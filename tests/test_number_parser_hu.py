@@ -92,10 +92,14 @@ class TestExtractNumberHu(unittest.TestCase):
 
 class TestHelpersHu(unittest.TestCase):
     def test_is_fractional(self):
-        self.assertEqual(is_fractional("fél", "hu"), 0.5)
-        self.assertAlmostEqual(is_fractional("harmad", "hu"), 1 / 3)
-        self.assertEqual(is_fractional("negyed", "hu"), 0.25)
-        self.assertFalse(is_fractional("macska", "hu"))
+        with self.subTest(case='is_fractional("fél", "hu")'):
+            self.assertEqual(is_fractional("fél", "hu"), 0.5)
+        with self.subTest(case='is_fractional("harmad", "hu")'):
+            self.assertAlmostEqual(is_fractional("harmad", "hu"), 1 / 3)
+        with self.subTest(case='is_fractional("negyed", "hu")'):
+            self.assertEqual(is_fractional("negyed", "hu"), 0.25)
+        with self.subTest(case='is_fractional("macska", "hu")'):
+            self.assertFalse(is_fractional("macska", "hu"))
 
     def test_is_ordinal(self):
         self.assertEqual(is_ordinal("első", "hu"), 1)

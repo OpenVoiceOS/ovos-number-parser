@@ -53,13 +53,15 @@ class TestNajdiCardinals(unittest.TestCase):
 
     def test_every_whole_number_to_ten_thousand_reads_back(self):
         for number in range(10001):
-            spoken = say(number)
-            self.assertEqual(read(spoken), number, spoken)
+            with self.subTest(number=number):
+                spoken = say(number)
+                self.assertEqual(read(spoken), number, spoken)
 
     def test_every_year_from_1990_to_2100_reads_back(self):
         for year in range(1990, 2101):
-            spoken = say(year)
-            self.assertEqual(read(spoken), year, spoken)
+            with self.subTest(year=year):
+                spoken = say(year)
+                self.assertEqual(read(spoken), year, spoken)
 
 
 class TestSpokenHalf(unittest.TestCase):
@@ -71,7 +73,8 @@ class TestSpokenHalf(unittest.TestCase):
                 self.assertEqual(read(text), value)
 
     def test_it_converts_to_digits(self):
-        self.assertEqual(numbers_to_digits("خمسة ونص ريال", lang="ars"), "5.5 ريال")
+        with self.subTest(case='numbers_to_digits("خمسة ونص ريال", lang="ars")'):
+            self.assertEqual(numbers_to_digits("خمسة ونص ريال", lang="ars"), "5.5 ريال")
 
     def test_after_a_clock_hour_it_is_left_unread(self):
         """After الساعة the half is thirty minutes past the hour, not 0.5."""

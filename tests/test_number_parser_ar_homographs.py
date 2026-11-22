@@ -99,12 +99,15 @@ class TestLicensed(unittest.TestCase):
         for word, value in (("مية", 100), ("المية", 100), ("ميتين", 200),
                             ("الميتين", 200), ("ميت", 100), ("التلات", 3),
                             ("الاتنين", 2), ("الاثنين", 2), ("الست", 6)):
-            for scale, factor in (("الف", 1000), ("مليون", 1000000)):
-                text = f"دفعت {word} {scale}"
-                with self.subTest(text=text):
-                    self.assertEqual([span.value for span in extract_number_spans(text, "ar")],
-                                     [value * factor])
-        self.assertEqual([span.value for span in extract_number_spans("يوم التلات الف", "ar")], [3000])
+            with self.subTest(word=word, value=value):
+                for scale, factor in (("الف", 1000), ("مليون", 1000000)):
+                    with self.subTest(scale=scale, factor=factor):
+                        text = f"دفعت {word} {scale}"
+                        with self.subTest(text=text):
+                            self.assertEqual([span.value for span in extract_number_spans(text, "ar")],
+                                         [value * factor])
+        with self.subTest(case='[span.value for span in extract_number_spans("يوم التلات الف", "ar")]'):
+            self.assertEqual([span.value for span in extract_number_spans("يوم التلات الف", "ar")], [3000])
 
 
 if __name__ == "__main__":

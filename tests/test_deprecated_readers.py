@@ -112,9 +112,23 @@ class TestOrdinalAndHelperShims(unittest.TestCase):
         self.assertEqual(_get_ordinal_index("dritte", int), 3)
         self.assertIs(_get_ordinal_index("Haus"), False)
 
+    def test_get_ordinal_index_keeps_a_day_written_with_a_dot(self):
+        # "am 15. Juni": ovos-date-parser 0.29.0 passes each word, "15." included
+        self.assertEqual(_get_ordinal_index("15."), "15")
+        self.assertEqual(_get_ordinal_index("15.", int), 15)
+        self.assertEqual(_get_ordinal_index("3."), "3")
+        self.assertIs(_get_ordinal_index("15"), False)
+
     def test_find_numbers_in_text_pairs_each_token_with_its_number(self):
         # tokens come back in reverse order; "sju" is 7
         tokens = [Token("sju", 0), Token("dagar", 1)]
         with self.assertWarnsRegex(DeprecationWarning, "_find_numbers_in_text"):
             parts = _find_numbers_in_text(tokens)
         self.assertEqual([(value, token.word) for value, token in parts], [(None, "dagar"), (7, "sju")])
+
+    def test_find_numbers_in_text_reads_kvart_as_a_quarter_of_an_hour(self):
+        # "om en kvart": a quarter, and the unit "timmar" in front of it
+        tokens = [Token("en", 0), Token("kvart", 1)]
+        parts = _find_numbers_in_text(tokens)
+        self.assertEqual([(value, token.word) for value, token in parts],
+                         [(None, "timmar"), (0.25, "kvart"), (1, "en")])

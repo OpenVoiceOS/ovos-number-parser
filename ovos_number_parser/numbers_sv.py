@@ -373,7 +373,7 @@ def _find_numbers_in_text(tokens):
     warn_reader_removed("_find_numbers_in_text", 'ovos_number_parser.extract_number_spans(text, "sv")')
     parts = []
     for tok in tokens:
-        res = numtag_readers.extract_number(tok.word, "sv")
+        res = 0.25 if tok.word == 'kvart' else numtag_readers.extract_number(tok.word, "sv")
         if res:
             parts.insert(0, (res, tok))
             # Special case for quarter of an hour

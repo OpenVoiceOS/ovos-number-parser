@@ -75,12 +75,16 @@ class TestPronounceUpTo999_AST(unittest.TestCase):
 class TestFractionsAst(unittest.TestCase):
 
     def test_basic_fraction_words(self):
-        self.assertAlmostEqual(is_fractional("mediu", "ast"), 0.5)
-        self.assertAlmostEqual(is_fractional("terciu", "ast"), 1/3)
+        with self.subTest(case='is_fractional("mediu", "ast")'):
+            self.assertAlmostEqual(is_fractional("mediu", "ast"), 0.5)
+        with self.subTest(case='is_fractional("terciu", "ast")'):
+            self.assertAlmostEqual(is_fractional("terciu", "ast"), 1/3)
 
     def test_fraction_plurals(self):
-        self.assertAlmostEqual(is_fractional("medios", "ast"), 0.5)
-        self.assertAlmostEqual(is_fractional("cuartos", "ast"), 1/4)
+        with self.subTest(case='is_fractional("medios", "ast")'):
+            self.assertAlmostEqual(is_fractional("medios", "ast"), 0.5)
+        with self.subTest(case='is_fractional("cuartos", "ast")'):
+            self.assertAlmostEqual(is_fractional("cuartos", "ast"), 1/4)
 
     def test_fraction_pronounce(self):
         result = AST.pronounce_fraction("1/4")

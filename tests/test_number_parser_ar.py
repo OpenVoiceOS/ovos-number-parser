@@ -132,13 +132,20 @@ class TestArabicExtract(unittest.TestCase):
         self.assertIn(extract_number("", lang="ar"), (False, None))
 
     def test_is_fractional(self):
-        self.assertEqual(is_fractional("نصف", lang="ar"), 0.5)
-        self.assertEqual(is_fractional("ربع", lang="ar"), 0.25)
-        self.assertEqual(is_fractional("الربع", lang="ar"), 0.25)
-        self.assertAlmostEqual(is_fractional("ثلث", lang="ar"), 1 / 3)
-        self.assertAlmostEqual(is_fractional("خمس", lang="ar"), 0.2)
-        self.assertAlmostEqual(is_fractional("عشر", lang="ar"), 0.1)
-        self.assertFalse(is_fractional("كتاب", lang="ar"))
+        with self.subTest(case='is_fractional("نصف", lang="ar")'):
+            self.assertEqual(is_fractional("نصف", lang="ar"), 0.5)
+        with self.subTest(case='is_fractional("ربع", lang="ar")'):
+            self.assertEqual(is_fractional("ربع", lang="ar"), 0.25)
+        with self.subTest(case='is_fractional("الربع", lang="ar")'):
+            self.assertEqual(is_fractional("الربع", lang="ar"), 0.25)
+        with self.subTest(case='is_fractional("ثلث", lang="ar")'):
+            self.assertAlmostEqual(is_fractional("ثلث", lang="ar"), 1 / 3)
+        with self.subTest(case='is_fractional("خمس", lang="ar")'):
+            self.assertAlmostEqual(is_fractional("خمس", lang="ar"), 0.2)
+        with self.subTest(case='is_fractional("عشر", lang="ar")'):
+            self.assertAlmostEqual(is_fractional("عشر", lang="ar"), 0.1)
+        with self.subTest(case='is_fractional("كتاب", lang="ar")'):
+            self.assertFalse(is_fractional("كتاب", lang="ar"))
 
     def test_is_ordinal(self):
         self.assertEqual(is_ordinal("الأول", lang="ar"), 1)

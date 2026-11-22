@@ -149,9 +149,12 @@ class TestIsFractionalPt(unittest.TestCase):
 
     def test_basic_fractions(self):
         """Test basic fraction recognition."""
-        self.assertEqual(is_fractional("meio", "pt-PT"), 0.5)
-        self.assertEqual(is_fractional("terço", "pt-PT"), 1.0 / 3)
-        self.assertEqual(is_fractional("quarto", "pt-PT"), 0.25)
+        with self.subTest(case='is_fractional("meio", "pt-PT")'):
+            self.assertEqual(is_fractional("meio", "pt-PT"), 0.5)
+        with self.subTest(case='is_fractional("terço", "pt-PT")'):
+            self.assertEqual(is_fractional("terço", "pt-PT"), 1.0 / 3)
+        with self.subTest(case='is_fractional("quarto", "pt-PT")'):
+            self.assertEqual(is_fractional("quarto", "pt-PT"), 0.25)
 
     def test_meia_variant(self):
         """Test 'meia' as variant of 'meio'."""
@@ -159,15 +162,21 @@ class TestIsFractionalPt(unittest.TestCase):
 
     def test_plural_forms(self):
         """Test plural forms of fractions."""
-        self.assertEqual(is_fractional("meios", "pt-PT"), 0.5)
-        self.assertEqual(is_fractional("terços", "pt-PT"), 1.0 / 3)
-        self.assertEqual(is_fractional("quartos", "pt-PT"), 0.25)
+        with self.subTest(case='is_fractional("meios", "pt-PT")'):
+            self.assertEqual(is_fractional("meios", "pt-PT"), 0.5)
+        with self.subTest(case='is_fractional("terços", "pt-PT")'):
+            self.assertEqual(is_fractional("terços", "pt-PT"), 1.0 / 3)
+        with self.subTest(case='is_fractional("quartos", "pt-PT")'):
+            self.assertEqual(is_fractional("quartos", "pt-PT"), 0.25)
 
     def test_special_fractions(self):
         """Test special fraction forms."""
-        self.assertEqual(is_fractional("décimo", "pt-PT"), 0.1)
-        self.assertEqual(is_fractional("vigésimo", "pt-PT"), 0.05)
-        self.assertEqual(is_fractional("centésimo", "pt-PT"), 0.01)
+        with self.subTest(case='is_fractional("décimo", "pt-PT")'):
+            self.assertEqual(is_fractional("décimo", "pt-PT"), 0.1)
+        with self.subTest(case='is_fractional("vigésimo", "pt-PT")'):
+            self.assertEqual(is_fractional("vigésimo", "pt-PT"), 0.05)
+        with self.subTest(case='is_fractional("centésimo", "pt-PT")'):
+            self.assertEqual(is_fractional("centésimo", "pt-PT"), 0.01)
 
     def test_compound_fractions(self):
         """Test compound fraction forms like 'onze avos'."""
@@ -180,14 +189,19 @@ class TestIsFractionalPt(unittest.TestCase):
 
     def test_case_insensitive(self):
         """Test case insensitive matching."""
-        self.assertEqual(is_fractional("MEIO", "pt-PT"), 0.5)
-        self.assertEqual(is_fractional("Terço", "pt-PT"), 1.0 / 3)
-        self.assertEqual(is_fractional("MEIA", "pt-PT"), 0.5)
+        with self.subTest(case='is_fractional("MEIO", "pt-PT")'):
+            self.assertEqual(is_fractional("MEIO", "pt-PT"), 0.5)
+        with self.subTest(case='is_fractional("Terço", "pt-PT")'):
+            self.assertEqual(is_fractional("Terço", "pt-PT"), 1.0 / 3)
+        with self.subTest(case='is_fractional("MEIA", "pt-PT")'):
+            self.assertEqual(is_fractional("MEIA", "pt-PT"), 0.5)
 
     def test_whitespace_handling(self):
         """Test whitespace handling."""
-        self.assertEqual(is_fractional("  meio  ", "pt-PT"), 0.5)
-        self.assertEqual(is_fractional("\tterço\n", "pt-PT"), 1.0 / 3)
+        with self.subTest(case='is_fractional(" meio ", "pt-PT")'):
+            self.assertEqual(is_fractional("  meio  ", "pt-PT"), 0.5)
+        with self.subTest(case='is_fractional("\\tterço\\n", "pt-PT")'):
+            self.assertEqual(is_fractional("\tterço\n", "pt-PT"), 1.0 / 3)
 
     def test_non_fractions(self):
         """Test non-fraction strings return False."""

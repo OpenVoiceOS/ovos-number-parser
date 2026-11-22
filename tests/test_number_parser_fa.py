@@ -126,7 +126,8 @@ class TestPersianExtractAdversarial(unittest.TestCase):
 
 class TestPersianFractional(unittest.TestCase):
     def test_third(self):
-        self.assertAlmostEqual(is_fractional("سوم", "fa"), 1.0 / 3.0)
+        with self.subTest(case='is_fractional("سوم", "fa")'):
+            self.assertAlmostEqual(is_fractional("سوم", "fa"), 1.0 / 3.0)
 
     def test_half(self):
         self.assertEqual(is_fractional("نیم", "fa"), 0.5)
@@ -179,11 +180,14 @@ class TestPersianOrdinalsUnderTheFlag(unittest.TestCase):
         single = {n: pronounce_ordinal_fa(n) for n in range(1, 1001)}
         single = {n: w for n, w in single.items() if " " not in w}
         # 30th and 50th carry the suffix after a zero-width non-joiner
-        self.assertEqual(single[30], "سی\u200cام")
-        self.assertEqual(single[50], "پنجاه\u200cام")
+        with self.subTest(case='single[30]'):
+            self.assertEqual(single[30], "سی\u200cام")
+        with self.subTest(case='single[50]'):
+            self.assertEqual(single[50], "پنجاه\u200cام")
         wrong = {n: is_ordinal(w, "fa") for n, w in single.items()
                  if is_ordinal(w, "fa") != n}
-        self.assertEqual(wrong, {})
+        with self.subTest(case='wrong'):
+            self.assertEqual(wrong, {})
 
 
 if __name__ == "__main__":

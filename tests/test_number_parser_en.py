@@ -88,12 +88,18 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(pronounce_number_en(-3.5), "minus three point five")
 
     def test_fractional_and_ordinal_en(self):
-        self.assertEqual(is_fractional("half", "en"), 0.5)
-        self.assertEqual(is_fractional("quarter", "en"), 0.25)
-        self.assertFalse(is_fractional("banana", "en"))
-        self.assertEqual(is_ordinal("first", "en"), 1)
-        self.assertEqual(is_ordinal("fifth", "en"), 5)
-        self.assertFalse(is_ordinal("seven", "en"))
+        with self.subTest(case='is_fractional("half", "en")'):
+            self.assertEqual(is_fractional("half", "en"), 0.5)
+        with self.subTest(case='is_fractional("quarter", "en")'):
+            self.assertEqual(is_fractional("quarter", "en"), 0.25)
+        with self.subTest(case='is_fractional("banana", "en")'):
+            self.assertFalse(is_fractional("banana", "en"))
+        with self.subTest(case='is_ordinal("first", "en")'):
+            self.assertEqual(is_ordinal("first", "en"), 1)
+        with self.subTest(case='is_ordinal("fifth", "en")'):
+            self.assertEqual(is_ordinal("fifth", "en"), 5)
+        with self.subTest(case='is_ordinal("seven", "en")'):
+            self.assertFalse(is_ordinal("seven", "en"))
 
     def test_hundred_and_units_combine(self):
         # "X hundred and Y" is a single number: hundreds and units must fuse

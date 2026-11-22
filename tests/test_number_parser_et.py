@@ -102,8 +102,9 @@ class TestExtractNumberEt(unittest.TestCase):
 
     def test_ordinal_roundtrip_sweep(self):
         for n in list(range(1, 101)) + [200, 1000, 1000000]:
-            spoken = pronounce_ordinal(n, "et")
-            self.assertEqual(is_ordinal(spoken, "et"), n, spoken)
+            with self.subTest(n=n):
+                spoken = pronounce_ordinal(n, "et")
+                self.assertEqual(is_ordinal(spoken, "et"), n, spoken)
 
 
 class TestLongScaleEt(unittest.TestCase):

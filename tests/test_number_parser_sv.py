@@ -8,17 +8,26 @@ class TestSwedishFractions(unittest.TestCase):
     """Swedish fraction nouns, including inflected and capitalized forms."""
 
     def test_basic_and_inflected(self):
-        self.assertEqual(is_fractional("halv", lang="sv"), 0.5)
-        self.assertEqual(is_fractional("halva", lang="sv"), 0.5)
-        self.assertEqual(is_fractional("tredjedel", lang="sv"), 1.0 / 3)
-        self.assertEqual(is_fractional("fjärdedel", lang="sv"), 0.25)
-        self.assertEqual(is_fractional("kvart", lang="sv"), 0.25)
-        self.assertEqual(is_fractional("trekvart", lang="sv"), 0.75)
+        with self.subTest(case='is_fractional("halv", lang="sv")'):
+            self.assertEqual(is_fractional("halv", lang="sv"), 0.5)
+        with self.subTest(case='is_fractional("halva", lang="sv")'):
+            self.assertEqual(is_fractional("halva", lang="sv"), 0.5)
+        with self.subTest(case='is_fractional("tredjedel", lang="sv")'):
+            self.assertEqual(is_fractional("tredjedel", lang="sv"), 1.0 / 3)
+        with self.subTest(case='is_fractional("fjärdedel", lang="sv")'):
+            self.assertEqual(is_fractional("fjärdedel", lang="sv"), 0.25)
+        with self.subTest(case='is_fractional("kvart", lang="sv")'):
+            self.assertEqual(is_fractional("kvart", lang="sv"), 0.25)
+        with self.subTest(case='is_fractional("trekvart", lang="sv")'):
+            self.assertEqual(is_fractional("trekvart", lang="sv"), 0.75)
 
     def test_capitalized_input_does_not_crash(self):
-        self.assertEqual(is_fractional("Halv", lang="sv"), 0.5)
-        self.assertEqual(is_fractional("HALV", lang="sv"), 0.5)
-        self.assertEqual(is_fractional("Kvart", lang="sv"), 0.25)
+        with self.subTest(case='is_fractional("Halv", lang="sv")'):
+            self.assertEqual(is_fractional("Halv", lang="sv"), 0.5)
+        with self.subTest(case='is_fractional("HALV", lang="sv")'):
+            self.assertEqual(is_fractional("HALV", lang="sv"), 0.5)
+        with self.subTest(case='is_fractional("Kvart", lang="sv")'):
+            self.assertEqual(is_fractional("Kvart", lang="sv"), 0.25)
 
     def test_non_fraction_returns_false(self):
         for word in ["", "hej", "fem"]:

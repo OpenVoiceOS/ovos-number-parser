@@ -28,19 +28,26 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
                          [500, 20000])
 
     def test_or_between_equal_magnitudes_stays_or(self):
-        self.assertEqual(extract_number_ar("الف او الفين"), 1000)
-        self.assertEqual(extract_number_ar("ثلاثة او اربعة"), 3)
+        with self.subTest(case='extract_number_ar("الف او الفين")'):
+            self.assertEqual(extract_number_ar("الف او الفين"), 1000)
+        with self.subTest(case='extract_number_ar("ثلاثة او اربعة")'):
+            self.assertEqual(extract_number_ar("ثلاثة او اربعة"), 3)
         # مية before او has nothing that makes it a number and stays a word;
         # the second one starts "مية وخمسين"
-        self.assertEqual([span.value for span in extract_number_spans("مية او مية وخمسين", "ar")], [150])
-        self.assertEqual(extract_number_ar("عشرين او ثلاثين"), 20)
-        self.assertEqual(extract_number_ar("ثلاثمية او اربعمية"), 300)
+        with self.subTest(case='[span.value for span in extract_number_spans("مية او مية وخمسين", "ar")]'):
+            self.assertEqual([span.value for span in extract_number_spans("مية او مية وخمسين", "ar")], [150])
+        with self.subTest(case='extract_number_ar("عشرين او ثلاثين")'):
+            self.assertEqual(extract_number_ar("عشرين او ثلاثين"), 20)
+        with self.subTest(case='extract_number_ar("ثلاثمية او اربعمية")'):
+            self.assertEqual(extract_number_ar("ثلاثمية او اربعمية"), 300)
 
     def test_or_after_a_hundred_stays_or(self):
         # "a hundred or two", "a hundred or twenty": two amounts
         # او is "or" and does not make مية a number: مية stays a word
-        self.assertEqual([span.value for span in extract_number_spans("مية او اثنين", "ar")], [2])
-        self.assertEqual([span.value for span in extract_number_spans("مية او عشرين", "ar")], [20])
+        with self.subTest(case='[span.value for span in extract_number_spans("مية او اثنين", "ar")]'):
+            self.assertEqual([span.value for span in extract_number_spans("مية او اثنين", "ar")], [2])
+        with self.subTest(case='[span.value for span in extract_number_spans("مية او عشرين", "ar")]'):
+            self.assertEqual([span.value for span in extract_number_spans("مية او عشرين", "ar")], [20])
 
     def test_or_between_scales_stays_or(self):
         # "two or three thousand"
@@ -88,10 +95,13 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
 
     def test_proclitic_leaves_water_and_per_cent_alone(self):
         # ميه is "water" as well as the hundred: بميه inside text is "with water"
-        self.assertEqual([span.value for span in extract_number_spans("اغسله بميه سخنة", "ar")], [])
+        with self.subTest(case='[span.value for span in extract_number_spans("اغسله بميه سخنة", "ar")]'):
+            self.assertEqual([span.value for span in extract_number_spans("اغسله بميه سخنة", "ar")], [])
         # the hundred with the article after ب is "per cent"
-        self.assertEqual([span.value for span in extract_number_spans("عشرة بالمية", "ar")], [10])
-        self.assertEqual([span.value for span in extract_number_spans("عشرة بالمئة", "ar")], [10])
+        with self.subTest(case='[span.value for span in extract_number_spans("عشرة بالمية", "ar")]'):
+            self.assertEqual([span.value for span in extract_number_spans("عشرة بالمية", "ar")], [10])
+        with self.subTest(case='[span.value for span in extract_number_spans("عشرة بالمئة", "ar")]'):
+            self.assertEqual([span.value for span in extract_number_spans("عشرة بالمئة", "ar")], [10])
 
     def test_proclitic_stays_on_the_digits(self):
         self.assertEqual(numbers_to_digits("دفعت بالفين", lang="ar"),
@@ -106,9 +116,12 @@ class TestArabicGulfNumberJoins(unittest.TestCase):
 
     def test_or_before_millions_stays_or(self):
         # "nine hundred or ten million", "a hundred or two million"
-        self.assertEqual(extract_number_ar("تسعمية او عشرة ملايين"), 900)
-        self.assertEqual([span.value for span in extract_number_spans("مية او اثنين مليون", "ar")], [2000000])
-        self.assertEqual(extract_number_ar("خمسمية او ثلاثة مليار"), 500)
+        with self.subTest(case='extract_number_ar("تسعمية او عشرة ملايين")'):
+            self.assertEqual(extract_number_ar("تسعمية او عشرة ملايين"), 900)
+        with self.subTest(case='[span.value for span in extract_number_spans("مية او اثنين مليون", "ar")]'):
+            self.assertEqual([span.value for span in extract_number_spans("مية او اثنين مليون", "ar")], [2000000])
+        with self.subTest(case='extract_number_ar("خمسمية او ثلاثة مليار")'):
+            self.assertEqual(extract_number_ar("خمسمية او ثلاثة مليار"), 500)
 
 
 if __name__ == "__main__":

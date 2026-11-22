@@ -83,12 +83,17 @@ class TestExtractNumberSl(unittest.TestCase):
 
 class TestHelpersSl(unittest.TestCase):
     def test_is_fractional(self):
-        self.assertEqual(is_fractional("polovica", "sl"), 0.5)
-        self.assertAlmostEqual(is_fractional("tretjina", "sl"), 1 / 3)
+        with self.subTest(case='is_fractional("polovica", "sl")'):
+            self.assertEqual(is_fractional("polovica", "sl"), 0.5)
+        with self.subTest(case='is_fractional("tretjina", "sl")'):
+            self.assertAlmostEqual(is_fractional("tretjina", "sl"), 1 / 3)
         # inflected forms used after numerals
-        self.assertAlmostEqual(is_fractional("tretjini", "sl"), 1 / 3)
-        self.assertAlmostEqual(is_fractional("tretjine", "sl"), 1 / 3)
-        self.assertFalse(is_fractional("mačka", "sl"))
+        with self.subTest(case='is_fractional("tretjini", "sl")'):
+            self.assertAlmostEqual(is_fractional("tretjini", "sl"), 1 / 3)
+        with self.subTest(case='is_fractional("tretjine", "sl")'):
+            self.assertAlmostEqual(is_fractional("tretjine", "sl"), 1 / 3)
+        with self.subTest(case='is_fractional("mačka", "sl")'):
+            self.assertFalse(is_fractional("mačka", "sl"))
 
     def test_is_ordinal(self):
         self.assertEqual(is_ordinal("prvi", "sl"), 1)

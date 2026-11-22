@@ -321,15 +321,22 @@ class TestBasqueFractions(unittest.TestCase):
     """Basque fraction nouns, including capitalized forms."""
 
     def test_basic(self):
-        self.assertEqual(is_fractional("erdi", lang="eu"), 0.5)
-        self.assertEqual(is_fractional("heren", lang="eu"), 1.0 / 3)
-        self.assertEqual(is_fractional("laurden", lang="eu"), 0.25)
-        self.assertEqual(is_fractional("ehunen", lang="eu"), 0.01)
+        with self.subTest(case='is_fractional("erdi", lang="eu")'):
+            self.assertEqual(is_fractional("erdi", lang="eu"), 0.5)
+        with self.subTest(case='is_fractional("heren", lang="eu")'):
+            self.assertEqual(is_fractional("heren", lang="eu"), 1.0 / 3)
+        with self.subTest(case='is_fractional("laurden", lang="eu")'):
+            self.assertEqual(is_fractional("laurden", lang="eu"), 0.25)
+        with self.subTest(case='is_fractional("ehunen", lang="eu")'):
+            self.assertEqual(is_fractional("ehunen", lang="eu"), 0.01)
 
     def test_capitalized_input_does_not_crash(self):
-        self.assertEqual(is_fractional("Erdi", lang="eu"), 0.5)
-        self.assertEqual(is_fractional("LAURDEN", lang="eu"), 0.25)
-        self.assertEqual(is_fractional("Ehunen", lang="eu"), 0.01)
+        with self.subTest(case='is_fractional("Erdi", lang="eu")'):
+            self.assertEqual(is_fractional("Erdi", lang="eu"), 0.5)
+        with self.subTest(case='is_fractional("LAURDEN", lang="eu")'):
+            self.assertEqual(is_fractional("LAURDEN", lang="eu"), 0.25)
+        with self.subTest(case='is_fractional("Ehunen", lang="eu")'):
+            self.assertEqual(is_fractional("Ehunen", lang="eu"), 0.01)
 
     def test_non_fraction_returns_false(self):
         for word in ["", "kaixo", "bost"]:

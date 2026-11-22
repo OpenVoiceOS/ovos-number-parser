@@ -80,10 +80,14 @@ class TestWestFrisianExtract(unittest.TestCase):
             extract_number('ik haw ienentweintich katten', lang="fy"), 21)
 
     def test_is_fractional(self):
-        self.assertEqual(is_fractional("heal", lang="fy"), 0.5)
-        self.assertEqual(is_fractional("kwart", lang="fy"), 0.25)
-        self.assertEqual(is_fractional("tredde", lang="fy"), 1.0 / 3)
-        self.assertFalse(is_fractional("hynder", lang="fy"))
+        with self.subTest(case='is_fractional("heal", lang="fy")'):
+            self.assertEqual(is_fractional("heal", lang="fy"), 0.5)
+        with self.subTest(case='is_fractional("kwart", lang="fy")'):
+            self.assertEqual(is_fractional("kwart", lang="fy"), 0.25)
+        with self.subTest(case='is_fractional("tredde", lang="fy")'):
+            self.assertEqual(is_fractional("tredde", lang="fy"), 1.0 / 3)
+        with self.subTest(case='is_fractional("hynder", lang="fy")'):
+            self.assertFalse(is_fractional("hynder", lang="fy"))
 
     def test_no_number(self):
         self.assertIn(extract_number("hoi hoe giet it", lang="fy"),

@@ -63,30 +63,42 @@ class TestAlgerianCardinals(unittest.TestCase):
 
     def test_a_composed_number_reads_back(self):
         for value in (11, 13, 19, 300, 350, 400, 2018, 11000):
-            spoken = pronounce_number(value, lang="arq")
-            self.assertEqual(extract_number(spoken, lang="arq"), value, spoken)
+            with self.subTest(value=value):
+                spoken = pronounce_number(value, lang="arq")
+                self.assertEqual(extract_number(spoken, lang="arq"), value, spoken)
 
     def test_ben_sedira_three_hundred_is_read_only_as_arq(self):
         """ثلثمية is the book's ثلث مية "thelth mia", "Trois cents". ثلث is also "a third"."""
-        self.assertEqual(extract_number("ثلثمية وخمسين", lang="arq"), 350)
+        with self.subTest(case='extract_number("ثلثمية وخمسين", lang="arq")'):
+            self.assertEqual(extract_number("ثلثمية وخمسين", lang="arq"), 350)
         for lang in ("ar", "ar-DZ", "arz"):
-            self.assertIs(extract_number("ثلثمية", lang=lang), False, lang)
-            self.assertEqual(numbers_to_digits("ثلثمية", lang=lang), "ثلثمية", lang)
+            with self.subTest(lang=lang):
+                self.assertIs(extract_number("ثلثمية", lang=lang), False, lang)
+                self.assertEqual(numbers_to_digits("ثلثمية", lang=lang), "ثلثمية", lang)
 
     def test_the_printed_two_word_three_hundred_reads_300_as_arq(self):
         """Ben Sedira p. XLV prints 300 as ثلث مية. ثلث alone stays "a third"."""
-        self.assertEqual(extract_number("ثلث مية", lang="arq"), 300)
-        self.assertEqual(extract_number("ثلث مية وخمسين", lang="arq"), 350)
-        self.assertEqual(numbers_to_digits("عندي ثلث مية ريال", lang="arq"), "عندي 300 ريال")
-        self.assertEqual(extract_number("ثلث", lang="arq"), 1 / 3)
-        self.assertEqual(numbers_to_digits("أكلت ثلث الكعكة", lang="arq"), "أكلت ثلث الكعكة")
+        with self.subTest(case='extract_number("ثلث مية", lang="arq")'):
+            self.assertEqual(extract_number("ثلث مية", lang="arq"), 300)
+        with self.subTest(case='extract_number("ثلث مية وخمسين", lang="arq")'):
+            self.assertEqual(extract_number("ثلث مية وخمسين", lang="arq"), 350)
+        with self.subTest(case='numbers_to_digits("عندي ثلث مية ريال", lang="arq")'):
+            self.assertEqual(numbers_to_digits("عندي ثلث مية ريال", lang="arq"), "عندي 300 ريال")
+        with self.subTest(case='extract_number("ثلث", lang="arq")'):
+            self.assertEqual(extract_number("ثلث", lang="arq"), 1 / 3)
+        with self.subTest(case='numbers_to_digits("أكلت ثلث الكعكة", lang="arq")'):
+            self.assertEqual(numbers_to_digits("أكلت ثلث الكعكة", lang="arq"), "أكلت ثلث الكعكة")
         for lang in ("ar", "ar-DZ", "arz"):
-            self.assertEqual(extract_number("ثلث مية", lang=lang), 1 / 3, lang)
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number("ثلث مية", lang=lang), 1 / 3, lang)
 
     def test_arq_keeps_the_conjunction_on_its_own_words(self):
-        self.assertEqual(numbers_to_digits("1 وثلثمية", lang="arq"), "1 و300")
-        self.assertEqual(numbers_to_digits("كتاب وثلثاش", lang="arq"), "كتاب و13")
-        self.assertEqual(numbers_to_digits("كتاب وأربعة", lang="ar"), "كتاب و4")
+        with self.subTest(case='numbers_to_digits("1 وثلثمية", lang="arq")'):
+            self.assertEqual(numbers_to_digits("1 وثلثمية", lang="arq"), "1 و300")
+        with self.subTest(case='numbers_to_digits("كتاب وثلثاش", lang="arq")'):
+            self.assertEqual(numbers_to_digits("كتاب وثلثاش", lang="arq"), "كتاب و13")
+        with self.subTest(case='numbers_to_digits("كتاب وأربعة", lang="ar")'):
+            self.assertEqual(numbers_to_digits("كتاب وأربعة", lang="ar"), "كتاب و4")
 
     def test_other_lects_read_the_two_words_as_dev_does(self):
         """Only arq joins ثلث مية. Everywhere else the two words are "a third" and
