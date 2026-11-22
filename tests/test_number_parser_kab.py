@@ -149,8 +149,10 @@ class TestExtractNumberKab(unittest.TestCase):
 
 class TestIsFractionalKab(unittest.TestCase):
     def test_half(self):
-        self.assertEqual(is_fractional("azgen", "kab"), 0.5)
-        self.assertEqual(is_fractional("nnefṣ", "kab"), 0.5)
+        with self.subTest(case='is_fractional("azgen", "kab")'):
+            self.assertEqual(is_fractional("azgen", "kab"), 0.5)
+        with self.subTest(case='is_fractional("nnefṣ", "kab")'):
+            self.assertEqual(is_fractional("nnefṣ", "kab"), 0.5)
 
     def test_amazigh_fractions(self):
         cases = [
@@ -159,7 +161,8 @@ class TestIsFractionalKab(unittest.TestCase):
             ("aftam", 0.125), ("afṭza", 1/9)
         ]
         for spoken, expected in cases:
-            self.assertAlmostEqual(is_fractional(spoken, "kab"), expected, places=5)
+            with self.subTest(spoken=spoken, expected=expected):
+                self.assertAlmostEqual(is_fractional(spoken, "kab"), expected, places=5)
 
     def test_not_fraction(self):
         self.assertFalse(is_fractional("xyzzy", "kab"))

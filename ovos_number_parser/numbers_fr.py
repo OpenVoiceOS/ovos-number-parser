@@ -881,39 +881,6 @@ def _number_ordinal_fr(words, i):
     return None
 
 
-def is_fractional_fr(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    input_str = input_str.lower()
-
-    if input_str != "tiers" and input_str.endswith('s', -1):
-        input_str = input_str[:len(input_str) - 1]  # e.g. "quarts"
-
-    aFrac = ["entier", "demi", "tiers", "quart", "cinquième", "sixième",
-             "septième", "huitième", "neuvième", "dixième", "onzième",
-             "douzième", "treizième", "quatorzième", "quinzième", "seizième",
-             "dix-septième", "dix-huitième", "dix-neuvième", "vingtième"]
-
-    if input_str in aFrac:
-        return 1.0 / (aFrac.index(input_str) + 1)
-    if _get_ordinal_fr(input_str):
-        return 1.0 / _get_ordinal_fr(input_str)
-    if input_str == "trentième":
-        return 1.0 / 30
-    if input_str == "centième":
-        return 1.0 / 100
-    if input_str == "millième":
-        return 1.0 / 1000
-
-    return False
-
-
 def normalize_fr(text, remove_articles=True):
     """ French string normalization """
     text = text.lower()

@@ -200,34 +200,6 @@ def _scale_declined_sk(word, count):
     return word
 
 
-def is_fractional_sk(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    input_str = input_str.lower()
-    # plural fractions: tretiny -> tretina, pätiny -> pätina
-    if input_str.endswith('iny', -3):
-        input_str = input_str[:len(input_str) - 1] + "a"
-
-    fracts = {"celá": 1, "pol": 2, "polovica": 2, "polovice": 2,
-              "polovici": 2, "polovicu": 2}
-
-    for num in _FRACTION_STRING_SK:
-        if num > 1:
-            fracts[_FRACTION_STRING_SK[num]] = num
-
-    if input_str in fracts:
-        return 1.0 / fracts[input_str]
-    return False
-
-
 def nice_number_sk(number, speech=True, denominators=range(1, 21)):
     """Slovak helper for nice_number
 

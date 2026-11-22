@@ -6,8 +6,7 @@ ar-SA names the macrolanguage and keeps the literary words.
 """
 import unittest
 
-from ovos_number_parser import extract_number, numbers_to_digits, pronounce_number
-from ovos_number_parser.numbers_ar import extract_numbers_ar
+from ovos_number_parser import (extract_number, numbers_to_digits, pronounce_number, extract_number_spans)
 
 
 def say(number):
@@ -54,13 +53,15 @@ class TestNajdiCardinals(unittest.TestCase):
 
     def test_every_whole_number_to_ten_thousand_reads_back(self):
         for number in range(10001):
-            spoken = say(number)
-            self.assertEqual(read(spoken), number, spoken)
+            with self.subTest(number=number):
+                spoken = say(number)
+                self.assertEqual(read(spoken), number, spoken)
 
     def test_every_year_from_1990_to_2100_reads_back(self):
         for year in range(1990, 2101):
-            spoken = say(year)
-            self.assertEqual(read(spoken), year, spoken)
+            with self.subTest(year=year):
+                spoken = say(year)
+                self.assertEqual(read(spoken), year, spoken)
 
 
 class TestSpokenHalf(unittest.TestCase):
@@ -72,13 +73,14 @@ class TestSpokenHalf(unittest.TestCase):
                 self.assertEqual(read(text), value)
 
     def test_it_converts_to_digits(self):
-        self.assertEqual(numbers_to_digits("خمسة ونص ريال", lang="ars"), "5.5 ريال")
+        with self.subTest(case='numbers_to_digits("خمسة ونص ريال", lang="ars")'):
+            self.assertEqual(numbers_to_digits("خمسة ونص ريال", lang="ars"), "5.5 ريال")
 
     def test_after_a_clock_hour_it_is_left_unread(self):
         """After الساعة the half is thirty minutes past the hour, not 0.5."""
         self.assertEqual(numbers_to_digits("الساعة ثلاثة ونص", lang="ars"),
                          "الساعة 3 ونص")
-        self.assertEqual(extract_numbers_ar("الساعة خمسة عشر ونص", lect="ars"),
+        self.assertEqual([span.value for span in extract_number_spans("الساعة خمسة عشر ونص", "ars")],
                          [15])
 
     def test_after_a_hundred_or_a_thousand_it_is_left_unread(self):
@@ -87,7 +89,7 @@ class TestSpokenHalf(unittest.TestCase):
         for text in ("مية ونص", "الف ونص", "ثلاثة الاف ونص", "خمس مية ونص",
                      "الف ومية ونص"):
             with self.subTest(text=text):
-                values = extract_numbers_ar(text, lect="ars")
+                values = [span.value for span in extract_number_spans(text, "ars")]
                 self.assertTrue(all(v == int(v) for v in values), values)
                 digits = numbers_to_digits(text, lang="ars")
                 self.assertTrue(digits.endswith(" ونص"), digits)
@@ -98,7 +100,7 @@ class TestSpokenHalf(unittest.TestCase):
                              ("خمسة ونص كتاب", [5]), ("نص", []), ("نص الرسالة", []),
                              ("الكتاب ونص المقال", []), ("خمسة نص", [5])):
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_ar(text, lect="ars"), values)
+                self.assertEqual([span.value for span in extract_number_spans(text, "ars")], values)
         for text in ("نص الرسالة", "الكتاب ونص المقال", "خمسة ونص الكتاب"):
             with self.subTest(text=text):
                 self.assertNotIn("5.5", numbers_to_digits(text, lang="ars"))

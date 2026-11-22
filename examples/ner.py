@@ -24,7 +24,7 @@ for clause in TEXT.split(","):
 
 # --- Token-level classification -------------------------------------------
 print("\nToken classification:")
-for token in ["three", "second", "quarter", "twelve", "damaged"]:
+for token in ["three", "second", "half", "twelve", "damaged"]:
     frac = is_fractional(token, "en")
     ordn = is_ordinal(token, "en")
     card = extract_number(token, "en")
@@ -46,6 +46,6 @@ for token in ["three", "second", "quarter", "twelve", "damaged"]:
 # Token classification:
 #   three      CARDINAL  -> 3
 #   second     ORDINAL   -> 2
-#   quarter    FRACTION  -> 0.25
+#   half       FRACTION  -> 0.5
 #   twelve     CARDINAL  -> 12
 #   damaged    (not numeric)

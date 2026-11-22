@@ -164,15 +164,32 @@ and an empty list when the text holds no number.
 
 ## `is_fractional(input_str, lang, short_scale=None, scale=None)`
 
-Exact-match test for a fraction word (`"half"` → `0.5`, otherwise `False`).
-Use `extract_number` to pull fractions out of longer phrases.
+Exact-match test for a fraction (`"half"` → `0.5`, `"two thirds"` → `0.666...`,
+otherwise `False`). A fraction is a count with its denominator, a half word or
+a fraction written in digits (`"1/2"`). A denominator word without a count
+(`"quarter"`) is not a fraction. Use `extract_number` to pull fractions out of
+longer phrases.
+
+```python
+>>> from ovos_number_parser import is_fractional
+>>> is_fractional("half", "en"), is_fractional("two thirds", "en")
+(0.5, 0.6666666666666666)
+>>> is_fractional("the half", "en"), is_fractional("hello", "en")
+(False, False)
+
+```
 
 ## `is_ordinal(input_str, lang)`
 
-Exact-match test for an ordinal word (`"third"` → `3`, otherwise `False`).
-The [language table](languages.md#language-table) shows which languages have a
-dedicated reader. The others look the word up among their `pronounce_ordinal`
-forms.
+Exact-match test for an ordinal (`"third"` → `3`, otherwise `False`). The
+whole text must be one ordinal, so `"the third"` is `False`.
+
+```python
+>>> from ovos_number_parser import is_ordinal
+>>> is_ordinal("third", "en"), is_ordinal("twenty-first", "en"), is_ordinal("three", "en")
+(3, 21, False)
+
+```
 
 ## `numbers_to_digits(utterance, lang, scale=None)`
 
@@ -188,17 +205,20 @@ the text intact.
 
 ## Readers backed by numtag
 
-`extract_number`, `extract_number_spans` and `numbers_to_digits` read a
-language through [numtag](https://github.com/TigreGotico/numtag) when its
-language code is in `ovos_number_parser.numtag_readers.NUMTAG_LANGS`. Malay
-(`ms`) and the ISO 639-3 codes of the Arabic lects keep the reader in their
-`numbers_<code>.py` module. A test row that numtag reads wrongly is a strict
-xfail, and its reason is the URL of the issue that tracks the row.
+`extract_number`, `extract_number_spans`, `numbers_to_digits`,
+`is_fractional` and `is_ordinal` read a language through
+[numtag](https://github.com/TigreGotico/numtag) when its language code is in
+`ovos_number_parser.numtag_readers.NUMTAG_LANGS`. The ISO 639-3 codes of the
+Arabic varieties (`arb`, `arz`, `apc`, `ary` and the others in
+`AR_DIALECT_DEFAULT_CASE`) read as `ar`, and `zsm` reads as `ms`. numtag has
+no lexicon per Arabic variety, so the colloquial words of a variety read only
+when `ar` has them. A test row that numtag reads wrongly is a strict xfail,
+and its reason is the URL of the issue that tracks the row.
 
-A few module-level names of the form `extract_number_<code>` and
-`numbers_to_digits_<code>`, such as `extract_number_en`, are deprecated shims.
-Each one warns and calls the numtag reader. The next major release removes
-them.
+A few module-level names of the form `extract_number_<code>`,
+`numbers_to_digits_<code>` and `is_ordinal_<code>`, such as `extract_number_en`
+and `is_ordinal_da`, are deprecated shims. Each one warns and calls the numtag
+reader. The next major release removes them.
 
 numtag gives each value as an exact digit string. The readers convert it to
 the `int` or `float` the API returns. A value that is no whole number is a
@@ -219,12 +239,17 @@ is written as the sign (`"minus 5"` is `"-5"`). An ordinal stays as written.
 value when it gets `ordinals=True`. In German a clock time written with a
 point is written with a colon (`"um 13.30 Uhr"` is `"um 13:30 Uhr"`), as
 speech to text writes it with a point.
-`is_fractional` and `is_ordinal` answer a question about one
-word, which numtag does not read, so they keep the parser for every language.
+`is_fractional` and `is_ordinal` answer for a text that is one fraction or one
+ordinal mention of numtag, in full. `is_ordinal("three", "en")` is `False`,
+because numtag reads "three" as a cardinal. A language outside the set raises
+`NotImplementedError` in `extract_number`, `extract_number_spans` and
+`is_fractional`. `is_ordinal` then looks the text up among the
+`pronounce_ordinal` forms of the language, and `numbers_to_digits` returns the
+text unchanged.
 
 The set holds every language numtag reads: an, ar, ast, az, bg, ca, cs, da,
-de, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, id, it, kab, mwl, nb,
-nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr and uk.
+de, el, en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, id, it, kab, ms, mwl,
+nb, nl, nn, oc, pl, pt, ro, ru, sk, sl, sv, tr and uk.
 
 ## Enums
 

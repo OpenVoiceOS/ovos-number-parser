@@ -1,11 +1,7 @@
 import unittest
 
-from ovos_number_parser import extract_number, pronounce_number
-from ovos_number_parser.numbers_fa import (extract_numbers_fa,
-                                           is_fractional_fa,
-                                           is_ordinal_fa,
-                                           pronounce_number_fa,
-                                           pronounce_ordinal_fa)
+from ovos_number_parser import (extract_number, pronounce_number, extract_number_spans, is_fractional, is_ordinal)
+from ovos_number_parser.numbers_fa import pronounce_number_fa, pronounce_ordinal_fa
 
 
 class TestPersianPronounce(unittest.TestCase):
@@ -121,7 +117,7 @@ class TestPersianExtractAdversarial(unittest.TestCase):
         self.assertIn(extract_number("سلام دنیا", lang="fa"), (False, None))
 
     def test_multiple_numbers(self):
-        self.assertEqual(extract_numbers_fa("دو گربه و سه سگ"), [2, 3])
+        self.assertEqual([span.value for span in extract_number_spans("دو گربه و سه سگ", "fa")], [2, 3])
 
     def test_negative_in_sentence(self):
         self.assertEqual(extract_number("منفی سه و چهارده صدم", lang="fa"),
@@ -130,13 +126,14 @@ class TestPersianExtractAdversarial(unittest.TestCase):
 
 class TestPersianFractional(unittest.TestCase):
     def test_third(self):
-        self.assertAlmostEqual(is_fractional_fa("سوم"), 1.0 / 3.0)
+        with self.subTest(case='is_fractional("سوم", "fa")'):
+            self.assertAlmostEqual(is_fractional("سوم", "fa"), 1.0 / 3.0)
 
     def test_half(self):
-        self.assertEqual(is_fractional_fa("نیم"), 0.5)
+        self.assertEqual(is_fractional("نیم", "fa"), 0.5)
 
     def test_not_a_fraction(self):
-        self.assertIs(is_fractional_fa("گربه"), False)
+        self.assertIs(is_fractional("گربه", "fa"), False)
 
 
 class TestPersianBigRoundTrip(unittest.TestCase):
@@ -183,11 +180,14 @@ class TestPersianOrdinalsUnderTheFlag(unittest.TestCase):
         single = {n: pronounce_ordinal_fa(n) for n in range(1, 1001)}
         single = {n: w for n, w in single.items() if " " not in w}
         # 30th and 50th carry the suffix after a zero-width non-joiner
-        self.assertEqual(single[30], "سی\u200cام")
-        self.assertEqual(single[50], "پنجاه\u200cام")
-        wrong = {n: is_ordinal_fa(w) for n, w in single.items()
-                 if is_ordinal_fa(w) != n}
-        self.assertEqual(wrong, {})
+        with self.subTest(case='single[30]'):
+            self.assertEqual(single[30], "سی\u200cام")
+        with self.subTest(case='single[50]'):
+            self.assertEqual(single[50], "پنجاه\u200cام")
+        wrong = {n: is_ordinal(w, "fa") for n, w in single.items()
+                 if is_ordinal(w, "fa") != n}
+        with self.subTest(case='wrong'):
+            self.assertEqual(wrong, {})
 
 
 if __name__ == "__main__":

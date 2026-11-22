@@ -40,9 +40,12 @@ class TestPronounceOrdinalAnchors(unittest.TestCase):
 
 class TestFarsiFractions(unittest.TestCase):
     def test_is_fractional(self):
-        self.assertEqual(is_fractional("نیم", "fa"), 0.5)
-        self.assertAlmostEqual(is_fractional("سوم", "fa"), 1 / 3)
-        self.assertFalse(is_fractional("خانه", "fa"))
+        with self.subTest(case='is_fractional("نیم", "fa")'):
+            self.assertEqual(is_fractional("نیم", "fa"), 0.5)
+        with self.subTest(case='is_fractional("سوم", "fa")'):
+            self.assertAlmostEqual(is_fractional("سوم", "fa"), 1 / 3)
+        with self.subTest(case='is_fractional("خانه", "fa")'):
+            self.assertFalse(is_fractional("خانه", "fa"))
 
 
 if __name__ == "__main__":

@@ -153,16 +153,26 @@ class TestBulgarianExtract(unittest.TestCase):
 class TestBulgarianHelpers(unittest.TestCase):
 
     def test_is_fractional(self):
-        self.assertEqual(is_fractional('половина', lang="bg"), 0.5)
-        self.assertEqual(is_fractional('половин', lang="bg"), 0.5)
-        self.assertEqual(is_fractional('трета', lang="bg"), 1 / 3)
-        self.assertEqual(is_fractional('третина', lang="bg"), 1 / 3)
-        self.assertEqual(is_fractional('четвърт', lang="bg"), 0.25)
-        self.assertEqual(is_fractional('четвъртина', lang="bg"), 0.25)
-        self.assertEqual(is_fractional('пета', lang="bg"), 0.2)
-        self.assertEqual(is_fractional('пети', lang="bg"), 0.2)
-        self.assertEqual(is_fractional('стотна', lang="bg"), 0.01)
-        self.assertFalse(is_fractional('котка', lang="bg"))
+        with self.subTest(case='is_fractional(\'половина\', lang="bg")'):
+            self.assertEqual(is_fractional('половина', lang="bg"), 0.5)
+        with self.subTest(case='is_fractional(\'половин\', lang="bg")'):
+            self.assertEqual(is_fractional('половин', lang="bg"), 0.5)
+        with self.subTest(case='is_fractional(\'трета\', lang="bg")'):
+            self.assertEqual(is_fractional('трета', lang="bg"), 1 / 3)
+        with self.subTest(case='is_fractional(\'третина\', lang="bg")'):
+            self.assertEqual(is_fractional('третина', lang="bg"), 1 / 3)
+        with self.subTest(case='is_fractional(\'четвърт\', lang="bg")'):
+            self.assertEqual(is_fractional('четвърт', lang="bg"), 0.25)
+        with self.subTest(case='is_fractional(\'четвъртина\', lang="bg")'):
+            self.assertEqual(is_fractional('четвъртина', lang="bg"), 0.25)
+        with self.subTest(case='is_fractional(\'пета\', lang="bg")'):
+            self.assertEqual(is_fractional('пета', lang="bg"), 0.2)
+        with self.subTest(case='is_fractional(\'пети\', lang="bg")'):
+            self.assertEqual(is_fractional('пети', lang="bg"), 0.2)
+        with self.subTest(case='is_fractional(\'стотна\', lang="bg")'):
+            self.assertEqual(is_fractional('стотна', lang="bg"), 0.01)
+        with self.subTest(case='is_fractional(\'котка\', lang="bg")'):
+            self.assertFalse(is_fractional('котка', lang="bg"))
 
     def test_is_ordinal(self):
         self.assertEqual(is_ordinal('първи', lang="bg"), 1)

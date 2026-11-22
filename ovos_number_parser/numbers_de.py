@@ -3,7 +3,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from math import floor
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, look_for_fractions, GrammaticalGender, numeric_value, Scale,
+from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, GrammaticalGender, numeric_value, Scale,
                                      warn_reader_removed)
 from ovos_number_parser import numtag_readers
 
@@ -237,12 +237,6 @@ _LONG_ORDINAL = {
 
 _LONG_ORDINAL.update(_ORDINAL_BASE)
 
-# dict für erste, drittem, millionstes ...
-_STRING_LONG_ORDINAL = {ord + ending: num for ord, num in invert_dict(_LONG_ORDINAL).items()
-                        for ending in ("en", "em", "es", "er", "e")}
-
-_FRACTION_MARKER = set()
-
 
 def nice_number_de(number, speech=True, denominators=range(1, 21)):
     """ German helper for nice_number
@@ -442,79 +436,12 @@ def pronounce_ordinal_de(number):
     return pronounce_number_de(number) + "ste"
 
 
-def is_fractional_de(input_str, short_scale=False):
-    """
-    This function takes the given text and checks if it is a fraction.
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    # account for different numerators, e.g. zweidrittel
-
-    input_str = input_str.lower()
-    numerator = 1
-    prev_number = 0
-    denominator = False
-    remainder = ""
-
-    # first check if is a fraction containing a char (eg "2/3")
-    _bucket = input_str.split('/')
-    if look_for_fractions(_bucket):
-        numerator = float(_bucket[0])
-        denominator = float(_bucket[1])
-
-    if not denominator:
-        for fraction in sorted(_STRING_FRACTION.keys(),
-                               key=lambda x: len(x),
-                               reverse=True):
-            if fraction in input_str and not denominator:
-                denominator = _STRING_FRACTION.get(fraction)
-                remainder = input_str.replace(fraction, "")
-                break
-
-        if remainder:
-            if not _STRING_NUM.get(remainder, False):
-                # acount for eineindrittel
-                for numstring, number in _STRING_NUM.items():
-                    if remainder.endswith(numstring):
-                        prev_number = _STRING_NUM.get(
-                            remainder.replace(numstring, "", 1), 0)
-                        numerator = number
-                        break
-                else:
-                    return False
-            else:
-                numerator = _STRING_NUM.get(remainder)
-
-    if denominator:
-        return prev_number + (numerator / denominator)
-    else:
-        return False
-
-
-def is_ordinal_de(input_str):
-    """
-    This function takes the given text and checks if it is an ordinal number.
-    Args:
-        input_str (str): the string to check if ordinal
-    Returns:
-        (bool) or (float): False if not an ordinal, otherwise the number
-        corresponding to the ordinal
-    ordinals for 1, 3, 7 and 8 are irregular
-    only works for ordinals corresponding to the numbers in _STRING_NUM
-    """
-    val = _STRING_LONG_ORDINAL.get(input_str.lower(), False)
-    # account for numbered ordinals
-    if not val and input_str.endswith('.') and is_numeric_de(input_str[:-1]):
-        val = input_str
-    return val
-
-
 def _get_ordinal_index(input_str: str, type_: type = str):
-    ord = is_ordinal_de(input_str)
-    return type_(ord.replace(".", "")) if ord else ord
+    warn_reader_removed("_get_ordinal_index", 'ovos_number_parser.is_ordinal(text, "de")')
+    if input_str.endswith(".") and is_numeric_de(input_str[:-1]):
+        return type_(input_str.replace(".", ""))
+    value = numtag_readers.is_ordinal(input_str, "de")
+    return type_(value) if value else value
 
 
 def _ungroup_digits_de(word: str) -> str:

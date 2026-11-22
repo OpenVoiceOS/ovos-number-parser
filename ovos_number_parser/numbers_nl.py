@@ -431,30 +431,6 @@ def pronounce_ordinal_nl(number):
     return spoken + "ste"
 
 
-def is_fractional_nl(input_str, short_scale=True):
-    """This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    fracts = {"heel": 1, "half": 2, "halve": 2, "kwart": 4}
-    if short_scale:
-        for num in _SHORT_ORDINAL_STRING_NL:
-            if num > 2:
-                fracts[_SHORT_ORDINAL_STRING_NL[num]] = num
-    else:
-        for num in _LONG_ORDINAL_STRING_NL:
-            if num > 2:
-                fracts[_LONG_ORDINAL_STRING_NL[num]] = num
-
-    if input_str.lower() in fracts:
-        return 1.0 / fracts[input_str.lower()]
-    return False
-
-
 def extract_number_nl(text, short_scale=True, ordinals=False):
     """Deprecated: use ``ovos_number_parser.extract_number(text, "nl")``."""
     warn_reader_removed("extract_number_nl", 'ovos_number_parser.extract_number(text, "nl")')

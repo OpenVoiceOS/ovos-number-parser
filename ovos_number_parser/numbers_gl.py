@@ -335,32 +335,6 @@ def pronounce_ordinal_gl(
     return GL.pronounce_ordinal(number, gender, scale)
 
 
-def is_fractional_gl(
-        input_str: str
-) -> Union[float, bool]:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return GL.is_fractional(input_str)
-
-
-def is_ordinal_gl(input_str: str) -> bool:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return GL.is_ordinal(input_str)
-
-
 def pronounce_number_gl(
         number: Union[int, float],
         places: int = 5,

@@ -2,10 +2,7 @@ import unittest
 
 from ovos_number_parser import (extract_number, pronounce_number,
                                  pronounce_ordinal, is_ordinal, is_fractional)
-from ovos_number_parser.numbers_eu import (extract_number_eu,
-                                           pronounce_number_eu,
-                                           pronounce_ordinal_eu,
-                                           is_ordinal_eu)
+from ovos_number_parser.numbers_eu import pronounce_number_eu, pronounce_ordinal_eu
 
 
 class TestBasquePronounce(unittest.TestCase):
@@ -92,7 +89,7 @@ class TestBasqueLongScale(unittest.TestCase):
                        10 ** 18):
             with self.subTest(number=number):
                 spoken = pronounce_number_eu(number)
-                self.assertEqual(extract_number_eu(spoken), number,
+                self.assertEqual(extract_number(spoken, lang="eu"), number,
                                  f"{number} spoken as {spoken!r}")
 
     def test_bilioi_is_not_ten_to_the_nine(self):
@@ -278,7 +275,7 @@ class TestBasqueCardinalSweep(unittest.TestCase):
         numbers = list(range(0, 2101)) + list(range(2101, 1_000_001, 997))
         for number in numbers:
             spoken = pronounce_number_eu(number)
-            self.assertEqual(extract_number_eu(spoken), number,
+            self.assertEqual(extract_number(spoken, lang="eu"), number,
                              f"{number} spoken as {spoken!r}")
 
     def test_hundreds_within_thousands(self):
@@ -295,13 +292,13 @@ class TestBasqueCardinalSweep(unittest.TestCase):
             said = pronounce_number_eu(number)
             if spoken is not None:
                 self.assertEqual(said, spoken)
-            self.assertEqual(extract_number_eu(said), number, said)
+            self.assertEqual(extract_number(said, lang="eu"), number, said)
 
     def test_round_trip_millions_sweep(self):
         for number in range(1_000_000, 10_000_001, 4993):
             for signed in (number, -number):
                 spoken = pronounce_number_eu(signed)
-                self.assertEqual(extract_number_eu(spoken), signed,
+                self.assertEqual(extract_number(spoken, lang="eu"), signed,
                                  f"{signed} spoken as {spoken!r}")
 
 
@@ -311,28 +308,35 @@ class TestBasqueOrdinalSweep(unittest.TestCase):
     def test_ordinal_round_trip(self):
         for number in range(1, 1001):
             spoken = pronounce_ordinal_eu(number)
-            self.assertEqual(is_ordinal_eu(spoken), number,
+            self.assertEqual(is_ordinal(spoken, "eu"), number,
                              f"{number} spoken as {spoken!r}")
 
     def test_is_ordinal_rejects_junk(self):
         for text in ["", "garren", "katua", "hogei"]:
             with self.subTest(text=text):
-                self.assertFalse(is_ordinal_eu(text))
+                self.assertFalse(is_ordinal(text, "eu"))
 
 
 class TestBasqueFractions(unittest.TestCase):
     """Basque fraction nouns, including capitalized forms."""
 
     def test_basic(self):
-        self.assertEqual(is_fractional("erdi", lang="eu"), 0.5)
-        self.assertEqual(is_fractional("heren", lang="eu"), 1.0 / 3)
-        self.assertEqual(is_fractional("laurden", lang="eu"), 0.25)
-        self.assertEqual(is_fractional("ehunen", lang="eu"), 0.01)
+        with self.subTest(case='is_fractional("erdi", lang="eu")'):
+            self.assertEqual(is_fractional("erdi", lang="eu"), 0.5)
+        with self.subTest(case='is_fractional("heren", lang="eu")'):
+            self.assertEqual(is_fractional("heren", lang="eu"), 1.0 / 3)
+        with self.subTest(case='is_fractional("laurden", lang="eu")'):
+            self.assertEqual(is_fractional("laurden", lang="eu"), 0.25)
+        with self.subTest(case='is_fractional("ehunen", lang="eu")'):
+            self.assertEqual(is_fractional("ehunen", lang="eu"), 0.01)
 
     def test_capitalized_input_does_not_crash(self):
-        self.assertEqual(is_fractional("Erdi", lang="eu"), 0.5)
-        self.assertEqual(is_fractional("LAURDEN", lang="eu"), 0.25)
-        self.assertEqual(is_fractional("Ehunen", lang="eu"), 0.01)
+        with self.subTest(case='is_fractional("Erdi", lang="eu")'):
+            self.assertEqual(is_fractional("Erdi", lang="eu"), 0.5)
+        with self.subTest(case='is_fractional("LAURDEN", lang="eu")'):
+            self.assertEqual(is_fractional("LAURDEN", lang="eu"), 0.25)
+        with self.subTest(case='is_fractional("Ehunen", lang="eu")'):
+            self.assertEqual(is_fractional("Ehunen", lang="eu"), 0.01)
 
     def test_non_fraction_returns_false(self):
         for word in ["", "kaixo", "bost"]:

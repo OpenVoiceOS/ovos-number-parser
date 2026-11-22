@@ -380,46 +380,6 @@ def pronounce_ordinal_hu(number):
 # that only appear inside compounds ("két", "huszon")
 _STRING_NUM_HU = {word: val for val, word in _NUM_STRING_HU.items()}
 _STRING_NUM_HU["két"] = 2
-_STRING_NUM_HU["huszon"] = 20
-
-
-_STRING_FRACTION_HU = {word: val for val, word in _FRACTION_STRING_HU.items()}
-
-
-_ORDINAL_REVERSE_HU = {}
-
-
-def is_ordinal_hu(input_str):
-    """
-    Check if the given word is a Hungarian ordinal number.
-
-    Args:
-        input_str (str): the string to check if ordinal
-    Returns:
-        (bool) or (int): False if not an ordinal, otherwise the number
-    """
-    if not _ORDINAL_REVERSE_HU:
-        candidates = list(range(0, 101)) + \
-            [n * 100 for n in range(1, 11)] + [1000, 1000000]
-        for n in candidates:
-            _ORDINAL_REVERSE_HU[pronounce_ordinal_hu(n)] = n
-    return _ORDINAL_REVERSE_HU.get(input_str.lower().strip(), False)
-
-
-def is_fractional_hu(input_str, short_scale=True):
-    """
-    Check if the given word is a Hungarian fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, present for API compatibility
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    word = input_str.lower().strip()
-    if word in _STRING_FRACTION_HU:
-        return 1.0 / _STRING_FRACTION_HU[word]
-    return False
 
 
 def extract_number_hu(text, short_scale=True, ordinals=False):

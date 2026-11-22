@@ -21,7 +21,7 @@ from ovos_number_parser.util import invert_dict
 
 from ovos_number_parser.numbers_nb import (
     _NorwegianTables, _nice_number, _pronounce_number, _pronounce_ordinal,
-    _is_ordinal, _is_fractional, _NUM_STRING_NB, _SCALE_ORDER_NB)
+    _NUM_STRING_NB, _SCALE_ORDER_NB)
 from ovos_number_parser import numtag_readers
 from ovos_number_parser.util import Scale, warn_reader_removed
 
@@ -169,13 +169,9 @@ def pronounce_ordinal_nn(number):
 
 
 def is_ordinal_nn(input_str):
-    """Return the value of a Nynorsk ordinal word, or False."""
-    return _is_ordinal(input_str, _TABLES_NN)
-
-
-def is_fractional_nn(input_str, short_scale=False):
-    """Return the value of a Nynorsk fraction word, or False."""
-    return _is_fractional(input_str, _TABLES_NN)
+    """Deprecated: use ``ovos_number_parser.is_ordinal(text, "nn")``."""
+    warn_reader_removed("is_ordinal_nn", 'ovos_number_parser.is_ordinal(text, "nn")')
+    return numtag_readers.is_ordinal(input_str, "nn")
 
 
 def numbers_to_digits_nn(text, short_scale=False, ordinals=False, fractions=True):

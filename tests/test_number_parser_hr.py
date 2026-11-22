@@ -114,10 +114,14 @@ class TestCroatianOrdinals(unittest.TestCase):
         self.assertFalse(is_ordinal("pas", lang="hr"))
 
     def test_ordinal_roundtrip_sweep(self):
-        for n in list(range(1, 100)) + [100, 1000]:
+        for n in list(range(1, 100)) + [100]:
             spoken = pronounce_ordinal(n, lang="hr")
             self.assertEqual(is_ordinal(spoken, lang="hr"), n,
                              f"{n}: {spoken!r}")
+
+    def test_the_thousandth_reads_back(self):
+        spoken = pronounce_ordinal(1000, lang="hr")
+        self.assertEqual(is_ordinal(spoken, lang="hr"), 1000, spoken)
 
 
 class TestCroatianFractions(unittest.TestCase):
@@ -130,14 +134,22 @@ class TestCroatianFractions(unittest.TestCase):
                 self.assertEqual(pronounce_fraction(frac, lang="hr"), spoken)
 
     def test_is_fractional(self):
-        self.assertEqual(is_fractional("polovina", lang="hr"), 0.5)
-        self.assertEqual(is_fractional("pola", lang="hr"), 0.5)
-        self.assertEqual(is_fractional("trećina", lang="hr"), 1 / 3)
-        self.assertEqual(is_fractional("četvrtina", lang="hr"), 0.25)
-        self.assertEqual(is_fractional("petina", lang="hr"), 0.2)
-        self.assertEqual(is_fractional("trećine", lang="hr"), 1 / 3)
-        self.assertFalse(is_fractional("xyzzy", lang="hr"))
-        self.assertFalse(is_fractional("jedan", lang="hr"))
+        with self.subTest(case='is_fractional("polovina", lang="hr")'):
+            self.assertEqual(is_fractional("polovina", lang="hr"), 0.5)
+        with self.subTest(case='is_fractional("pola", lang="hr")'):
+            self.assertEqual(is_fractional("pola", lang="hr"), 0.5)
+        with self.subTest(case='is_fractional("trećina", lang="hr")'):
+            self.assertEqual(is_fractional("trećina", lang="hr"), 1 / 3)
+        with self.subTest(case='is_fractional("četvrtina", lang="hr")'):
+            self.assertEqual(is_fractional("četvrtina", lang="hr"), 0.25)
+        with self.subTest(case='is_fractional("petina", lang="hr")'):
+            self.assertEqual(is_fractional("petina", lang="hr"), 0.2)
+        with self.subTest(case='is_fractional("trećine", lang="hr")'):
+            self.assertEqual(is_fractional("trećine", lang="hr"), 1 / 3)
+        with self.subTest(case='is_fractional("xyzzy", lang="hr")'):
+            self.assertFalse(is_fractional("xyzzy", lang="hr"))
+        with self.subTest(case='is_fractional("jedan", lang="hr")'):
+            self.assertFalse(is_fractional("jedan", lang="hr"))
 
 
 class TestCroatianNumbersToDigits(unittest.TestCase):

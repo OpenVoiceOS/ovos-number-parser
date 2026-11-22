@@ -177,17 +177,25 @@ class TestSpanishFractions(unittest.TestCase):
     """Spanish fraction nouns, including gendered and capitalized forms."""
 
     def test_basic_and_gendered(self):
-        self.assertEqual(is_fractional("medio", lang="es"), 0.5)
-        self.assertEqual(is_fractional("media", lang="es"), 0.5)
-        self.assertEqual(is_fractional("tercio", lang="es"), 1.0 / 3)
-        self.assertEqual(is_fractional("cuarta", lang="es"), 0.25)
-        self.assertEqual(is_fractional("centésima", lang="es"), 0.01)
+        with self.subTest(case='is_fractional("medio", lang="es")'):
+            self.assertEqual(is_fractional("medio", lang="es"), 0.5)
+        with self.subTest(case='is_fractional("media", lang="es")'):
+            self.assertEqual(is_fractional("media", lang="es"), 0.5)
+        with self.subTest(case='is_fractional("tercio", lang="es")'):
+            self.assertEqual(is_fractional("tercio", lang="es"), 1.0 / 3)
+        with self.subTest(case='is_fractional("cuarta", lang="es")'):
+            self.assertEqual(is_fractional("cuarta", lang="es"), 0.25)
+        with self.subTest(case='is_fractional("centésima", lang="es")'):
+            self.assertEqual(is_fractional("centésima", lang="es"), 0.01)
 
     def test_capitalized_input_does_not_crash(self):
         # a sentence-initial or shouted fraction must not raise
-        self.assertEqual(is_fractional("Medio", lang="es"), 0.5)
-        self.assertEqual(is_fractional("MEDIO", lang="es"), 0.5)
-        self.assertEqual(is_fractional("Centésimo", lang="es"), 0.01)
+        with self.subTest(case='is_fractional("Medio", lang="es")'):
+            self.assertEqual(is_fractional("Medio", lang="es"), 0.5)
+        with self.subTest(case='is_fractional("MEDIO", lang="es")'):
+            self.assertEqual(is_fractional("MEDIO", lang="es"), 0.5)
+        with self.subTest(case='is_fractional("Centésimo", lang="es")'):
+            self.assertEqual(is_fractional("Centésimo", lang="es"), 0.01)
 
     def test_non_fraction_returns_false(self):
         for word in ["", "hola", "cinco"]:

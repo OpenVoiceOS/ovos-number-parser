@@ -9,7 +9,11 @@ import importlib
 import inspect
 import unittest
 
-from ovos_number_parser import pronounce_number
+from ovos_number_parser import pronounce_number, pronounce_ordinal
+from ovos_number_parser.numbers_de import _get_ordinal_index
+from ovos_number_parser.numbers_kab import extract_number_kab
+from ovos_number_parser.numbers_sv import _find_numbers_in_text
+from ovos_number_parser.util import Token
 from ovos_number_parser.numbers_ca import CA
 from ovos_number_parser.numbers_es import ES
 from ovos_number_parser.numbers_fr import FR
@@ -30,6 +34,9 @@ SIGNATURES = {
     "numbers_to_digits_es": (("utterance", None),),
     "numbers_to_digits_pt": (("utterance", None), ("scale", None), ("variant", "PT")),
 }
+
+ORDINAL_SHIMS = {"is_ordinal_da": "da", "is_ordinal_et": "et", "is_ordinal_fi": "fi",
+                 "is_ordinal_nb": "nb", "is_ordinal_nn": "nn"}
 
 
 def shim(name):
@@ -77,3 +84,51 @@ class TestShims(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestOrdinalAndHelperShims(unittest.TestCase):
+    """The is_ordinal readers, extract_number_kab and two helpers that released
+    ovos-date-parser versions import answer through numtag and warn."""
+
+    def test_an_ordinal_shim_reads_the_ordinal_it_was_written_from(self):
+        for name, lang in ORDINAL_SHIMS.items():
+            with self.subTest(name=name), self.assertWarnsRegex(DeprecationWarning, name):
+                self.assertEqual(shim(name)(pronounce_ordinal(3, lang=lang)), 3)
+
+    def test_an_ordinal_shim_keeps_its_parameter(self):
+        for name in ORDINAL_SHIMS:
+            with self.subTest(name=name):
+                self.assertEqual(list(inspect.signature(shim(name)).parameters), ["input_str"])
+
+    def test_extract_number_kab_keeps_its_parameters_and_reads_a_number(self):
+        self.assertEqual([(p.name, p.default) for p in inspect.signature(extract_number_kab).parameters.values()],
+                         [("text", inspect.Parameter.empty), ("short_scale", False), ("ordinals", False)])
+        with self.assertWarnsRegex(DeprecationWarning, "extract_number_kab"):
+            self.assertEqual(extract_number_kab(pronounce_number(7, lang="kab")), 7)
+
+    def test_get_ordinal_index_returns_the_value_as_the_type_asked(self):
+        with self.assertWarnsRegex(DeprecationWarning, "_get_ordinal_index"):
+            self.assertEqual(_get_ordinal_index("dritte"), "3")
+        self.assertEqual(_get_ordinal_index("dritte", int), 3)
+        self.assertIs(_get_ordinal_index("Haus"), False)
+
+    def test_get_ordinal_index_keeps_a_day_written_with_a_dot(self):
+        # "am 15. Juni": ovos-date-parser 0.29.0 passes each word, "15." included
+        self.assertEqual(_get_ordinal_index("15."), "15")
+        self.assertEqual(_get_ordinal_index("15.", int), 15)
+        self.assertEqual(_get_ordinal_index("3."), "3")
+        self.assertIs(_get_ordinal_index("15"), False)
+
+    def test_find_numbers_in_text_pairs_each_token_with_its_number(self):
+        # tokens come back in reverse order; "sju" is 7
+        tokens = [Token("sju", 0), Token("dagar", 1)]
+        with self.assertWarnsRegex(DeprecationWarning, "_find_numbers_in_text"):
+            parts = _find_numbers_in_text(tokens)
+        self.assertEqual([(value, token.word) for value, token in parts], [(None, "dagar"), (7, "sju")])
+
+    def test_find_numbers_in_text_reads_kvart_as_a_quarter_of_an_hour(self):
+        # "om en kvart": a quarter, and the unit "timmar" in front of it
+        tokens = [Token("en", 0), Token("kvart", 1)]
+        parts = _find_numbers_in_text(tokens)
+        self.assertEqual([(value, token.word) for value, token in parts],
+                         [(None, "timmar"), (0.25, "kvart"), (1, "en")])

@@ -77,20 +77,24 @@ class TestArabicLectCardinals(unittest.TestCase):
         """
         from ovos_number_parser import extract_number
         for code, forms in AR_LECT_FORMS.items():
-            for value, form in forms.items():
-                self.assertEqual(extract_number(form, lang=code), value, f"{code} {value} {form}")
-                # and before a counted noun, the context a word that also
-                # means "water" or "dead" needs inside a sentence
-                self.assertEqual(extract_number(form + " ريال", lang=code), value,
-                                 f"{code} {value} {form} ريال")
+            with self.subTest(code=code):
+                for value, form in forms.items():
+                    with self.subTest(value=value, form=form):
+                        self.assertEqual(extract_number(form, lang=code), value, f"{code} {value} {form}")
+                        # and before a counted noun, the context a word that also
+                        # means "water" or "dead" needs inside a sentence
+                        self.assertEqual(extract_number(form + " ريال", lang=code), value,
+                                     f"{code} {value} {form} ريال")
 
     def test_a_whole_composed_number_reads_back_too(self):
         from ovos_number_parser import extract_number
         for code in ("acw", "afb", "arz", "apc"):
-            for value in (12, 15, 18, 350, 2018):
-                spoken = pronounce_number(value, lang=code)
-                self.assertEqual(extract_number(spoken, lang=code), value,
-                                 f"{code} {value} {spoken}")
+            with self.subTest(code=code):
+                for value in (12, 15, 18, 350, 2018):
+                    with self.subTest(value=value):
+                        spoken = pronounce_number(value, lang=code)
+                        self.assertEqual(extract_number(spoken, lang=code), value,
+                                     f"{code} {value} {spoken}")
 
 
 if __name__ == "__main__":

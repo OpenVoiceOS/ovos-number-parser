@@ -83,13 +83,17 @@ class TestMoroccanCardinals(unittest.TestCase):
 
     def test_a_composed_number_reads_back(self):
         for value in (4, 14, 40, 44, 350, 2018, 12000):
-            spoken = pronounce_number(value, lang="ary")
-            self.assertEqual(extract_number(spoken, lang="ary"), value, spoken)
+            with self.subTest(value=value):
+                spoken = pronounce_number(value, lang="ary")
+                self.assertEqual(extract_number(spoken, lang="ary"), value, spoken)
 
     def test_ary_reads_its_own_four_and_forty(self):
-        self.assertEqual(extract_number("ربعة", lang="ary"), 4)
-        self.assertEqual(extract_number("ربعين", lang="ary"), 40)
-        self.assertEqual(extract_number("تنين", lang="ary"), 2)
+        with self.subTest(case='extract_number("ربعة", lang="ary")'):
+            self.assertEqual(extract_number("ربعة", lang="ary"), 4)
+        with self.subTest(case='extract_number("ربعين", lang="ary")'):
+            self.assertEqual(extract_number("ربعين", lang="ary"), 40)
+        with self.subTest(case='extract_number("تنين", lang="ary")'):
+            self.assertEqual(extract_number("تنين", lang="ary"), 2)
 
     def test_the_quarter_stays_a_quarter_in_standard_arabic(self):
         """ربعين is the oblique dual of ربع "quarter", which the library writes itself."""
@@ -110,10 +114,14 @@ class TestMoroccanCardinals(unittest.TestCase):
 
     def test_ary_keeps_the_conjunction_on_its_own_words(self):
         """A و written onto a number word stays in the text, as it does under ar."""
-        self.assertEqual(numbers_to_digits("كتاب وأربعة", lang="ar"), "كتاب و4")
-        self.assertEqual(numbers_to_digits("كتاب وربعة", lang="ary"), "كتاب و4")
-        self.assertEqual(numbers_to_digits("1 وربعين", lang="ary"), "1 و40")
-        self.assertEqual(numbers_to_digits("كتاب وتنين ريال", lang="ary"), "كتاب و2 ريال")
+        with self.subTest(case='numbers_to_digits("كتاب وأربعة", lang="ar")'):
+            self.assertEqual(numbers_to_digits("كتاب وأربعة", lang="ar"), "كتاب و4")
+        with self.subTest(case='numbers_to_digits("كتاب وربعة", lang="ary")'):
+            self.assertEqual(numbers_to_digits("كتاب وربعة", lang="ary"), "كتاب و4")
+        with self.subTest(case='numbers_to_digits("1 وربعين", lang="ary")'):
+            self.assertEqual(numbers_to_digits("1 وربعين", lang="ary"), "1 و40")
+        with self.subTest(case='numbers_to_digits("كتاب وتنين ريال", lang="ary")'):
+            self.assertEqual(numbers_to_digits("كتاب وتنين ريال", lang="ary"), "كتاب و2 ريال")
 
 
 if __name__ == "__main__":

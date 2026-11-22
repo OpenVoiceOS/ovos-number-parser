@@ -60,9 +60,10 @@ class TestLanguageParity(unittest.TestCase):
         # native en/pt/mwl/ast/gl/de/da implementations only match single
         # words, so probe with a single-word ordinal
         for lang in LANGS:
-            spoken = pronounce_ordinal(3, lang)
-            self.assertEqual(is_ordinal(spoken, lang), 3,
-                             f"{lang}: {spoken!r}")
+            with self.subTest(lang=lang):
+                spoken = pronounce_ordinal(3, lang)
+                self.assertEqual(is_ordinal(spoken, lang), 3,
+                                 f"{lang}: {spoken!r}")
 
     def test_numbers_to_digits(self):
         for lang in LANGS:
@@ -182,8 +183,9 @@ class TestIsOrdinalAnchors(unittest.TestCase):
             ("ro", "primul", 1),
         ]
         for lang, word, expected in cases:
-            self.assertEqual(is_ordinal(word, lang), expected,
-                             f"{lang} {word}")
+            with self.subTest(lang=lang, word=word, expected=expected):
+                self.assertEqual(is_ordinal(word, lang), expected,
+                                 f"{lang} {word}")
 
     def test_gender_variants(self):
         # generic reverse lookup registers both -o and -a final vowels

@@ -12,7 +12,6 @@ from fractions import Fraction
 from ovos_number_parser import (extract_number, extract_number_spans,
                                 is_fractional, numbers_to_digits,
                                 pronounce_number)
-from ovos_number_parser.numbers_ar import extract_numbers_ar
 from ovos_number_parser.util import Scale
 
 
@@ -202,9 +201,14 @@ class TestDigitGroups(unittest.TestCase):
                     self.assertEqual(extract_number(text, lang), expected)
 
     def test_decimal_comma(self):
-        for lang in self.GROUPED + ["ms", "es", "fr", "gl"]:
+        for lang in self.GROUPED + ["es", "fr", "gl"]:
             with self.subTest(lang=lang):
                 self.assertEqual(extract_number("8,5", lang), 8.5)
+
+    def test_malay_point_decimal(self):
+        # Kamus Dewan Edisi Keempat, "perpuluhan": the point stands between
+        # the whole part and the decimals (7.5, 8.6); Malay groups with the comma
+        self.assertEqual(extract_number("8.5", "ms"), 8.5)
 
     def test_malay_comma_groups(self):
         self.assertEqual(extract_number("1,000", "ms"), 1000)
@@ -230,7 +234,7 @@ class TestDigitGroups(unittest.TestCase):
             with self.subTest(lang=lang):
                 # numbers_to_digits converts number words, never digits
                 self.assertEqual(numbers_to_digits("0.500", lang), "0.500")
-        self.assertEqual(extract_number("0,500", "ms"), 0.5)
+        self.assertEqual(extract_number("0.500", "ms"), 0.5)
 
     def test_commas_that_are_no_group_separate_numbers(self):
         for lang in ("id", "ms"):
@@ -246,7 +250,7 @@ class TestRomanceDecimalAboveFloatPrecision(unittest.TestCase):
 
     def test_whole_part_keeps_its_digits(self):
         for lang in ("pt", "es", "fr", "it", "ca", "gl", "ro", "an", "ast",
-                     "mwl", "oc", "id", "ms"):
+                     "mwl", "oc", "id"):
             for text, expected in (("12000000000000000345,25", self.BIG),
                                    ("-12000000000000000345,25", -self.BIG),
                                    ("12000000000000000345,5", self.BIG + 1)):
@@ -443,12 +447,10 @@ class TestArabicSpansAcrossAnd(unittest.TestCase):
         # the Arabic extractor reads both as one number: 7 + 5 * 100
         for text in ("سبعة و خمسة مئة", "سبعة وخمسة مئة"):
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_ar(text), [7 + 5 * 100])
                 self.assertEqual(_spans(text, "ar"), [(text, 7 + 5 * 100)])
 
     def test_a_span_may_open_with_and(self):
         text = "لديه سيارة وواحد مليون دينار"
-        self.assertEqual(extract_numbers_ar(text), [10 ** 6])
         self.assertEqual(_spans(text, "ar"), [("وواحد مليون", 10 ** 6)])
 
     def test_two_units_are_two_numbers(self):

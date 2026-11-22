@@ -74,12 +74,15 @@ class TestTunisianCardinals(unittest.TestCase):
 
     def test_a_composed_number_reads_back(self):
         for value in (11, 16, 300, 350, 1956, 2018):
-            spoken = pronounce_number(value, lang="aeb")
-            self.assertEqual(extract_number(spoken, lang="aeb"), value, spoken)
+            with self.subTest(value=value):
+                spoken = pronounce_number(value, lang="aeb")
+                self.assertEqual(extract_number(spoken, lang="aeb"), value, spoken)
 
     def test_aeb_keeps_the_conjunction_on_a_teen(self):
-        self.assertEqual(numbers_to_digits("1 وثلطاش", lang="aeb"), "1 و13")
-        self.assertEqual(numbers_to_digits("كتاب وثلطاش", lang="aeb"), "كتاب و13")
+        with self.subTest(case='numbers_to_digits("1 وثلطاش", lang="aeb")'):
+            self.assertEqual(numbers_to_digits("1 وثلطاش", lang="aeb"), "1 و13")
+        with self.subTest(case='numbers_to_digits("كتاب وثلطاش", lang="aeb")'):
+            self.assertEqual(numbers_to_digits("كتاب وثلطاش", lang="aeb"), "كتاب و13")
 
 
 if __name__ == "__main__":

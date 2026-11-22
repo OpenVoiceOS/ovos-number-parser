@@ -274,32 +274,6 @@ def pronounce_ordinal_mwl(
     return MWL.pronounce_ordinal(number, gender, scale)
 
 
-def is_fractional_mwl(
-        input_str: str
-) -> Union[float, bool]:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return MWL.is_fractional(input_str)
-
-
-def is_ordinal_mwl(input_str: str) -> bool:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return MWL.is_ordinal(input_str)
-
-
 def pronounce_number_mwl(
         number: Union[int, float],
         places: int = 5,

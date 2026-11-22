@@ -92,10 +92,14 @@ class TestGreekExtract(unittest.TestCase):
 
 class TestGreekHelpers(unittest.TestCase):
     def test_is_fractional(self):
-        self.assertEqual(is_fractional('μισό', lang="el"), 0.5)
-        self.assertAlmostEqual(is_fractional('τρίτο', lang="el"), 1 / 3)
-        self.assertEqual(is_fractional('τέταρτο', lang="el"), 0.25)
-        self.assertFalse(is_fractional('γάτα', lang="el"))
+        with self.subTest(case='is_fractional(\'μισό\', lang="el")'):
+            self.assertEqual(is_fractional('μισό', lang="el"), 0.5)
+        with self.subTest(case='is_fractional(\'τρίτο\', lang="el")'):
+            self.assertAlmostEqual(is_fractional('τρίτο', lang="el"), 1 / 3)
+        with self.subTest(case='is_fractional(\'τέταρτο\', lang="el")'):
+            self.assertEqual(is_fractional('τέταρτο', lang="el"), 0.25)
+        with self.subTest(case='is_fractional(\'γάτα\', lang="el")'):
+            self.assertFalse(is_fractional('γάτα', lang="el"))
 
     def test_is_ordinal(self):
         self.assertEqual(is_ordinal('πρώτος', lang="el"), 1)
