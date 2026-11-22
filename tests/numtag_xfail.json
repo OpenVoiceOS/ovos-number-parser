@@ -280,6 +280,9 @@
  },
  "tests/test_number_parser_ar_homographs.py::TestLeftAsWritten::test_no_number": {
   "text='كباية مية'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='ناس ميتين'": "https://github.com/TigreGotico/numtag/issues/261",
+  "text='الناس دول ميتين'": "https://github.com/TigreGotico/numtag/issues/261",
+  "text='الميتين'": "https://github.com/TigreGotico/numtag/issues/261",
   "text='المية سخنة'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='شربت مية'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='الاثنين الجاي'": "https://github.com/TigreGotico/numtag/issues/160",
