@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.1a5](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.1a5) (2026-11-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.1a4...0.31.1a5)
+
+**Merged pull requests:**
+
+- refactor: delete the readers numtag replaces [\#552](https://github.com/OpenVoiceOS/ovos-number-parser/pull/552) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.1a4](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.1a4) (2026-11-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.1a3...0.31.1a4)
@@ -367,10 +375,6 @@
 ## [0.24.40a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.40a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.39a1...0.24.40a1)
-
-**Merged pull requests:**
-
-- fix\(da\): read the ordinals of the tens 40-90 in both forms [\#452](https://github.com/OpenVoiceOS/ovos-number-parser/pull/452) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.39a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.39a1) (2026-11-12)
 
