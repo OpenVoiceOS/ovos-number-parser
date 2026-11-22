@@ -374,10 +374,11 @@ class TestArabicColloquialExtract(unittest.TestCase):
         self.assertEqual(extract_number_ar("ثلثمئة وخمسين"), 350)
         self.assertEqual(extract_number_ar("ثلثمئة"), 300)
 
-    def test_thulthmiya_has_no_source(self):
-        # the hybrid of the classical ثلث and the colloquial مية
-        self.assertFalse(extract_number_ar("ثلثمية"))
-        self.assertEqual([span.value for span in extract_number_spans("ثلثمية وخمسين", "ar")], [50])
+    def test_thulthmiya_reads_300(self):
+        """en.wiktionary, Module:number list/data/afb (Gulf Arabic), numbers[300]: cardinal "ثلثمية"."""
+        self.assertEqual(extract_number_ar("ثلثمية"), 300)
+        # 300 + 50 = 350
+        self.assertEqual([span.value for span in extract_number_spans("ثلثمية وخمسين", "ar")], [350])
 
     def test_colloquial_hundred_plus_tens(self):
         # 100 + 50 = 150

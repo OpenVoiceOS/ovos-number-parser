@@ -67,14 +67,15 @@ class TestAlgerianCardinals(unittest.TestCase):
                 spoken = pronounce_number(value, lang="arq")
                 self.assertEqual(extract_number(spoken, lang="arq"), value, spoken)
 
-    def test_ben_sedira_three_hundred_is_read_only_as_arq(self):
-        """ثلثمية is the book's ثلث مية "thelth mia", "Trois cents". ثلث is also "a third"."""
+    def test_ben_sedira_three_hundred_reads_300_in_every_lect(self):
+        """ثلثمية is the book's ثلث مية "thelth mia", "Trois cents". The other lects read it too:
+        en.wiktionary, Module:number list/data/afb (Gulf Arabic), numbers[300]: cardinal "ثلثمية"."""
         with self.subTest(case='extract_number("ثلثمية وخمسين", lang="arq")'):
             self.assertEqual(extract_number("ثلثمية وخمسين", lang="arq"), 350)
         for lang in ("ar", "ar-DZ", "arz"):
             with self.subTest(lang=lang):
-                self.assertIs(extract_number("ثلثمية", lang=lang), False, lang)
-                self.assertEqual(numbers_to_digits("ثلثمية", lang=lang), "ثلثمية", lang)
+                self.assertEqual(extract_number("ثلثمية", lang=lang), 300, lang)
+                self.assertEqual(numbers_to_digits("ثلثمية", lang=lang), "300", lang)
 
     def test_the_printed_two_word_three_hundred_reads_300_as_arq(self):
         """Ben Sedira p. XLV prints 300 as ثلث مية. ثلث alone stays "a third"."""
