@@ -48,7 +48,6 @@ _ES = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "cien"/"mil", never "un cien"/"un mil"
     NO_PLURAL=[1000],  # "dos mil", never "dos miles"
 
-    NUMBER_OVERFLOW="número exageradamente grande",
     # Spain follows the long scale: millón 10^6, millardo 10^9, billón 10^12
     DEFAULT_SCALE=Scale.LONG,
     MAX_SCALE_COUNT=10 ** 6,
@@ -83,9 +82,6 @@ _ES = NumberVocabulary(
 
     DECIMAL_MARKER=["coma", "punto", ".", ","],
     NEGATIVE_SIGN=["menos"],
-    NEGATIVE_IDIOMS=[("al", "menos"), ("por", "lo", "menos"), ("a", "lo", "menos"),
-                     ("a", "menos", "que"), ("más", "o", "menos"),
-                     ("cuando", "menos")],
     UNITS={
         0: 'cero',
         1: 'uno',
@@ -172,12 +168,6 @@ _ES = NumberVocabulary(
         100: 'centésimo',
         1000: 'milésimo'
     },
-    FRACTION_FEMALE={
-        2: "media",
-        4: "cuarta",
-        100: "centésima",
-        1000: "milésima"
-    },
     SHORT_SCALE={
         10 ** 3: "mil",
         10 ** 6: "millón",
@@ -209,7 +199,6 @@ _ES = NumberVocabulary(
             21: "veintiún",
         },
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # apocopated forms and accent-free variants, accepted for extraction
         "un": 1,

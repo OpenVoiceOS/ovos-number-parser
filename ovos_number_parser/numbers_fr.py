@@ -146,7 +146,6 @@ _FR = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "cent"/"mille", never "un cent"/"un mille"
     NO_PLURAL=[1000],  # "mille" is invariable: "deux mille", never "deux milles"
 
-    NUMBER_OVERFLOW="nombre extrêmement grand",
     # French follows the long scale: million 10^6, milliard 10^9, billion 10^12
     DEFAULT_SCALE=Scale.LONG,
     JOIN_WORD=["et"],
@@ -156,17 +155,8 @@ _FR = NumberVocabulary(
     JOINER_ON_THOUSANDS=False,
     JOINER_ON_SCALE_REMAINDER=False,
 
-    # the word for hundred multiplies the preceding units ("deux cents" = 200)
-    MULTIPLY_HUNDREDS=True,
-
     DECIMAL_MARKER=["virgule"],
     NEGATIVE_SIGN=["moins"],
-    NEGATIVE_IDIOMS=[("au", "moins"), ("du", "moins"), ("à", "moins", "que"),
-                     ("plus", "ou", "moins"), ("pour", "le", "moins"),
-                     ("tout", "le", "moins"),
-                     # clock time: "neuf heures moins le quart", "midi moins dix"
-                     ("heure", "moins"), ("heures", "moins"),
-                     ("midi", "moins"), ("minuit", "moins")],
     UNITS={
         0: 'zéro',
         1: 'un',
@@ -198,7 +188,7 @@ _FR = NumberVocabulary(
         # the regional forms (septante/octante/nonante) are ALT_SPELLINGS.
     },
     HUNDREDS={
-        100: 'cent'  # 200-900 are "deux cent" .. "neuf cent" via MULTIPLY_HUNDREDS
+        100: 'cent'  # 200-900 are "deux cent" .. "neuf cent"
     },
     FRACTION={
         2: 'demi',
@@ -223,7 +213,6 @@ _FR = NumberVocabulary(
         100: 'centième',
         1000: 'millième'
     },
-    FRACTION_FEMALE={},
     SHORT_SCALE={
         10 ** 3: "mille",
         10 ** 6: "million",
@@ -240,7 +229,6 @@ _FR = NumberVocabulary(
     GENDERED_SPELLINGS={
         GrammaticalGender.FEMININE: {1: "une"},
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         "une": 1,
         # Belgian / Swiss regional decades stand as single tens words
@@ -301,7 +289,7 @@ class FrenchNumberExtractor(RomanceNumberExtractor):
     ``_pronounce_up_to_999``: 17-19 are compound ("dix-sept"), the "et"
     joiner applies only to X1 in the 20s-60s (never 71's "soixante-et-onze"
     special-case, never 80s/90s), tens/units join with hyphens, 70-99 are
-    vigesimal (60+teens, 4x20+teens), and 200-900 use MULTIPLY_HUNDREDS with
+    vigesimal (60+teens, 4x20+teens), and 200-900 multiply the hundred with
     a plural "-s" only on a bare round hundred.
 
     ``decimal_tens`` holds the regional words that replace a vigesimal ten

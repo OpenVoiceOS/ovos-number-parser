@@ -285,22 +285,16 @@ _IT = NumberVocabulary(
     NO_PREV_UNIT=[1000],               # "mille", never "un mille"
     NO_PLURAL=[1000],                  # "duemila", pluralised as "mila"
 
-    NUMBER_OVERFLOW="numero davvero enorme",
     # Italy follows the long scale: milione 10^6, miliardo 10^9, bilione 10^12
     DEFAULT_SCALE=Scale.LONG,
-    DIGIT_GROUP_MARK=".",
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS=False,           # fused forms carry no spoken joiner
     JOINER_ON_HUNDREDS=False,
     JOINER_ON_THOUSANDS=False,
     JOINER_ON_SCALE_REMAINDER=False,
-    MULTIPLY_HUNDREDS=True,            # "duecento" split to "due cento" = 200
-    FRACTIONS_ALWAYS_MULTIPLY=True,    # "un quarto" = 1/4, "tre quarti" = 3/4
 
     DECIMAL_MARKER=["virgola", "punto"],
     NEGATIVE_SIGN=["meno"],
-    NEGATIVE_IDIOMS=[("più", "o", "meno"), ("a", "meno", "che"),
-                     ("per", "lo", "meno"), ("quanto", "meno")],
     UNITS=_UNITS_IT,
     TENS=_TENS_IT,
     HUNDREDS={},                       # the hundreds multiply the units instead
@@ -310,7 +304,6 @@ _IT = NumberVocabulary(
               14: 'quattordicesimo', 15: 'quindicesimo', 16: 'sedicesimo',
               17: 'diciassettesimo', 18: 'diciottesimo', 19: 'diciannovesimo',
               20: 'ventesimo', 100: 'centesimo', 1000: 'millesimo'},
-    FRACTION_FEMALE={2: 'mezza'},
     SHORT_SCALE={1000: 'mille', 10 ** 6: 'milione', 10 ** 9: 'miliardo',
                  10 ** 12: 'bilione', 10 ** 15: 'biliardo', 10 ** 18: 'trilione',
                  10 ** 21: 'triliardo', 10 ** 24: 'quadrilione'},
@@ -323,7 +316,6 @@ _IT = NumberVocabulary(
                 10 ** 60: 'decilione'},
 
     GENDERED_SPELLINGS={GrammaticalGender.FEMININE: {1: 'una'}},
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         'un': 1,                       # "un milione"
         'mila': 1000,                  # plural of mille inside compounds

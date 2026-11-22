@@ -89,21 +89,18 @@ _OC = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "cent" / "mila", never "un cent" / "un mila"
     NO_PLURAL=[1000],  # "mila" is invariable: "dos mila"
 
-    NUMBER_OVERFLOW="nombre tròp grand",
     DEFAULT_SCALE=Scale.LONG,
     JOIN_WORD=["e"],
 
     JOINER_ON_TWENTYS=True,  # vint-e-un
     JOINER_ONLY_ON_TWENTYS=True,  # but "trenta dos", "cinquanta sèt"
     PREFER_EXPLICIT_ORDINALS=True,  # onzen, vint-e-unen
-    MULTIPLY_HUNDREDS=True,  # analytic hundreds: "dos cents" = 200
     JOINER_ON_HUNDREDS=False,  # "dos cents trenta"
     JOINER_ON_HUNDRED_PARTICLE=False,  # "cent vint"
     JOINER_ON_THOUSANDS=False,  # "mila dos cents"
 
     DECIMAL_MARKER=["virgula", "punt", ".", ","],
     NEGATIVE_SIGN=["mens"],
-    NEGATIVE_IDIOMS=[("mai", "o", "mens")],
     UNITS={
         0: 'zèro',
         1: 'un',
@@ -167,9 +164,6 @@ _OC = NumberVocabulary(
         100: 'centen',
         1000: 'milen'
     },
-    FRACTION_FEMALE={
-        2: 'mièja'  # "una e mièja" -> 1.5
-    },
     SHORT_SCALE={
         1000: 'mila',
         10 ** 6: 'milion',
@@ -188,7 +182,6 @@ _OC = NumberVocabulary(
             2: 'doas'
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # variant spellings of 8 and 80 (issue #302, native reporter)
         'ueit': 8,

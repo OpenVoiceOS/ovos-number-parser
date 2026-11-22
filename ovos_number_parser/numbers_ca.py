@@ -130,9 +130,7 @@ _CA = NumberVocabulary(
     NO_PREV_UNIT=[1000],  # "mil" not "un mil"
     NO_PLURAL=[1000],     # "dos mil" not "dos mils"
 
-    NUMBER_OVERFLOW="número exageradament gran",
     DEFAULT_SCALE=Scale.LONG,  # 10^9 = "miliard", 10^12 = "bilió"
-    DIGIT_GROUP_MARK=".",
     MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["i"],
 
@@ -141,12 +139,9 @@ _CA = NumberVocabulary(
     JOINER_ON_HUNDREDS=False,     # "cent vint-i-tres", "dos-cents trenta-quatre"
     JOINER_ON_THOUSANDS=False,    # "mil dos-cents"
     JOINER_ON_SCALE_REMAINDER=False,  # "dos mil vint-i-tres", not "... i ..."
-    MULTIPLY_HUNDREDS=True,       # "dos cents" (from "dos-cents") = 200
 
     DECIMAL_MARKER=["coma", "amb", "punt", ".", ","],
     NEGATIVE_SIGN=["menys"],
-    NEGATIVE_IDIOMS=[("al", "menys"), ("a", "menys", "que"), ("més", "o", "menys"),
-                     ("ni", "més", "ni", "menys")],
     UNITS={
         0: 'zero',
         1: 'un',
@@ -213,11 +208,6 @@ _CA = NumberVocabulary(
         100: 'centè',
         1000: 'milè'
     },
-    FRACTION_FEMALE={
-        2: 'mitja',
-        3: 'terça',
-        4: 'quarta'
-    },
     SHORT_SCALE={
         1000: 'mil',
         10 ** 6: 'milió',
@@ -245,7 +235,6 @@ _CA = NumberVocabulary(
             2: "dues"
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # standalone "u" (before nouns it becomes "un"), dialectal "huit" forms,
         # and the bare hundreds particle used inside compounds after the hyphen

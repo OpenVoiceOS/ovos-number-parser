@@ -229,19 +229,12 @@ _PT_PT = PortugueseVocabulary(
 
     HUNDRED_PARTICLE="cento", # how to read "1XX"
     DENOMINATOR_PARTICLE="avos",   # for fractions  X / N {PARTICLE}
-    CARDINAL_DENOMINATORS=True,  # "três doze avos" = 3/12
-    NUMBER_OVERFLOW="número exageradamente grande",
     DIVIDED_BY_ZERO="a dividir por zero", # how to read X/0 values
     NO_PREV_UNIT=[100, 1000], # "mil" vs "um mil"  / "cem" vs "um cem"
     NO_PLURAL=[1000], # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
 
     DEFAULT_SCALE=Scale.LONG,
-    DIGIT_GROUP_MARK=".",
     MAX_SCALE_COUNT=10 ** 6,
-    HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
-    HALF_OF_SCALE_FOLLOWERS=["de", "do", "da", "dos", "das"],
-    SCALE_NUMERALS=["mil"],  # "mil e meio" = 1000.5
-    PLURAL_SCALE_NEEDS_COUNT=True,  # "milhões de pessoas" is no number
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
@@ -254,8 +247,6 @@ _PT_PT = PortugueseVocabulary(
 
     DECIMAL_MARKER=["vírgula", "virgula", "ponto", ".", ","],
     NEGATIVE_SIGN=["menos"],
-    NEGATIVE_IDIOMS=[("pelo", "menos"), ("ao", "menos"), ("a", "menos", "que"),
-                     ("mais", "ou", "menos")],
     UNITS={
         0: 'zero',
         1: 'um',
@@ -331,7 +322,6 @@ _PT_PT = PortugueseVocabulary(
         900: 'nonngentésimo', # / 'noningentésimo'
         1000: 'milésimo'
     },
-    FRACTION_FEMALE={2: "meia"},
     SHORT_SCALE={
         10 ** 303: "centilião",
         10 ** 63: "vigintilião", # / "vintilião"
@@ -384,7 +374,6 @@ _PT_PT = PortugueseVocabulary(
     GENDERED_SPELLINGS={
         GrammaticalGender.FEMININE: {1: "uma", 2: "duas"}
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # pt-BR regionalisms
         'quatorze': 14,
@@ -453,19 +442,12 @@ _PT_BR = PortugueseVocabulary(
     swap_gender=swap_gender_pt,  # used for female forms
     pluralize=pluralize_pt,  # use for plural forms
     DEFAULT_SCALE=Scale.SHORT,
-    DIGIT_GROUP_MARK=".",
     MAX_SCALE_COUNT=10 ** 6,
-    HALF_OF_SCALE=True,  # "um milhão e meio" = 1500000
-    HALF_OF_SCALE_FOLLOWERS=_PT_PT.HALF_OF_SCALE_FOLLOWERS,
-    SCALE_NUMERALS=_PT_PT.SCALE_NUMERALS,
-    PLURAL_SCALE_NEEDS_COUNT=_PT_PT.PLURAL_SCALE_NEEDS_COUNT,
     DIVIDED_BY_ZERO=_PT_PT.DIVIDED_BY_ZERO,
     DENOMINATOR_PARTICLE=_PT_PT.DENOMINATOR_PARTICLE,
-    CARDINAL_DENOMINATORS=_PT_PT.CARDINAL_DENOMINATORS,
     HUNDRED_PARTICLE=_PT_PT.HUNDRED_PARTICLE,
     NO_PREV_UNIT=_PT_PT.NO_PREV_UNIT,
     NO_PLURAL=_PT_PT.NO_PLURAL,
-    NUMBER_OVERFLOW=_PT_PT.NUMBER_OVERFLOW,
     JOIN_WORD=_PT_PT.JOIN_WORD,
     JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS=True,  # add JOIN_WORD from 100-1000 - "duzentos e um"
@@ -475,7 +457,6 @@ _PT_BR = PortugueseVocabulary(
     AGREE_AFTER_SCALE=_PT_PT.AGREE_AFTER_SCALE,
     DECIMAL_MARKER=_PT_PT.DECIMAL_MARKER,
     NEGATIVE_SIGN=_PT_PT.NEGATIVE_SIGN,
-    NEGATIVE_IDIOMS=_PT_PT.NEGATIVE_IDIOMS,
     UNITS=_PT_PT.UNITS,
     TENS={
         **_PT_PT.TENS,
@@ -492,7 +473,6 @@ _PT_BR = PortugueseVocabulary(
         17: 'dezessete avos',
         19: 'dezenove avos'
     },
-    FRACTION_FEMALE=_PT_PT.FRACTION_FEMALE,
     SHORT_SCALE={
         10 ** 303: "centilhão",
         10 ** 63: "vigintilhão",  # / "vintilhão"
@@ -542,9 +522,6 @@ _PT_BR = PortugueseVocabulary(
         10 ** 3: "mil"
     },
     GENDERED_SPELLINGS=_PT_PT.GENDERED_SPELLINGS,
-    DIGIT_SPELLINGS={
-        6: "meia" # coloquialism
-    },
     ALT_SPELLINGS={
         # pt-PT regionalisms
         'catorze': 14,
