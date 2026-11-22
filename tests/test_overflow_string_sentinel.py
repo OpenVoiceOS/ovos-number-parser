@@ -46,14 +46,14 @@ class TestOverflowStringSentinel(unittest.TestCase):
                         f"extract_number({text!r}, {lang!r}) raised "
                         f"{type(exc).__name__}: {exc}")
 
-    def test_finite_big_float_string_still_parses(self):
-        # a huge but finite float string must keep parsing where the language
-        # already did so - only the overflow/inf/nan path is guarded
+    def test_a_big_float_string_is_never_a_wrong_number(self):
+        """numtag declines E notation, so "1e300" reads no number. A value is
+        allowed only when it is exactly 1e300, never a piece of the string
+        such as the 1 before the "e"."""
         for lang in ("et", "fi", "hu", "sl", "da", "de", "nb", "nn"):
-            result = extract_number("1e300", lang)
-            self.assertIsNot(result, False)
-            if isinstance(result, float):
-                self.assertTrue(math.isfinite(result))
+            with self.subTest(lang=lang):
+                result = extract_number("1e300", lang)
+                self.assertTrue(result is False or result == 1e300 or result == 10 ** 300, result)
 
 
 if __name__ == "__main__":

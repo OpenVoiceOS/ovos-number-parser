@@ -60,11 +60,6 @@
   "text='one point five million two thousand'": "https://github.com/TigreGotico/numtag/issues/166",
   "text='minus two point five million three hundred'": "https://github.com/TigreGotico/numtag/issues/166"
  },
- "tests/test_extraction_misreads.py::TestFrenchExponentIsNoOrdinal::test_exponent_strings": {
-  "text='1e309'": "https://github.com/TigreGotico/numtag/issues/168",
-  "text='1e5'": "https://github.com/TigreGotico/numtag/issues/168",
-  "text='5e3'": "https://github.com/TigreGotico/numtag/issues/168"
- },
  "tests/test_extraction_misreads.py::TestFrenchExponentIsNoOrdinal::test_ordinal_suffixes_still_read": {
   "": "https://github.com/TigreGotico/numtag/issues/168"
  },
