@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.1a6](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.1a6) (2026-11-22)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.1a5...0.31.1a6)
+
+**Merged pull requests:**
+
+- refactor: read is\_ordinal, is\_fractional and the Arabic varieties through numtag [\#560](https://github.com/OpenVoiceOS/ovos-number-parser/pull/560) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.1a5](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.1a5) (2026-11-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.1a4...0.31.1a5)
