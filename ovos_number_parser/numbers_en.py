@@ -54,27 +54,6 @@ _NUM_STRING_EN = {
     90: 'ninety'
 }
 
-_FRACTION_STRING_EN = {
-    2: 'half',
-    3: 'third',
-    4: 'forth',
-    5: 'fifth',
-    6: 'sixth',
-    7: 'seventh',
-    8: 'eigth',
-    9: 'ninth',
-    10: 'tenth',
-    11: 'eleventh',
-    12: 'twelveth',
-    13: 'thirteenth',
-    14: 'fourteenth',
-    15: 'fifteenth',
-    16: 'sixteenth',
-    17: 'seventeenth',
-    18: 'eighteenth',
-    19: 'nineteenth',
-    20: 'twentyith'
-}
 
 _LONG_SCALE_EN = OrderedDict([
     (100, 'hundred'),
@@ -321,25 +300,6 @@ def _generate_plurals_en(originals):
 
 _STRING_NUM_EN = invert_dict(_NUM_STRING_EN)
 _STRING_NUM_EN.update(_generate_plurals_en(_STRING_NUM_EN))
-
-_STRING_SHORT_ORDINAL_EN = invert_dict(_SHORT_ORDINAL_EN)
-_STRING_LONG_ORDINAL_EN = invert_dict(_LONG_ORDINAL_EN)
-
-
-def is_ordinal_en(input_str: str):
-    """
-    Check if the given text is an ordinal word.
-
-    Returns:
-        (bool) or (int/float): False if not an ordinal, otherwise the number
-        corresponding to the ordinal
-    """
-    input_str = input_str.lower()
-    if input_str in _STRING_LONG_ORDINAL_EN:
-        return _STRING_LONG_ORDINAL_EN[input_str]
-    if input_str in _STRING_SHORT_ORDINAL_EN:
-        return _STRING_SHORT_ORDINAL_EN[input_str]
-    return False
 
 
 def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
@@ -604,36 +564,6 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
         for char in _num_str:
             result += " " + number_names[int(char)]
     return result
-
-
-def is_fractional_en(input_str, short_scale=True, spoken=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-        spoken (bool): consider "half", "quarter", "whole" a fraction
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    if input_str.endswith('s', -1):
-        input_str = input_str[:len(input_str) - 1]  # e.g. "fifths"
-
-    fracts = {"whole": 1, "half": 2, "halve": 2, "quarter": 4}
-    if short_scale:
-        for num in _SHORT_ORDINAL_EN:
-            if num > 2:
-                fracts[_SHORT_ORDINAL_EN[num]] = num
-    else:
-        for num in _LONG_ORDINAL_EN:
-            if num > 2:
-                fracts[_LONG_ORDINAL_EN[num]] = num
-
-    if input_str.lower() in fracts and spoken:
-        return 1.0 / fracts[input_str.lower()]
-    return False
 
 
 def numbers_to_digits_en(text, short_scale=True, ordinals=False):

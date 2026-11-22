@@ -3,7 +3,7 @@ import unittest
 from ovos_number_parser import (extract_number, pronounce_number,
                                 pronounce_ordinal, pronounce_fraction,
                                 is_fractional, is_ordinal, numbers_to_digits)
-from ovos_number_parser.numbers_ar import extract_numbers_ar
+from ovos_number_parser import extract_number_spans
 
 
 def extract_number_ar(text, ordinals=False):
@@ -252,11 +252,11 @@ class TestArabicNumbersToDigitsRobust(unittest.TestCase):
 
     def test_consecutive_units_are_separate_numbers(self):
         # two units cannot combine into one Arabic number: they are a list
-        self.assertEqual(extract_numbers_ar("ثلاثة وخمسة وسبعة"), [3, 5, 7])
-        self.assertEqual(extract_numbers_ar("واحد واثنان"), [1, 2])
-        self.assertEqual(extract_numbers_ar("خمسة ثلاثة"), [5, 3])
+        self.assertEqual([span.value for span in extract_number_spans("ثلاثة وخمسة وسبعة", "ar")], [3, 5, 7])
+        self.assertEqual([span.value for span in extract_number_spans("واحد واثنان", "ar")], [1, 2])
+        self.assertEqual([span.value for span in extract_number_spans("خمسة ثلاثة", "ar")], [5, 3])
         self.assertEqual(
-            extract_numbers_ar("عندي ثلاثة كتب وخمسة أقلام"), [3, 5])
+            [span.value for span in extract_number_spans("عندي ثلاثة كتب وخمسة أقلام", "ar")], [3, 5])
 
     def test_connector_compounds(self):
         expected = {121: "مئة وواحد وعشرون",
@@ -289,7 +289,7 @@ class TestArabicNumbersToDigitsRobust(unittest.TestCase):
 
     def test_extract_mixed_digit_systems(self):
         self.assertEqual(extract_number_ar("٢5"), 25)
-        self.assertEqual(extract_numbers_ar("لدي ٥ و 3"), [5, 3])
+        self.assertEqual([span.value for span in extract_number_spans("لدي ٥ و 3", "ar")], [5, 3])
 
 
 class TestArabicRoundTrip(unittest.TestCase):
@@ -340,8 +340,8 @@ class TestArabicColloquialExtract(unittest.TestCase):
     def test_meeh_is_water_outside_a_number(self):
         # ميه spells water (English Wiktionary) and the hundred (the SADA
         # transcripts); test_number_parser_ar_meeh holds the number contexts
-        self.assertEqual(extract_numbers_ar("شربت ميه"), [])
-        self.assertEqual(extract_numbers_ar("الميه سخنة"), [])
+        self.assertEqual([span.value for span in extract_number_spans("شربت ميه", "ar")], [])
+        self.assertEqual([span.value for span in extract_number_spans("الميه سخنة", "ar")], [])
         self.assertEqual(numbers_to_digits("شربت ميه", lang="ar"),
                          "شربت ميه")
 
@@ -349,7 +349,7 @@ class TestArabicColloquialExtract(unittest.TestCase):
         # ماية is attested as a spelling of "water" (Egyptian مايَّة), not
         # of "hundred"; كباية ماية is "a glass of water"
         self.assertFalse(extract_number_ar("ماية"))
-        self.assertEqual(extract_numbers_ar("كباية ماية"), [])
+        self.assertEqual([span.value for span in extract_number_spans("كباية ماية", "ar")], [])
 
     def test_colloquial_hundred_in_price_sentence(self):
         # "three hundred and fifty five thousand riyals", colloquial مية
@@ -370,7 +370,7 @@ class TestArabicColloquialExtract(unittest.TestCase):
     def test_thulthmiya_has_no_source(self):
         # the hybrid of the classical ثلث and the colloquial مية
         self.assertFalse(extract_number_ar("ثلثمية"))
-        self.assertEqual(extract_numbers_ar("ثلثمية وخمسين"), [50])
+        self.assertEqual([span.value for span in extract_number_spans("ثلثمية وخمسين", "ar")], [50])
 
     def test_colloquial_hundred_plus_tens(self):
         # 100 + 50 = 150
@@ -451,9 +451,10 @@ class TestArabicColloquialExtract(unittest.TestCase):
         self.assertFalse(set(numbers_ar._FUSED_TEENS_LOOKUP) & others)
 
     def test_naqis_is_the_sign_of_the_number_after_it(self):
-        # ناقص is a minus sign, never a subtraction
+        # ناقص opens a number as a minus sign; between two numbers it is the
+        # word of a subtraction ("ten minus two"), so the 2 keeps no sign
         self.assertEqual(extract_number_ar("ناقص واحد"), -1)
-        self.assertEqual(extract_numbers_ar("عشرة ناقص اثنين"), [10, -2])
+        self.assertEqual([span.value for span in extract_number_spans("عشرة ناقص اثنين", "ar")], [10, 2])
         self.assertEqual(numbers_to_digits("عشرة ناقص اثنين", lang="ar"),
                          "10 ناقص 2")
 

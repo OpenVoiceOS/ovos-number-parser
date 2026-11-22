@@ -10,7 +10,7 @@ and ordinals take the particles "al"/"a" ("al doilea"/"a doua").
 """
 import unittest
 
-from ovos_number_parser import extract_number, numbers_to_digits
+from ovos_number_parser import extract_number, numbers_to_digits, is_fractional, is_ordinal
 
 from ovos_number_parser.numbers_ro import RO
 from ovos_number_parser.util import GrammaticalGender
@@ -200,12 +200,12 @@ class TestExtractionRO(unittest.TestCase):
         self.assertEqual(extract_number("doi și jumătate", lang="ro"), 2.5)
         self.assertEqual(extract_number("două treimi", lang="ro"), 2 / 3)
         self.assertEqual(extract_number("trei sferturi", lang="ro"), 3 / 4)
-        self.assertEqual(RO.is_fractional("jumătate"), 1 / 2)
-        self.assertEqual(RO.is_fractional("treime"), 1 / 3)
-        self.assertEqual(RO.is_fractional("sfert"), 1 / 4)
-        self.assertEqual(RO.is_fractional("pătrime"), 1 / 4)
-        self.assertEqual(RO.is_fractional("cincime"), 1 / 5)
-        self.assertFalse(RO.is_fractional("pisică"))
+        self.assertEqual(is_fractional("jumătate", "ro"), 1 / 2)
+        self.assertEqual(is_fractional("treime", "ro"), 1 / 3)
+        self.assertEqual(is_fractional("sfert", "ro"), 1 / 4)
+        self.assertEqual(is_fractional("pătrime", "ro"), 1 / 4)
+        self.assertEqual(is_fractional("cincime", "ro"), 1 / 5)
+        self.assertFalse(is_fractional("pisică", "ro"))
 
     def test_ordinals(self):
         self.assertEqual(extract_number("al doilea om", ordinals=True, lang="ro"), 2)
@@ -214,12 +214,12 @@ class TestExtractionRO(unittest.TestCase):
         self.assertEqual(extract_number("prima oară", ordinals=True, lang="ro"), 1)
         self.assertEqual(
             extract_number("al douăzeci și unulea etaj", ordinals=True, lang="ro"), 21)
-        self.assertEqual(RO.is_ordinal("al doilea"), 2)
-        self.assertEqual(RO.is_ordinal("doua"), 2)
-        self.assertEqual(RO.is_ordinal("primul"), 1)
-        self.assertEqual(RO.is_ordinal("prima"), 1)
-        self.assertEqual(RO.is_ordinal("miilea"), 1000)
-        self.assertFalse(RO.is_ordinal("pisică"))
+        self.assertEqual(is_ordinal("al doilea", "ro"), 2)
+        self.assertEqual(is_ordinal("doua", "ro"), 2)
+        self.assertEqual(is_ordinal("primul", "ro"), 1)
+        self.assertEqual(is_ordinal("prima", "ro"), 1)
+        self.assertEqual(is_ordinal("miilea", "ro"), 1000)
+        self.assertFalse(is_ordinal("pisică", "ro"))
 
     def test_digits_win(self):
         self.assertEqual(extract_number("7", lang="ro"), 7)
@@ -269,7 +269,7 @@ class TestRoundTripRO(unittest.TestCase):
             self.assertEqual(extract_number(spoken, ordinals=True, lang="ro"), n, spoken)
             # is_ordinal only matches single ordinal words (plus particle)
             if len(spoken.split()) <= 2:
-                self.assertEqual(RO.is_ordinal(spoken), n, spoken)
+                self.assertEqual(is_ordinal(spoken, "ro"), n, spoken)
 
     def test_round_trip_decimals(self):
         for n in (0.5, 5.2, 3.14, 12.34, 100.01):

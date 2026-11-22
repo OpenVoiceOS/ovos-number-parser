@@ -302,49 +302,10 @@ def nice_number_et(number, speech=True, denominators=range(1, 21)):
     return '{} ja {}'.format(whole, frac)
 
 
-_ORDINAL_REVERSE_ET = {}
-
-
 def is_ordinal_et(input_str):
-    """
-    Check if the given word is an Estonian ordinal number.
-
-    Args:
-        input_str (str): the string to check if ordinal
-    Returns:
-        (bool) or (int): False if not an ordinal, otherwise the number
-    """
-    if not _ORDINAL_REVERSE_ET:
-        candidates = list(range(1, 101)) + \
-            [n * 100 for n in range(1, 11)] + [1000, 10 ** 6]
-        for n in candidates:
-            _ORDINAL_REVERSE_ET[pronounce_ordinal_et(n)] = n
-    return _ORDINAL_REVERSE_ET.get(input_str.lower().strip(), False)
-
-
-def is_fractional_et(input_str, short_scale=True):
-    """
-    Check if the given word is an Estonian fraction.
-
-    Accepts the -ndik nouns ("kolmandik"), their partitive forms that
-    follow numerals ("kaks kolmandikku"), plus "pool" (1/2) and
-    "veerand" (1/4).
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, present for API compatibility
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    word = input_str.lower().strip()
-    if word in ('pool', 'poolt'):
-        return 0.5
-    if word in ('veerand', 'veerandit'):
-        return 0.25
-    for den, den_str in _FRACTION_STRING_ET.items():
-        if word in (den_str, den_str + 'ku'):
-            return 1.0 / den
-    return False
+    """Deprecated: use ``ovos_number_parser.is_ordinal(text, "et")``."""
+    warn_reader_removed("is_ordinal_et", 'ovos_number_parser.is_ordinal(text, "et")')
+    return numtag_readers.is_ordinal(input_str, "et")
 
 
 def extract_number_et(text, short_scale=True, ordinals=False):

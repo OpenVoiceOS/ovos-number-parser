@@ -393,32 +393,6 @@ def pronounce_ordinal_hr(number):
     raise NotImplementedError(f"cannot pronounce {number} as a Croatian ordinal")
 
 
-def is_fractional_hr(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, Croatian only uses the long scale
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    input_str = input_str.lower()
-    # normalize plural forms (dvije trećine -> trećina)
-    if input_str.endswith("ine"):
-        input_str = input_str[:-1] + "a"
-
-    fractions = {"pola": 2, "pol": 2, "polovica": 2, "polovice": 2}
-
-    for num, name in _FRACTION_STRING_HR.items():
-        fractions[name] = num
-
-    if input_str in fractions:
-        return 1.0 / fractions[input_str]
-    return False
-
-
 def extract_number_hr(text, short_scale=True, ordinals=False):
     """Deprecated: use ``ovos_number_parser.extract_number(text, "hr")``."""
     warn_reader_removed("extract_number_hr", 'ovos_number_parser.extract_number(text, "hr")')

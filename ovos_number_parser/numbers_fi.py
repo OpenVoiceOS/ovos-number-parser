@@ -81,16 +81,6 @@ _FRACTION_STRING_FI = {
     20: 'kahdeskymmenesosa',
 }
 
-_NNES_FRACTIONS_FI = {
-    'kolmannes': 3,
-    'neljännes': 4,
-    'viidennes': 5,
-    'kuudennes': 6,
-    'seitsemännes': 7,
-    'kahdeksannes': 8,
-    'yhdeksännes': 9,
-}
-
 
 def _pronounce_below_1000_fi(num):
     """Pronounce 1..999 as a single compound word."""
@@ -294,49 +284,10 @@ def nice_number_fi(number, speech=True, denominators=range(1, 21)):
     return '{} ja {}'.format(whole, frac)
 
 
-_ORDINAL_REVERSE_FI = {}
-
-
 def is_ordinal_fi(input_str):
-    """
-    Check if the given word is a Finnish ordinal number.
-
-    Args:
-        input_str (str): the string to check if ordinal
-    Returns:
-        (bool) or (int): False if not an ordinal, otherwise the number
-    """
-    if not _ORDINAL_REVERSE_FI:
-        candidates = list(range(0, 101)) + \
-            [n * 100 for n in range(1, 11)] + [1000, 10 ** 6]
-        for n in candidates:
-            _ORDINAL_REVERSE_FI[pronounce_ordinal_fi(n)] = n
-    return _ORDINAL_REVERSE_FI.get(input_str.lower().strip(), False)
-
-
-def is_fractional_fi(input_str, short_scale=True):
-    """
-    Check if the given word is a Finnish fraction.
-
-    Accepts both the productive ordinal + "osa" pattern ("kolmasosa") and
-    the -nnes nouns ("kolmannes", "neljännes"), plus the partitive forms
-    that follow numerals ("kolme neljäsosaa").
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, present for API compatibility
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    word = input_str.lower().strip()
-    if word in ('puoli', 'puolta'):
-        return 0.5
-    for den, den_str in _FRACTION_STRING_FI.items():
-        if word in (den_str, den_str + 'a'):
-            return 1.0 / den
-    if word in _NNES_FRACTIONS_FI:
-        return 1.0 / _NNES_FRACTIONS_FI[word]
-    return False
+    """Deprecated: use ``ovos_number_parser.is_ordinal(text, "fi")``."""
+    warn_reader_removed("is_ordinal_fi", 'ovos_number_parser.is_ordinal(text, "fi")')
+    return numtag_readers.is_ordinal(input_str, "fi")
 
 
 def extract_number_fi(text, short_scale=True, ordinals=False):

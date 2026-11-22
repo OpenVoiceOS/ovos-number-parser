@@ -648,34 +648,6 @@ def plural_ru(num: int, one: str, few: str, many: str):
     return many
 
 
-def is_fractional_ru(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    # Ordinal-derived fraction nouns are feminine ("пятая", 1/5). After a
-    # numerator they take the plural nominative "-ые" or genitive "-ых"
-    # ("две пятые", "три пятых"); normalize that ending back to the singular
-    # "-тая" citation form so it matches the table.
-    if input_str[-3:] in ["тые", "тых"]:
-        input_str = input_str[:-3] + "тая"
-    fractions = {"целая": 1}  # first four numbers have little different format
-
-    for num in _FRACTION_STRING_RU:  # Numbers from 2 to 1 hundred, more is not usually used in common speech
-        if num > 1:
-            fractions[_FRACTION_STRING_RU[num]] = num
-
-    if input_str.lower() in fractions:
-        return 1.0 / fractions[input_str.lower()]
-    return False
-
-
 def extract_number_ru(text, short_scale=True, ordinals=False):
     """Deprecated: use ``ovos_number_parser.extract_number(text, "ru")``."""
     warn_reader_removed("extract_number_ru", 'ovos_number_parser.extract_number(text, "ru")')

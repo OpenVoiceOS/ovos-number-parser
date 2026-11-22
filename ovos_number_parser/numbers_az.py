@@ -528,29 +528,6 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
     return result
 
 
-def is_fractional_az(input_str, short_scale=True, spoken=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-        spoken (bool):
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-
-    fracts = {"dörddəbir": 4, "yarım": 2, "üçdəbir": 3}
-    for num in _FRACTION_STRING_AZ:
-        if num > 2:
-            fracts[_FRACTION_STRING_AZ[num]] = num
-
-    if input_str.lower() in fracts and spoken:
-        return 1.0 / fracts[input_str.lower()]
-    return False
-
-
 def extract_number_az(text, short_scale=True, ordinals=False):
     """Deprecated: use ``ovos_number_parser.extract_number(text, "az")``."""
     warn_reader_removed("extract_number_az", 'ovos_number_parser.extract_number(text, "az")')

@@ -18,7 +18,7 @@ words, in 40 languages. It needs no voice assistant.
 Words to digits (`extract_number`, `numbers_to_digits`) serves speech
 recognition output and number extraction. Digits to words (`pronounce_number`,
 `pronounce_ordinal`, `pronounce_fraction`) prepares text for speech synthesis.
-Thirty-nine languages read numbers through
+All 40 languages read numbers through
 [numtag](https://github.com/TigreGotico/numtag). The `pronounce_*` writers are
 in this package.
 
@@ -96,7 +96,7 @@ from ovos_number_parser import extract_number, is_fractional, is_ordinal
 
 print(extract_number("shipped in three boxes", "en"))  # 3
 print(is_ordinal("second", "en"))  # 2
-print(is_fractional("quarter", "en"))  # 0.25
+print(is_fractional("a quarter", "en"))  # 0.25
 ```
 
 With `ordinals=True`, a line that holds several numbers with other words
@@ -134,13 +134,12 @@ class MySkill(OVOSSkill):
 The 40 supported language codes are: an, ar, ast, az, bg, ca, cs, da, de, el,
 en, es, et, eu, fa, fi, fr, fy, gl, he, hr, hu, id, it, kab, ms, mwl, nb, nl,
 nn, oc, pl, pt, ro, ru, sk, sl, sv, tr and uk. Every language supports every
-public function. Where a language has no hand-written implementation of a
-function, a generic fallback answers (see
+public function (see
 [Full function parity](docs/languages.md#full-function-parity)).
 
-All of them except Malay (`ms`) read words through numtag. The
-[language table](docs/languages.md#language-table) shows the reader of each
-language and the rules of single languages.
+All of them read words through numtag. The
+[language table](docs/languages.md#language-table) lists the languages and the
+rules of single languages.
 
 ## Grammatical gender
 

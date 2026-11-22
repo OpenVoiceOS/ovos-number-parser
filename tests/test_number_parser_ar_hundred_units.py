@@ -6,8 +6,7 @@ never builds one: "تلاتين مية وعشرين" is 30 and 120.
 """
 import unittest
 
-from ovos_number_parser import numbers_to_digits
-from ovos_number_parser.numbers_ar import extract_numbers_ar
+from ovos_number_parser import numbers_to_digits, extract_number_spans
 
 
 class TestHundredUnits(unittest.TestCase):
@@ -16,14 +15,14 @@ class TestHundredUnits(unittest.TestCase):
                              ("كم إثنين مئة ألف كفو كفو", [200000]),
                              ("واحدة إثنين إثنين مئة و سبعة و خمسين", [1, 2, 257])):
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_ar(text), values)
+                self.assertEqual([span.value for span in extract_number_spans(text, "ar")], values)
 
     def test_a_ten_before_a_hundred_starts_a_second_number(self):
         for text, values in (("تلاتين مية وعشرين", [30, 120]),
                              ("سبعه وخمسين مية واربعه", [57, 104]),
                              ("عشرين مية ريال", [20, 100])):
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_ar(text), values)
+                self.assertEqual([span.value for span in extract_number_spans(text, "ar")], values)
 
     def test_the_digits_cut_where_the_numbers_do(self):
         for text, converted in (("عشرين ست مية", "20 600"),
@@ -43,7 +42,7 @@ class TestHundredUnits(unittest.TestCase):
                 ("خمس مية وثلاث مية", [500, 300], "500 و300"),
                 ("الف وميتين وخمس مية ريال", [1200, 500], "1200 و500 ريال")):
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_ar(text), values)
+                self.assertEqual([span.value for span in extract_number_spans(text, "ar")], values)
                 self.assertEqual(numbers_to_digits(text, lang="ar"), converted)
 
     def test_three_to_nine_build_a_hundred(self):
@@ -51,7 +50,7 @@ class TestHundredUnits(unittest.TestCase):
                             ("خمس مية ريال", 500), ("تسع مئة", 900),
                             ("ميتين ريال", 200), ("مية ريال", 100)):
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_ar(text), [value])
+                self.assertEqual([span.value for span in extract_number_spans(text, "ar")], [value])
 
 
 if __name__ == "__main__":

@@ -51,6 +51,7 @@
   "": "https://github.com/TigreGotico/numtag/issues/166"
  },
  "tests/test_extraction_misreads.py::TestDigitGroups::test_commas_that_are_no_group_separate_numbers": {
+  "lang='ms'": "https://github.com/TigreGotico/numtag/issues/163",
   "lang='id'": "https://github.com/TigreGotico/numtag/issues/163",
   "": "https://github.com/TigreGotico/numtag/issues/163"
  },
@@ -91,6 +92,8 @@
   "lang='pt', text='dois mil milhões trezentos mil'": "https://github.com/TigreGotico/numtag/issues/161"
  },
  "tests/test_extraction_misreads.py::TestScaleAfterScaleRoundTrip::test_round_trip": {
+  "lang='ms', spoken='satu juta trilion'": "https://github.com/TigreGotico/numtag/issues/161",
+  "lang='ms', spoken='dua belas juta trilion tiga ratus empat puluh lima'": "https://github.com/TigreGotico/numtag/issues/161",
   "lang='id', spoken='satu juta triliun'": "https://github.com/TigreGotico/numtag/issues/161",
   "lang='id', spoken='dua belas juta triliun tiga ratus empat puluh lima'": "https://github.com/TigreGotico/numtag/issues/161",
   "lang='ar', spoken='مليون تريليون'": "https://github.com/TigreGotico/numtag/issues/161",
@@ -4278,5 +4281,559 @@
  "tests/test_consumer_calls.py::TestPronouncedThousands::test_a_thousand_and_its_rest": {
   "lang='en-US', text='one thousand, one'": "https://github.com/TigreGotico/numtag/issues/157",
   "lang='en-US', text='two thousand, twenty three'": "https://github.com/TigreGotico/numtag/issues/157"
+ },
+ "tests/test_da_vigesimal_ordinals.py::TestVigesimalOrdinals::test_each_ten_in_both_forms": {
+  "word='tressende'": "https://github.com/TigreGotico/numtag/issues/264"
+ },
+ "tests/test_da_vigesimal_ordinals.py::TestVigesimalOrdinals::test_unit_og_ten": {
+  "word='enogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "word='toogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "word='treogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "word='syvogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "word='niogtressende'": "https://github.com/TigreGotico/numtag/issues/264"
+ },
+ "tests/test_dispatch_fixes.py::TestDispatchFixes::test_nl_is_fractional_uses_dutch": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_extraction_misreads.py::TestDutchOrdinalTable::test_ordinals": {
+  "word='honderdste'": "https://github.com/TigreGotico/numtag/issues/262",
+  "word='miljoenste'": "https://github.com/TigreGotico/numtag/issues/262",
+  "word='triljardste'": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_lang_parity.py::TestLanguageParity::test_is_ordinal_roundtrip": {
+  "": "https://github.com/TigreGotico/numtag/issues/263"
+ },
+ "tests/test_lang_parity.py::TestIsOrdinalAnchors::test_new_languages": {
+  "": "https://github.com/TigreGotico/numtag/issues/263"
+ },
+ "tests/test_number_parser_ar.py::TestArabicExtract::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_ar.py::TestArabicRoundTrip::test_round_trip_ordinals": {
+  "number=20": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=30": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=40": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=50": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=60": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=70": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=80": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=90": "https://github.com/TigreGotico/numtag/issues/263"
+ },
+ "tests/test_number_parser_ar_algerian.py::TestAlgerianCardinals::test_a_composed_number_reads_back": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_algerian.py::TestAlgerianCardinals::test_arq_keeps_the_conjunction_on_its_own_words": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_algerian.py::TestAlgerianCardinals::test_ben_sedira_three_hundred_is_read_only_as_arq": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_algerian.py::TestAlgerianCardinals::test_the_printed_two_word_three_hundred_reads_300_as_arq": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_gender_case.py::TestArabicRoundTrip::test_ordinals": {
+  "gender=<GrammaticalGender.MASCULINE: 'masculine'>, case='nominative', spoken='العشرون'": "https://github.com/TigreGotico/numtag/issues/263",
+  "gender=<GrammaticalGender.MASCULINE: 'masculine'>, case='nominative', spoken='الثلاثون'": "https://github.com/TigreGotico/numtag/issues/263",
+  "gender=<GrammaticalGender.MASCULINE: 'masculine'>, case='oblique', spoken='العشرين'": "https://github.com/TigreGotico/numtag/issues/263",
+  "gender=<GrammaticalGender.MASCULINE: 'masculine'>, case='oblique', spoken='الثلاثين'": "https://github.com/TigreGotico/numtag/issues/263",
+  "gender=<GrammaticalGender.FEMININE: 'feminine'>, case='nominative', spoken='العشرون'": "https://github.com/TigreGotico/numtag/issues/263",
+  "gender=<GrammaticalGender.FEMININE: 'feminine'>, case='nominative', spoken='الثلاثون'": "https://github.com/TigreGotico/numtag/issues/263",
+  "gender=<GrammaticalGender.FEMININE: 'feminine'>, case='oblique', spoken='العشرين'": "https://github.com/TigreGotico/numtag/issues/263",
+  "gender=<GrammaticalGender.FEMININE: 'feminine'>, case='oblique', spoken='الثلاثين'": "https://github.com/TigreGotico/numtag/issues/263"
+ },
+ "tests/test_number_parser_ar_gulf_joins.py::TestArabicGulfNumberJoins::test_or_after_a_hundred_stays_or": {
+  "": "https://github.com/TigreGotico/numtag/issues/160"
+ },
+ "tests/test_number_parser_ar_gulf_joins.py::TestArabicGulfNumberJoins::test_or_before_millions_stays_or": {
+  "": "https://github.com/TigreGotico/numtag/issues/160"
+ },
+ "tests/test_number_parser_ar_gulf_joins.py::TestArabicGulfNumberJoins::test_or_between_equal_magnitudes_stays_or": {
+  "": "https://github.com/TigreGotico/numtag/issues/160"
+ },
+ "tests/test_number_parser_ar_gulf_joins.py::TestArabicGulfNumberJoins::test_proclitic_leaves_water_and_per_cent_alone": {
+  "": "https://github.com/TigreGotico/numtag/issues/160"
+ },
+ "tests/test_number_parser_ar_homographs.py::TestLicensed::test_a_scale_word_is_never_read_without_its_homograph": {
+  "text='دفعت ميت الف'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='دفعت ميت مليون'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='دفعت التلات الف'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='دفعت التلات مليون'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='دفعت الاتنين الف'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='دفعت الاتنين مليون'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='دفعت الست الف'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='دفعت الست مليون'": "https://github.com/TigreGotico/numtag/issues/160",
+  "": "https://github.com/TigreGotico/numtag/issues/160"
+ },
+ "tests/test_number_parser_ar_hundred_units.py::TestHundredUnits::test_a_ten_before_a_hundred_starts_a_second_number": {
+  "text='تلاتين مية وعشرين'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='سبعه وخمسين مية واربعه'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='عشرين مية ريال'": "https://github.com/TigreGotico/numtag/issues/160"
+ },
+ "tests/test_number_parser_ar_hundred_units.py::TestHundredUnits::test_three_to_nine_build_a_hundred": {
+  "text='تلات مية'": "https://github.com/TigreGotico/numtag/issues/160"
+ },
+ "tests/test_number_parser_ar_lects.py::TestArabicLectCardinals::test_a_whole_composed_number_reads_back_too": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_lects.py::TestArabicLectCardinals::test_every_form_a_lect_can_say_can_also_be_read": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_levantine.py::TestLevantineCardinals::test_a_composed_number_reads_back": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_levantine.py::TestLevantineCardinals::test_a_lect_keeps_the_conjunction_the_way_standard_arabic_does": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_levantine.py::TestLevantineCardinals::test_apc_reads_its_own_three_and_attributive_teens": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_levantine.py::TestLevantineCardinals::test_the_lect_is_off_again_after_a_call": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_levantine.py::TestLevantineCardinals::test_tnen_is_two_only_in_context": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_moroccan.py::TestMoroccanCardinals::test_a_composed_number_reads_back": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_moroccan.py::TestMoroccanCardinals::test_ary_keeps_the_conjunction_on_its_own_words": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_moroccan.py::TestMoroccanCardinals::test_ary_reads_its_own_four_and_forty": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_najdi.py::TestNajdiCardinals::test_every_whole_number_to_ten_thousand_reads_back": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_najdi.py::TestNajdiCardinals::test_every_year_from_1990_to_2100_reads_back": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_najdi.py::TestSpokenHalf::test_after_and_a_unit_or_ten_it_is_a_half": {
+  "text='خمسة ونص'": "https://github.com/TigreGotico/numtag/issues/266",
+  "text='ساعتين ونص'": "https://github.com/TigreGotico/numtag/issues/266",
+  "text='واحد وستين ونص'": "https://github.com/TigreGotico/numtag/issues/266",
+  "text='خمسة و نص'": "https://github.com/TigreGotico/numtag/issues/266",
+  "text='خمسة ونص ريال'": "https://github.com/TigreGotico/numtag/issues/266",
+  "text='ثنعش ونص'": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_najdi.py::TestSpokenHalf::test_it_converts_to_digits": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u0633\\u0639\\u0631 \\u062e\\u0645\\u0633\\u0637\\u0639\\u0634 \\u0623\\u0644\\u0641 \\u0631\\u064a\\u0627\\u0644-15000]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0639\\u0637\\u0646\\u064a \\u062b\\u0646\\u0639\\u0634 \\u062d\\u0628\\u0629 \\u0644\\u0648 \\u0633\\u0645\\u062d\\u062a-12]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u0643\\u064a\\u0644\\u0648 \\u0628\\u062b\\u0644\\u0627\\u062b\\u0637\\u0639\\u0634 \\u0631\\u064a\\u0627\\u0644-13]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u0631\\u062d\\u0644\\u0629 \\u062a\\u0627\\u062e\\u0630 \\u0633\\u0627\\u0639\\u062a\\u064a\\u0646 \\u0648\\u0646\\u0635-2.5]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u0645\\u0633\\u0627\\u0641\\u0629 \\u062b\\u0644\\u0627\\u062b\\u0629 \\u0648\\u0646\\u0635 \\u0643\\u064a\\u0644\\u0648-3.5]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u0633\\u0639\\u0631 \\u062e\\u0645\\u0633\\u0637\\u0639\\u0634 \\u0648\\u0646\\u0635 \\u0631\\u064a\\u0627\\u0644-15.5]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u0648\\u0632\\u0646 \\u0639\\u0634\\u0631\\u0629 \\u0648\\u0646\\u0635 \\u0643\\u064a\\u0644\\u0648-10.5]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0646\\u062d\\u062a\\u0627\\u062c \\u0627\\u0631\\u0628\\u0639 \\u0648\\u0639\\u0634\\u0631\\u064a\\u0646 \\u0648\\u0646\\u0635 \\u0633\\u0627\\u0639\\u0629-24.5]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0631\\u0642\\u0645 \\u0627\\u0644\\u0634\\u0642\\u0629 \\u0627\\u062d\\u062f\\u0639\\u0634-11]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u0645\\u0648\\u0639\\u062f \\u0628\\u0639\\u062f \\u062a\\u0633\\u0639\\u0637\\u0639\\u0634 \\u064a\\u0648\\u0645-19]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0639\\u0645\\u0631\\u0647 \\u0633\\u062a\\u0637\\u0639\\u0634 \\u0633\\u0646\\u0629-16]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0645\\u0639\\u0627\\u0647 \\u062b\\u0645\\u0627\\u0646\\u0637\\u0639\\u0634 \\u0623\\u0644\\u0641 \\u0631\\u064a\\u0627\\u0644-18000]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u062f\\u0641\\u0639\\u0629 \\u0627\\u0631\\u0628\\u0639\\u0637\\u0639\\u0634 \\u0623\\u0644\\u0641-14000]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0628\\u0627\\u0642\\u064a \\u0633\\u0628\\u0639\\u0637\\u0639\\u0634 \\u064a\\u0648\\u0645 \\u0639\\u0644\\u0649 \\u0627\\u0644\\u0645\\u0648\\u0639\\u062f-17]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u0633\\u064a\\u0627\\u0631\\u0629 \\u0645\\u0648\\u062f\\u064a\\u0644 \\u0623\\u0644\\u0641\\u064a\\u0646 \\u0648\\u062b\\u0645\\u0627\\u0646\\u0637\\u0639\\u0634-2018]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u062c\\u0647\\u0627\\u0632 \\u0628\\u0633\\u062a \\u0645\\u064a\\u0629 \\u0631\\u064a\\u0627\\u0644-600]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u0645\\u062c\\u0645\\u0648\\u0639 \\u062e\\u0645\\u0633\\u0637\\u0639\\u0634 \\u0623\\u0644\\u0641 \\u0648\\u062e\\u0645\\u0633 \\u0645\\u064a\\u0629 \\u0631\\u064a\\u0627\\u0644-15500]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u062d\\u0633\\u0627\\u0628 \\u0645\\u064a\\u062a\\u064a\\u0646 \\u0648\\u062b\\u0646\\u0639\\u0634 \\u0631\\u064a\\u0627\\u0644-212]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0627\\u0644\\u0634\\u062d\\u0646\\u0629 \\u0645\\u064a\\u0629 \\u0648\\u062e\\u0645\\u0633\\u0637\\u0639\\u0634 \\u0643\\u064a\\u0644\\u0648-115]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0631\\u0642\\u0645 \\u0627\\u0644\\u063a\\u0631\\u0641\\u0629 \\u062e\\u0645\\u0633 \\u0645\\u064a\\u0629 \\u0648\\u0627\\u062d\\u062f\\u0639\\u0634-511]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0631\\u0635\\u064a\\u062f\\u0643 \\u062b\\u0644\\u0627\\u062b\\u0637\\u0639\\u0634 \\u0623\\u0644\\u0641 \\u0631\\u064a\\u0627\\u0644-13000]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_sentence[\\u0623\\u062c\\u0631\\u0629 \\u0627\\u0644\\u0633\\u0627\\u0639\\u0629 \\u062e\\u0645\\u0633\\u0629 \\u0648\\u0646\\u0635 \\u0631\\u064a\\u0627\\u0644-5.5]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_several_numbers_in_one_sentence[\\u0633\\u0627\\u0639\\u062a\\u064a\\u0646 \\u0623\\u0648 \\u062b\\u0644\\u0627\\u062b \\u0633\\u0627\\u0639\\u0627\\u062a-values12-ar]": {
+  "": "https://github.com/TigreGotico/numtag/issues/160"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_several_numbers_in_one_sentence[\\u0633\\u0627\\u0639\\u062a\\u064a\\u0646 \\u0623\\u0648 \\u062b\\u0644\\u0627\\u062b \\u0633\\u0627\\u0639\\u0627\\u062a-values12-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_several_numbers_in_one_sentence[\\u0628\\u064a\\u0646 \\u062b\\u0644\\u0627\\u062b\\u0637\\u0639\\u0634 \\u0648\\u062e\\u0645\\u0633\\u0637\\u0639\\u0634 \\u0633\\u0646\\u0629-values14-ar]": {
+  "": "https://github.com/TigreGotico/numtag/issues/160"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_several_numbers_in_one_sentence[\\u0628\\u064a\\u0646 \\u062b\\u0644\\u0627\\u062b\\u0637\\u0639\\u0634 \\u0648\\u062e\\u0645\\u0633\\u0637\\u0639\\u0634 \\u0633\\u0646\\u0629-values14-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_ordinal_sentence[\\u0627\\u0646\\u062a\\u0638\\u0631 \\u062b\\u0627\\u0646\\u064a\\u0629 \\u0648\\u0627\\u062d\\u062f\\u0629-1-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_an_ordinal_is_no_cardinal[\\u0634\\u0627\\u0647\\u062f\\u062a \\u0627\\u0644\\u062d\\u0644\\u0642\\u0629 \\u0627\\u0644\\u0639\\u0634\\u0631\\u064a\\u0646-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_an_ordinal_is_no_cardinal[\\u0648\\u0627\\u0644\\u062d\\u0644\\u0642\\u0629 \\u0627\\u0644\\u0639\\u0634\\u0631\\u064a\\u0646 \\u0643\\u0627\\u0646\\u062a \\u0623\\u0637\\u0648\\u0644-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0627\\u0644\\u0633\\u0639\\u0631 \\u062e\\u0645\\u0633\\u0637\\u0639\\u0634 \\u0623\\u0644\\u0641 \\u0631\\u064a\\u0627\\u0644-\\u0627\\u0644\\u0633\\u0639\\u0631 15000 \\u0631\\u064a\\u0627\\u0644]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0627\\u0644\\u0633\\u064a\\u0627\\u0631\\u0629 \\u0645\\u0648\\u062f\\u064a\\u0644 \\u0623\\u0644\\u0641\\u064a\\u0646 \\u0648\\u062b\\u0645\\u0627\\u0646\\u0637\\u0639\\u0634-\\u0627\\u0644\\u0633\\u064a\\u0627\\u0631\\u0629 \\u0645\\u0648\\u062f\\u064a\\u0644 2018]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0639\\u0637\\u0646\\u064a \\u062b\\u0646\\u0639\\u0634 \\u062d\\u0628\\u0629-\\u0639\\u0637\\u0646\\u064a 12 \\u062d\\u0628\\u0629]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0627\\u0644\\u0643\\u064a\\u0644\\u0648 \\u0628\\u062b\\u0644\\u0627\\u062b\\u0637\\u0639\\u0634 \\u0631\\u064a\\u0627\\u0644-\\u0627\\u0644\\u0643\\u064a\\u0644\\u0648 \\u062813 \\u0631\\u064a\\u0627\\u0644]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0627\\u0644\\u0648\\u0632\\u0646 \\u0639\\u0634\\u0631\\u0629 \\u0648\\u0646\\u0635 \\u0643\\u064a\\u0644\\u0648-\\u0627\\u0644\\u0648\\u0632\\u0646 10.5 \\u0643\\u064a\\u0644\\u0648]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0627\\u0644\\u062c\\u0647\\u0627\\u0632 \\u0628\\u0633\\u062a \\u0645\\u064a\\u0629 \\u0631\\u064a\\u0627\\u0644-\\u0627\\u0644\\u062c\\u0647\\u0627\\u0632 \\u0628600 \\u0631\\u064a\\u0627\\u0644]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0627\\u0644\\u0645\\u062c\\u0645\\u0648\\u0639 \\u062e\\u0645\\u0633\\u0637\\u0639\\u0634 \\u0623\\u0644\\u0641 \\u0648\\u062e\\u0645\\u0633 \\u0645\\u064a\\u0629 \\u0631\\u064a\\u0627\\u0644-\\u0627\\u0644\\u0645\\u062c\\u0645\\u0648\\u0639 15500 \\u0631\\u064a\\u0627\\u0644]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0627\\u0644\\u062d\\u0633\\u0627\\u0628 \\u0645\\u064a\\u062a\\u064a\\u0646 \\u0648\\u062b\\u0646\\u0639\\u0634 \\u0631\\u064a\\u0627\\u0644-\\u0627\\u0644\\u062d\\u0633\\u0627\\u0628 212 \\u0631\\u064a\\u0627\\u0644]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0631\\u0642\\u0645 \\u0627\\u0644\\u063a\\u0631\\u0641\\u0629 \\u062e\\u0645\\u0633 \\u0645\\u064a\\u0629 \\u0648\\u0627\\u062d\\u062f\\u0639\\u0634-\\u0631\\u0642\\u0645 \\u0627\\u0644\\u063a\\u0631\\u0641\\u0629 511]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0628\\u0627\\u0642\\u064a \\u0633\\u0628\\u0639\\u0637\\u0639\\u0634 \\u064a\\u0648\\u0645-\\u0628\\u0627\\u0642\\u064a 17 \\u064a\\u0648\\u0645]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0639\\u0645\\u0631\\u0647 \\u0633\\u062a\\u0637\\u0639\\u0634 \\u0633\\u0646\\u0629-\\u0639\\u0645\\u0631\\u0647 16 \\u0633\\u0646\\u0629]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u062e\\u0645\\u0633\\u0629 \\u0648\\u0646\\u0635 \\u0631\\u064a\\u0627\\u0644 \\u0648\\u0633\\u0628\\u0639\\u0629 \\u0631\\u064a\\u0627\\u0644-5.5 \\u0631\\u064a\\u0627\\u0644 \\u06487 \\u0631\\u064a\\u0627\\u0644]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0628\\u064a\\u0646 \\u062b\\u0644\\u0627\\u062b\\u0637\\u0639\\u0634 \\u0648\\u062e\\u0645\\u0633\\u0637\\u0639\\u0634 \\u0633\\u0646\\u0629-\\u0628\\u064a\\u0646 13 \\u064815 \\u0633\\u0646\\u0629]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_saudi_to_digits[\\u0623\\u062c\\u0631\\u0629 \\u0627\\u0644\\u0633\\u0627\\u0639\\u0629 \\u062e\\u0645\\u0633\\u0629 \\u0648\\u0646\\u0635 \\u0631\\u064a\\u0627\\u0644-\\u0623\\u062c\\u0631\\u0629 \\u0627\\u0644\\u0633\\u0627\\u0639\\u0629 5.5 \\u0631\\u064a\\u0627\\u0644]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_in_a_sentence_reads_back[12-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_in_a_sentence_reads_back[15-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_in_a_sentence_reads_back[19-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_in_a_sentence_reads_back[111-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_in_a_sentence_reads_back[115-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_in_a_sentence_reads_back[212-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_in_a_sentence_reads_back[2018-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_in_a_sentence_reads_back[13500-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_converts_to_its_digits[12-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_converts_to_its_digits[15-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_converts_to_its_digits[19-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_converts_to_its_digits[111-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_converts_to_its_digits[115-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_converts_to_its_digits[212-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_converts_to_its_digits[2018-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_natural_language.py::test_said_converts_to_its_digits[13500-ars]": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_tunisian.py::TestTunisianCardinals::test_a_composed_number_reads_back": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ar_tunisian.py::TestTunisianCardinals::test_aeb_keeps_the_conjunction_on_a_teen": {
+  "": "https://github.com/TigreGotico/numtag/issues/266"
+ },
+ "tests/test_number_parser_ast.py::TestFractionsAst::test_basic_fraction_words": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_ast.py::TestFractionsAst::test_fraction_plurals": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_bg.py::TestBulgarianHelpers::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_ca.py::TestCatalanOrdinals::test_ordinals_round_trip_through_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_ca.py::TestCatalanFractions::test_basic_and_inflected": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_ca.py::TestCatalanFractions::test_capitalized_input_does_not_crash": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_da.py::TestDanishOrdinalRecognition::test_is_ordinal_round_trip_0_to_99": {
+  "number=60, spoken='tressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "number=61, spoken='enogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "number=62, spoken='toogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "number=63, spoken='treogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "number=64, spoken='fireogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "number=65, spoken='femogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "number=66, spoken='seksogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "number=67, spoken='syvogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "number=68, spoken='otteogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
+  "number=69, spoken='niogtressende'": "https://github.com/TigreGotico/numtag/issues/264"
+ },
+ "tests/test_number_parser_el.py::TestGreekHelpers::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_en.py::TestNumberParserEN::test_fractional_and_ordinal_en": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_es.py::TestSpanishFractions::test_basic_and_gendered": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_es.py::TestSpanishFractions::test_capitalized_input_does_not_crash": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_et.py::TestExtractNumberEt::test_ordinal_roundtrip_sweep": {
+  "": "https://github.com/TigreGotico/numtag/issues/264"
+ },
+ "tests/test_number_parser_eu.py::TestBasqueFractions::test_basic": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_eu.py::TestBasqueFractions::test_capitalized_input_does_not_crash": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_fa.py::TestPersianFractional::test_third": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_fa.py::TestPersianOrdinalsUnderTheFlag::test_is_ordinal_fa_reads_back_every_single_word_ordinal": {
+  "": "https://github.com/TigreGotico/numtag/issues/264"
+ },
+ "tests/test_number_parser_fr.py::TestNumberParserFr::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_fy.py::TestWestFrisianExtract::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_he.py::TestHebrewExtract::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_he.py::TestHebrewExtract::test_is_ordinal": {
+  "": "https://github.com/TigreGotico/numtag/issues/263"
+ },
+ "tests/test_number_parser_he.py::TestHebrewRoundTrip::test_round_trip_ordinals": {
+  "number=2": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=11": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=12": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=13": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=14": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=15": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=16": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=17": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=18": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=19": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=20": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=21": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=22": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=23": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=24": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=25": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=26": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=27": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=28": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=29": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=30": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=31": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=32": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=33": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=34": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=35": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=36": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=37": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=38": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=39": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=40": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=41": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=42": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=43": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=44": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=45": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=46": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=47": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=48": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=49": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=50": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=51": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=52": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=53": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=54": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=55": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=56": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=57": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=58": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=59": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=60": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=61": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=62": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=63": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=64": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=65": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=66": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=67": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=68": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=69": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=70": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=71": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=72": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=73": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=74": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=75": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=76": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=77": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=78": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=79": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=80": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=81": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=82": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=83": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=84": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=85": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=86": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=87": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=88": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=89": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=90": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=91": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=92": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=93": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=94": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=95": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=96": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=97": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=98": "https://github.com/TigreGotico/numtag/issues/263",
+  "number=99": "https://github.com/TigreGotico/numtag/issues/263"
+ },
+ "tests/test_number_parser_hr.py::TestCroatianFractions::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_hu.py::TestHelpersHu::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_kab.py::TestIsFractionalKab::test_amazigh_fractions": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_kab.py::TestIsFractionalKab::test_half": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_oc.py::TestFractionsOC::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_pt.py::TestIsFractionalPt::test_basic_fractions": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_pt.py::TestIsFractionalPt::test_case_insensitive": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_pt.py::TestIsFractionalPt::test_plural_forms": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_pt.py::TestIsFractionalPt::test_special_fractions": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_pt.py::TestIsFractionalPt::test_whitespace_handling": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_ro.py::TestExtractionRO::test_fractions": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_ro.py::TestExtractionRO::test_ordinals": {
+  "": "https://github.com/TigreGotico/numtag/issues/263"
+ },
+ "tests/test_number_parser_ro.py::TestRoundTripRO::test_round_trip_ordinals": {
+  "": "https://github.com/TigreGotico/numtag/issues/263"
+ },
+ "tests/test_number_parser_ru.py::TestRussianFractions::test_plural_forms_normalize_to_singular": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_ru.py::TestRussianFractions::test_singular_forms": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_sl.py::TestHelpersSl::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_sv.py::TestSwedishFractions::test_basic_and_inflected": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_sv.py::TestSwedishFractions::test_capitalized_input_does_not_crash": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_ordinal_anchors.py::TestFarsiFractions::test_is_fractional": {
+  "": "https://github.com/TigreGotico/numtag/issues/262"
+ },
+ "tests/test_number_parser_hr.py::TestCroatianOrdinals::test_the_thousandth_reads_back": {
+  "": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/559"
+ },
+ "tests/test_sl_edges.py::TestSlovenianCompoundOrdinals::test_round_hundreds_read_back": {
+  "n=200": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/559",
+  "n=300": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/559",
+  "n=400": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/559",
+  "n=500": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/559",
+  "n=600": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/559",
+  "n=700": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/559",
+  "n=800": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/559",
+  "n=900": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/559"
+ },
+ "tests/test_sl_edges.py::TestSlovenianCompoundOrdinals::test_the_millionth_reads_back": {
+  "": "https://github.com/TigreGotico/numtag/issues/264"
  }
 }

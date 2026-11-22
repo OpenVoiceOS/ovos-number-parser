@@ -1,8 +1,8 @@
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, is_fractional
 
-from ovos_number_parser.numbers_fr import (_get_ordinal_fr, pronounce_number_fr, nice_number_fr, is_fractional_fr, normalize_fr)
+from ovos_number_parser.numbers_fr import (_get_ordinal_fr, pronounce_number_fr, nice_number_fr, normalize_fr)
 
 
 class TestNumberParserFr(unittest.TestCase):
@@ -122,14 +122,14 @@ class TestNumberParserFr(unittest.TestCase):
             self.assertEqual(extract_number(pronounce_number_fr(n), lang="fr"), n, n)
 
     def test_is_fractional(self):
-        self.assertEqual(is_fractional_fr("demi"), 0.5)
-        self.assertEqual(is_fractional_fr("quart"), 0.25)
-        self.assertEqual(is_fractional_fr("quarts"), 0.25)
-        self.assertEqual(is_fractional_fr("QUART"), 0.25)
-        self.assertAlmostEqual(is_fractional_fr("tiers"), 1 / 3)
-        self.assertEqual(is_fractional_fr("centième"), 0.01)
-        self.assertEqual(is_fractional_fr("millième"), 0.001)
-        self.assertFalse(is_fractional_fr("bonjour"))
+        self.assertEqual(is_fractional("demi", "fr"), 0.5)
+        self.assertEqual(is_fractional("quart", "fr"), 0.25)
+        self.assertEqual(is_fractional("quarts", "fr"), 0.25)
+        self.assertEqual(is_fractional("QUART", "fr"), 0.25)
+        self.assertAlmostEqual(is_fractional("tiers", "fr"), 1 / 3)
+        self.assertEqual(is_fractional("centième", "fr"), 0.01)
+        self.assertEqual(is_fractional("millième", "fr"), 0.001)
+        self.assertFalse(is_fractional("bonjour", "fr"))
 
     def test_nice_number_speech(self):
         self.assertEqual(nice_number_fr(4.5), "4 et demi")

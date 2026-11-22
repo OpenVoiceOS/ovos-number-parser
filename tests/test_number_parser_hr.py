@@ -114,10 +114,14 @@ class TestCroatianOrdinals(unittest.TestCase):
         self.assertFalse(is_ordinal("pas", lang="hr"))
 
     def test_ordinal_roundtrip_sweep(self):
-        for n in list(range(1, 100)) + [100, 1000]:
+        for n in list(range(1, 100)) + [100]:
             spoken = pronounce_ordinal(n, lang="hr")
             self.assertEqual(is_ordinal(spoken, lang="hr"), n,
                              f"{n}: {spoken!r}")
+
+    def test_the_thousandth_reads_back(self):
+        spoken = pronounce_ordinal(1000, lang="hr")
+        self.assertEqual(is_ordinal(spoken, lang="hr"), 1000, spoken)
 
 
 class TestCroatianFractions(unittest.TestCase):

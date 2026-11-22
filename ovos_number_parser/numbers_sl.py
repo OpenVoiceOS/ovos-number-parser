@@ -503,46 +503,5 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 _STRING_NUM_SL = {word: val for val, word in _NUM_STRING_SL.items()}
 _STRING_NUM_SL["en"] = 1
 _STRING_NUM_SL["eno"] = 1
-_STRING_NUM_SL["dva"] = 2
-
-
-def is_fractional_sl(input_str, short_scale=True):
-    """
-    Check if the given word is a Slovenian fraction.
-
-    Accepts the inflected forms used after numerals ("dve tretjini",
-    "pet tretjin") as well as the base form.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, present for API compatibility
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    word = input_str.lower().strip()
-    for den, base in _FRACTION_STRING_SL.items():
-        forms = {base, base[:-1], base[:-1] + 'i', base[:-1] + 'e'}
-        if word in forms:
-            return 1.0 / den
-    return False
-
-
-_ORDINAL_REVERSE_SL = {}
-
-
-def is_ordinal_sl(input_str):
-    """
-    Check if the given word is a Slovenian ordinal number.
-
-    Args:
-        input_str (str): the string to check if ordinal
-    Returns:
-        (bool) or (int): False if not an ordinal, otherwise the number
-    """
-    if not _ORDINAL_REVERSE_SL:
-        candidates = list(range(1, 1000)) + [1000, 1000000]
-        for n in candidates:
-            _ORDINAL_REVERSE_SL[pronounce_number_sl(n, ordinals=True)] = n
-    return _ORDINAL_REVERSE_SL.get(input_str.lower().strip(), False)
 
 

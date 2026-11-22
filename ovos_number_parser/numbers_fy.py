@@ -305,30 +305,6 @@ def pronounce_ordinal_fy(number):
     return pronounce_number_fy(number) + "ste"
 
 
-def is_fractional_fy(input_str, short_scale=True):
-    """This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    fracts = {"hiel": 1, "heal": 2, "healve": 2, "kwart": 4}
-    if short_scale:
-        for num in _SHORT_ORDINAL_STRING_FY:
-            if num > 2:
-                fracts[_SHORT_ORDINAL_STRING_FY[num]] = num
-    else:
-        for num in _LONG_ORDINAL_STRING_FY:
-            if num > 2:
-                fracts[_LONG_ORDINAL_STRING_FY[num]] = num
-
-    if input_str.lower() in fracts:
-        return 1.0 / fracts[input_str.lower()]
-    return False
-
-
 def extract_number_fy(text, short_scale=True, ordinals=False):
     """Deprecated: use ``ovos_number_parser.extract_number(text, "fy")``."""
     warn_reader_removed("extract_number_fy", 'ovos_number_parser.extract_number(text, "fy")')

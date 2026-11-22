@@ -418,26 +418,3 @@ def pronounce_ordinal_tr(number):
     return pronounce_number_tr(int(number), ordinals=True)
 
 
-def is_fractional_tr(input_str, short_scale=True, spoken=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored — Turkish only uses the short scale
-        spoken (bool):
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-
-    fracts = {"yarım": 2, "buçuk": 2, "çeyrek": 4}
-    for num in _FRACTION_STRING_TR:
-        if num > 2:
-            fracts[_FRACTION_STRING_TR[num]] = num
-
-    if input_str.lower() in fracts and spoken:
-        return 1.0 / fracts[input_str.lower()]
-    return False
-
-

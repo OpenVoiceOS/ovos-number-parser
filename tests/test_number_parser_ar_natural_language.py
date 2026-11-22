@@ -19,7 +19,7 @@ import pytest
 
 from ovos_number_parser import (extract_number, numbers_to_digits,
                                 pronounce_number, pronounce_ordinal)
-from ovos_number_parser.numbers_ar import extract_numbers_ar
+from ovos_number_parser import extract_number_spans
 
 BOTH = ("ar", "ars")
 
@@ -282,7 +282,7 @@ def test_bare_alfa_is_the_singular(text, value):
 
 
 def test_bare_alfa_before_another_number():
-    assert extract_numbers_ar("دفع ألفا أو ألفين") == [1000, 2000]
+    assert [span.value for span in extract_number_spans("دفع ألفا أو ألفين", "ar")] == [1000, 2000]
 
 
 # numbers_to_digits reads ألفا as extraction does: the dual before a unit
@@ -388,7 +388,7 @@ SEVERAL_NUMBERS = [
 @pytest.mark.parametrize("lang", BOTH)
 @pytest.mark.parametrize("text,values", SEVERAL_NUMBERS)
 def test_several_numbers_in_one_sentence(lang, text, values):
-    assert extract_numbers_ar(text, lect=lang) == pytest.approx(values)
+    assert [span.value for span in extract_number_spans(text, lang)] == pytest.approx(values)
 
 
 ORDINAL_SENTENCES = [
@@ -550,7 +550,7 @@ HALF_AFTER_A_ROUND_NUMBER = [
 
 @pytest.mark.parametrize("text,wrong,lang", HALF_AFTER_A_ROUND_NUMBER)
 def test_a_half_after_a_round_number_never_adds_one_half(text, wrong, lang):
-    assert wrong not in extract_numbers_ar(text, lect=lang)
+    assert wrong not in [span.value for span in extract_number_spans(text, lang)]
 
 
 @pytest.mark.parametrize("text,wrong,lang", HALF_AFTER_A_ROUND_NUMBER)

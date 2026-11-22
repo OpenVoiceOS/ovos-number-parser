@@ -296,32 +296,6 @@ _STRING_NUM_CS.update({
 })
 
 
-def is_fractional_cs(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    if input_str.endswith('iny', -3):  # leading number is bigger than one ( one třetina, two třetiny)
-        # Normalize to format of one (třetiny > třetina)
-        input_str = input_str[:len(input_str) - 1] + "a"
-
-    fracts = {"celá": 1}  # first four numbers have little different format
-
-    for num in _FRACTION_STRING_CS:  # Numbers from 2 to 1 hundret, more is not usualy used in common speech
-        if num > 1:
-            fracts[_FRACTION_STRING_CS[num]] = num
-
-    if input_str.lower() in fracts:
-        return 1.0 / fracts[input_str.lower()]
-    return False
-
-
 def nice_number_cs(number, speech=True, denominators=range(1, 21)):
     """ English helper for nice_number
 

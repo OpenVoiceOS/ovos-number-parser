@@ -1,4 +1,3 @@
-import difflib
 import math
 import re
 import sys
@@ -15,76 +14,43 @@ from unicode_rbnf import RbnfEngine, FormatPurpose
 
 from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_an import AN
-from ovos_number_parser.numbers_ar import (
-    pronounce_number_ar, pronounce_ordinal_ar, extract_number_ar, extract_numbers_ar,
-    numbers_to_digits_ar, is_fractional_ar, is_ordinal_ar, nice_number_ar, resolve_ar_lang,
-    resolve_ar_lect)
-from ovos_number_parser.numbers_az import is_fractional_az, pronounce_number_az
-from ovos_number_parser.numbers_bg import pronounce_number_bg, is_fractional_bg, nice_number_bg
-from ovos_number_parser.numbers_ca import pronounce_number_ca, is_fractional_ca, CA
-from ovos_number_parser.numbers_cs import (
-    pronounce_number_cs, is_fractional_cs, pronounce_ordinal_cs)
-from ovos_number_parser.numbers_da import (
-    pronounce_number_da, is_fractional_da, is_ordinal_da, pronounce_ordinal_da)
-from ovos_number_parser.numbers_de import (
-    pronounce_number_de, pronounce_ordinal_de, is_ordinal_de, is_fractional_de)
-from ovos_number_parser.numbers_en import is_ordinal_en, pronounce_number_en, is_fractional_en
-from ovos_number_parser.numbers_el import (
-    pronounce_number_el, pronounce_ordinal_el, is_fractional_el, is_ordinal_el)
-from ovos_number_parser.numbers_es import (
-    pronounce_number_es, is_fractional_es, fraction_noun_es, ES)
-from ovos_number_parser.numbers_eu import (
-    pronounce_number_eu, is_fractional_eu, pronounce_ordinal_eu, is_ordinal_eu)
-from ovos_number_parser.numbers_et import (
-    pronounce_number_et, pronounce_ordinal_et, is_fractional_et, is_ordinal_et, nice_number_et)
-from ovos_number_parser.numbers_fa import (
-    pronounce_number_fa, is_fractional_fa, pronounce_ordinal_fa)
-from ovos_number_parser.numbers_fi import (
-    pronounce_number_fi, pronounce_ordinal_fi, is_fractional_fi, is_ordinal_fi, nice_number_fi)
-from ovos_number_parser.numbers_fr import is_fractional_fr, FR, FR_BE, FR_CH
-from ovos_number_parser.numbers_fy import (
-    pronounce_number_fy, pronounce_ordinal_fy, is_fractional_fy, nice_number_fy)
-from ovos_number_parser.numbers_gl import (
-    GL, pronounce_number_gl, is_fractional_gl, pronounce_ordinal_gl, is_ordinal_gl,
-    pronounce_fraction_gl)
-from ovos_number_parser.numbers_hr import (
-    pronounce_number_hr, pronounce_ordinal_hr, is_fractional_hr, nice_number_hr)
-from ovos_number_parser.numbers_he import (
-    pronounce_number_he, pronounce_ordinal_he, is_fractional_he, is_ordinal_he, nice_number_he)
-from ovos_number_parser.numbers_hu import (
-    pronounce_number_hu, pronounce_ordinal_hu, is_fractional_hu, is_ordinal_hu, nice_number_hu,
-    pronounce_scientific_hu)
-from ovos_number_parser.numbers_id import (
-    pronounce_number_id, pronounce_number_ms, pronounce_ordinal_id, pronounce_ordinal_ms,
-    extract_number_ms, is_fractional_id, is_fractional_ms, nice_number_id, nice_number_ms,
-    numbers_to_digits_ms)
-from ovos_number_parser.numbers_it import (
-    pronounce_number_it, pronounce_ordinal_it, is_fractional_it, IT)
-from ovos_number_parser.numbers_kab import (
-    pronounce_number_kab, pronounce_ordinal_kab, is_fractional_kab, is_ordinal_kab)
+from ovos_number_parser.numbers_ar import (pronounce_number_ar, pronounce_ordinal_ar, nice_number_ar, resolve_ar_lang, resolve_ar_lect)
+from ovos_number_parser.numbers_az import pronounce_number_az
+from ovos_number_parser.numbers_bg import pronounce_number_bg, nice_number_bg
+from ovos_number_parser.numbers_ca import pronounce_number_ca, CA
+from ovos_number_parser.numbers_cs import pronounce_number_cs, pronounce_ordinal_cs
+from ovos_number_parser.numbers_da import pronounce_number_da, pronounce_ordinal_da
+from ovos_number_parser.numbers_de import pronounce_number_de, pronounce_ordinal_de
+from ovos_number_parser.numbers_en import pronounce_number_en
+from ovos_number_parser.numbers_el import pronounce_number_el, pronounce_ordinal_el
+from ovos_number_parser.numbers_es import pronounce_number_es, fraction_noun_es, ES
+from ovos_number_parser.numbers_eu import pronounce_number_eu, pronounce_ordinal_eu
+from ovos_number_parser.numbers_et import pronounce_number_et, pronounce_ordinal_et, nice_number_et
+from ovos_number_parser.numbers_fa import pronounce_number_fa, pronounce_ordinal_fa
+from ovos_number_parser.numbers_fi import pronounce_number_fi, pronounce_ordinal_fi, nice_number_fi
+from ovos_number_parser.numbers_fr import FR, FR_BE, FR_CH
+from ovos_number_parser.numbers_fy import pronounce_number_fy, pronounce_ordinal_fy, nice_number_fy
+from ovos_number_parser.numbers_gl import GL, pronounce_number_gl, pronounce_ordinal_gl, pronounce_fraction_gl
+from ovos_number_parser.numbers_hr import pronounce_number_hr, pronounce_ordinal_hr, nice_number_hr
+from ovos_number_parser.numbers_he import pronounce_number_he, pronounce_ordinal_he, nice_number_he
+from ovos_number_parser.numbers_hu import (pronounce_number_hu, pronounce_ordinal_hu, nice_number_hu, pronounce_scientific_hu)
+from ovos_number_parser.numbers_id import (pronounce_number_id, pronounce_number_ms, pronounce_ordinal_id, pronounce_ordinal_ms, nice_number_id, nice_number_ms)
+from ovos_number_parser.numbers_it import pronounce_number_it, pronounce_ordinal_it, IT
+from ovos_number_parser.numbers_kab import pronounce_number_kab, pronounce_ordinal_kab
 from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.numbers_oc import OC
-from ovos_number_parser.numbers_nb import (
-    nice_number_nb, pronounce_number_nb, pronounce_ordinal_nb, is_ordinal_nb, is_fractional_nb)
-from ovos_number_parser.numbers_nn import (
-    nice_number_nn, pronounce_number_nn, pronounce_ordinal_nn, is_ordinal_nn, is_fractional_nn)
-from ovos_number_parser.numbers_nl import (
-    pronounce_number_nl, pronounce_ordinal_nl, is_fractional_nl)
-from ovos_number_parser.numbers_pl import (
-    pronounce_number_pl, is_fractional_pl, pronounce_ordinal_pl)
+from ovos_number_parser.numbers_nb import nice_number_nb, pronounce_number_nb, pronounce_ordinal_nb
+from ovos_number_parser.numbers_nn import nice_number_nn, pronounce_number_nn, pronounce_ordinal_nn
+from ovos_number_parser.numbers_nl import pronounce_number_nl, pronounce_ordinal_nl
+from ovos_number_parser.numbers_pl import pronounce_number_pl, pronounce_ordinal_pl
 from ovos_number_parser.numbers_pt import PortugueseVariant, PT_PT, PT_BR
 from ovos_number_parser.numbers_ro import RO
-from ovos_number_parser.numbers_ru import pronounce_number_ru, is_fractional_ru, _ordinal_ru
-from ovos_number_parser.numbers_sk import (
-    pronounce_number_sk, is_fractional_sk, pronounce_ordinal_sk, nice_number_sk)
-from ovos_number_parser.numbers_sl import (
-    pronounce_number_sl, is_fractional_sl, is_ordinal_sl, nice_number_sl)
-from ovos_number_parser.numbers_sv import (
-    pronounce_number_sv, pronounce_ordinal_sv, is_fractional_sv)
-from ovos_number_parser.numbers_tr import (
-    pronounce_number_tr, pronounce_ordinal_tr, is_fractional_tr, nice_number_tr)
-from ovos_number_parser.numbers_uk import (
-    pronounce_number_uk, is_fractional_uk, pronounce_ordinal_uk)
+from ovos_number_parser.numbers_ru import pronounce_number_ru, _ordinal_ru
+from ovos_number_parser.numbers_sk import pronounce_number_sk, pronounce_ordinal_sk, nice_number_sk
+from ovos_number_parser.numbers_sl import pronounce_number_sl, nice_number_sl
+from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv
+from ovos_number_parser.numbers_tr import pronounce_number_tr, pronounce_ordinal_tr, nice_number_tr
+from ovos_number_parser.numbers_uk import pronounce_number_uk, pronounce_ordinal_uk
 from ovos_number_parser.numbers_az import nice_number_az
 from ovos_number_parser.numbers_ca import nice_number_ca
 from ovos_number_parser.numbers_cs import nice_number_cs
@@ -101,7 +67,7 @@ from ovos_number_parser.numbers_pl import nice_number_pl
 from ovos_number_parser.numbers_ru import nice_number_ru
 from ovos_number_parser.numbers_sv import nice_number_sv
 from ovos_number_parser.numbers_uk import nice_number_uk
-from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation, fits_str_limit, \
+from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation, \
     scientific_parts, round_half_up
 from ovos_number_parser import numtag_readers
 
@@ -189,16 +155,6 @@ _FRACTION_NUMERATOR_OVERRIDES = {
     "sk": {1: "jedna", 2: "dve"},
     "pl": {1: "jedna", 2: "dwie"},
     "hu": {2: "két"},
-}
-
-# words that may join two spoken numbers ("vingt et un", "sto in ena")
-_NUMBER_CONNECTORS = {
-    "ar": {"و"}, "bg": {"и"}, "ca": {"i"}, "da": {"og"}, "en": {"and"}, "es": {"y"}, "eu": {"eta"},
-    # standard Italian cardinals carry no conjunction ("venticinque", not
-    # "venti e cinque"), so "e" separates two numbers rather than joining them
-    "fr": {"et"}, "fy": {"en"}, "it": set(), "nl": {"en"}, "sv": {"och"},
-    "fa": {"و"}, "hr": {"i"}, "sl": {"in"}, "hu": set(), "fi": set(),
-    "et": set(), "kab": {"u", "d", "ed"}, "he": {"ו"},
 }
 
 
@@ -312,234 +268,6 @@ def _is_ordinal_generic(input_str: str, lang: str):
     return _ordinal_reverse_table(lang).get(input_str.lower().strip(), False)
 
 
-_WESTERN_DIGITS = "0123456789"
-_EASTERN_ARABIC_DIGITS = "٠١٢٣٤٥٦٧٨٩"
-_PERSIAN_DIGITS = "۰۱۲۳۴۵۶۷۸۹"
-# numbers_to_digits emits Western digits, so the two non-Western scripts are
-# translated character-for-character — never through int(), which would
-# destroy leading zeros.
-_TO_WESTERN_DIGITS = str.maketrans(_EASTERN_ARABIC_DIGITS + _PERSIAN_DIGITS,
-                                   _WESTERN_DIGITS * 2)
-_DIGIT_CHARS = frozenset(_WESTERN_DIGITS + _EASTERN_ARABIC_DIGITS + _PERSIAN_DIGITS)
-
-
-def _is_digit_run(token: str) -> bool:
-    """True if the token is one or more digit characters and nothing else."""
-    return bool(token) and all(c in _DIGIT_CHARS for c in token)
-
-
-def _numbers_to_digits_generic(utterance: str, lang: str,
-                               continues=None, first_number_words=None) -> str:
-    """Fallback that replaces spoken number spans with digits using
-    extract_number over maximal runs of number words.
-
-    ``continues`` is an optional predicate for a word that is no number by
-    itself but can extend a number already started; the span takes it only
-    when the value of the span grows.
-
-    ``first_number_words`` is an optional reader for a language whose own parser
-    says where one number ends and the next begins: handed the words of a run of
-    number words, it returns how many of them the first number covers, or None.
-    The span never grows past it, since growth by value alone joins two numbers
-    whenever the joined value happens to be larger ("عشرين ست مية" is 20 and 600,
-    not 26 and 100).
-    """
-    lang2 = _base_lang(lang)
-    connectors = _NUMBER_CONNECTORS.get("ar" if _is_ar(lang) else lang2, set())
-    tokens = utterance.split()
-    # ASCII plus Arabic comma, semicolon and question mark, so a number glued
-    # to punctuation ("٢٠٢٤،", "25.") is still recognised and the mark is
-    # carried over onto the digits instead of being dropped
-    punct = ".,!?;:؟،؛"
-
-    def _clean(t):
-        return t.strip(punct).lower()
-
-    #: token -> answer, for the two readers below. Both are pure functions
-    #: of the token, and both are asked the same question about the same
-    #: token more than once: the Arabic pre-scan walks a run of number words
-    #: with ``_may_extend`` before the main loop walks the same run again.
-    #: Without this every token in an Arabic number run is read twice, and
-    #: ``extract_number`` is the expensive half of each read.
-    _is_num_cache = {}
-    #: token -> extract_number of the whole token, kept by ``_is_num``
-    _value_cache = {}
-    _may_extend_cache = {}
-
-    def _is_num(t):
-        cached = _is_num_cache.get(t)
-        if cached is not None:
-            return cached
-        _is_num_cache[t] = answer = _is_num_uncached(t)
-        return answer
-
-    def _is_num_uncached(t):
-        c = _clean(t)
-        if not c:
-            return False
-        try:
-            _value_cache[t] = extract_number(c, lang)
-            if _value_cache[t] is False:
-                return False
-        except NotImplementedError:
-            return False
-        # extract_number finds a number *inside* a token, so a numeral glued to
-        # an ordinary word ("10-segundos") would otherwise be replaced whole and
-        # the word lost. A hyphenated token only counts as one number when every
-        # part is itself a numeral or a joiner ("vint-i-un", "quatre-vingt-dix").
-        if "-" in c.strip("-"):
-            for part in c.split("-"):
-                if not part or part in connectors:
-                    continue
-                try:
-                    if extract_number(part, lang) is False:
-                        return False
-                except NotImplementedError:
-                    return False
-        return True
-
-    _denominator_cache = {}
-
-    def _denominator(t):
-        """The n of a word read as the reciprocal 1/n, n >= 2, else None.
-
-        Most languages spell the denominator of a fraction with the ordinal
-        ("un sixième", "drie vierde"), so ``extract_number`` reads a lone
-        ordinal as its reciprocal: "le sixième sens" would become
-        "le 0.16666666666666666 sens". Digits ("0.25", "1/4") are no word.
-        """
-        if t in _denominator_cache:
-            return _denominator_cache[t]
-        answer = None
-        c = _clean(t)
-        if _is_num(t) and not any(ch.isdigit() for ch in c):
-            val = _value_cache.get(t)
-            if isinstance(val, (int, float)) and not isinstance(val, bool) \
-                    and 0 < val < 1:
-                n = round(1 / val)
-                if n >= 2 and abs(1 / val - n) < 1e-9:
-                    answer = n
-        _denominator_cache[t] = answer
-        return answer
-
-    def _is_denominator_of(i, j, next_j):
-        """tokens[next_j] is the denominator of a proper fraction whose
-        numerator is the cardinal tokens[i:j + 1] ("trois quarts" = 0.75).
-
-        The numerator must be a whole number smaller than the denominator:
-        "vingt cinquième" is the twenty-fifth, not 20 * 1/5.
-        """
-        n = _denominator(tokens[next_j])
-        if n is None:
-            return False
-        current = " ".join(_clean(t) for t in tokens[i:j + 1])
-        current_val = extract_number(current, lang)
-        if isinstance(current_val, bool) or \
-                not isinstance(current_val, (int, float)) or \
-                current_val != int(current_val) or not 0 < current_val < n:
-            return False
-        extended = " ".join(_clean(t) for t in tokens[i:next_j + 1])
-        extended_val = extract_number(extended, lang)
-        return isinstance(extended_val, (int, float)) \
-            and not isinstance(extended_val, bool) \
-            and abs(extended_val - current_val / n) < 1e-9
-
-    out = []
-    i = 0
-    while i < len(tokens):
-        # a lone ordinal or denominator ("sixième", "derde") is a word, not
-        # the fraction 1/n; one half is still 0.5
-        if not _is_num(tokens[i]) or (_denominator(tokens[i]) or 0) >= 3:
-            out.append(tokens[i])
-            i += 1
-            continue
-        j = i
-
-        def _continues(next_j, via_connector=False):
-            """The span only grows if the combined words form one larger
-            number ("vingt et un" = 21) rather than two separate numbers
-            ("due e tre")."""
-            extended = " ".join(_clean(t) for t in tokens[i:next_j + 1])
-            current = " ".join(_clean(t) for t in tokens[i:j + 1])
-            extended_val = extract_number(extended, lang)
-            if extended_val is False or extended_val is None:
-                return False
-            current_val = extract_number(current, lang)
-            next_val = extract_number(_clean(tokens[next_j]), lang)
-            if current_val is False or current_val is None:
-                return False
-            if extended_val == current_val \
-                    or abs(extended_val) <= abs(current_val):
-                return False
-            if extended_val != next_val:
-                return True
-            # "one hundred": multiplying a scale word by one leaves the value
-            # unchanged, so the value comparison above cannot tell that the
-            # multiplier is grammatically required. Directly adjacent to a
-            # scale word it is, so the span must keep growing; behind a
-            # connector ("one and three") it is a separate number and must
-            # not be absorbed.
-            return not via_connector and abs(current_val) == 1 \
-                and next_val is not False and next_val is not None \
-                and abs(next_val) >= 100
-
-        def _may_extend(t):
-            cached = _may_extend_cache.get(t)
-            if cached is not None:
-                return cached
-            answer = _is_num(t) or bool(continues and continues(_clean(t)))
-            _may_extend_cache[t] = answer
-            return answer
-
-        limit = len(tokens) - 1
-        if first_number_words:
-            end = i
-            while end + 1 < len(tokens) and (
-                    _may_extend(tokens[end + 1]) or
-                    _clean(tokens[end + 1]) in connectors and end + 2 < len(tokens)
-                    and _may_extend(tokens[end + 2])):
-                end += 1
-            covered = first_number_words([_clean(t) for t in tokens[i:end + 1]])
-            if covered:
-                limit = i + covered - 1
-
-        while j + 1 < len(tokens):
-            if j + 1 > limit:
-                break
-            if _denominator(tokens[j + 1]) is not None:
-                # a denominator joins only as such, and ends the number
-                if _is_denominator_of(i, j, j + 1):
-                    j += 1
-                break
-            if _may_extend(tokens[j + 1]) and _continues(j + 1):
-                j += 1
-            elif _clean(tokens[j + 1]) in connectors and j + 2 <= limit \
-                    and _may_extend(tokens[j + 2]) \
-                    and _continues(j + 2, via_connector=True):
-                j += 2
-            else:
-                break
-        stripped = tokens[j].rstrip(punct)
-        trail = tokens[j][len(stripped):]
-        single_token = i == j
-        if single_token and _is_digit_run(_clean(tokens[i])):
-            # Already digits ("007", "٠٥٥٣١٧٥٨١٧"): keep every character.
-            # Re-reading through extract_number would go via int() and strip
-            # leading zeros — corrupting phone numbers, OTP codes and other
-            # zero-padded identifiers. Digit runs are only re-read when they
-            # combine with neighbouring number words ("355 ألف" → 355000),
-            # which is the multi-token branch below.
-            out.append(_clean(tokens[i]).translate(_TO_WESTERN_DIGITS) + trail)
-        else:
-            span = " ".join(_clean(t) for t in tokens[i:j + 1])
-            val = extract_number(span, lang)
-            if isinstance(val, float) and val.is_integer():
-                val = int(val)
-            out.append(f"{val}{trail}")
-        i = j + 1
-    return " ".join(out)
-
-
 def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) -> str:
     """
     Convert written numbers in a text string to their digit representations for the specified language and numerical scale.
@@ -551,67 +279,11 @@ def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) 
     
     Returns:
         str: The input text with written numbers replaced by their digit equivalents.
-    
-    Raises:
-        NotImplementedError: If the specified language is not supported.
+            A language that numtag does not read returns the text unchanged.
     """
     if numtag_readers.routed(lang):
         return numtag_readers.numbers_to_digits(utterance, lang, scale)
-    converted = _number_words_to_digits(utterance, lang)
-    return _keep_digit_strings(utterance, converted, lang, scale)
-
-
-#: a number already written in digits, with the punctuation that may follow it
-_DIGIT_STRING = re.compile(r"[-+]?(?:[0-9][0-9.,]*|[.,][0-9]+)(?:[eE][-+]?[0-9]+)?[.,!?;:]*")
-_DIGIT_VALUE = re.compile(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
-
-
-def _keep_digit_strings(original: str, converted: str, lang: str,
-                        scale: Optional[Scale]) -> str:
-    """Put back the digit strings that a converter rewrote.
-
-    Only number words become digits: "Version 2.0" and "10.000 Euro" stay as
-    written. A rewritten stretch is restored when it held digit strings and
-    no number word, and the rewrite added no sign ("5 og 20" stays, "minus 5"
-    becomes "-5", "5 tusen," becomes "5000,", "2 point 5" becomes "2.5").
-    """
-    old, new = original.split(), converted.split()
-    out = []
-    matcher = difflib.SequenceMatcher(
-        a=[w.casefold() for w in old], b=[w.casefold() for w in new],
-        autojunk=False)
-    for op, i1, i2, j1, j2 in matcher.get_opcodes():
-        before, after = old[i1:i2], new[j1:j2]
-        digits = [w for w in before if _DIGIT_STRING.fullmatch(w)]
-        values = [w.rstrip(".,!?;:") for w in after]
-        if op == "replace" and digits and \
-                all(_DIGIT_VALUE.fullmatch(v) for v in values) and \
-                (float(values[0]) < 0) == digits[0].startswith("-") and \
-                not any(w not in digits and _is_number_word(w, lang, scale)
-                        for w in before):
-            out += before
-        else:
-            out += after
-    return " ".join(out)
-
-
-def _is_number_word(word: str, lang: str, scale: Optional[Scale]) -> bool:
-    """Whether a word reads as a number, joins two digits into one decimal
-    ("point" in "2 point 5"), or counts the digits before it ("milhões" in
-    "2 milhões")."""
-    word = word.strip(_SPAN_PUNCTUATION)
-    return _numeric_value(word, lang, None, True, scale) is not None or \
-        _numeric_value(f"2 {word} 5", lang, None, False, scale) == 2.5 or \
-        _numeric_value(f"2 {word}", lang, None, False, scale) not in (None, 2)
-
-
-def _number_words_to_digits(utterance: str, lang: str) -> str:
-    """Dispatch to the converter of the language."""
-    if _is_ar(lang):
-        return numbers_to_digits_ar(utterance, lang)
-    if _base_lang(lang) == "ms":
-        return numbers_to_digits_ms(utterance)
-    return _numbers_to_digits_generic(utterance, lang)
+    return utterance
 
 
 # Connectives for the a+bi complex form, per language, English as the default.
@@ -1704,20 +1376,6 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     return _pronounce_rbnf(number, lang, True, gender)
 
 
-#: a hyphen or underscore sitting between two letters is just a spelling of the
-#: space that joins a compound numeral, so "twenty-one", "twenty_one" and
-#: "twenty one" must all read alike. Only letter-letter joins are rewritten: a
-#: leading "-" is a minus sign, and a digit on either side means a range or a
-#: numeral glued to a word ("10-15", "10-segundos"), which must survive intact.
-_COMPOUND_NUMERAL_JOIN = re.compile(r"(?<=[^\W\d_])[-_](?=[^\W\d_])",
-                                    re.UNICODE)
-
-
-def _unglue_compound_numerals(text: str) -> str:
-    """Normalise "-"/"_" written between letters to a space."""
-    return _COMPOUND_NUMERAL_JOIN.sub(" ", text)
-
-
 def extract_number(text: str, lang: str,
                    short_scale: Optional[bool] = None,  # DEPRECATED
                    ordinals: bool = False,
@@ -1743,25 +1401,6 @@ def extract_number(text: str, lang: str,
     """
     if numtag_readers.routed(lang):
         return numtag_readers.extract_number(text, lang, short_scale, ordinals, scale)
-    value = _extract_number(text, lang, short_scale, ordinals, scale)
-    # an integer that str() cannot write is no number, as a digit string
-    # longer than the integer string conversion limit is none
-    return value if fits_str_limit(value) else False
-
-
-def _extract_number(text: str, lang: str, short_scale: Optional[bool],
-                    ordinals: bool, scale: Optional[Scale]) -> Union[int, float, bool]:
-    """The number ``extract_number`` reads, before the integer size check."""
-    if not isinstance(text, str):
-        # non-string input carries no number to extract
-        return False
-    text = _unglue_compound_numerals(text)
-    scale = _resolve_scale(lang, scale, short_scale)
-    short_scale = scale == Scale.SHORT
-    if _is_ar(lang):
-        return extract_number_ar(text, ordinals, lect=resolve_ar_lect(lang))
-    if _base_lang(lang) == "ms":
-        return extract_number_ms(text, short_scale, ordinals)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
@@ -1776,73 +1415,6 @@ class NumberSpan:
     end: int
     surface: str
     value: Union[int, float]
-
-
-#: characters that punctuate a word without belonging to it; a leading or
-#: trailing run of these is not part of a number's surface ("at 7," -> "7")
-_SPAN_PUNCTUATION = "\"'`´.,;:!?¡¿…()[]{}<>«»“”‘’"
-
-
-def _word_spans(text: str) -> List[tuple]:
-    """Offsets of the whitespace separated words, stripped of edge punctuation."""
-    spans = []
-    for match in re.finditer(r"\S+", text):
-        start, end = match.span()
-        while start < end and text[end - 1] in _SPAN_PUNCTUATION:
-            end -= 1
-        while start < end and text[start] in _SPAN_PUNCTUATION:
-            start += 1
-        if start < end:
-            spans.append((start, end))
-    return spans
-
-
-def _numeric_value(fragment: str, lang: str, short_scale: Optional[bool],
-                   ordinals: bool, scale: Optional[Scale]) -> Optional[Union[int, float]]:
-    """The number a fragment spells, or None when it spells none.
-
-    Extractors report "no number" as either ``False`` or ``None`` depending on
-    the language, and ``0`` is a legitimate value, so the falsiness of the
-    return value cannot be used to tell the two apart. The language's reader
-    answers, not ``extract_number``, which reads a Portuguese text through
-    these spans.
-    """
-    value = _extract_number(fragment, lang, short_scale, ordinals, scale)
-    if isinstance(value, bool) or not isinstance(value, (int, float)) \
-            or not fits_str_limit(value):
-        return None
-    return value
-
-
-def _reads_as_one_number(fragment: str, lang: str,
-                         scale: Optional[Scale]) -> bool:
-    """Whether a fragment spells a single number rather than several.
-
-    A fragment whose value is fully explained by its tail is ambiguous: the
-    tail may be the whole number, with the leading word absorbed into it
-    ("one hundred"), or a second number that the extractor happened to answer
-    with ("two three"). Rewriting the fragment to digits tells the two apart,
-    because the rewrite keeps every number it recognises: "one hundred"
-    becomes "100" and "two three" becomes "2 3".
-
-    The Arabic converter glues the conjunction onto the digits after it
-    ("7 و500"), where the count cannot see the second number, so across
-    "و" the Arabic extractor decides how many numbers the fragment holds.
-    """
-    numbers = glued = 0
-    for token in numbers_to_digits(fragment, lang, scale=scale).split():
-        token = token.strip(_SPAN_PUNCTUATION)
-        if _is_ar(lang) and token[:1] == "و":
-            token, glued = token[1:], True
-        try:
-            float(token)
-        except ValueError:
-            continue
-        numbers += 1
-    if glued:
-        return len(extract_numbers_ar(fragment,
-                                      lect=resolve_ar_lect(lang))) == 1
-    return numbers == 1
 
 
 def extract_number_spans(text: str, lang: str,
@@ -1879,97 +1451,11 @@ def extract_number_spans(text: str, lang: str,
     Returns:
         The numbers found, in the order they are written.
     """
-    if not isinstance(text, str):
-        return []
     if numtag_readers.routed(lang):
         return [NumberSpan(start, end, text[start:end], numtag_readers.number(m.value, m.kind))
                 for m in numtag_readers.mentions(text, lang, short_scale, ordinals, scale)
                 for start, end in [m.char_span]]
-
-    words = _word_spans(text)
-    spans = []
-    index = 0
-    while index < len(words):
-        start = words[index][0]
-        value = _numeric_value(text[start:words[index][1]], lang, short_scale,
-                               ordinals, scale)
-        if value is None:
-            index += 1
-            continue
-
-        last = index
-        cursor = index
-        connector_used = crossed_connector = False
-        # the end of the phrase at each value it read so far
-        read = {value: index}
-        while cursor + 1 < len(words) and \
-                not text[words[cursor][1]:words[cursor + 1][0]].strip():
-            nxt = words[cursor + 1]
-            grown = _numeric_value(text[start:nxt[1]], lang, short_scale,
-                                   ordinals, scale)
-            word = _numeric_value(text[nxt[0]:nxt[1]], lang, short_scale,
-                                  ordinals, scale)
-            suffix = _numeric_value(text[words[index + 1][0]:nxt[1]], lang,
-                                    short_scale, ordinals, scale)
-            if grown in read and grown != value \
-                    and (isinstance(value, int) or value.is_integer()):
-                # the longer phrase reads what a shorter one read; when
-                # numbers_to_digits writes the phrase so far as its value and
-                # the longer one as that shorter number and more, the words
-                # after the shorter one are a number of their own ("duas
-                # dúzias e meio milhão" is 24 and 500000). A phrase that reads
-                # a fraction keeps its span, because numbers_to_digits does
-                # not split a decimal where the number ends ("zero vírgula
-                # vinte e cinco cem" is 0.25 and 100)
-                so_far = numbers_to_digits(text[start:words[last][1]], lang,
-                                           scale=scale).split()
-                longer = numbers_to_digits(text[start:nxt[1]], lang,
-                                           scale=scale).split()
-                if so_far == [str(value)] and len(longer) > 1 \
-                        and longer[0] == str(grown):
-                    value, last = grown, read[grown]
-                    break
-            if grown is not None and grown != value and \
-                    not (connector_used and grown == word) and \
-                    (grown != suffix or _reads_as_one_number(text[start:nxt[1]],
-                                                             lang, scale)):
-                crossed_connector = crossed_connector or connector_used
-                value, last, connector_used = grown, cursor + 1, False
-                read.setdefault(value, last)
-            elif connector_used or word is not None:
-                # in a span that holds a connector, a number word that
-                # leaves the value unchanged may open the rest of a mixed
-                # number: "two and three quarters" is 2 + 3/4. The whole
-                # stretch must convert to one number, so "two hundred and one
-                # one third" ("201 0.333…") stays two numbers. Arabic
-                # writes its "و" onto the next word ("سبعة وخمسة مئة").
-                after = words[cursor + 2] if cursor + 2 < len(words) else None
-                glued_and = _is_ar(lang) and text.startswith("و", nxt[0])
-                if not (connector_used or crossed_connector or glued_and) or \
-                        word is None or grown != value or \
-                        after is None or text[nxt[1]:after[0]].strip():
-                    break
-                whole = text[start:after[1]]
-                longer = _numeric_value(whole, lang, short_scale, ordinals,
-                                        scale)
-                if longer is None or longer == value:
-                    break
-                if _is_ar(lang):
-                    if not _reads_as_one_number(whole, lang, scale):
-                        break
-                elif len(numbers_to_digits(whole, lang, scale=scale).split()) != 1:
-                    break
-                crossed_connector = crossed_connector or connector_used
-                value, last, connector_used = longer, cursor + 2, False
-                cursor += 1
-            else:
-                connector_used = True
-            cursor += 1
-
-        end = words[last][1]
-        spans.append(NumberSpan(start, end, text[start:end], value))
-        index = last + 1
-    return spans
+    raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
 def is_fractional(input_str: str, lang: str,
@@ -1990,92 +1476,8 @@ def is_fractional(input_str: str, lang: str,
     Returns:
         (bool) or (float): False if not a fraction, otherwise the fraction
     """
-    if not isinstance(input_str, str):
-        # non-string input cannot be a fraction
-        return False
-    scale = _resolve_scale(lang, scale, short_scale)
-    short_scale = scale == Scale.SHORT
-    lang2 = _base_lang(lang)
-    if lang2 == "en":
-        return is_fractional_en(input_str, short_scale)
-    if lang2 == "az":
-        return is_fractional_az(input_str, short_scale)
-    if _is_ar(lang):
-        return is_fractional_ar(input_str, short_scale)
-    if lang2 == "bg":
-        return is_fractional_bg(input_str, short_scale)
-    if lang2 == "ca":
-        return CA.is_fractional(input_str)
-    if lang2 == "cs":
-        return is_fractional_cs(input_str, short_scale)
-    if lang2 == "da":
-        return is_fractional_da(input_str, short_scale)
-    if lang2 == "de":
-        return is_fractional_de(input_str, short_scale)
-    if lang2 == "el":
-        return is_fractional_el(input_str, short_scale)
-    if lang2 == "es":
-        return is_fractional_es(input_str, short_scale)
-    if lang2 == "gl":
-        return is_fractional_gl(input_str)
-    if lang2 == "eu":
-        return is_fractional_eu(input_str)
-    if lang2 == "et":
-        return is_fractional_et(input_str, short_scale)
-    if lang2 == "fi":
-        return is_fractional_fi(input_str, short_scale)
-    if lang2 == "fr":
-        return is_fractional_fr(input_str)
-    if lang2 == "id":
-        return is_fractional_id(input_str, short_scale)
-    if lang2 == "it":
-        return is_fractional_it(input_str, short_scale)
-    if lang2 == "ms":
-        return is_fractional_ms(input_str, short_scale)
-    if lang2 == "tr":
-        return is_fractional_tr(input_str, short_scale)
-    if lang2 == "kab":
-        return is_fractional_kab(input_str, short_scale)
-    if lang2 == "fy":
-        return is_fractional_fy(input_str, short_scale)
-    if lang2 == "nn":
-        return is_fractional_nn(input_str, short_scale)
-    if lang2 in ("nb", "no"):
-        return is_fractional_nb(input_str, short_scale)
-    if lang2 == "nl":
-        return is_fractional_nl(input_str, short_scale)
-    if lang2 == "pl":
-        return is_fractional_pl(input_str, short_scale)
-    if lang2 == "pt":
-        return PT_PT.is_fractional(input_str)
-    if lang2 == "mwl":
-        return MWL.is_fractional(input_str)
-    if lang2 == "ro":
-        return RO.is_fractional(input_str)
-    if lang2 == "ast":
-        return AST.is_fractional(input_str)
-    if lang2 == "oc":
-        return OC.is_fractional(input_str)
-    if lang2 == "an":
-        return AN.is_fractional(input_str)
-    if lang2 == "ru":
-        return is_fractional_ru(input_str, short_scale)
-    if lang2 == "sk":
-        return is_fractional_sk(input_str, short_scale)
-    if lang2 == "sv":
-        return is_fractional_sv(input_str, short_scale)
-    if lang2 == "fa":
-        return is_fractional_fa(input_str, short_scale)
-    if lang2 == "hr":
-        return is_fractional_hr(input_str, short_scale)
-    if lang2 == "he":
-        return is_fractional_he(input_str, short_scale)
-    if lang2 == "hu":
-        return is_fractional_hu(input_str, short_scale)
-    if lang2 == "sl":
-        return is_fractional_sl(input_str, short_scale)
-    if lang2 == "uk":
-        return is_fractional_uk(input_str, short_scale)
+    if numtag_readers.routed(lang):
+        return numtag_readers.is_fractional(input_str, lang, short_scale, scale)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
@@ -2091,52 +1493,6 @@ def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
         (bool) or (float): False if not an ordinal, otherwise the number
         corresponding to the ordinal
     """
-    lang2 = _base_lang(lang)
-    if lang2 == "pt":
-        return PT_PT.is_ordinal(input_str)
-    if lang2 == "mwl":
-        return MWL.is_ordinal(input_str)
-    if lang2 == "ro":
-        return RO.is_ordinal(input_str)
-    if lang2 == "ast":
-        return AST.is_ordinal(input_str)
-    if lang2 == "ca":
-        return CA.is_ordinal(input_str)
-    if lang2 == "oc":
-        return OC.is_ordinal(input_str)
-    if lang2 == "an":
-        return AN.is_ordinal(input_str)
-    if lang2 == "en":
-        return is_ordinal_en(input_str)
-    if _is_ar(lang):
-        return is_ordinal_ar(input_str)
-    if lang2 == "de":
-        val = is_ordinal_de(input_str)
-        if isinstance(val, str) and val.endswith("."):
-            return int(val[:-1])
-        return val
-    if lang2 == "da":
-        return is_ordinal_da(input_str)
-    if lang2 == "gl":
-        return is_ordinal_gl(input_str)
-    if lang2 == "et":
-        return is_ordinal_et(input_str)
-    if lang2 == "fi":
-        return is_ordinal_fi(input_str)
-    if lang2 == "el":
-        return is_ordinal_el(input_str)
-    if lang2 == "he":
-        return is_ordinal_he(input_str)
-    if lang2 == "eu":
-        return is_ordinal_eu(input_str)
-    if lang2 == "hu":
-        return is_ordinal_hu(input_str)
-    if lang2 == "nn":
-        return is_ordinal_nn(input_str)
-    if lang2 in ("nb", "no"):
-        return is_ordinal_nb(input_str)
-    if lang2 == "kab":
-        return is_ordinal_kab(input_str)
-    if lang2 == "sl":
-        return is_ordinal_sl(input_str)
+    if numtag_readers.routed(lang):
+        return numtag_readers.is_ordinal(input_str, lang)
     return _is_ordinal_generic(input_str, lang)

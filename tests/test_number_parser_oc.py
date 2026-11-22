@@ -6,7 +6,7 @@ Occitan numeral/ordinal entries and languagesandnumbers.com.
 """
 import unittest
 
-from ovos_number_parser import extract_number, numbers_to_digits
+from ovos_number_parser import extract_number, numbers_to_digits, is_fractional, is_ordinal
 
 from ovos_number_parser.numbers_oc import OC, pluralize_oc
 from ovos_number_parser.util import GrammaticalGender
@@ -113,10 +113,10 @@ class TestOrdinalsOC(unittest.TestCase):
         self.assertEqual(OC.pronounce_ordinal(1000000), "milionen")
 
     def test_is_ordinal(self):
-        self.assertEqual(OC.is_ordinal("primièr"), 1)
-        self.assertEqual(OC.is_ordinal("tresen"), 3)
-        self.assertEqual(OC.is_ordinal("vinten"), 20)
-        self.assertFalse(OC.is_ordinal("ostal"))
+        self.assertEqual(is_ordinal("primièr", "oc"), 1)
+        self.assertEqual(is_ordinal("tresen", "oc"), 3)
+        self.assertEqual(is_ordinal("vinten", "oc"), 20)
+        self.assertFalse(is_ordinal("ostal", "oc"))
 
 
 class TestFractionsOC(unittest.TestCase):
@@ -128,11 +128,11 @@ class TestFractionsOC(unittest.TestCase):
         self.assertEqual(OC.pronounce_fraction("1/5"), "un cinquen")
 
     def test_is_fractional(self):
-        self.assertEqual(OC.is_fractional("mièg"), 0.5)
-        self.assertEqual(OC.is_fractional("mièja"), 0.5)
-        self.assertEqual(OC.is_fractional("tèrç"), 1 / 3)
-        self.assertEqual(OC.is_fractional("quart"), 0.25)
-        self.assertFalse(OC.is_fractional("ostal"))
+        self.assertEqual(is_fractional("mièg", "oc"), 0.5)
+        self.assertEqual(is_fractional("mièja", "oc"), 0.5)
+        self.assertEqual(is_fractional("tèrç", "oc"), 1 / 3)
+        self.assertEqual(is_fractional("quart", "oc"), 0.25)
+        self.assertFalse(is_fractional("ostal", "oc"))
 
 
 class TestExtractOC(unittest.TestCase):
@@ -170,10 +170,10 @@ class TestExtractOC(unittest.TestCase):
         self.assertEqual(extract_number("ai uèit cats", lang="oc"), 8)
         for word in ("ochen", "uechen", "ueiten", "oiten", "uòchen"):
             with self.subTest(word=word):
-                self.assertEqual(OC.is_ordinal(word), 8)
+                self.assertEqual(is_ordinal(word, "oc"), 8)
                 self.assertEqual(
                     extract_number(f"lo {word} jorn", ordinals=True, lang="oc"), 8)
-        self.assertEqual(OC.is_ordinal("uòchanten"), 80)
+        self.assertEqual(is_ordinal("uòchanten", "oc"), 80)
         self.assertEqual(extract_number("la uòchena", ordinals=True, lang="oc"), 8)
 
     def test_alt_ordinal_spellings_take_the_feminine_and_plural(self):

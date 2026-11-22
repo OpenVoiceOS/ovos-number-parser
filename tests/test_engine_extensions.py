@@ -104,12 +104,6 @@ class TestOrdinalPrefix(unittest.TestCase):
         eng = _engine(ORDINAL_PREFIX=self.PREFIX)
         self.assertEqual(eng.pronounce_ordinal(1001), "al milésimo primeiro")
 
-    def test_is_ordinal_strips_particles(self):
-        eng = _engine(ORDINAL_PREFIX=self.PREFIX)
-        self.assertEqual(eng.is_ordinal("al segundo"), 2)
-        self.assertEqual(eng.is_ordinal("a segunda"), 2)
-        self.assertFalse(eng.is_ordinal("al gato"))
-
     def test_default_no_prefix(self):
         eng = _engine()
         self.assertEqual(eng.pronounce_ordinal(2), "segundo")
@@ -126,8 +120,6 @@ class TestOrdinalCompoundCardinalTens(unittest.TestCase):
         self.assertEqual(eng.pronounce_ordinal(21), "vinte e primo")
         # the standalone ordinal keeps its own word
         self.assertEqual(eng.pronounce_ordinal(1), "primeiro")
-        # the compound spelling is recognised during extraction
-        self.assertEqual(eng.is_ordinal("primo"), 1)
 
     def test_exact_teen_entries_preferred(self):
         eng = _engine(ORDINAL_COMPOUND_CARDINAL_TENS=True)

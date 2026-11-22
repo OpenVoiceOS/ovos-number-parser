@@ -6,8 +6,7 @@ ar-SA names the macrolanguage and keeps the literary words.
 """
 import unittest
 
-from ovos_number_parser import extract_number, numbers_to_digits, pronounce_number
-from ovos_number_parser.numbers_ar import extract_numbers_ar
+from ovos_number_parser import (extract_number, numbers_to_digits, pronounce_number, extract_number_spans)
 
 
 def say(number):
@@ -78,7 +77,7 @@ class TestSpokenHalf(unittest.TestCase):
         """After الساعة the half is thirty minutes past the hour, not 0.5."""
         self.assertEqual(numbers_to_digits("الساعة ثلاثة ونص", lang="ars"),
                          "الساعة 3 ونص")
-        self.assertEqual(extract_numbers_ar("الساعة خمسة عشر ونص", lect="ars"),
+        self.assertEqual([span.value for span in extract_number_spans("الساعة خمسة عشر ونص", "ars")],
                          [15])
 
     def test_after_a_hundred_or_a_thousand_it_is_left_unread(self):
@@ -87,7 +86,7 @@ class TestSpokenHalf(unittest.TestCase):
         for text in ("مية ونص", "الف ونص", "ثلاثة الاف ونص", "خمس مية ونص",
                      "الف ومية ونص"):
             with self.subTest(text=text):
-                values = extract_numbers_ar(text, lect="ars")
+                values = [span.value for span in extract_number_spans(text, "ars")]
                 self.assertTrue(all(v == int(v) for v in values), values)
                 digits = numbers_to_digits(text, lang="ars")
                 self.assertTrue(digits.endswith(" ونص"), digits)
@@ -98,7 +97,7 @@ class TestSpokenHalf(unittest.TestCase):
                              ("خمسة ونص كتاب", [5]), ("نص", []), ("نص الرسالة", []),
                              ("الكتاب ونص المقال", []), ("خمسة نص", [5])):
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_ar(text, lect="ars"), values)
+                self.assertEqual([span.value for span in extract_number_spans(text, "ars")], values)
         for text in ("نص الرسالة", "الكتاب ونص المقال", "خمسة ونص الكتاب"):
             with self.subTest(text=text):
                 self.assertNotIn("5.5", numbers_to_digits(text, lang="ars"))

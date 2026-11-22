@@ -548,33 +548,6 @@ def generate_plurals_pl(originals):
     return result
 
 
-def generate_fractions_pl(fractions):
-    '''Returns a list of all fraction combinations. E.g.:
-    trzecia, trzecich, trzecie
-    czwarta, czwarte, czwartych
-
-    :param fractions: Existing fractions
-    :return: Fractions with add suffixes
-    '''
-
-    result = {**fractions}
-    for k, v in fractions.items():
-        k_no_last = k[:-1]
-        result[k_no_last + 'e'] = v
-        if k_no_last[-1:] == 'i':
-            result[k_no_last + 'ch'] = v
-        else:
-            result[k_no_last + 'ych'] = v
-
-    for k, v in _SHORT_ORDINAL_PL.items():
-        result[v[:-1] + 'a'] = k
-
-    result['jedno'] = 1
-    result['czwartego'] = 4
-
-    return result
-
-
 _STRING_NUM_PL = invert_dict(_NUM_STRING_PL)
 _STRING_NUM_PL.update(generate_plurals_pl(_STRING_NUM_PL))
 _STRING_NUM_PL.update({
@@ -582,27 +555,6 @@ _STRING_NUM_PL.update({
     'połówka': 0.5,
     'połowa': 0.5,
 })
-
-
-_REV_FRACTITONS = generate_fractions_pl(invert_dict(_FRACTION_STRING_PL))
-
-
-def is_fractional_pl(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    lower_input = input_str.lower()
-    if lower_input in _REV_FRACTITONS:
-        return 1.0 / _REV_FRACTITONS[lower_input]
-
-    return False
 
 
 _ORDINAL_HUNDREDS_PL = {

@@ -1,78 +1,74 @@
 # Language notes
 
 <!-- agent-hint
-covers: which of the 40 languages read through numtag, which use the in-repo reader, and the rules of single languages
+covers: the 40 languages, how their codes read through numtag, and the rules of single languages
 source: ovos_number_parser/numtag_readers.py:NUMTAG_LANGS, ovos_number_parser/__init__.py (dispatchers), ovos_number_parser/numbers_<code>.py
 generated: no
 verify: sed '/^\x60\x60\x60/d' docs/languages.md | python -m doctest -o ELLIPSIS -o NORMALIZE_WHITESPACE /dev/stdin
 see: api.md, adding-a-language.md, ../README.md
 -->
 
-This page shows how each of the 40 languages is read and spoken. It then
-gives the rules of single languages and the known gaps.
+This page lists the 40 languages and shows how their codes are read and
+spoken. It then gives the rules of single languages and the known gaps.
 
 ## Language table
 
-Words are read in one of two ways. Thirty-nine languages read through
+All 40 languages read words through
 [numtag](https://github.com/TigreGotico/numtag). Their codes are in
-`NUMTAG_LANGS` in `ovos_number_parser/numtag_readers.py`. Malay (`ms`) reads
-with the reader in `ovos_number_parser/numbers_id.py`. The ISO 639-3 codes of
-Modern Standard Arabic and its lects (`arb`, `ars`, `acw`, `afb`, `arz`,
-`apc`, `ajp`, `acm`, `ary`, `aeb`, `ayl`) read with the reader in
-`ovos_number_parser/numbers_ar.py`; the code `ar` reads through numtag. The
-functions `extract_number`, `extract_number_spans` and `numbers_to_digits`
-follow this route.
+`NUMTAG_LANGS` in `ovos_number_parser/numtag_readers.py`. The ISO 639-3 codes
+of Modern Standard Arabic and its varieties (`arb`, `ars`, `acw`, `afb`,
+`arz`, `apc`, `ajp`, `acm`, `ary`, `aeb`, `ayl` and the other codes of
+`AR_DIALECT_DEFAULT_CASE`) read as `ar`, and `zsm` reads as `ms`. The functions
+`extract_number`, `extract_number_spans`, `numbers_to_digits`, `is_fractional`
+and `is_ordinal` follow this route.
 
 Every language speaks numbers with a writer in this repository. Most have a
 `pronounce_number_<code>` function. Aragonese, Asturian, Occitan and Romanian
 speak through the `AN`, `AST`, `OC` and `RO` engine objects. English ordinals
 come from unicode-rbnf.
-`is_fractional` and `is_ordinal` never use numtag. The last column shows
-whether `is_ordinal` has a dedicated reader or looks the word up among the
-`pronounce_ordinal` forms.
 
-| Code | Language | Reads words with | `is_ordinal` |
-|------|----------|------------------|--------------|
-| `ar` | Arabic | numtag | dedicated |
-| `an` | Aragonese | numtag | dedicated |
-| `ast` | Asturian | numtag | dedicated |
-| `az` | Azerbaijani | numtag | reverse lookup |
-| `eu` | Basque | numtag | dedicated |
-| `bg` | Bulgarian | numtag | reverse lookup |
-| `ca` | Catalan | numtag | dedicated |
-| `hr` | Croatian | numtag | reverse lookup |
-| `cs` | Czech | numtag | reverse lookup |
-| `da` | Danish | numtag | dedicated |
-| `nl` | Dutch | numtag | reverse lookup |
-| `en` | English | numtag | dedicated |
-| `et` | Estonian | numtag | dedicated |
-| `fi` | Finnish | numtag | dedicated |
-| `fr` | French | numtag | reverse lookup |
-| `gl` | Galician | numtag | dedicated |
-| `de` | German | numtag | dedicated |
-| `el` | Greek | numtag | dedicated |
-| `he` | Hebrew | numtag | dedicated |
-| `hu` | Hungarian | numtag | dedicated |
-| `id` | Indonesian | numtag | reverse lookup |
-| `it` | Italian | numtag | reverse lookup |
-| `kab` | Kabyle | numtag | dedicated |
-| `ms` | Malay | in-repo reader | reverse lookup |
-| `mwl` | Mirandese | numtag | dedicated |
-| `nb` | Norwegian Bokmål | numtag | dedicated |
-| `nn` | Norwegian Nynorsk | numtag | dedicated |
-| `oc` | Occitan | numtag | dedicated |
-| `fa` | Persian | numtag | reverse lookup |
-| `pl` | Polish | numtag | reverse lookup |
-| `pt` | Portuguese | numtag | dedicated |
-| `ro` | Romanian | numtag | dedicated |
-| `ru` | Russian | numtag | reverse lookup |
-| `sk` | Slovak | numtag | reverse lookup |
-| `sl` | Slovenian | numtag | dedicated |
-| `es` | Spanish | numtag | reverse lookup |
-| `sv` | Swedish | numtag | reverse lookup |
-| `tr` | Turkish | numtag | reverse lookup |
-| `uk` | Ukrainian | numtag | reverse lookup |
-| `fy` | West Frisian | numtag | reverse lookup |
+| Code | Language |
+|------|----------|
+| `ar` | Arabic |
+| `an` | Aragonese |
+| `ast` | Asturian |
+| `az` | Azerbaijani |
+| `eu` | Basque |
+| `bg` | Bulgarian |
+| `ca` | Catalan |
+| `hr` | Croatian |
+| `cs` | Czech |
+| `da` | Danish |
+| `nl` | Dutch |
+| `en` | English |
+| `et` | Estonian |
+| `fi` | Finnish |
+| `fr` | French |
+| `gl` | Galician |
+| `de` | German |
+| `el` | Greek |
+| `he` | Hebrew |
+| `hu` | Hungarian |
+| `id` | Indonesian |
+| `it` | Italian |
+| `kab` | Kabyle |
+| `ms` | Malay |
+| `mwl` | Mirandese |
+| `nb` | Norwegian Bokmål |
+| `nn` | Norwegian Nynorsk |
+| `oc` | Occitan |
+| `fa` | Persian |
+| `pl` | Polish |
+| `pt` | Portuguese |
+| `ro` | Romanian |
+| `ru` | Russian |
+| `sk` | Slovak |
+| `sl` | Slovenian |
+| `es` | Spanish |
+| `sv` | Swedish |
+| `tr` | Turkish |
+| `uk` | Ukrainian |
+| `fy` | West Frisian |
 
 A code with a region (`pt-BR`, `fr-BE`) uses the language of its first
 subtag. `no` reads as `nb`, `azj` as `az`, `ekk` as `et` and `pes` as `fa`.
@@ -168,8 +164,8 @@ Portuguese, Galician, Mirandese, Asturian and Aragonese share a declarative
 `NumberVocabulary` + `RomanceNumberExtractor` implementation in
 `ovos_number_parser.util`. Each language is described by its vocabulary
 (units, tens, hundreds, scales, ordinals, fractions, gender rules and joiner
-placement). The shared engine does the speaking, `is_fractional` and
-`is_ordinal` for all of them. Numtag reads their numbers.
+placement). The shared engine does the speaking for all of them. Numtag reads
+their numbers.
 
 Portuguese distinguishes European and Brazilian variants (`pt-PT` reads
 16 as `dezasseis`, `pt-BR` as `dezesseis`) and inflects `um/uma`,
@@ -274,8 +270,7 @@ extraction and pronunciation cover units through millions. Pronunciation reads
 ## Known gaps
 
 These languages read through numtag, so each gap below is a value that numtag
-reads wrong. `extract_number` returns early through the numtag reader, and no
-fallback runs:
+reads wrong:
 
 - A comma between two number words ends the number in English:
   `extract_number("two thousand, twenty three", "en")` is 2000. The output of
@@ -284,6 +279,11 @@ fallback runs:
   as 1000.
 - Kabyle `mraw d yiwen` and `mraw u yiwen` read as 10, not 11.
 - Aragonese `güeito`, `setse` and `quatorze` read as no number.
+- A denominator word without a count is no fraction: `is_fractional("quarter", "en")`
+  is `False`, and so is `is_fractional("third", "en")`, which reads as the
+  ordinal 3.
+- Malay `dua koma lima` reads as 2, because numtag takes `perpuluhan` as the
+  only spoken decimal marker.
 - English `twenty twenty three` reads as 20.
 - The spaced forms of German, Dutch, Danish and West Frisian give wrong values (see
   [Germanic compound numbers](#germanic-compound-numbers-de-nl-da-sv-fy)).
@@ -298,6 +298,11 @@ fallback runs:
 (10, 10)
 >>> [extract_number(word, "an") for word in ("güeito", "setse", "quatorze")]
 [False, False, False]
+>>> from ovos_number_parser import is_fractional
+>>> is_fractional("quarter", "en"), is_fractional("third", "en")
+(False, False)
+>>> extract_number("dua koma lima", "ms"), extract_number("dua perpuluhan lima", "ms")
+(2, 2.5)
 
 ```
 
@@ -311,9 +316,6 @@ has no hand-written implementation, a generic fallback fills in:
   Slavic languages use feminine numerators (`dvě třetiny`, `две трети`) and
   Hungarian its `két` allomorph. Denominators outside the language's fraction
   vocabulary fall back to "cardinal numerator + ordinal denominator".
-- `is_ordinal` falls back to a reverse lookup over `pronounce_ordinal`
-  (1–100, round hundreds, 1000, 1000000), registering both `-o`/`-a`
-  grammatical-gender variants.
 - `pronounce_ordinal` uses [unicode-rbnf](https://github.com/rhasspy/unicode-rbnf)
   for English and for a few values of other languages (see
   `pronounce_ordinal` in the [API reference](api.md)).

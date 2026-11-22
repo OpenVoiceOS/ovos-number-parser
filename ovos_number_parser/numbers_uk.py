@@ -594,42 +594,6 @@ def pronounce_number_uk(number, places=2, short_scale=True, scientific=False,
     return result
 
 
-def is_fractional_uk(input_str, word, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    fractions = {"ціла": 1}
-    # endings for creation different cases and plurals in different cases
-    ending = ['ої', 'е', 'их', 'ою', 'і', 'ими', 'ій']
-    for num in _FRACTION_STRING_UK.keys():  # Numbers from 2 to 1 hundred, more is not usually used in common speech
-        if num > 1:
-            fractions[str(_FRACTION_STRING_UK[num])] = num
-            for end in ending:
-                new_fraction_number = _FRACTION_STRING_UK[num][:-1] + end
-                fractions[new_fraction_number] = num
-    fractions.update({
-        "половина": 2, "половиною": 2, "половини": 2, "половин": 2, "половинами": 2, "пів": 2,
-        "шоста": 6,
-        "третина": 1 / 3, "треть": 1 / 3, "треті": 3, "третьої": 3,
-        "чверті": 4, "чверть": 0.25, "чвертю": 0.25
-    })
-    if input_str.lower() in fractions.keys():
-        if word == input_str:
-            return fractions[input_str.lower()]
-        elif word not in _STRING_NUM_UK:
-            return fractions[input_str.lower()]
-        else:
-            return 1.0 / fractions[input_str.lower()]
-    return False
-
-
 def plural_uk(num: int, one: str, few: str, many: str):
     num %= 100
     if num // 10 == 1:

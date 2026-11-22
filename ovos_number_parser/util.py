@@ -205,26 +205,6 @@ def invert_dict(original: Dict[Any, Any]) -> Dict[Any, Any]:
     return {value: key for key, value in original.items()}
 
 
-def exact_int(value: Any) -> Any:
-    """
-    Return a whole float as the integer that its literal spells.
-
-    Scale tables write constants as ``1e24``, which is the float nearest to
-    10 ** 24 and not 10 ** 24 itself. ``repr`` keeps the written digits, so
-    ``exact_int(1e24) == 10 ** 24``. A value that is not a finite whole float
-    is returned unchanged.
-
-    Args:
-        value: a number from a scale table
-
-    Returns:
-        int for a finite whole float, else ``value`` unchanged
-    """
-    if isinstance(value, float) and math.isfinite(value) and value.is_integer():
-        return int(Decimal(repr(value)))
-    return value
-
-
 def is_numeric(input_str: str) -> bool:
     """
     Return True if the input string represents a valid number, otherwise False.
@@ -252,29 +232,6 @@ def is_numeric(input_str: str) -> bool:
             return False
         return True
     return math.isfinite(val)
-
-
-def fits_str_limit(value: Any) -> bool:
-    """
-    Return False for an integer that ``str`` cannot write.
-
-    An integer with more digits than the interpreter's integer string
-    conversion limit (``sys.get_int_max_str_digits``) has no decimal string.
-    It is no number, as a digit string past that limit is none for
-    ``is_numeric``.
-
-    Args:
-        value: a value an extractor produced
-
-    Returns:
-        bool: False for an integer past the limit, else True
-    """
-    if isinstance(value, int):
-        try:
-            str(value)
-        except ValueError:
-            return False
-    return True
 
 
 def numeric_value(input_str: str) -> Union[int, float]:
@@ -605,39 +562,6 @@ class NumberVocabulary:
             **{self.pluralize(k): v for k, v in self.COUNT_NOUNS.items()},
         }
 
-    def get_ordinal_strings(self, scale: Optional[Scale] = None) -> Dict[str, int]:
-        scale = scale or self.DEFAULT_SCALE
-        SCALES = self.ORDINAL_SHORT_SCALE if scale == Scale.SHORT else self.ORDINAL_LONG_SCALE
-        male = {
-            **{v: k for k, v in self.ORDINAL_COMPOUND_UNITS.items()},
-            **{v: k for k, v in self.ORDINAL_UNITS.items()},
-            **{v: k for k, v in self.ORDINAL_TENS.items()},
-            **{v: k for k, v in self.ORDINAL_HUNDREDS.items()},
-            **{v: k for k, v in SCALES.items()}
-        }
-        female = {
-            **{self.swap_gender(k, GrammaticalGender.FEMININE): v for k, v in male.items()},
-        }
-        plural = {
-            **{self.pluralize(k): v for k, v in male.items()},
-            **{self.pluralize(k): v for k, v in female.items()}
-        }
-        return {
-            **male,
-            **female,
-            **plural
-        }
-
-    def get_fraction_strings(self) -> Dict[str, int]:
-        male = {v: k for k, v in self.FRACTION.items()}
-        female = {v: k for k, v in self.FRACTION_FEMALE.items()}
-        plural = {self.pluralize(k): v for k, v in male.items()}
-        return {
-            **male,
-            **female,
-            **plural
-        }
-
 
 class RomanceNumberExtractor:
     """vocabulary based number parser that should work for most romance-like languages"""
@@ -645,24 +569,6 @@ class RomanceNumberExtractor:
     def __init__(self, vocab: NumberVocabulary):
         self.vocab = vocab
 
-    def is_ordinal(self, input_str: str, scale: Optional[Scale] = None) -> Union[int, bool]:
-        """
-        Determine if a string is an ordinal word.
-
-        Returns:
-            (int or bool): the value of the ordinal if the input string is
-            recognized as an ordinal, otherwise False.
-        """
-        scale = scale or self.vocab.DEFAULT_SCALE
-        if self.vocab.ORDINAL_PREFIX:
-            # drop the ordinal particles ("al doilea" -> "doilea")
-            particles = set(self.vocab.ORDINAL_PREFIX.values())
-            input_str = " ".join(w for w in input_str.strip().split()
-                                 if w not in particles)
-        ordinals_map = self.vocab.get_ordinal_strings(scale)
-        if input_str in ordinals_map:
-            return ordinals_map[input_str]
-        return False
 
     def numbers_to_digits(self, utterance: str, scale: Optional[Scale] = None) -> str:
         """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, lang)``."""
@@ -670,22 +576,6 @@ class RomanceNumberExtractor:
         warn_reader_removed("numbers_to_digits", "ovos_number_parser.numbers_to_digits(utterance, lang)")
         return numtag_readers.numbers_to_digits(utterance, self.vocab.LANG, scale)
 
-    def is_fractional(self, input_str: str) -> Union[float, bool]:
-        """
-        Checks if the input string corresponds to a recognized Portuguese fractional word.
-
-        Returns:
-            The fractional value as a float if recognized; otherwise, False.
-        """
-        fractions_map = self.vocab.get_fraction_strings()
-        input_str = input_str.lower().strip()
-
-        # handle fraction denominator strings
-        for word, den in fractions_map.items():
-            if input_str == word:
-                return 1.0 / den
-
-        return False
 
     def pronounce_number(self,
                          number: Union[int, float],

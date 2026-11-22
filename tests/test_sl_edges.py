@@ -1,9 +1,9 @@
 """Edge-path tests for the Slovenian number module."""
 import unittest
 
-from ovos_number_parser import extract_number
+from ovos_number_parser import extract_number, is_ordinal
 
-from ovos_number_parser.numbers_sl import is_ordinal_sl, nice_number_sl, pronounce_number_sl
+from ovos_number_parser.numbers_sl import nice_number_sl, pronounce_number_sl
 
 
 class TestSlovenianEdges(unittest.TestCase):
@@ -134,16 +134,27 @@ class TestSlovenianCompoundOrdinals(unittest.TestCase):
             self.assertNotIn("je", pronounce_number_sl(n, ordinals=True)[-2:])
 
     def test_is_ordinal_recognises_compounds(self):
-        self.assertEqual(is_ordinal_sl("stoprvi"), 101)
-        self.assertEqual(is_ordinal_sl("stotretji"), 103)
-        self.assertEqual(is_ordinal_sl("dvestopetdeseti"), 250)
-        self.assertFalse(is_ordinal_sl("stotretjije"))
-        self.assertFalse(is_ordinal_sl("mačka"))
+        self.assertEqual(is_ordinal("stoprvi", "sl"), 101)
+        self.assertEqual(is_ordinal("stotretji", "sl"), 103)
+        self.assertEqual(is_ordinal("dvestopetdeseti", "sl"), 250)
+        self.assertFalse(is_ordinal("stotretjije", "sl"))
+        self.assertFalse(is_ordinal("mačka", "sl"))
 
     def test_ordinal_round_trip(self):
-        for n in list(range(1, 1000)) + [1000, 1000000]:
+        hundreds = range(200, 1000, 100)
+        for n in [n for n in range(1, 1000) if n not in hundreds] + [1000]:
             spoken = pronounce_number_sl(n, ordinals=True)
-            self.assertEqual(is_ordinal_sl(spoken), n, f"{n} -> {spoken!r}")
+            self.assertEqual(is_ordinal(spoken, "sl"), n, f"{n} -> {spoken!r}")
+
+    def test_round_hundreds_read_back(self):
+        for n in range(200, 1000, 100):
+            with self.subTest(n=n):
+                spoken = pronounce_number_sl(n, ordinals=True)
+                self.assertEqual(is_ordinal(spoken, "sl"), n, f"{n} -> {spoken!r}")
+
+    def test_the_millionth_reads_back(self):
+        spoken = pronounce_number_sl(1000000, ordinals=True)
+        self.assertEqual(is_ordinal(spoken, "sl"), 1000000, spoken)
 
     def test_extract_compound_ordinal_in_sentence(self):
         self.assertEqual(

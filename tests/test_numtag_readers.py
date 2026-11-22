@@ -8,7 +8,8 @@ import unittest
 from unittest.mock import patch
 
 from ovos_number_parser import (NumberSpan, extract_number, extract_number_spans,
-                                numbers_to_digits, numtag_readers)
+                                is_fractional, is_ordinal, numbers_to_digits,
+                                numtag_readers, pronounce_ordinal)
 
 
 def routed(*langs):
@@ -29,9 +30,25 @@ class TestRouting(unittest.TestCase):
             self.assertEqual(numbers_to_digits(text, "pt-PT"),
                              "Compraram 1000 2400 de ovos.")
 
-    def test_an_unrouted_language_keeps_its_reader(self):
-        self.assertFalse(numtag_readers.routed("ms"))
-        self.assertEqual(extract_number("dua puluh satu", "ms"), 21)
+    def test_a_language_numtag_does_not_read_raises(self):
+        self.assertFalse(numtag_readers.routed("ja"))
+        with self.assertRaises(NotImplementedError):
+            extract_number("one", "ja")
+        with self.assertRaises(NotImplementedError):
+            extract_number_spans("one", "ja")
+        with self.assertRaises(NotImplementedError):
+            is_fractional("one half", "ja")
+
+    def test_the_arabic_lect_codes_and_zsm_read_as_their_language(self):
+        # واحد وعشرون: 1 and 20; dua puluh satu: 2 x 10 + 1
+        for lang in ("arb", "arz", "ary", "aeb", "ar-x-foo"):
+            with self.subTest(lang=lang):
+                self.assertTrue(numtag_readers.routed(lang))
+                self.assertEqual(extract_number("واحد وعشرون", lang), 21)
+        for lang in ("ms", "zsm", "ms-MY"):
+            with self.subTest(lang=lang):
+                self.assertTrue(numtag_readers.routed(lang))
+                self.assertEqual(extract_number("dua puluh satu", lang), 21)
 
     def test_region_and_alias_tags_follow_the_language(self):
         with routed("pt", "nb"):
@@ -91,6 +108,52 @@ class TestValues(unittest.TestCase):
                          [("twenty_one", 21), ("٣", 3)])
         for span in spans:
             self.assertEqual(text[span.start:span.end], span.surface)
+
+
+class TestIsOrdinalAndIsFractional(unittest.TestCase):
+    """is_ordinal and is_fractional answer for a text that is one ordinal or one
+    fraction mention of numtag, in full."""
+
+    def test_an_ordinal_of_two_words_is_one_ordinal(self):
+        # twenty = 20, first = 1
+        self.assertEqual(is_ordinal("twenty first", "en"), 21)
+        self.assertEqual(is_ordinal("twenty-first", "en"), 21)
+        self.assertEqual(is_ordinal("3rd", "en"), 3)
+
+    def test_a_cardinal_and_a_longer_text_are_no_ordinal(self):
+        self.assertIs(is_ordinal("three", "en"), False)
+        self.assertIs(is_ordinal("the third", "en"), False)
+        self.assertIs(is_ordinal("third place", "en"), False)
+
+    def test_a_count_with_its_denominator_is_a_fraction(self):
+        # two thirds = 2 / 3, three quarters = 3 / 4
+        self.assertEqual(is_fractional("two thirds", "en"), 2 / 3)
+        self.assertEqual(is_fractional("three quarters", "en"), 0.75)
+        self.assertEqual(is_fractional("3/4", "en"), 0.75)
+        self.assertEqual(is_fractional("um quarto", "pt-PT"), 0.25)
+
+    def test_a_number_that_is_no_fraction_is_false(self):
+        self.assertIs(is_fractional("three", "en"), False)
+        self.assertIs(is_fractional("half of it", "en"), False)
+
+    def test_surrounding_space_is_ignored(self):
+        self.assertEqual(is_ordinal("  third ", "en"), 3)
+        self.assertEqual(is_fractional(" one half ", "en"), 0.5)
+
+    def test_a_text_that_is_no_string_is_false(self):
+        self.assertIs(is_ordinal(None, "en"), False)
+        self.assertIs(is_fractional(5, "en"), False)
+
+    def test_the_arabic_lect_codes_and_zsm_read_as_their_language(self):
+        # الثالث: the third; ثلاثة أرباع: three quarters; ketiga: the third
+        self.assertEqual(is_ordinal("الثالث", "arz"), 3)
+        self.assertEqual(is_fractional("ثلاثة أرباع", "ars"), 0.75)
+        self.assertEqual(is_ordinal("ketiga", "zsm"), 3)
+        self.assertEqual(is_fractional("tiga perempat", "ms"), 0.75)
+
+    def test_a_language_numtag_does_not_read_keeps_the_ordinal_lookup(self):
+        self.assertEqual(is_ordinal(pronounce_ordinal(3, "ja"), "ja"), 3)
+        self.assertIs(is_ordinal("third", "ja"), False)
 
 
 class TestNumbersToDigits(unittest.TestCase):

@@ -421,31 +421,6 @@ def pronounce_number_bg(number, places=2, short_scale=True, scientific=False,
     return result
 
 
-def is_fractional_bg(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, Bulgarian uses a single scale
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    fractions = {"цяло": 1, "половин": 2, "третина": 3, "четвъртина": 4}
-    for num, word in _FRACTION_STRING_BG.items():
-        fractions[word] = num
-        # plural (трета -> трети, четвърт -> четвърти)
-        if word.endswith('а'):
-            fractions[word[:-1] + 'и'] = num
-        else:
-            fractions[word + 'и'] = num
-
-    if input_str.lower() in fractions:
-        return 1.0 / fractions[input_str.lower()]
-    return False
-
-
 def extract_number_bg(text, short_scale=True, ordinals=False):
     """Deprecated: use ``ovos_number_parser.extract_number(text, "bg")``."""
     warn_reader_removed("extract_number_bg", 'ovos_number_parser.extract_number(text, "bg")')

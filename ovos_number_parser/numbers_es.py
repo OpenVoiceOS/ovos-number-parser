@@ -424,11 +424,6 @@ def fraction_noun_es(denominator: int, plural: bool = False) -> str:
     return pluralize_es(noun) if plural else noun
 
 
-def is_fractional_es(input_str, short_scale=True):
-    """Return the fractional value of a Spanish fraction word, else False."""
-    return ES.is_fractional(input_str)
-
-
 def pronounce_number_es(number, places=2, short_scale=False):
     """Convert a number to its spoken Castilian Spanish form.
 

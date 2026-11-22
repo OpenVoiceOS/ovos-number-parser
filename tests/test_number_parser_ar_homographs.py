@@ -9,8 +9,7 @@ Hijazi).
 import re
 import unittest
 
-from ovos_number_parser import extract_number, numbers_to_digits
-from ovos_number_parser.numbers_ar import extract_numbers_ar
+from ovos_number_parser import extract_number, numbers_to_digits, extract_number_spans
 
 
 def digits(text):
@@ -63,7 +62,7 @@ class TestLeftAsWritten(unittest.TestCase):
     def test_no_number(self):
         for text in AS_WRITTEN:
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_ar(text), [])
+                self.assertEqual([span.value for span in extract_number_spans(text, "ar")], [])
                 self.assertEqual(digits(text), text)
         self.assertEqual(digits("شربت مية ودفعت مية ريال"),
                          "شربت مية ودفعت 100 ريال")
@@ -74,7 +73,7 @@ class TestLeftAsWritten(unittest.TestCase):
         for text, converted in (("مية او اثنين", "مية او 2"),
                                 ("كباية مية او اثنين", "كباية مية او 2")):
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_ar(text), [2])
+                self.assertEqual([span.value for span in extract_number_spans(text, "ar")], [2])
                 self.assertEqual(digits(text), converted)
 
 
@@ -82,7 +81,7 @@ class TestLicensed(unittest.TestCase):
     def test_numbers(self):
         for text, values, converted in LICENSED:
             with self.subTest(text=text):
-                self.assertEqual(extract_numbers_ar(text), values)
+                self.assertEqual([span.value for span in extract_number_spans(text, "ar")], values)
                 self.assertEqual(digits(text), converted)
         self.assertEqual(extract_number("بمية", lang="ar"), 100)
 
@@ -103,9 +102,9 @@ class TestLicensed(unittest.TestCase):
             for scale, factor in (("الف", 1000), ("مليون", 1000000)):
                 text = f"دفعت {word} {scale}"
                 with self.subTest(text=text):
-                    self.assertEqual(extract_numbers_ar(text),
+                    self.assertEqual([span.value for span in extract_number_spans(text, "ar")],
                                      [value * factor])
-        self.assertEqual(extract_numbers_ar("يوم التلات الف"), [3000])
+        self.assertEqual([span.value for span in extract_number_spans("يوم التلات الف", "ar")], [3000])
 
 
 if __name__ == "__main__":

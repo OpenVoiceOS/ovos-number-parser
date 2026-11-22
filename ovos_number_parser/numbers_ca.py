@@ -468,18 +468,6 @@ def pronounce_number_ca(number, places=2, short_scale=False, scientific=False):
     return CA.pronounce_number(number, places, scale=scale)
 
 
-def is_fractional_ca(input_str, short_scale=True):
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return CA.is_fractional(input_str)
-
-
 if __name__ == '__main__':
     print('--- Catalan number tests ---')
     for n in (16, 21, 42, 66, 99, 100, 101, 123, 200, 500, 999, 1000, 2023,

@@ -15,6 +15,7 @@ from typing import List, Optional, Union
 from numtag import Form, Kind, NumberMention, tag_numbers
 from numtag import Scale as NumtagScale
 
+from ovos_number_parser.numbers_ar import AR_DIALECT_DEFAULT_CASE
 from ovos_number_parser.util import Scale
 
 #: languages whose readers are numtag: every language numtag reads. Every
@@ -23,7 +24,7 @@ NUMTAG_LANGS = frozenset({
     "an", "ar", "ast", "az", "bg", "ca", "cs", "da",
     "de", "el", "en", "es", "et", "eu", "fa", "fi",
     "fr", "fy", "gl", "he", "hr", "hu", "id", "it",
-    "kab", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
+    "kab", "ms", "mwl", "nb", "nl", "nn", "oc", "pl", "pt",
     "ro", "ru", "sk", "sl", "sv", "tr", "uk"})
 
 #: languages whose numbers_to_digits writes the cardinal words of a fraction
@@ -34,8 +35,9 @@ _FRACTION_WORDS_KEPT = frozenset({"pt"})
 
 
 #: language codes that name the language of another code ("no" is Norwegian
-#: Bokmål, "azj" North Azerbaijani)
-_ALIASES = {"no": "nb", "azj": "az", "ekk": "et", "pes": "fa"}
+#: Bokmål, "azj" North Azerbaijani, "arz" Egyptian Arabic)
+_ALIASES = {"no": "nb", "azj": "az", "ekk": "et", "pes": "fa", "zsm": "ms",
+            **dict.fromkeys(AR_DIALECT_DEFAULT_CASE, "ar")}
 
 
 def routed(lang: str) -> bool:
@@ -130,12 +132,34 @@ def extract_number(text: str, lang: str, short_scale: Optional[bool] = None,
     return number(found[0].value, found[0].kind) if found else False
 
 
-def _one(text: str, lang: str, scale: Optional[Scale], kind: Kind) -> Optional[NumberMention]:
+def _one(text: str, lang: str, scale: Optional[Scale], kind: Kind,
+         short_scale: Optional[bool] = None) -> Optional[NumberMention]:
     """The number ``text`` is, when all of it is one number of ``kind``."""
-    found = tag_numbers(_prepare(text), _numtag_lang(lang), scale=_scale(scale, None))
+    found = tag_numbers(_prepare(text), _numtag_lang(lang), scale=_scale(scale, short_scale))
     if len(found) == 1 and found[0].char_span == (0, len(text)) and found[0].kind is kind:
         return found[0]
     return None
+
+
+def _answer(mention: Optional[NumberMention]) -> Union[int, float, bool]:
+    """The value of ``mention``, or False."""
+    value = number(mention.value, mention.kind) if mention else None
+    return False if value is None else value
+
+
+def is_fractional(text: str, lang: str, short_scale: Optional[bool] = None,
+                  scale: Optional[Scale] = None) -> Union[float, bool]:
+    """The value of ``text`` when all of it is one fraction, or False."""
+    if not isinstance(text, str):
+        return False
+    return _answer(_one(text.strip(), lang, scale, Kind.FRACTION, short_scale))
+
+
+def is_ordinal(text: str, lang: str) -> Union[int, bool]:
+    """The value of ``text`` when all of it is one ordinal, or False."""
+    if not isinstance(text, str):
+        return False
+    return _answer(_one(text.strip(), lang, None, Kind.ORDINAL))
 
 
 def _fraction_words(text: str, lang: str, scale: Optional[Scale]) -> str:
