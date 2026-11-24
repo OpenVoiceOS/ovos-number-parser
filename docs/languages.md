@@ -62,8 +62,8 @@ as one number:
 ```
 
 Only Swedish also reads the spaced form (`tjugo en` is 21). In the other four,
-numtag reads the spaced words as separate numbers, and `extract_number` gives
-the first: `ein und zwanzig` (de) is 1, `een en twintig` (nl) is 1,
+numtag reads a unit and a ten that `und`, `en` or `og` join as two numbers, and
+`extract_number` gives the first: `ein und zwanzig` (de) is 1, `een en twintig` (nl) is 1,
 `to og fyrre` (da) is 2, `ien en tweintich` (fy) is 1 and
 `zwei hundert drei und vierzig` (de) is 203.
 

@@ -306,7 +306,7 @@ The deprecated names are:
 - `numbers_to_digits_<code>` for az, ca, cs, da, de, en, es, nb, nl, nn, pl, pt, ru and uk
 - `is_ordinal_<code>` for da, et, fi, nb and nn
 
-Each deprecated name keeps the parameters it always had, and it answers what
+Each deprecated name keeps the parameters of the reader it replaces, and it answers what
 the public function answers.
 
 The `numbers_to_digits` method of a `RomanceNumberExtractor` engine, such as
