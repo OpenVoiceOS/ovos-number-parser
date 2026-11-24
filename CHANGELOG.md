@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.4a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a2) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a1...0.31.4a2)
+
+**Merged pull requests:**
+
+- test: strict xfails for open issues \(409-544\) [\#569](https://github.com/OpenVoiceOS/ovos-number-parser/pull/569) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.4a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a1) (2026-11-22)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.3a1...0.31.4a1)
@@ -395,10 +403,6 @@
 ## [0.24.42a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.42a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.41a1...0.24.42a1)
-
-**Merged pull requests:**
-
-- test\(fr\): give the OQLF hyphenation reference its locator [\#463](https://github.com/OpenVoiceOS/ovos-number-parser/pull/463) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.41a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.41a1) (2026-11-12)
 
