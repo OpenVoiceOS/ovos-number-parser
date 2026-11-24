@@ -9,6 +9,8 @@ arithmetic, never parser output.
 import sys
 import unittest
 
+import pytest
+
 from ovos_number_parser import extract_number, numbers_to_digits
 
 LANGS = ["an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en",
@@ -76,6 +78,15 @@ class TestDigitStringsBeyondIntLimit(unittest.TestCase):
                                      10 ** 5000 - 1)
         finally:
             sys.set_int_max_str_digits(limit)
+
+
+class TestSpelledDecimalBeyondAFloat(unittest.TestCase):
+    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/409")
+    def test_numbers_to_digits_keeps_the_fraction_of_a_big_spelled_number(self):
+        # 12 x 10**18 + 345 + 0.25
+        text = "twelve quintillion three hundred forty five point two five"
+        self.assertEqual(numbers_to_digits(text, "en"),
+                         "12000000000000000345.25")
 
 
 if __name__ == "__main__":

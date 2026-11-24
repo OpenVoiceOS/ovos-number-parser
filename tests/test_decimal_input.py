@@ -114,3 +114,20 @@ def test_decimal_rounds_from_its_own_digits(lang):
     assert pronounce_number(Decimal("2.67499999999999999999"), lang,
                             places=2) == \
         pronounce_number(Decimal("2.67"), lang, places=2)
+
+
+@pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/409")
+def test_decimal_with_more_digits_than_a_float_reads_every_digit():
+    spoken = pronounce_number(Decimal("123456789012345678.25"), "en", places=2)
+    assert spoken == (
+        "one hundred and twenty three quadrillion, four hundred and fifty six "
+        "trillion, seven hundred and eighty nine billion, twelve million, "
+        "three hundred and forty five thousand, six hundred and seventy eight "
+        "point two five")
+
+
+@pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/409")
+def test_decimal_fraction_of_nineteen_digits_reads_every_digit():
+    spoken = pronounce_number(Decimal("0.1234567890123456789"), "en", places=19)
+    assert spoken == ("zero point one two three four five six seven eight nine "
+                      "zero one two three four five six seven eight nine")

@@ -19,6 +19,8 @@ those shapes falls back to the scientific reading instead.
 """
 import unittest
 
+import pytest
+
 from ovos_number_parser import pronounce_number
 from ovos_number_parser import (_has_padded_scale_words,
                                 _has_unread_digits)
@@ -131,3 +133,18 @@ class TestKabyleCeilingPreserved(unittest.TestCase):
     def test_kab_still_raises_above_ceiling(self):
         with self.assertRaises(OverflowError):
             pronounce_number(HUGE, "kab")
+
+
+class TestRbnfNeverSpeaksDigits(unittest.TestCase):
+    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/544")
+    def test_korean_ordinal_of_ten_to_the_eighteenth_is_words(self):
+        # 10**18 is 백경: 100 x 10**16 (경 is 10**16); ordinal suffix 째
+        self.assertEqual(pronounce_number(10 ** 18, "ko", ordinals=True), "백경째")
+
+    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/544")
+    def test_amharic_cardinal_of_ten_to_the_twenty_fourth_is_no_digit_string(self):
+        try:
+            spoken = pronounce_number(10 ** 24, "am")
+        except NotImplementedError:
+            return
+        self.assertFalse(any(c.isdigit() for c in spoken), spoken)
