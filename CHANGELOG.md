@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.31.4a4](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a4) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a2...0.31.4a4)
+
+**Merged pull requests:**
+
+- docs: NUMTAG\_LANGS comment no longer promises numbers\_xx.py readers [\#575](https://github.com/OpenVoiceOS/ovos-number-parser/pull/575) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- test: strict xfails for the gl fraction warning and the ca removal version [\#574](https://github.com/OpenVoiceOS/ovos-number-parser/pull/574) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.4a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a2) (2026-11-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a1...0.31.4a2)
