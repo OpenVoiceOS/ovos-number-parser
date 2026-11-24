@@ -1,8 +1,20 @@
 # Changelog
 
+## [0.31.4a5](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a5) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a4...0.31.4a5)
+
+**Merged pull requests:**
+
+- test: strict xfail for the Croatian ordinal of 2000 [\#577](https://github.com/OpenVoiceOS/ovos-number-parser/pull/577) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.4a4](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a4) (2026-11-24)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a2...0.31.4a4)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a3...0.31.4a4)
+
+## [0.31.4a3](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a3) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a2...0.31.4a3)
 
 **Merged pull requests:**
 
