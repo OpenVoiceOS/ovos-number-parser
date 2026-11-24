@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.4a8](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a8) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a7...0.31.4a8)
+
+**Merged pull requests:**
+
+- refactor: drop the vocabulary fields and helpers the deleted readers used [\#562](https://github.com/OpenVoiceOS/ovos-number-parser/pull/562) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.4a7](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a7) (2026-11-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a6...0.31.4a7)
@@ -389,17 +397,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.47a1...0.24.48a1)
 
-**Merged pull requests:**
-
-- fix\(pt\): numbers\_to\_digits reads "e meio" after a scale word as half of it [\#474](https://github.com/OpenVoiceOS/ovos-number-parser/pull/474) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.47a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.47a1) (2026-11-13)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.46a2...0.24.47a1)
-
-**Merged pull requests:**
-
-- fix\(pt\): read the other spelling of a scale word \("um bilhão" in pt-PT\) [\#475](https://github.com/OpenVoiceOS/ovos-number-parser/pull/475) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.46a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.46a2) (2026-11-12)
 
