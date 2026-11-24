@@ -18,8 +18,8 @@ from numtag import Scale as NumtagScale
 from ovos_number_parser.numbers_ar import AR_DIALECT_DEFAULT_CASE
 from ovos_number_parser.util import Scale
 
-#: languages whose readers are numtag: every language numtag reads. Every
-#: other language keeps its numbers_xx.py reader
+#: languages whose readers are numtag: every language numtag reads. The
+#: numbers_xx.py modules hold the writers only
 NUMTAG_LANGS = frozenset({
     "an", "ar", "ast", "az", "bg", "ca", "cs", "da",
     "de", "el", "en", "es", "et", "eu", "fa", "fi",
