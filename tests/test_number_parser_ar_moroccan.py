@@ -7,6 +7,8 @@ them). The transliteration of the entry is beside each.
 """
 import unittest
 
+import pytest
+
 from ovos_number_parser import (extract_number, numbers_to_digits, pronounce_number,
                                 resolve_ar_lect)
 from ovos_number_parser.numbers_ar import nice_number_ar
@@ -122,6 +124,13 @@ class TestMoroccanCardinals(unittest.TestCase):
             self.assertEqual(numbers_to_digits("1 وربعين", lang="ary"), "1 و40")
         with self.subTest(case='numbers_to_digits("كتاب وتنين ريال", lang="ary")'):
             self.assertEqual(numbers_to_digits("كتاب وتنين ريال", lang="ary"), "كتاب و2 ريال")
+
+
+class TestMoroccanMillionsPlural(unittest.TestCase):
+    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/534")
+    def test_millions_take_the_plural_of_the_wiktionary_entry(self):
+        # Wiktionary "مليون": plural ملاين
+        self.assertEqual(pronounce_number(3000000, lang="ary"), "تلاتة ملاين")
 
 
 if __name__ == "__main__":
