@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.4a6](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a6) (2026-11-24)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a5...0.31.4a6)
+
+**Merged pull requests:**
+
+- docs: align docs with the code, STE pass [\#571](https://github.com/OpenVoiceOS/ovos-number-parser/pull/571) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.4a5](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a5) (2026-11-24)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a4...0.31.4a5)
@@ -396,10 +404,6 @@
 ## [0.24.46a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.46a1) (2026-11-12)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.45a1...0.24.46a1)
-
-**Merged pull requests:**
-
-- fix\(pt\): make the count before "mil" agree with the noun; keep "dezoito" [\#470](https://github.com/OpenVoiceOS/ovos-number-parser/pull/470) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.45a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.45a1) (2026-11-12)
 
