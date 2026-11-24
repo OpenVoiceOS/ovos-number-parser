@@ -13,8 +13,8 @@ This page lists every page under `docs/` in reading order. Start with the
 
 | Page | What you get there |
 |------|--------------------|
-| [API reference](api.md) | Every public function with its parameters, defaults and an example |
-| [Language notes](languages.md) | Which languages read through numtag, how codes map to them, and the rules of single languages |
+| [API reference](api.md) | Every public function with its parameters, defaults and an example, the engine that answers it and the deprecated reader names |
+| [Language notes](languages.md) | The 40 languages, the rules of single languages and the known gaps with their issues |
 | [Adding a language](adding-a-language.md) | The steps to add reading and speaking for another language |
 
 Runnable scripts are in [`examples/`](../examples/). The differential
