@@ -8,13 +8,16 @@ public function answers. The expected value is the number whose spoken form
 import importlib
 import inspect
 import unittest
+import warnings
 
-from ovos_number_parser import pronounce_number, pronounce_ordinal
+import pytest
+
+from ovos_number_parser import pronounce_fraction, pronounce_number, pronounce_ordinal
 from ovos_number_parser.numbers_de import _get_ordinal_index
 from ovos_number_parser.numbers_kab import extract_number_kab
 from ovos_number_parser.numbers_sv import _find_numbers_in_text
 from ovos_number_parser.util import Token
-from ovos_number_parser.numbers_ca import CA
+from ovos_number_parser.numbers_ca import CA, pronounce_number_ca
 from ovos_number_parser.numbers_es import ES
 from ovos_number_parser.numbers_fr import FR
 from ovos_number_parser.numbers_it import IT
@@ -132,3 +135,23 @@ class TestOrdinalAndHelperShims(unittest.TestCase):
         parts = _find_numbers_in_text(tokens)
         self.assertEqual([(value, token.word) for value, token in parts],
                          [(None, "timmar"), (0.25, "kvart"), (1, "en")])
+
+
+class TestPublicCallsDoNotWarn(unittest.TestCase):
+
+    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/572")
+    def test_pronounce_fraction_gl_does_not_warn(self):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            spoken = pronounce_fraction("3/4", "gl")
+        self.assertEqual(spoken, "tres cuartos")
+        self.assertEqual([str(w.message) for w in caught], [])
+
+
+class TestDeprecationNamesTheRemovalVersion(unittest.TestCase):
+
+    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/573")
+    def test_pronounce_number_ca_names_the_removal_version(self):
+        with self.assertWarnsRegex(DeprecationWarning, rf"removed in {VERSION_MAJOR + 1}\.0\.0"):
+            spoken = pronounce_number_ca(21)
+        self.assertEqual(spoken, "vint-i-un")
