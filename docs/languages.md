@@ -61,10 +61,11 @@ as one number:
 
 ```
 
-Only Swedish also reads the spaced form (`tjugo en` is 21). The spaced forms
-of the other four give wrong values: `ein und zwanzig` (de) is 1,
-`een en twintig` (nl) is 1, `to og fyrre` (da) is 2, `ien en tweintich` (fy)
-is 1 and `zwei hundert drei und vierzig` (de) is 203.
+Only Swedish also reads the spaced form (`tjugo en` is 21). In the other four,
+numtag reads the spaced words as separate numbers, and `extract_number` gives
+the first: `ein und zwanzig` (de) is 1, `een en twintig` (nl) is 1,
+`to og fyrre` (da) is 2, `ien en tweintich` (fy) is 1 and
+`zwei hundert drei und vierzig` (de) is 203.
 
 ```python
 >>> from ovos_number_parser import extract_number
@@ -184,12 +185,19 @@ hundreds (`quinientos`, `setecientos`, `novecientos`), scale words including
 between two number words ends the number: `two thousand, twenty three` reads
 as 2000, and `two thousand twenty three` reads as 2023.
 
+`extract_number("twenty twenty three", "en")` is 20. numtag reads the words as
+two numbers, 20 and 23, and a year grammar that joins them is the job of the
+caller.
+
 ```python
 >>> from ovos_number_parser import extract_number
 >>> extract_number("one hundred and one", "en"), extract_number("1,000,000", "en")
 (101, 1000000)
+
 >>> extract_number("two thousand, twenty three", "en"), extract_number("two thousand twenty three", "en")
 (2000, 2023)
+>>> extract_number("twenty twenty three", "en")
+20
 
 ```
 
@@ -228,8 +236,8 @@ extraction and pronunciation cover units through millions. Pronunciation reads
 
 ## Known gaps
 
-Each reading gap below is a value that numtag reads wrong, with the numtag
-issue that tracks it. The examples that follow show the real output.
+Each reading gap below is a value that numtag reads wrong, with the issue that
+tracks it. The examples that follow show the real output.
 
 - A comma between two number words ends the number in English and Czech.
   `pronounce_number(2023, "en")` writes `two thousand, twenty three`, and
@@ -252,13 +260,6 @@ issue that tracks it. The examples that follow show the real output.
 - Danish `fire og tyve` reads as 4
   ([numtag#253](https://github.com/TigreGotico/numtag/issues/253)).
 
-- The spaced forms of German, Dutch and West Frisian give wrong values (see
-  [Germanic compound numbers](#germanic-compound-numbers-de-nl-da-sv-fy)).
-
-- Aragonese `güeito`, `setse` and `quatorze` read as no number.
-
-- English `twenty twenty three` reads as 20.
-
 - The Arabic variety codes have no lexicon of their own
   ([numtag#266](https://github.com/TigreGotico/numtag/issues/266)).
   A homograph such as `ميتين` reads as a number
@@ -266,22 +267,20 @@ issue that tracks it. The examples that follow show the real output.
 
 The writing gaps are:
 
-- `pronounce_ordinal` gives a cardinal for the Slovenian hundreds, the Croatian 1000 and the Turkish 200 and 500 ([ovos-number-parser#559](https://github.com/OpenVoiceOS/ovos-number-parser/issues/559)).
+- `pronounce_ordinal` gives a cardinal for the Slovenian and Turkish hundreds 200 to 900 and the Croatian 1000 ([ovos-number-parser#559](https://github.com/OpenVoiceOS/ovos-number-parser/issues/559)).
 - Some rbnf values come back as digits ([ovos-number-parser#544](https://github.com/OpenVoiceOS/ovos-number-parser/issues/544)).
-- Digits past the range of a `float` are lost ([ovos-number-parser#409](https://github.com/OpenVoiceOS/ovos-number-parser/issues/409)).
+- A `Decimal` with more digits than a `float` holds speaks wrong last digits ([ovos-number-parser#409](https://github.com/OpenVoiceOS/ovos-number-parser/issues/409)).
 
 ```python
 >>> from ovos_number_parser import extract_number, pronounce_number
->>> extract_number("two thousand, twenty three", "en"), extract_number("twenty twenty three", "en")
-(2000, 20)
+>>> extract_number("two thousand, twenty three", "en")
+2000
 
 >>> extract_number(pronounce_number(1234, "cs"), "cs")
 1000
 >>> extract_number("mraw d yiwen", "kab"), extract_number("mraw u yiwen", "kab")
 (10, 10)
 
->>> [extract_number(word, "an") for word in ("güeito", "setse", "quatorze")]
-[False, False, False]
 >>> from ovos_number_parser import is_fractional
 >>> is_fractional("quarter", "en"), is_fractional("third", "en")
 (False, False)

@@ -119,9 +119,8 @@ NotImplementedError: 'es' has no spoken ordinal for 1000000000000000000000000
 
 ```
 
-For three values the writer gives the cardinal word and not the ordinal. These
-are the Slovenian hundreds 200 to 900, the Croatian 1000 and the Turkish 200
-and 500 ([ovos-number-parser#559](https://github.com/OpenVoiceOS/ovos-number-parser/issues/559)).
+For some values the writer gives the cardinal word and not the ordinal. These
+are the Slovenian and Turkish hundreds 200 to 900 and the Croatian 1000 ([ovos-number-parser#559](https://github.com/OpenVoiceOS/ovos-number-parser/issues/559)).
 
 ## `pronounce_fraction(fraction_word, lang, scale=None)`
 
@@ -253,8 +252,8 @@ the `int` or `float` that the API returns.
 
 - A mixed number is a `float`: `5 1/2` is 5.5.
 
-- When the `float` has no room for the fraction and the whole part is within
-  the range of a `float`, the value is the whole part:
+- Only when the `float` has no room for the fraction, and the whole part is
+  within the range of a `float`, is the value the whole part:
   `"9007199254740993 1/2"` is 9007199254740993.
 
 - An integer with more digits than `str` can write is no number.
@@ -281,7 +280,7 @@ Both functions answer for a text that is exactly one fraction or one ordinal
 mention of numtag. `is_ordinal("three", "en")` is `False`, because numtag
 reads "three" as a cardinal. For a language outside the set, `is_ordinal`
 looks the text up among the `pronounce_ordinal` forms of the language.
-`numbers_to_digits` returns the text unchanged.
+For a language outside the set, `numbers_to_digits` returns the text unchanged.
 
 ## Deprecated reader names
 
@@ -307,9 +306,15 @@ The deprecated names are:
 - `numbers_to_digits_<code>` for az, ca, cs, da, de, en, es, nb, nl, nn, pl, pt, ru and uk
 - `is_ordinal_<code>` for da, et, fi, nb and nn
 
-Each shim keeps the parameters of the reader it replaces, and it answers what
-the public function answers. `pronounce_number_ca` also gives a
-`DeprecationWarning`, with the text `migrate to use RomanceNumberExtractor and
+Each deprecated name keeps the parameters it always had, and it answers what
+the public function answers.
+
+The `numbers_to_digits` method of a `RomanceNumberExtractor` engine, such as
+`CA` or `PT_PT`, gives the same warning with the removal version.
+
+`pronounce_number_ca`, and `pronounce_number`, `pronounce_ordinal` and
+`pronounce_fraction` with the suffix `_gl`, `_mwl` or `_pt`, also give a
+`DeprecationWarning`. Its text is `migrate to use RomanceNumberExtractor and
 NumberVocabulary directly instead`. That warning names no removal version.
 
 ## Enums
