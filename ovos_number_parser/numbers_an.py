@@ -39,7 +39,6 @@ _AN = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "mil" not "un mil" / "cient" not "un cient"
     NO_PLURAL=[1000],  # "dos mil" not "dos mils"
 
-    NUMBER_OVERFLOW="numero exageradament gran",
     DEFAULT_SCALE=Scale.LONG,
     MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["y"],
@@ -107,9 +106,6 @@ _AN = NumberVocabulary(
         3: 'tercio',
         4: 'cuarto'
     },
-    FRACTION_FEMALE={
-        2: "meya"  # una y meya -> 1.5
-    },
     SHORT_SCALE={
         10 ** 3: "mil",
         10 ** 6: "millón"
@@ -124,7 +120,6 @@ _AN = NumberVocabulary(
             1: "una"
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # dialectal / variant spellings kept for extraction only
         "uno": 1,

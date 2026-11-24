@@ -29,9 +29,7 @@ Romanian lists two words as joiners, and only one of them is additive:
     jumătate **de** milion  1/2 of 10^6  partitive, ASCENDING  (500000)
 
 "de" is a preposition inserted before a scale word, not a joiner, so the value
-after it is *larger* by design. It is declared in
-``MULTIPLICATIVE_JOIN_WORD`` and exempted from the descending rule. Those cases
-are asserted here so the distinction cannot be collapsed again.
+after it is *larger* by design. Those cases are asserted here so the distinction cannot be collapsed again.
 """
 import unittest
 

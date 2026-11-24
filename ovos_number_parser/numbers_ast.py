@@ -47,9 +47,7 @@ _AST = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "mil" vs "um mil"  / "cem" vs "um cem"
     NO_PLURAL=[1000],  # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
 
-    NUMBER_OVERFLOW="número exageradamente grande",
     DEFAULT_SCALE=Scale.LONG,
-    DIGIT_GROUP_MARK=".",
     JOIN_WORD=["y"],
 
     JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e um"
@@ -58,7 +56,6 @@ _AST = NumberVocabulary(
 
     DECIMAL_MARKER=["punto", "coma", ".", ","],
     NEGATIVE_SIGN=["menos"],
-    NEGATIVE_IDIOMS=[("más", "o", "menos")],
     UNITS={
         0: 'cero',
         1: 'un',
@@ -124,9 +121,6 @@ _AST = NumberVocabulary(
         11: 'onceavos',
         12: 'doceavos'
     },
-    FRACTION_FEMALE={
-        2: "media"  # una y media -> 1.5
-    },
     SHORT_SCALE={
         10 ** 6: "millón",
         10 ** 3: "mil"
@@ -146,7 +140,6 @@ _AST = NumberVocabulary(
             1: "una"
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         "unu": 1,
         "oito": 8,  # https://en.wiktionary.org/wiki/ocho#Asturian

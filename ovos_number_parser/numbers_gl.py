@@ -55,7 +55,6 @@ _GL = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "mil" vs "um mil"  / "cem" vs "um cem"
     NO_PLURAL=[1000],  # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
 
-    NUMBER_OVERFLOW="número exageradamente grande",
     DEFAULT_SCALE=Scale.LONG,
     MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["e"],
@@ -67,8 +66,6 @@ _GL = NumberVocabulary(
 
     DECIMAL_MARKER=["coma", "punto", ".", ","],
     NEGATIVE_SIGN=["menos"],
-    NEGATIVE_IDIOMS=[("polo", "menos"), ("ao", "menos"), ("a", "menos", "que"),
-                     ("máis", "ou", "menos")],
     UNITS={
         0: 'cero',
         1: 'un',
@@ -134,9 +131,6 @@ _GL = NumberVocabulary(
         20: 'vinteavo',
         100: "centésimo",
         1000: "milésimo"
-    },
-    FRACTION_FEMALE={
-        2: "media"  # una y media -> 1.5
     },
     SHORT_SCALE={
         1000: 'mil',
@@ -244,7 +238,6 @@ _GL = NumberVocabulary(
             2: "dúas"
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
 
     },

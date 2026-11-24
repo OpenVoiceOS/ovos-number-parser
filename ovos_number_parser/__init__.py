@@ -96,34 +96,20 @@ _LONG_SCALE_LANGS = {
 }
 
 
-def _canonical_scale(lang: str) -> Scale:
-    """The scale convention a language uses when the caller specifies none.
-
-    European Portuguese is long scale (10^9 = "mil milhões") while Brazilian
-    Portuguese is short scale (10^9 = "um bilhão"), so ``pt`` is resolved by
-    region rather than by the bare language code.
-    """
-    lang2 = _base_lang(lang)
-    if lang2 == "pt":
-        return Scale.SHORT if "br" in lang.lower() else Scale.LONG
-    return Scale.LONG if lang2 in _LONG_SCALE_LANGS else Scale.SHORT
-
-
 def _resolve_scale(lang: str,
                    scale: Optional[Scale],
                    short_scale: Optional[bool] = None) -> Scale:
-    """Resolve the effective scale for a dispatch call.
-
-    An explicit ``scale`` wins; the deprecated ``short_scale`` flag is honoured
-    next for backward compatibility; otherwise the language's canonical
-    convention applies. This keeps pronounce/extract/ordinal/numbers_to_digits
-    consistent about what "no scale given" means.
-    """
+    """An explicit ``scale`` wins, then the deprecated ``short_scale`` flag,
+    then the language's convention. European Portuguese is long scale and
+    Brazilian Portuguese short scale, so ``pt`` is resolved by region."""
     if scale is not None:
         return scale
     if short_scale is not None:
         return Scale.SHORT if short_scale else Scale.LONG
-    return _canonical_scale(lang)
+    lang2 = _base_lang(lang)
+    if lang2 == "pt":
+        return Scale.SHORT if "br" in lang.lower() else Scale.LONG
+    return Scale.LONG if lang2 in _LONG_SCALE_LANGS else Scale.SHORT
 
 
 # --- generic language fallbacks -------------------------------------------
@@ -156,12 +142,6 @@ _FRACTION_NUMERATOR_OVERRIDES = {
     "pl": {1: "jedna", 2: "dwie"},
     "hu": {2: "két"},
 }
-
-
-def _minus_word(lang: str) -> str:
-    """The language's spoken minus sign, derived from pronounce_number."""
-    spoken = pronounce_number(-1, lang)
-    return spoken.split()[0] if " " in spoken else ""
 
 
 def _pronounce_fraction_generic(fraction_word: str, lang: str) -> str:
@@ -218,7 +198,8 @@ def _pronounce_fraction_generic(fraction_word: str, lang: str) -> str:
         # approximate: cardinal numerator + ordinal denominator
         result = f"{pronounce_number(n1, lang)} {pronounce_ordinal(n2, lang)}"
     if negative:
-        minus = _minus_word(lang)
+        spoken = pronounce_number(-1, lang)
+        minus = spoken.split()[0] if " " in spoken else ""
         result = f"{minus} {result}" if minus else f"-{result}"
     return result
 
@@ -263,24 +244,8 @@ def _ordinal_reverse_table(lang: str) -> dict:
     return _ORDINAL_REVERSE_CACHE[lang]
 
 
-def _is_ordinal_generic(input_str: str, lang: str):
-    """Fallback ordinal detection via reverse lookup over pronounce_ordinal."""
-    return _ordinal_reverse_table(lang).get(input_str.lower().strip(), False)
-
-
 def numbers_to_digits(utterance: str, lang: str, scale: Optional[Scale] = None) -> str:
-    """
-    Convert written numbers in a text string to their digit representations for the specified language and numerical scale.
-    
-    Parameters:
-        utterance (str): Text potentially containing written numbers.
-        lang (str): Language code used to determine parsing rules.
-        scale (Scale, optional): Numerical scale (long or short) for languages that distinguish between them.
-    
-    Returns:
-        str: The input text with written numbers replaced by their digit equivalents.
-            A language that numtag does not read returns the text unchanged.
-    """
+    """Replace the written numbers in ``utterance`` with digits. A language numtag does not read returns the text unchanged."""
     if numtag_readers.routed(lang):
         return numtag_readers.numbers_to_digits(utterance, lang, scale)
     return utterance
@@ -395,34 +360,15 @@ def _fraction_as_decimal(number: Fraction,
 
 def _round_for_speech(number: Union[int, float, Decimal],
                       places: int) -> Union[int, float]:
-    """Round a real number to ``places`` decimals, half away from zero.
+    """Round a real number to ``places`` decimals, half away from zero (ISO 80000-1; NIST SP 811 B.7).
 
-    The per-language cardinal formatters keep only the first ``places``
-    fractional digits by slicing the decimal string, which truncates rather
-    than rounds: 3.14159 at 2 places would drop to "...one four" instead of the
-    expected "...one four two". Rounding here, before dispatch, means every
-    backend truncates a value that is already correct to ``places`` digits, so
-    the spoken output is correctly rounded for every language at once and
-    carries into the integer part where needed (0.999999 at 2 places -> 1).
-
-    ROUND_HALF_UP is chosen over Python's default banker's rounding because
-    half-away-from-zero is the convention people expect when a value is read
-    aloud. Rounding of numerical values follows ISO 80000-1 (Quantities and
-    units -- General) and NIST SP 811 (2008 ed.) Appendix B.7.
-
-    Integers and non-finite floats (inf) are returned unchanged, and literal
-    negative zero is normalised to plain zero so no language speaks "minus
-    zero"; NaN and complex inputs are handled by the caller before reaching
-    here. A non-zero value whose magnitude is smaller than the rounding quantum
-    is left untouched, so its sub-quantum fractional reading and sign survive
-    rather than collapsing to an unsigned zero.
-
-    A finite ``Decimal`` is rounded from its own digits and comes back as the
-    int or float the backends read, so it reads as the float written with the
-    same digits. A Decimal with no fraction digits ("12", "1E+30"), or an
-    integral one a float cannot hold exactly, becomes an int with every digit.
-    A non-integral Decimal with more significant digits than a float holds
-    after rounding reads as the nearest float.
+    The backends slice the decimal string, which truncates; rounding here lets
+    each of them read a value already correct to ``places`` digits, and carries
+    into the integer part (0.999999 at 2 places is 1). Integers and non-finite
+    floats return unchanged, and -0.0 becomes 0.0. A non-zero value below the
+    rounding quantum is left untouched, so its sub-quantum reading and sign
+    survive. A finite Decimal reads as the int or float written with the same
+    digits; one with more digits than a float holds reads as the nearest float.
     """
     if isinstance(number, Decimal):
         if number == number.to_integral_value() and (
@@ -528,17 +474,6 @@ def _is_ar(lang: str) -> bool:
     return resolve_ar_lang(lang) is not None
 
 
-def _ar_default_case(lang: str) -> str:
-    """Default pronunciation register for an Arabic ``lang`` code."""
-    return resolve_ar_lang(lang) or "nominative"
-
-
-def _pronounce_infinity(number: float, lang: str) -> str:
-    """Spoken form of +/-infinity for any language (English default)."""
-    pos, neg = _INFINITY_WORDS.get(_base_lang(lang), _INFINITY_WORDS["en"])
-    return neg if number < 0 else pos
-
-
 #: languages that read the decimal part one digit at a time by convention.
 #: Everything else composes it. Keyed by bare language code.
 _DEFAULT_DIGIT_PRONUNCIATION = {
@@ -554,18 +489,12 @@ _DIGIT_RUN = re.compile(r"\d{7,}")
 
 
 def _has_padded_scale_words(spoken: str, lang: str) -> bool:
-    """
-    Whether a backend padded a magnitude by repeating its largest scale word.
+    """Whether a backend padded a magnitude by repeating its largest scale word.
 
-    Some backends do not raise past their named-scale table; they repeat the
-    biggest word they know until the magnitude is covered
-    ("trilioi trilioi trilioi", "sextiliões vigintiliões vigintiliões").
-    No natural numeral repeats a scale word back to back, so two identical
-    adjacent words other than digit words mark output that is not a reading.
-
-    A digit word repeats legitimately where digits are read one by one: the
-    mantissa of a scientific reading ("jedan zarez jedan jedan puta deset na
-    četiristo") or a digit-by-digit decimal ("dois vírgula dois dois").
+    Some backends repeat the biggest scale word they know instead of raising
+    ("trilioi trilioi trilioi"). No numeral repeats a scale word back to back.
+    Digit words repeat legitimately in a scientific mantissa or a digit-by-digit
+    decimal, so they do not count.
     """
     digit_words = {pronounce_number(digit, lang) for digit in range(10)}
     words = spoken.split()
@@ -574,15 +503,7 @@ def _has_padded_scale_words(spoken: str, lang: str) -> bool:
 
 
 def _has_unread_digits(spoken: str) -> bool:
-    """
-    Whether a backend gave up and handed back the numeral instead of reading it.
-
-    Unlike padded scale words this is not nonsense: a bare numeral is a
-    documented fallback for some languages (Finnish and Estonian pin it), and
-    a TTS engine will read the digits itself. It is only worth replacing when
-    a localized scientific reading is available -- swapping it for one glued
-    together with English words would be a downgrade, not a fix.
-    """
+    """Whether a backend gave up and returned the numeral instead of reading it."""
     return bool(_DIGIT_RUN.search(spoken))
 
 
@@ -680,74 +601,21 @@ def pronounce_number(number: Union[int, float], lang: str,
                      gender: GrammaticalGender = GrammaticalGender.MASCULINE,
                      scale: Optional[Scale] = None,
                      case: Optional[str] = None) -> str:
-    """
-    Return the spoken representation of a number in the specified language.
-     
-    Converts a numeric value to its pronounced form, supporting various languages, decimal precision, scale (short or long), scientific notation, ordinal forms, digit pronunciation styles, and grammatical gender where applicable. Falls back to Unicode RBNF for unsupported languages.
-     
-    Parameters:
-        number (int or float): The number to pronounce. A ``decimal.Decimal``
-            reads as the float written with the same digits, and an integral
-            one as the int with the same digits, and a Decimal below the
-            float range keeps its digit and its sign. Any other
-            ``numbers.Real`` (numpy float32) reads as the float its ``str()``
-            writes, and a ``fractions.Fraction`` is rounded from its exact
-            value. A number with more than 4300 integer digits reads in the
-            scientific form in every language except Kabyle, which raises
-            OverflowError past its ceiling of 9999, and ValueError for a
-            negative number.
-        lang (str): BCP-47 language code specifying the language for pronunciation.
-        places (int, optional): Number of decimal places to include (default is 3).
-            The fractional part is rounded to this precision half away from zero
-            before pronunciation, following ISO 80000-1 (Quantities and units --
-            General) and NIST SP 811 (2008 ed.) Appendix B.7 on the rounding of
-            numerical values; rounding that carries into the integer part is
-            spoken as such (0.999999 at 2 places -> "one"). A non-zero value
-            that would round to zero reads up to its first significant digit,
-            rounded the same way, with its sign (0.00012 at 3 places -> "zero
-            point zero zero zero one"). When that digit lies past the 323rd
-            decimal, the value reads in scientific form ("five times ten to
-            the power of minus three hundred and twenty four" for 5e-324). At
-            0 places a value that rounds to zero reads as the zero word alone.
-        short_scale (bool, optional): DEPRECATED, use the ``scale`` enum instead.
-        scientific (bool, optional): If True, pronounce the number in
-            scientific notation where the language has a scientific reading
-            (ar az bg cs el en fa he hr id it ms pl ru sk sl tr uk); other
-            languages ignore it. ``places`` then counts the mantissa decimals,
-            rounded once, half away from zero, from the exact digits (12.3449
-            at 3 places -> "one point two three four times ten to the power
-            of one").
-        ordinals (bool, optional): If True, pronounce the number as an ordinal (e.g., "first" instead of "one").
-        digits (DigitPronunciation, optional): Style for pronouncing digits (default is FULL_NUMBER).
-        gender (GrammaticalGender, optional): Grammatical gender for languages that require it (default is MASCULINE).
-        scale (Scale, optional): Short or long scale for large numbers. When
-            omitted, the language's canonical convention applies (see
-            ``_canonical_scale``), per Wikipedia "Long and short scales"
-            (https://en.wikipedia.org/wiki/Long_and_short_scales); an explicit
-            value always overrides it.
-        case (str, optional): Grammatical case/register, currently only
-            meaningful for Arabic ("nominative" or "oblique", with
-            "genitive" and "accusative" as names for the oblique; any other
-            value raises ValueError, see ``pronounce_number_ar``). When
-            omitted, a cardinal in the Arabic lect named by ``lang`` uses
-            that lect's default register (see
-            ``numbers_ar.resolve_ar_lang``) and an ordinal the nominative;
-            ignored for every other language.
+    """Return the spoken form of a number in ``lang``.
 
-    Returns:
-        str: The pronounced form of the number.
-     
+    ``places`` is the count of decimals read, rounded half away from zero.
+    ``scientific`` reads a scientific form where the language has one, and
+    ``ordinals`` reads an ordinal. ``scale`` overrides the language's short or long
+    scale (``short_scale`` is deprecated). ``digits`` defaults to the language's
+    way of reading decimals. ``case`` applies to Arabic only.
+
+    A Decimal, Fraction or other ``numbers.Real`` reads as the value it writes. A
+    number of more than 4300 integer digits reads in scientific form in every
+    language except Kabyle, which raises OverflowError past 9999.
+
     Raises:
-        ValueError: If ``number`` is NaN, which has no cardinal spoken form.
-        NotImplementedError: If the specified language is not supported.
-
-    Note:
-        NaN is rejected up front so every language fails the same way. IEEE 754
-        defines NaN as a value that "does not represent any numeric quantity"
-        (IEEE 754-2019, clause 6.2), so it has no cardinal reading. Without this
-        guard each backend crashes differently while formatting it: scientific
-        formatting does ``"%E" % nan`` -> ``"NAN"`` and then fails to split off an
-        exponent, while cardinal formatting fails converting NaN to ``int``.
+        ValueError: ``number`` is NaN, or negative in Kabyle.
+        NotImplementedError: ``lang`` has no reading.
     """
     scale = _resolve_scale(lang, scale, short_scale)
     short_scale = scale == Scale.SHORT
@@ -762,7 +630,8 @@ def pronounce_number(number: Union[int, float], lang: str,
     # Infinity is not tied to any named-scale table; handle it uniformly for
     # every language so no per-language path has to convert it to an integer.
     if isinstance(number, float) and math.isinf(number):
-        return _pronounce_infinity(number, lang)
+        pos, neg = _INFINITY_WORDS.get(lang2, _INFINITY_WORDS["en"])
+        return neg if number < 0 else pos
     # How a language conventionally reads the digits after the decimal marker
     # is a property of the language, not of the caller: Spanish and Catalan
     # read them one by one ("tres coma uno cuatro") while Portuguese composes
@@ -855,7 +724,7 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
         # a lect's default register applies to cardinals; an ordinal takes
         # the oblique only when the caller asks for it
         if case is None:
-            case = "nominative" if ordinals else _ar_default_case(lang)
+            case = "nominative" if ordinals else resolve_ar_lang(lang) or "nominative"
         return pronounce_number_ar(number, places, scientific, ordinals,
                                    case=case, lect=resolve_ar_lect(lang),
                                    gender=gender)
@@ -1184,18 +1053,10 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
 
 
 def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = None) -> str:
-    """
-    Return the spoken form of a fraction string (e.g., "1/2" as "one half") for the specified language and numerical scale.
-    
-    Parameters:
-        fraction_word (str): The fraction to pronounce (e.g., "3/2").
-        scale (Scale, optional): Numerical scale to use (SHORT or LONG). Defaults to LONG.
-    
-    Returns:
-        str: The pronounced fraction.
-    
+    """Return the spoken form of a fraction string such as "1/2" in ``lang``.
+
     Raises:
-        NotImplementedError: If the specified language is not supported.
+        NotImplementedError: ``lang`` has no reading.
     """
     lang2 = _base_lang(lang)
     if lang2 == "pt":
@@ -1224,31 +1085,14 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
                       gender: GrammaticalGender = GrammaticalGender.MASCULINE,
                       scale: Optional[Scale] = None,
                       case: Optional[str] = None) -> str:
-    """
-    Return the spoken ordinal form of a number in the specified language.
-      
-    Parameters:
-        number (int or float): The number to convert to its ordinal spoken equivalent.
-            A ``decimal.Decimal`` or ``fractions.Fraction`` reads as its int
-            when it is integral and as its float otherwise; one past the
-            float range is rounded half away from zero to its int. Any other
-            ``numbers.Real`` (numpy float32) reads as the number its ``str()``
-            writes.
-        lang (str): BCP-47 language code specifying the language for pronunciation.
-        short_scale (bool, optional): Whether to use the short (True) or long (False) scale for large numbers. Defaults to True.
-        gender (GrammaticalGender, optional): Grammatical gender to use for languages that require it. Defaults to masculine.
-        case (str, optional): Grammatical case, only meaningful for Arabic
-            (None or "nominative", "oblique", "genitive", "accusative"; see
-            ``numbers_ar.pronounce_ordinal_ar``); ignored for every other
-            language.
-      
-    Returns:
-        str: The ordinal number pronounced in the specified language.
-      
+    """Return the spoken ordinal of a number in ``lang``.
+
+    A Decimal or Fraction reads as its int when integral and as its float
+    otherwise. ``case`` applies to Arabic only.
+
     Raises:
-        NotImplementedError: If the language is not supported.
-        ValueError: If ``number`` is a Decimal of more than 4300 integer
-            digits, which no int conversion reaches in reasonable time.
+        NotImplementedError: ``lang`` has no ordinal reading.
+        ValueError: ``number`` is a Decimal of more than 4300 integer digits.
     """
     number = _from_other_real(number)
     if isinstance(number, Decimal) and _past_read_limit(number):
@@ -1380,24 +1224,10 @@ def extract_number(text: str, lang: str,
                    short_scale: Optional[bool] = None,  # DEPRECATED
                    ordinals: bool = False,
                    scale: Optional[Scale] = None) -> Union[int, float, bool]:
-    """Takes in a string and extracts a number.
+    """Read the number in ``text``, or False when it holds none.
 
-    Assumes only 1 number is in the string, does NOT handle multiple numbers
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): DEPRECATED, use the ``scale`` enum instead.
-            When neither ``scale`` nor this flag is given, the language's
-            canonical short/long convention applies, per Wikipedia "Long and
-            short scales" (https://en.wikipedia.org/wiki/Long_and_short_scales).
-            Short scale: 10^9 = "billion". Long scale: 10^9 = "milliard",
-            10^12 = "billion".
-        ordinals (bool): consider ordinal numbers, e.g. third=3 instead of 1/3
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-    Returns:
-        (int, float or False): The number extracted or False if the input
-                               text contains no numbers
+    ``ordinals`` reads "third" as 3 instead of 1/3. ``short_scale`` is deprecated
+    in favour of ``scale``. The text holds one number.
     """
     if numtag_readers.routed(lang):
         return numtag_readers.extract_number(text, lang, short_scale, ordinals, scale)
@@ -1406,10 +1236,8 @@ def extract_number(text: str, lang: str,
 
 @dataclass(frozen=True)
 class NumberSpan:
-    """A number found in an utterance, together with where it was written.
-
-    ``start`` and ``end`` are half-open code-point offsets into the utterance
-    the span was extracted from, so ``utterance[start:end] == surface`` holds.
+    """A number found in an utterance. ``start`` and ``end`` are half-open
+    code-point offsets, so ``utterance[start:end] == surface``.
     """
     start: int
     end: int
@@ -1421,35 +1249,11 @@ def extract_number_spans(text: str, lang: str,
                          short_scale: Optional[bool] = None,  # DEPRECATED
                          ordinals: bool = False,
                          scale: Optional[Scale] = None) -> List[NumberSpan]:
-    """Extract every number in a text together with the text it occupies.
+    """Return every number in ``text`` with the span it occupies, in the order written.
 
-    Each span covers a whole number phrase, so "two hundred and five", "3.5"
-    and "twenty-two" are one span each, and two numbers in one sentence are
-    two spans. Spans never overlap and come back sorted by ``start``.
-
-    Words are grown into a number phrase greedily: starting from a word that
-    spells a number on its own, the next word joins the phrase while the
-    language's extractor keeps reading a *different* value out of the longer
-    phrase. A word that leaves the value unchanged joins only as a single
-    connector ("two hundred *and* five"), and only when it does not spell a
-    number itself, which is what keeps "seven and nine" two spans. The first
-    word must also keep contributing: an extractor asked to read an incoherent
-    fragment such as "two three" answers with one of the numbers in it, so a
-    longer phrase whose value is fully explained by its own tail is rejected
-    and the first word becomes a span of its own ("two three hundred" is 2 and
-    300). A phrase stops at any punctuation between two words. Each word takes
-    part in a bounded number of extractor calls, making the whole scan linear
-    in the length of the text in practice.
-
-    Args:
-        text: the utterance to scan.
-        lang: BCP-47 language code.
-        short_scale: DEPRECATED, use the ``scale`` enum instead.
-        ordinals: also read ordinals as numbers, e.g. third=3.
-        scale: short/long scale convention; defaults to the language's own.
-
-    Returns:
-        The numbers found, in the order they are written.
+    Each span covers a whole number phrase ("two hundred and five", "3.5") and
+    ``text[start:end]`` is its surface. ``short_scale`` is deprecated in favour of
+    ``scale``.
     """
     if numtag_readers.routed(lang):
         return [NumberSpan(start, end, text[start:end], numtag_readers.number(m.value, m.kind))
@@ -1461,38 +1265,14 @@ def extract_number_spans(text: str, lang: str,
 def is_fractional(input_str: str, lang: str,
                   short_scale: Optional[bool] = None,  # DEPRECATED
                   scale: Optional[Scale] = None) -> Union[bool, float]:
-    """
-    This function takes the given text and checks if it is a fraction.
-    Used by most of the number extractors.
-
-    Will return False on phrases that *contain* a fraction. Only detects
-    exact matches. To pull a fraction from a string, see extract_number()
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): DEPRECATED, use scale enum instead
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
+    """Return the fraction ``input_str`` spells, or False. The whole string must be the fraction."""
     if numtag_readers.routed(lang):
         return numtag_readers.is_fractional(input_str, lang, short_scale, scale)
     raise NotImplementedError(f"Unsupported language: '{lang}'")
 
 
 def is_ordinal(input_str: str, lang: str) -> Union[bool, float]:
-    """
-    This function takes the given text and checks if it is an ordinal number.
-
-    Args:
-        input_str (str): the string to check if ordinal
-        lang (str, optional): an optional BCP-47 language code, if omitted
-                              the default language will be used.
-    Returns:
-        (bool) or (float): False if not an ordinal, otherwise the number
-        corresponding to the ordinal
-    """
+    """Return the number ``input_str`` spells as an ordinal, or False."""
     if numtag_readers.routed(lang):
         return numtag_readers.is_ordinal(input_str, lang)
-    return _is_ordinal_generic(input_str, lang)
+    return _ordinal_reverse_table(lang).get(input_str.lower().strip(), False)

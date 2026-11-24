@@ -61,14 +61,12 @@ _MWL = NumberVocabulary(
     DIVIDED_BY_ZERO="a dibidir por zero",  # how to read X/0 values
     NO_PREV_UNIT=[100, 1000],  # "mil" vs "um mil"  / "cem" vs "um cem"
     NO_PLURAL=[1000],  # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
-    NUMBER_OVERFLOW="número exageradamente grande",
     DEFAULT_SCALE=Scale.LONG,
     JOIN_WORD=["i"],
 
     JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "bint'i un"
     JOINER_ON_HUNDREDS=True,  # add JOIN_WORD from 100-1000 - "dous cientos i un"
     JOINER_ON_THOUSANDS=False,  # add JOIN_WORD from 1000-10000 - "mil dous cientos"
-    MULTIPLY_HUNDREDS=True,  # analytic hundreds: "dous cientos" = 200
 
     DECIMAL_MARKER=["bírgula", "ponto", "birgula", ".", ","],
     NEGATIVE_SIGN=["menos"],
@@ -151,9 +149,6 @@ _MWL = NumberVocabulary(
         100: 'centésimo',
         1000: 'milésimo'
     },
-    FRACTION_FEMALE={
-        2: "meia"  # ũa i meia -> 1.5
-    },
     SHORT_SCALE={
         10 ** 21: "sextilion",
         10 ** 18: "quintilion",
@@ -178,7 +173,6 @@ _MWL = NumberVocabulary(
             2: "dues"
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         'dezasseis': 16,
         'dezassiete': 17,

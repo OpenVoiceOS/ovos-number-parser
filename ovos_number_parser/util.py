@@ -306,18 +306,7 @@ def convert_to_mixed_fraction(number: Union[int, float], denominators=range(1, 2
 
 
 def scientific_notation(number: Union[int, float]) -> str:
-    """
-    Format ``number`` as ``'%E' % number`` does, ints beyond the float range
-    included.
-
-    ``'%E'`` converts to float, which raises OverflowError for an int such as
-    10 ** 400; such an int is then formatted from its exact decimal value.
-
-    Args:
-        number (int or float): finite number to format
-    Returns:
-        (str): the number as "<mantissa>E<signed exponent>", e.g. "1.000000E+400"
-    """
+    """Format ``number`` as ``'%E' % number`` does, ints beyond the float range included."""
     try:
         return '%E' % number
     except OverflowError:
@@ -395,13 +384,10 @@ class NumberVocabulary:
     SHORT_SCALE: Dict[int, str]  # 1000+
     LONG_SCALE: Dict[int, str]  # 1000+
 
-    FRACTION_FEMALE: Dict[int, str]  # spellings for 1/x feminine grammatical gender
-
     ALT_SPELLINGS: Dict[str, int]  # special cases eg. archaisms/colloquialisms
 
     # mappings default to neutral, use swap_gender/self.GENDERED_SPELLINGS if needed
     GENDERED_SPELLINGS: Dict[GrammaticalGender, Dict[int, str]]  # grammatical gender
-    DIGIT_SPELLINGS: Dict[int, str]  # for numbers that should be pronounced differently when reading digit-by-digit
 
     ORDINAL_UNITS: Dict[int, str]
     ORDINAL_TENS: Dict[int, str]
@@ -409,13 +395,11 @@ class NumberVocabulary:
     ORDINAL_SHORT_SCALE: Dict[int, str]
     ORDINAL_LONG_SCALE: Dict[int, str]
 
-    NUMBER_OVERFLOW: str  # "número exageradamente grande"
     NO_PREV_UNIT: List[int]  # cases where "1" should not be spelled before the unit. eg. "one hundred" vs "hundred" if 100 in lit
     NO_PLURAL: List[int]
 
     swap_gender: Callable[[str, GrammaticalGender], str] = lambda word, gender: word
     pluralize: Callable[[str], str] = lambda word: word
-    singularize: Callable[[str], str] = lambda word: word
 
     # restrict the tens joiner to the twenties ("vint-e-un" but "trenta dos"),
     # for languages that only join 21-29
@@ -443,63 +427,12 @@ class NumberVocabulary:
     # ("trilioane de trilioane"). None reads every count.
     MAX_SCALE_COUNT: Optional[int] = None
 
-    # extraction: the word for 100 multiplies the preceding units
-    # ("două sute" = 200) instead of being added to them
-    MULTIPLY_HUNDREDS: bool = False
-
-    # extraction: a denominator above ten is the cardinal plus
-    # DENOMINATOR_PARTICLE ("doze avos" = 1/12), and a cardinal before it
-    # counts the parts ("três doze avos" = 3/12)
-    CARDINAL_DENOMINATORS: bool = False
-
-    # extraction: the mark that groups the thousands of a digit string whose
-    # decimal mark is the comma ("12.000" = 12000, "1.234,5" = 1234.5).
-    # Empty when no such mark is set, and "12.000" reads as 12.0
-    DIGIT_GROUP_MARK: str = ""
-
-    # extraction: a fraction noun always multiplies the preceding cardinal
-    # ("un quarto" = 1/4, "tre quarti" = 3/4) instead of adding to it, even in
-    # its singular form. Languages that also say "e mezzo" ("two and a half")
-    # keep this off so the singular still adds.
-    FRACTIONS_ALWAYS_MULTIPLY: bool = False
-
-    # extraction: a half right after a scale word is half of the scale ("um
-    # milhão e meio" = 1500000, "mil milhões e meio" = 1500000000), not half
-    # of one; a decimal reading needs the decimal marker ("um milhão vírgula
-    # cinco" = 1000000.5)
-    HALF_OF_SCALE: bool = False
-    #: scale words that are numerals, not nouns: a half after one of them is
-    #: half of one, as after any other numeral ("mil e meio" = 1000.5)
-    SCALE_NUMERALS: List[str] = field(default_factory=list)
-    #: a plural scale word needs a count before it to be a number: alone it
-    #: is "a great many" ("milhões de pessoas"), and reads as no number
-    PLURAL_SCALE_NEEDS_COUNT: bool = False
     #: collective nouns that count groups of a fixed size: the count before
     #: one multiplies it ("duas dúzias" = 24, "meia dúzia" = 6), and a plural
     #: with no count is no number ("dúzias de ovos")
     COUNT_NOUNS: Dict[str, int] = field(default_factory=dict)
-    #: words that may follow such a half in numbers_to_digits, besides the end
-    #: of the text and a joiner: a preposition that opens what is counted ("um
-    #: milhão e meio de discos"). Any other word is a noun the half counts
-    #: itself ("um milhão e meia dúzia" is a million and half a dozen). The
-    #: first entry is the bare preposition: only it joins a collective noun
-    #: to the plural it counts ("três centenas de milhões")
-    HALF_OF_SCALE_FOLLOWERS: List[str] = field(default_factory=list)
-
     # full spelling of "one <scale>" groups when they use an article or a
     # special form of "one" ("o mie", "un milion")
-    #: entries of JOIN_WORD that are *not* additive joiners but partitive or
-    #: multiplicative prepositions, where the value after the word is larger
-    #: than the one before it by design. Romanian inserts "de" before a scale
-    #: above twenty ("douăzeci de mii" = 20 x 1000) and before a fraction's
-    #: base ("jumătate de milion" = half *of* a million), unlike the additive
-    #: "și" ("douăzeci și unu" = 21). Listed here so the descending-joiner rule
-    #: skips them.
-    MULTIPLICATIVE_JOIN_WORD: List[str] = field(default_factory=list)
-    #: fixed phrases that hold a NEGATIVE_SIGN word without a sign meaning
-    #: ("pelo menos" = at least): the minus word in them never signs a number
-    NEGATIVE_IDIOMS: List[Tuple[str, ...]] = field(default_factory=list)
-
     SCALE_ONE: Dict[int, str] = field(default_factory=dict)
 
     # grammatical gender the count before each scale word agrees with
@@ -1023,34 +956,13 @@ _LEFTMOST_SCAN = threading.local()
 
 def leftmost_separated_number(text: str, lang: str, ordinals: bool
                               ) -> Optional[Union[int, float]]:
-    """The leftmost number of a line that holds several separated numbers.
+    """The first number of a line that holds several numbers separated by other words.
 
-    Under ``ordinals=True`` a line can hold an ordinal and a cardinal, and
-    the languages did not agree on which one answers. The rule is that the
-    number written first wins, whether it is the ordinal or the cardinal.
-
-    The rule covers numbers that other words separate, and only those.
-    Whether an adjacent cardinal-then-ordinal pair reads as a fraction and
-    collapses into one span is a property of the locale, not a general rule
-    of :func:`ovos_number_parser.extract_number_spans`. In German
-    ("zwei drittel") and Danish ("to tredje") that order is one span, so the
-    rule never reaches it; the ordinal-then-cardinal order in those same
-    languages stays two spans. English reads the singular pair ("two
-    third", "third two") as one span in both orders, while the plural
-    ("two thirds") stays two spans. Kabyle ("sin wis kṛaḍ") stays two spans
-    in both orders. The rule reaches a locale's adjacent pair exactly when
-    the pair is two spans.
-
-    Args:
-        text: the line to read.
-        lang: BCP-47 language code.
-        ordinals: the caller's flag. The rule applies under True alone.
-
-    Returns:
-        The value of the first span, or ``None`` when the rule does not
-        apply: ``ordinals`` is False, the text is not a string, the line
-        holds fewer than two number spans, or the call is already inside a
-        span scan.
+    Under ``ordinals=True`` the number written first wins, ordinal or cardinal.
+    An adjacent cardinal and ordinal that the locale reads as one span ("zwei
+    drittel") is not covered. Returns ``None`` when ``ordinals`` is False, the
+    text is not a string, the line holds fewer than two number spans, or the call
+    is already inside a span scan.
     """
     if not ordinals or not isinstance(text, str):
         return None
