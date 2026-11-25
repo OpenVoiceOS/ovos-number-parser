@@ -5,19 +5,17 @@ covers: the purpose, repository map, setup, test commands and hard rules for a c
 source: ovos_number_parser/__init__.py, ovos_number_parser/numtag_readers.py:NUMTAG_LANGS, tests/test_deprecated_readers.py, tests/test_lang_parity.py, tests/numtag_xfail.json
 generated: no
 verify: grep -oP '^\| \x60\K[^\x60]*' AGENTS.md | grep -v '<' | xargs ls -d > /dev/null || exit 1
-see: docs/index.md, docs/api.md, docs/languages.md, docs/adding-a-language.md
+see: docs/index.md, docs/how-it-works.md, docs/api.md, docs/writers.md, docs/languages.md, docs/adding-a-language.md
 -->
 
 Read this file before you change anything in the repository. The
 documentation index is [docs/index.md](docs/index.md).
 
 `ovos-number-parser` reads spoken numbers as digits and speaks digits as
-words, in 40 languages. All 40 languages read through numtag. The
-`pronounce_*` writers live here.
+words, in 40 languages. All 40 languages read through numtag. The writers
+live here ([docs/how-it-works.md](docs/how-it-works.md)).
 
 ## Repository map
-
-The package code:
 
 | Path | Holds |
 |---|---|
@@ -25,25 +23,21 @@ The package code:
 | `ovos_number_parser/numtag_readers.py` | `NUMTAG_LANGS` and the numtag readers |
 | `ovos_number_parser/numbers_<code>.py` | The writers of one language, and the deprecated reader shims |
 | `ovos_number_parser/util.py` | `NumberVocabulary`, `RomanceNumberExtractor` and the enums |
-
-The tests, tools and docs:
-
-| Path | Holds |
-|---|---|
 | `tests/` | The test suite. `tests/numtag_xfail.json` lists strict xfails with issue URLs |
 | `benchmarks/` | The ICU differential harness ([benchmarks/README.md](benchmarks/README.md)) |
 | `examples/` | Runnable scripts |
 | `docs/` | The documentation. [docs/index.md](docs/index.md) sets the reading order |
+| `docs/plots/` | The script that builds the plot in `docs/img/` |
 
 ## Setup
 
 ```bash
 unset VIRTUAL_ENV
 uv venv .venv
-uv pip install -p .venv/bin/python --prerelease=allow -e . pytest
+uv pip install -p .venv/bin/python --prerelease=allow -e . pytest matplotlib
 ```
 
-Build the venv inside the checkout.
+Build the venv inside the checkout. matplotlib is for the plot script only.
 
 ## Run the tests
 
@@ -62,8 +56,7 @@ the [numtag](https://github.com/TigreGotico/numtag) repository.
 
 2. A test where numtag reads differently from the expected value, and numtag
    is wrong, is a strict xfail in `tests/numtag_xfail.json`, with the URL of
-   its issue
-   ([api.md](docs/api.md#readers-backed-by-numtag)).
+   its issue ([api.md](docs/api.md#readers-backed-by-numtag)).
 
 3. Every language provides every public function. `tests/test_lang_parity.py`
    enforces this ([languages.md](docs/languages.md#full-function-parity)).
@@ -83,6 +76,9 @@ the [numtag](https://github.com/TigreGotico/numtag) repository.
 7. Write the pull request title as a Conventional Commits message.
    [conventional-label.yaml](.github/workflows/conventional-label.yaml) labels
    the pull request from it.
+
+8. Rebuild the plot with `.venv/bin/python docs/plots/writer_sources.py` when
+   a writer changes its source ([how-it-works.md](docs/how-it-works.md)).
 
 ## Before you push
 

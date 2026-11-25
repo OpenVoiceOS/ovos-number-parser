@@ -5,7 +5,7 @@ covers: what ovos-number-parser does, how to install it, a first example and whe
 source: ovos_number_parser/__init__.py (public functions), ovos_number_parser/numtag_readers.py:NUMTAG_LANGS, pyproject.toml
 generated: no
 verify: diff <(grep -E '^(from |import |print\()' README.md | .venv/bin/python -I -) <(grep -E '^print\(' README.md | sed 's/^print(.*)  *# //')
-see: docs/index.md, docs/api.md, docs/languages.md, docs/adding-a-language.md, AGENTS.md
+see: docs/index.md, docs/getting-started.md, docs/how-it-works.md, docs/api.md, docs/writers.md, docs/languages.md, AGENTS.md
 -->
 
 `ovos-number-parser` turns spoken numbers into digits and digits into spoken
@@ -19,14 +19,32 @@ Words to digits (`extract_number`, `numbers_to_digits`) serves speech
 recognition output and number extraction. Digits to words (`pronounce_number`,
 `pronounce_ordinal`, `pronounce_fraction`) prepares text for speech synthesis.
 
-[numtag](https://github.com/TigreGotico/numtag) reads the words in all 40
-languages. The `pronounce_*` and `nice_number_*` writers live in this package.
+The [getting started page](docs/getting-started.md) takes you from install to
+a first result in five steps.
+
+## Who does what
+
+Reading is the job of [numtag](https://github.com/TigreGotico/numtag). The
+functions `extract_number`, `extract_number_spans`, `numbers_to_digits`,
+`is_fractional` and `is_ordinal` are thin calls over numtag for the 40
+languages. The names `extract_number_<code>`, `numbers_to_digits_<code>` and
+`is_ordinal_<code>` in the `numbers_<code>` modules are deprecated shims over
+the same calls.
+
+Writing is the job of this package. The functions `pronounce_number`,
+`pronounce_ordinal` and `pronounce_fraction` call the writer of each language.
+The `nice_number_<code>` functions and the engine objects live here too. The
+top-level functions are the stable API. [How it works](docs/how-it-works.md)
+shows the path of a call, and [Language writers](docs/writers.md) names the
+writer of each language.
 
 ## Install
 
 ```bash
-uv pip install ovos-number-parser
+uv pip install --prerelease=allow ovos-number-parser
 ```
+
+The flag `--prerelease=allow` selects the newest alpha, which reads through numtag. Without the flag, uv picks a release that has no numtag readers.
 
 ## Quick start
 
@@ -152,9 +170,12 @@ print(pronounce_number(2, "pt", gender=GrammaticalGender.FEMININE))  # duas
 
 The [documentation index](docs/index.md) lists every page.
 
-- [API reference](docs/api.md): every public function, the engine that answers it and its parameters
-- [Language notes](docs/languages.md): the rules of single languages and the known limits
+- [Getting started](docs/getting-started.md): install to a first result in five steps
 - [Adding a language](docs/adding-a-language.md): the steps for reading and speaking
+- [How it works](docs/how-it-works.md): which calls pass to numtag and which code writes each language
+- [API reference](docs/api.md): every public function, the engine that answers it and its parameters
+- [Language writers](docs/writers.md): the writer functions, engine objects and helpers of each language
+- [Language notes](docs/languages.md): the rules of single languages and the known limits
 - [examples/](examples/): runnable scripts
 - [AGENTS.md](AGENTS.md): the guide for agents that change this repository
 

@@ -88,4 +88,4 @@ Run the parity test. It calls every public function for every language in its
 Add a row to the [language table](languages.md#language-table).
 
 ---
-[Index](index.md) · [← Language notes](languages.md) · [Home →](../README.md)
+[Index](index.md) · [← Getting started](getting-started.md) · [How it works →](how-it-works.md)

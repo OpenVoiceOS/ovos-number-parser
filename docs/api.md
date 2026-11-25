@@ -13,7 +13,7 @@ when you need the exact call for reading a number or for speaking one.
 
 All public functions live in the top-level `ovos_number_parser` package and take a BCP-47 language code (`lang`). [linguatag](https://github.com/TigreGotico/linguatag) reads the tag, in any letter case and with `-` or `_` between subtags. So `"pt-BR"`, `"pt_PT"` and `"pt"` all reach Portuguese, with variant handling where it matters (Brazilian and European Portuguese), while `"fil"` (Filipino) does not reach Finnish. A bare `"pt"` has the region `PT`.
 
-Two engines answer the functions.
+[How it works](how-it-works.md) shows the path of each call. Two engines answer the functions.
 
 | Functions | Answered by |
 |---|---|
@@ -89,7 +89,13 @@ Convert a numeric value to its spoken form.
 
 - `ordinals`: speak `"first"` instead of `"one"`.
 
-- `digits`: `DigitPronunciation` enum for digit-by-digit reading styles.
+- `digits`: a `DigitPronunciation` value that sets how the digits after the
+  decimal marker are read. `DIGIT_BY_DIGIT` reads them one by one
+  (`1.034` in Spanish is `uno coma cero tres cuatro`). `FULL_NUMBER` reads
+  them as a number (`uno coma cero treinta y cuatro`). `None` keeps the
+  convention of the language, which is digit by digit in Spanish, Catalan and
+  French. Only the ten languages of the Romance engines (an, ast, ca, es, fr,
+  gl, mwl, oc, pt, ro) follow the argument. The other languages ignore it.
 
 - `gender`: `GrammaticalGender` enum for languages whose numerals inflect
   (e.g. Portuguese `"uma hora"` vs `"um minuto"`).
@@ -319,9 +325,55 @@ NumberVocabulary directly instead`. That warning names no removal version.
 
 ## Enums
 
-- `Scale`: `Scale.SHORT` / `Scale.LONG` large-number scales.
-- `GrammaticalGender`: `MASCULINE` / `FEMININE` / `NEUTRAL`.
-- `DigitPronunciation`: full-number vs digit-by-digit reading styles.
+The enums live in `ovos_number_parser.util` and the top-level package exports
+them.
+
+- `Scale`: `SHORT` and `LONG`, the two scales for large numbers.
+- `GrammaticalGender`: `MASCULINE`, `FEMININE` and `NEUTRAL`.
+- `DigitPronunciation`: `FULL_NUMBER` and `DIGIT_BY_DIGIT`.
+
+```python
+>>> from ovos_number_parser import Scale, GrammaticalGender, DigitPronunciation
+>>> [member.value for member in Scale], [member.value for member in GrammaticalGender]
+(['short', 'long'], ['masculine', 'feminine', 'neutral'])
+>>> [member.value for member in DigitPronunciation]
+['digit', 'number']
+
+```
+
+## The numtag_readers module
+
+`ovos_number_parser.numtag_readers` holds the code between the public readers
+and numtag. Import it when you need the language check or a raw numtag mention.
+
+- `NUMTAG_LANGS`: the set of language codes that numtag reads.
+- `routed(lang)`: `True` when numtag reads the language of the tag.
+- `mentions(text, lang, short_scale=None, ordinals=False, scale=None)`: the
+  numtag `NumberMention` objects that the public readers convert.
+- `number(value, kind=Kind.DECIMAL)`: the `int` or `float` of a numtag value
+  string, or `None` when the value is no number.
+- `extract_number`, `is_fractional`, `is_ordinal` and `numbers_to_digits`: the
+  functions that the public ones call. `numbers_to_digits` also takes
+  `ordinals`.
+
+```python
+>>> from ovos_number_parser import numtag_readers
+>>> numtag_readers.routed("pt-BR"), numtag_readers.routed("ja"), numtag_readers.routed("arz")
+(True, False, True)
+>>> numtag_readers.number("2.5"), numtag_readers.number("12")
+(2.5, 12)
+>>> [(m.text, m.value) for m in numtag_readers.mentions("two cats and 3 dogs", "en")]
+[('two', '2'), ('3', '3')]
+>>> numtag_readers.numbers_to_digits("the twenty-first of march", "en", ordinals=True)
+'the 21 of march'
+
+```
+
+## Language writers and helpers
+
+The per-language functions, the engine objects and the helpers
+`fraction_noun_es`, `resolve_ar_lang`, `resolve_ar_lect`, `scientific_parts`
+and `round_half_up` are in [writers.md](writers.md).
 
 ---
-[Index](index.md) · [← Home](../README.md) · [Language notes →](languages.md)
+[Index](index.md) · [← How it works](how-it-works.md) · [Language writers →](writers.md)

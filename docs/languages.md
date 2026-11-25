@@ -310,4 +310,4 @@ The parity guarantee is enforced by `tests/test_lang_parity.py`, which runs
 every public function against every supported language.
 
 ---
-[Index](index.md) · [← API reference](api.md) · [Adding a language →](adding-a-language.md)
+[Index](index.md) · [← Language writers](writers.md) · [Home →](../README.md)
