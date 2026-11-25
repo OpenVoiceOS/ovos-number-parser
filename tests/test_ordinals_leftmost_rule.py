@@ -11,10 +11,8 @@ docs/rulings.md, "The leftmost longest number"), so the rule reaches an
 adjacent pair too.
 """
 import unittest
-from unittest import mock
 
 from ovos_number_parser import extract_number, extract_number_spans
-from ovos_number_parser.util import leftmost_separated_number
 
 
 def reader(lang):
@@ -72,53 +70,6 @@ ADJACENT_SPANS = {lang: (2, 2) for lang in REACHED}
 ADJACENT_SPANS["fa"] = (2, 1)
 
 FILLER = "qzx"
-
-
-class TestLeftmostSeparatedNumber(unittest.TestCase):
-    """The helper itself, before any language calls it."""
-
-    def test_the_first_span_answers_when_two_are_separated(self):
-        self.assertEqual(
-            leftmost_separated_number("zwei qzx dritte", "de", True), 2)
-        self.assertEqual(
-            leftmost_separated_number("dritte qzx zwei", "de", True), 3)
-
-    def test_the_rule_does_not_apply_without_the_flag(self):
-        self.assertIsNone(
-            leftmost_separated_number("zwei qzx dritte", "de", False))
-
-    def test_the_rule_does_not_apply_to_one_number(self):
-        self.assertIsNone(leftmost_separated_number("zwei", "de", True))
-
-    def test_the_rule_applies_to_adjacent_words(self):
-        """numtag reads two adjacent number words as two spans, so the
-        helper answers the first."""
-        self.assertEqual(
-            len(extract_number_spans("zwei dritte", "de", ordinals=True)), 2)
-        self.assertEqual(
-            leftmost_separated_number("zwei dritte", "de", True), 2)
-
-    def test_a_line_with_no_number_is_not_the_rule(self):
-        self.assertIsNone(leftmost_separated_number("qzx qzx", "de", True))
-
-    def test_a_non_string_is_not_the_rule(self):
-        self.assertIsNone(leftmost_separated_number(None, "de", True))
-        self.assertIsNone(leftmost_separated_number(7, "de", True))
-
-    def test_a_single_word_never_pays_the_span_scan(self):
-        """A line of one word cannot hold two spans, so the cheap word
-        count is enough to answer None without scanning it."""
-        with mock.patch("ovos_number_parser.extract_number_spans") as spans:
-            self.assertIsNone(leftmost_separated_number("zwei", "de", True))
-        spans.assert_not_called()
-
-    def test_a_separated_line_still_scans(self):
-        """Two words is the floor, not a reason to skip a real line."""
-        with mock.patch("ovos_number_parser.extract_number_spans",
-                        wraps=extract_number_spans) as spans:
-            self.assertEqual(
-                leftmost_separated_number("zwei qzx dritte", "de", True), 2)
-        spans.assert_called_once()
 
 
 class TestIdiomaticMixedLines(unittest.TestCase):

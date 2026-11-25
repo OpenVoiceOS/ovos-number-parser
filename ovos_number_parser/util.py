@@ -1,10 +1,9 @@
 import math
-import threading
 import warnings
 from dataclasses import dataclass, field
 from decimal import Decimal, ROUND_HALF_UP, localcontext
 from enum import Enum
-from typing import List, Dict, Union, Any, Tuple, Optional, Callable
+from typing import List, Dict, NamedTuple, Union, Any, Tuple, Optional, Callable
 import re
 
 from ovos_number_parser.version import VERSION_MAJOR
@@ -16,35 +15,9 @@ def warn_reader_removed(name: str, use: str) -> None:
                   DeprecationWarning, stacklevel=3)
 
 
-@dataclass
-class Token:
+class Token(NamedTuple):
     word: str
     index: int
-
-    def __iter__(self):
-        yield self.word
-        yield self.index
-
-    def __getitem__(self, item):
-        if item == 0:
-            return self.word
-        elif item == 1:
-            return self.index
-        raise IndexError
-
-    def __setattr__(self, key, value):
-        """
-        Prevent modification of existing attributes, allowing only new attributes to be set.
-
-        Raises:
-            Exception: If attempting to modify an attribute that already exists.
-        """
-        try:
-            getattr(self, key)
-        except AttributeError:
-            super().__setattr__(key, value)
-        else:
-            raise AttributeError("Immutable!")
 
 
 class Scale(str, Enum):
@@ -69,59 +42,6 @@ class GrammaticalGender(str, Enum):
 class DigitPronunciation(str, Enum):
     DIGIT_BY_DIGIT = "digit"
     FULL_NUMBER = "number"
-
-
-@dataclass
-class ReplaceableNumber:
-    """
-    Similar to Token, this class is used in number parsing.
-
-    Once we've found a number in a string, this class contains all
-    the info about the value, and where it came from in the original text.
-    In other words, it is the text, and the number that can replace it in
-    the string.
-    """
-    value: Union[int, float]
-    tokens: List[Token]
-
-    def __bool__(self) -> bool:
-        return bool(self.value is not None and self.value is not False)
-
-    @property
-    def start_index(self) -> int:
-        return self.tokens[0].index
-
-    @property
-    def end_index(self) -> int:
-        return self.tokens[-1].index
-
-    @property
-    def text(self) -> str:
-        """
-        Return the concatenated text represented by the tokens, separated by spaces.
-        """
-        return ' '.join([str(t.word) for t in self.tokens if t.word])
-
-    def __setattr__(self, key, value):
-        """
-        Prevent modification of existing attributes, allowing only new attributes to be set.
-
-        Raises:
-            Exception: If attempting to modify an attribute that already exists.
-        """
-        try:
-            getattr(self, key)
-        except AttributeError:
-            super().__setattr__(key, value)
-        else:
-            raise Exception("Immutable!")
-
-    def __str__(self):
-        return "({v}, {t})".format(v=self.value, t=self.tokens)
-
-    def __repr__(self):
-        return "{n}({v}, {t})".format(n=self.__class__.__name__, v=self.value,
-                                      t=self.tokens)
 
 
 def word_tokenize(utterance: str) -> List[str]:
@@ -158,36 +78,6 @@ def tokenize(text: str) -> List[Token]:
 
     """
     return [Token(word, index) for index, word in enumerate(word_tokenize(text))]
-
-
-def partition_list(items: List[Any], split_on: Any) -> List[List[Any]]:
-    """
-    Partition a list of items.
-
-    Works similarly to str.partition
-
-    Args:
-        items:
-        split_on callable:
-            Should return a boolean. Each item will be passed to
-            this callable in succession, and partitions will be
-            created any time it returns True.
-
-    Returns:
-        [[any]]
-
-    """
-    splits = []
-    current_split = []
-    for item in items:
-        if split_on(item):
-            splits.append(current_split)
-            splits.append([item])
-            current_split = []
-        else:
-            current_split.append(item)
-    splits.append(current_split)
-    return list(filter(lambda x: len(x) != 0, splits))
 
 
 def invert_dict(original: Dict[Any, Any]) -> Dict[Any, Any]:
@@ -253,26 +143,6 @@ def numeric_value(input_str: str) -> Union[int, float]:
     return float(input_str)
 
 
-def look_for_fractions(split_list: List[str]) -> bool:
-    """"
-    This function takes a list made by fraction & determines if a fraction.
-
-    Args:
-        split_list (list): list created by splitting on '/'
-    Returns:
-        (bool): False if not a fraction, otherwise True
-
-    """
-
-    if len(split_list) == 2:
-        if is_numeric(split_list[0]) and is_numeric(split_list[1]):
-            # a zero denominator is not a fraction; callers divide by it, so
-            # reject it here rather than raise ZeroDivisionError downstream
-            return float(split_list[1]) != 0
-
-    return False
-
-
 def convert_to_mixed_fraction(number: Union[int, float], denominators=range(1, 21)) -> Optional[Tuple[int, int, int]]:
     """
     Convert floats to components of a mixed fraction representation
@@ -303,14 +173,6 @@ def convert_to_mixed_fraction(number: Union[int, float], denominators=range(1, 2
         return None
 
     return int_number, int(round(numerator)), denominator
-
-
-def scientific_notation(number: Union[int, float]) -> str:
-    """Format ``number`` as ``'%E' % number`` does, ints beyond the float range included."""
-    try:
-        return '%E' % number
-    except OverflowError:
-        return format(Decimal(number), '.6E')
 
 
 def round_half_up(value: Decimal, places: int) -> Decimal:
@@ -946,44 +808,3 @@ class RomanceNumberExtractor:
                 parts.append(f"{self.vocab.swap_gender(tens_word_masc, gender)} {self.vocab.swap_gender(units_word_masc, gender)}")
 
         return self.vocab.swap_gender(" ".join(parts), gender)
-
-
-#: re-entrancy guard for :func:`leftmost_separated_number`. The span scanner
-#: calls the language extractors back, and those extractors call this helper,
-#: so without the guard the first call would never return.
-_LEFTMOST_SCAN = threading.local()
-
-
-def leftmost_separated_number(text: str, lang: str, ordinals: bool
-                              ) -> Optional[Union[int, float]]:
-    """The first number of a line that holds several numbers separated by other words.
-
-    Under ``ordinals=True`` the number written first wins, ordinal or cardinal.
-    An adjacent cardinal and ordinal that the locale reads as one span ("zwei
-    drittel") is not covered. Returns ``None`` when ``ordinals`` is False, the
-    text is not a string, the line holds fewer than two number spans, or the call
-    is already inside a span scan.
-    """
-    if not ordinals or not isinstance(text, str):
-        return None
-    if len(word_tokenize(text)) < 2:
-        # extract_number_spans can answer two spans only when the line
-        # itself holds two or more words; word_tokenize splits at least as
-        # often as the span scanner's own word boundaries, so this can
-        # never skip a line the scan would have found two spans in.
-        return None
-    if getattr(_LEFTMOST_SCAN, "active", False):
-        return None
-    _LEFTMOST_SCAN.active = True
-    try:
-        from ovos_number_parser import extract_number_spans
-        spans = extract_number_spans(text, lang, ordinals=True)
-    except Exception:
-        # the rule never turns a readable line into an error; the language's
-        # own extractor answers instead
-        return None
-    finally:
-        _LEFTMOST_SCAN.active = False
-    if len(spans) < 2:
-        return None
-    return spans[0].value

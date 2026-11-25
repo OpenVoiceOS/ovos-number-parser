@@ -8,7 +8,6 @@ exponent plus a cited connective.
 import unittest
 
 from ovos_number_parser import pronounce_number, _pronounce_bignum_fallback
-from ovos_number_parser.util import scientific_notation
 
 #: every native backend except kab, whose finite ceiling of 9999 is documented
 NATIVE = ["an", "ar", "ast", "az", "bg", "ca", "cs", "da", "de", "el", "en",
@@ -242,17 +241,7 @@ class TestFrenchLargeValues(unittest.TestCase):
 
 
 class TestScientificNotation(unittest.TestCase):
-    """Beyond the float range the mantissa rounds, as '%E' does."""
-
-    def test_rounds_the_mantissa(self):
-        # 9.99999999...E+400 rounds up to 1.000000E+401;
-        # 1.234567890E+400 rounds to 1.234568E+400
-        for value, expected in ((10 ** 401 - 1, "1.000000E+401"),
-                                (1 - 10 ** 401, "-1.000000E+401"),
-                                (1234567890 * 10 ** 391, "1.234568E+400"),
-                                (10 ** 400, "1.000000E+400")):
-            with self.subTest(value=expected):
-                self.assertEqual(scientific_notation(value), expected)
+    """Beyond the float range the mantissa rounds."""
 
     def test_spoken_value_is_rounded(self):
         for lang in ("cs", "pl", "en", "ru"):

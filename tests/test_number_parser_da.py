@@ -242,10 +242,9 @@ class TestDanishOrdinalsFlagKeepsCardinals(unittest.TestCase):
 
     def test_the_first_number_of_the_line_answers(self):
         """A line that holds an ordinal and a cardinal answers its first
-        number, whatever its kind: the leftmost rule of ``extract_number``
-        (``util.leftmost_separated_number``), and numtag reads two adjacent
-        numbers as two (numtag docs/rulings.md, "The leftmost longest
-        number"). The ordinal reads when it comes first."""
+        number, whatever its kind: numtag reads two adjacent numbers as two
+        (numtag docs/rulings.md, "The leftmost longest number"). The
+        ordinal reads when it comes first."""
         self.assertEqual(
             extract_number("den femte af ti", lang="da", ordinals=True), 5)
         self.assertEqual(
