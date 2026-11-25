@@ -71,13 +71,28 @@ Three kinds of function exist per language.
 ## Writer functions
 
 `pronounce_number_<code>(number, places=2, short_scale=True, scientific=False, ordinals=False)`
-speaks a number. The signature of a language can differ in the defaults and in
-extra arguments: `gender` for cs, da, de, it, nb, pl, ru, sv and uk, `case` and
-`lect` for ar, `feminine` for he, `variant` for fa and `year` for en. Kabyle
-takes `(number, places, ordinals, gender)`.
+speaks a number. The signature of a language can differ from this base in the
+defaults and in the arguments:
+
+- `short_scale` defaults to `False` for ca, es, it, nb and nn. The functions for
+  ar, el, fa and he have no `short_scale`.
+- es takes `(number, places=2, short_scale=False)`. It has no `scientific` and
+  no `ordinals`.
+- ca takes `(number, places=2, short_scale=False, scientific=False)`. It has no
+  `ordinals`.
+- it has no `ordinals`. eu takes only `(num, places=2)`.
+- `gender` is an extra argument for cs, da, de, it, nb, pl, ru, sv and uk, with
+  a `GrammaticalGender` default. Arabic takes `gender` too, with the string
+  default `"masculine"`.
+- ar also takes `case` and `lect`. he takes `feminine`, fa takes `variant`, en
+  takes `year` and pl takes `scientific_run`.
+- gl follows the engine signature below, with `places=5`.
+  `pronounce_number_kab` takes `(number, places=3, ordinals=False, gender)`.
 
 `pronounce_ordinal_<code>(number)` speaks an ordinal. The versions for ar, cs,
-da, gl, it, kab, pl and uk also take a `gender`.
+da, gl, it, kab, pl and uk also take a `gender`. The Arabic version also takes a
+`case`, and the Czech version a `short_scale`. The Galician version also takes
+a `scale`. Basque names the first argument `num`.
 
 ```python
 >>> from ovos_number_parser import pronounce_number_de, pronounce_ordinal_de, pronounce_number_ru
@@ -93,7 +108,7 @@ da, gl, it, kab, pl and uk also take a `gender`.
 
 `nice_number_<code>(number, speech=True, denominators=range(1, 21))` writes a
 mixed fraction. With `speech=True` the answer is words. With `speech=False`
-it is digits. Arabic, Greek and Hebrew default to `range(1, 11)`, and Slovenian
+it is digits. Catalan has no default for `speech`, so pass it. Arabic, Greek and Hebrew default to `range(1, 11)`, and Slovenian
 defaults to `None`. The Arabic version takes a `case` and the Persian version a
 `variant`. The top-level package has no `nice_number` dispatcher, so you reach
 the function by its language name. `pronounce_fraction` uses these functions
@@ -129,9 +144,13 @@ fractions and joiner rules of one language. `RomanceNumberExtractor` in
 `ovos_number_parser/util.py` turns a vocabulary into an object with three
 methods:
 
-- `pronounce_number(number, places=2, scale=None, ordinals=False, digits=None, gender=GrammaticalGender.MASCULINE)`
-- `pronounce_ordinal(number, scale=None, gender=GrammaticalGender.MASCULINE)`
-- `pronounce_fraction(fraction_word, scale=None)`
+- `pronounce_number(number, places=5, scale=None, ordinals=False, digits=DigitPronunciation.FULL_NUMBER, gender=GrammaticalGender.MASCULINE)`
+- `pronounce_ordinal(number, gender=GrammaticalGender.MASCULINE, scale=None)`
+- `pronounce_fraction(word, scale=None)`
+
+`pronounce_number` also has three private keyword arguments that start with an
+underscore. The top-level `pronounce_number` replaces `digits=None` with a value
+for the language before it calls the engine.
 
 ```python
 >>> from ovos_number_parser import ES, PT_PT, PT_BR, FR, FR_BE, FR_CH

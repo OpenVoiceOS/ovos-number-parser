@@ -21,6 +21,9 @@ uv venv
 uv pip install --prerelease=allow ovos-number-parser
 ```
 
+Run each snippet of this page with `uv run python`, or with `.venv/bin/python`.
+Save a snippet to a file and pass the file name, or paste it into the prompt.
+
 ## Step 2: Read a number from text
 
 `extract_number` finds the first number in a text. It gives an `int` or a

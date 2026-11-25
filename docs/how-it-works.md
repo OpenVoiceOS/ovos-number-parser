@@ -40,21 +40,27 @@ and warns.
 flowchart TD
     R["extract_number, extract_number_spans,<br/>numbers_to_digits, is_fractional, is_ordinal"] --> C{"language in<br/>NUMTAG_LANGS?"}
     C -- yes --> T["numtag_readers"] --> N["numtag.tag_numbers"] --> V["int, float, False or NumberSpan"]
-    C -- no --> U["NotImplementedError,<br/>or the text unchanged"]
+    C -- no --> U["extract_number, extract_number_spans, is_fractional:<br/>NotImplementedError<br/>numbers_to_digits: the text unchanged"]
+    C -- "no, is_ordinal" --> O["lookup in the reverse table<br/>of pronounce_ordinal"]
     D["extract_number_xx, numbers_to_digits_xx,<br/>is_ordinal_xx (deprecated shims)"] -- "DeprecationWarning" --> T
     W["pronounce_number, pronounce_ordinal,<br/>pronounce_fraction"] --> L{"writer for<br/>the language?"}
     L -- "own module" --> M["numbers_xx.py"]
     L -- "Romance engine" --> E["RomanceNumberExtractor<br/>in util.py"]
     L -- "none" --> B["unicode-rbnf<br/>CLDR rules"]
+    L -- "pronounce_fraction,<br/>no fraction writer" --> F["generic fallback:<br/>nice_number wording"]
     M --> S["spoken words"]
     E --> S
     B --> S
+    F --> S
 ```
 
 Read the diagram from the left box of each row. A reading call goes to numtag
-only when the language code is in `NUMTAG_LANGS`. A writing call goes to the
-language module or the engine, and to unicode-rbnf only when neither exists
-for that value.
+only when the language code is in `NUMTAG_LANGS`. A reading call outside that set
+fails or returns the text, except `is_ordinal`, which looks the text up in the
+ordinal forms of `pronounce_ordinal`. A writing call goes to the language module
+or the engine, and to unicode-rbnf only when neither exists for that value.
+`pronounce_fraction` for a language with no fraction writer uses the generic
+fallback, which builds the fraction from the `nice_number` wording.
 
 ## Which calls pass the work to numtag
 
@@ -81,7 +87,7 @@ unicode-rbnf.
 ![A heat map with one row per language and one column per call. The reading column is blue for all 40 languages. The writer columns are mostly the language module, with the Romance engine for ten languages and the generic fallback for most fractions.](img/writer_sources.png)
 
 The plot shows the source that answered a probe call in each cell. If several
-sources answered, the cell shows the last one in the legend order. The reading
+sources answered, the cell shows the first one in the legend order. The reading
 column is blue everywhere, because numtag reads all 40 languages. The
 `pronounce_fraction` column is yellow for most languages, because the generic
 fallback builds the fraction from the `nice_number` wording of the language.

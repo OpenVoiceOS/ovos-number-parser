@@ -44,7 +44,7 @@ writer of each language.
 uv pip install --prerelease=allow ovos-number-parser
 ```
 
-The flag `--prerelease=allow` selects the newest alpha, which reads through numtag. Without the flag, uv picks a release that has no numtag readers.
+The flag `--prerelease=allow` selects the newest alpha, which reads through numtag. Without the flag, uv installs the newest stable release, which can be older than the alphas.
 
 ## Quick start
 
