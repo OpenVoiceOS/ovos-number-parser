@@ -13,7 +13,7 @@ from fractions import Fraction
 from functools import lru_cache
 from typing import List, Optional, Union
 
-from linguatag import closest_lang, standardize_lang
+from linguatag import closest_lang, is_arabic_variety, standardize_lang
 from numtag import Form, Kind, NumberMention, tag_numbers
 from numtag import Scale as NumtagScale
 
@@ -43,12 +43,17 @@ def routed(lang: str) -> bool:
 @lru_cache(maxsize=4096)
 def _base(lang: str) -> Optional[str]:
     """The numtag language that ``lang`` names, or None."""
+    lang = lang.strip()
+    if is_arabic_variety(lang):
+        return "ar"
     return closest_lang(standardize_lang(lang).partition("-")[0], sorted(NUMTAG_LANGS))
 
 
 def _numtag_lang(lang: str) -> str:
     """The tag numtag reads: "pt-BR" stays, "no" is "nb"."""
-    tag = standardize_lang(lang)
+    if is_arabic_variety(lang.strip()):
+        return "ar"
+    tag = standardize_lang(lang.strip())
     return tag if tag.partition("-")[0] in NUMTAG_LANGS else _base(lang)
 
 

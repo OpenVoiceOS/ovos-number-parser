@@ -92,7 +92,7 @@ from ovos_number_parser import numtag_readers
 # Languages absent from this set default to the short scale (en, ru, uk, bg,
 # el, tr, id, ms, az, ...), matching their modern standard usage.
 _LONG_SCALE_LANGS = {
-    "de", "fr", "es", "it", "nl", "pl", "sv", "da", "nb", "nn", "no",
+    "de", "fr", "es", "it", "nl", "pl", "sv", "da", "nb", "nn",
     "gl", "ca", "eu", "cs", "sl", "sk", "hr", "hu", "fi", "et", "ro",
     "ast", "oc", "an", "mwl", "fy",
 }
@@ -175,7 +175,7 @@ def _pronounce_fraction_generic(fraction_word: str, lang: str) -> str:
         result = f"{pronounce_number(n1, lang)} {denom}"
     else:
         nice_fn = _NICE_NUMBER_FNS.get(lang2) or \
-            (nice_number_ar if is_arabic_variety(lang) else None)
+            (nice_number_ar if _is_arabic(lang) else None)
         if nice_fn and 2 <= n2 <= 20:
             spoken = nice_fn(n1 / n2, speech=True, denominators=[n2])
             tokens = spoken.split()
@@ -455,22 +455,30 @@ _SCIENTIFIC_WORDS = {
 #: language with a script or region subtag ("sr_Latn", "zh_Hant", "de_CH")
 _RBNF_LOCALES = frozenset(RbnfEngine.get_supported_languages())
 
-#: the bare codes of the languages this module speaks or reads
-_SERVED_LANGS = sorted(numtag_readers.NUMTAG_LANGS
-                       | {locale.partition("_")[0] for locale in _RBNF_LOCALES})
+#: the bare codes of the languages this module speaks or reads. A unicode_rbnf
+#: code for a language that numtag names already ("no" for "nb") adds nothing.
+#: The partition splits a unicode_rbnf locale id, not a user tag.
+_SERVED_LANGS = sorted(numtag_readers.NUMTAG_LANGS | {
+    language for language in (locale.partition("_")[0] for locale in _RBNF_LOCALES)
+    if not closest_lang(language, sorted(numtag_readers.NUMTAG_LANGS), max_distance=1)})
 
 
 @lru_cache(maxsize=4096)
 def _base_lang(lang: str) -> str:
     """Bare code of the language ``lang`` names, as this module serves it:
     "pt-BR", "pt_BR" and "PT" are "pt" and "azj" is "az"."""
-    language = standardize_lang(lang).partition("-")[0]
+    language = standardize_lang(lang.strip()).partition("-")[0]
     return closest_lang(language, _SERVED_LANGS) or language
 
 
 @lru_cache(maxsize=4096)
 def _is_brazilian(lang: str) -> bool:
-    return default_region(lang) == "BR"
+    return default_region(lang.strip()) == "BR"
+
+
+@lru_cache(maxsize=4096)
+def _is_arabic(lang: str) -> bool:
+    return is_arabic_variety(lang.strip())
 
 
 #: languages that read the decimal part one digit at a time by convention.
@@ -543,13 +551,13 @@ def _pronounce_bignum_fallback(number: Union[int, float, Decimal, Fraction],
         return pronounce_scientific_hu(mantissa, exponent)
     mantissa_words = pronounce_number(mantissa, lang=lang, places=places)
     exponent_words = pronounce_number(exponent, lang=lang)
-    connective = _SCIENTIFIC_WORDS.get("ar" if is_arabic_variety(lang) else _base_lang(lang),
+    connective = _SCIENTIFIC_WORDS.get("ar" if _is_arabic(lang) else _base_lang(lang),
                                        _SCIENTIFIC_WORDS["en"])
     return f"{mantissa_words} {connective} {exponent_words}"
 
 
 #: languages whose backend reads ``scientific=True`` in a scientific form of
-#: its own, keyed by bare language code; Arabic lects are matched by is_arabic_variety
+#: its own, keyed by bare language code; Arabic lects are matched by _is_arabic
 _SCIENTIFIC_MODE = frozenset({
     "az", "bg", "cs", "el", "en", "fa", "he", "hr", "id", "it", "ms", "pl",
     "ru", "sk", "sl", "tr", "uk"})
@@ -562,7 +570,7 @@ _MOST_PLACES = 323
 
 def _has_scientific_mode(lang: str) -> bool:
     """Whether the backend for ``lang`` honours ``scientific=True``."""
-    return is_arabic_variety(lang) or _base_lang(lang) in _SCIENTIFIC_MODE
+    return _is_arabic(lang) or _base_lang(lang) in _SCIENTIFIC_MODE
 
 
 def _round_mantissa(number: Union[int, float, Decimal],
@@ -719,7 +727,7 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
     if lang2 == "az":
         return pronounce_number_az(number, places, short_scale, scientific, ordinals)
-    if is_arabic_variety(lang):
+    if _is_arabic(lang):
         # a lect's default register applies to cardinals; an ordinal takes
         # the oblique only when the caller asks for it
         if case is None:
@@ -790,7 +798,7 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
         return pronounce_number_fy(number, places, short_scale, scientific, ordinals)
     if lang2 == "nn":
         return pronounce_number_nn(number, places, short_scale, scientific, ordinals)
-    if lang2 in ("nb", "no"):
+    if lang2 == "nb":
         return pronounce_number_nb(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
     if lang2 == "nl":
@@ -930,7 +938,7 @@ def _rbnf_locale(lang: str) -> str:
     them, in either separator and any letter case ("sr-Latn", "sr_latn"); any
     other tag reads with the rules of its bare language.
     """
-    return closest_lang(lang, sorted(_RBNF_LOCALES), max_distance=0) or _base_lang(lang)
+    return closest_lang(lang.strip(), sorted(_RBNF_LOCALES), max_distance=0) or _base_lang(lang)
 
 
 def _pronounce_rbnf(number, lang, ordinals, gender):
@@ -1136,7 +1144,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
             and abs(number) < 10 ** 24:
         # the Azerbaijani engine has no ordinal scale word from 10**24 up
         return pronounce_number(number, lang, ordinals=True, gender=gender, scale=scale)
-    if is_arabic_variety(lang):
+    if _is_arabic(lang):
         return pronounce_ordinal_ar(number, gender=gender, case=case)
     if lang2 == "da":
         return pronounce_ordinal_da(number, gender)
@@ -1175,7 +1183,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
         return pronounce_ordinal_fy(number)
     if lang2 == "nn":
         return pronounce_ordinal_nn(number)
-    if lang2 in ("nb", "no"):
+    if lang2 == "nb":
         return pronounce_ordinal_nb(number)
     if lang2 == "nl":
         return pronounce_ordinal_nl(number)

@@ -13,7 +13,7 @@ spoken. It then gives the rules of single languages and the known gaps.
 
 ## Language table
 
-All 40 languages read words through [numtag](https://github.com/TigreGotico/numtag). Their codes are in `NUMTAG_LANGS` in `ovos_number_parser/numtag_readers.py`. The ISO 639-3 codes of Modern Standard Arabic and its varieties (`arb`, `ars`, `acw`, `afb`, `arz`, `apc`, `ajp`, `acm`, `ary`, `aeb`, `ayl` and the other codes of `AR_DIALECT_DEFAULT_CASE`) read as `ar`, and `zsm` reads as `ms`. linguatag decides which language a tag names. The functions `extract_number`, `extract_number_spans`, `numbers_to_digits`, `is_fractional` and `is_ordinal` follow this route.
+All 40 languages read words through [numtag](https://github.com/TigreGotico/numtag). Their codes are in `NUMTAG_LANGS` in `ovos_number_parser/numtag_readers.py`. Every tag for which linguatag's `is_arabic_variety` is true (`arb`, `ars`, `acw`, `afb`, `arz`, `apc`, `ajp`, `acm`, `ary`, `aeb`, `ayl`, `acy`, `pga` and the other Arabic varieties) reads as `ar`, and `zsm` reads as `ms`. linguatag decides which language a tag names. The functions `extract_number`, `extract_number_spans`, `numbers_to_digits`, `is_fractional` and `is_ordinal` follow this route.
 
 Every language speaks numbers with a writer in this repository. Most have a `pronounce_number_<code>` function. Aragonese, Asturian, Occitan and Romanian speak through the `AN`, `AST`, `OC` and `RO` engine objects. English ordinals come from unicode-rbnf.
 

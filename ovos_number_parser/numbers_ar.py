@@ -150,7 +150,7 @@ def resolve_ar_lang(lang: str):
                          default register, or None if ``lang`` does not name
                          an Arabic variety this engine serves.
     """
-    return AR_DIALECT_DEFAULT_CASE.get(closest_lang(lang, AR_DIALECT_DEFAULT_CASE))
+    return AR_DIALECT_DEFAULT_CASE.get(closest_lang(lang.strip(), AR_DIALECT_DEFAULT_CASE))
 
 
 # Gender. A cardinal takes the form that goes with the gender of the counted
@@ -703,7 +703,7 @@ def resolve_ar_lect(lang: str):
     including the macrolanguage ar and the literary arb, returns None and
     keeps the literary cardinals.
     """
-    return closest_lang(lang, AR_LECT_FORMS)
+    return closest_lang(lang.strip(), AR_LECT_FORMS)
 
 
 def _lect_cardinal(words: str, number, case: str, lect: str,

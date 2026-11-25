@@ -2,7 +2,8 @@
 whatever its spelling."""
 import unittest
 
-from ovos_number_parser import (extract_number, pronounce_number,
+import ovos_number_parser
+from ovos_number_parser import (extract_number, numtag_readers, pronounce_number,
                                 pronounce_ordinal)
 
 # ISO 639-2 and deprecated codes, and the two-letter code each stands for
@@ -52,6 +53,30 @@ class TestChineseScript(unittest.TestCase):
     def test_taiwan_reads_traditional_characters(self):
         self.assertEqual(pronounce_number(2 * 10 ** 9, "zh-TW"),
                          pronounce_number(2 * 10 ** 9, "zh-Hant"))
+
+
+class TestWhiteSpace(unittest.TestCase):
+    def test_a_padded_tag_reads_as_the_tag(self):
+        self.assertEqual(pronounce_number(2 * 10 ** 9, "pt-BR "), "dois bilhões")
+        self.assertEqual(pronounce_number(2 * 10 ** 9, " pt-PT"),
+                         pronounce_number(2 * 10 ** 9, "pt-PT"))
+        self.assertEqual(pronounce_number(21, " de "), "einundzwanzig")
+        self.assertEqual(extract_number("einundzwanzig", " de "), 21)
+        self.assertEqual(pronounce_number(13, " arz "), pronounce_number(13, "arz"))
+
+
+class TestArabicVarietiesRoute(unittest.TestCase):
+    def test_every_arabic_variety_that_speaks_also_reads(self):
+        for code in ("acy", "pga", "mey", "ar-Latn-x-buckwalt"):
+            with self.subTest(code=code):
+                self.assertTrue(numtag_readers.routed(code))
+                self.assertEqual(extract_number(pronounce_number(13, code), code), 13)
+
+
+class TestNorwegian(unittest.TestCase):
+    def test_no_is_resolved_to_bokmal(self):
+        self.assertEqual(ovos_number_parser._base_lang("no"), "nb")
+        self.assertEqual(pronounce_number(21, "no"), pronounce_number(21, "nb"))
 
 
 if __name__ == "__main__":
