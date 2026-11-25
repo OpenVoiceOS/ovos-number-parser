@@ -55,7 +55,7 @@ print(extract_number("hello world", "en"))  # False
 ```
 
 Pass another language code and the same calls work. A code with a region
-(`pt-BR`, `pt-PT`) uses the language of its first subtag.
+(`pt-BR`, `pt-PT`) reads the language of the tag, and the region where the language has regional forms.
 
 ## Uses
 

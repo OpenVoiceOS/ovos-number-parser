@@ -10,12 +10,13 @@ import math
 import re
 import sys
 from fractions import Fraction
+from functools import lru_cache
 from typing import List, Optional, Union
 
+from linguatag import closest_lang, is_arabic_variety, standardize_lang
 from numtag import Form, Kind, NumberMention, tag_numbers
 from numtag import Scale as NumtagScale
 
-from ovos_number_parser.numbers_ar import AR_DIALECT_DEFAULT_CASE
 from ovos_number_parser.util import Scale
 
 #: languages whose readers are numtag: every language numtag reads. The
@@ -34,26 +35,27 @@ NUMTAG_LANGS = frozenset({
 _FRACTION_WORDS_KEPT = frozenset({"pt"})
 
 
-#: language codes that name the language of another code ("no" is Norwegian
-#: Bokmål, "azj" North Azerbaijani, "arz" Egyptian Arabic)
-_ALIASES = {"no": "nb", "azj": "az", "ekk": "et", "pes": "fa", "zsm": "ms",
-            **dict.fromkeys(AR_DIALECT_DEFAULT_CASE, "ar")}
-
-
 def routed(lang: str) -> bool:
     """Whether numtag reads the numbers of ``lang``."""
-    return isinstance(lang, str) and _base(lang) in NUMTAG_LANGS
+    return isinstance(lang, str) and _base(lang) is not None
 
 
-def _base(lang: str) -> str:
-    base = lang.lower().replace("_", "-").split("-")[0]
-    return _ALIASES.get(base, base)
+@lru_cache(maxsize=4096)
+def _base(lang: str) -> Optional[str]:
+    """The numtag language that ``lang`` names, or None."""
+    lang = lang.strip()
+    if is_arabic_variety(lang):
+        return "ar"
+    return closest_lang(standardize_lang(lang).partition("-")[0], sorted(NUMTAG_LANGS))
 
 
 def _numtag_lang(lang: str) -> str:
     """The tag numtag reads: "pt-BR" stays, "no" is "nb"."""
-    base = lang.lower().replace("_", "-").split("-")[0]
-    return _ALIASES[base] if base in _ALIASES else lang
+    base = _base(lang)
+    if base == "ar":
+        return base
+    tag = standardize_lang(lang.strip())
+    return tag if tag.partition("-")[0] in NUMTAG_LANGS else base
 
 
 def _scale(scale: Optional[Scale], short_scale: Optional[bool]) -> Optional[NumtagScale]:

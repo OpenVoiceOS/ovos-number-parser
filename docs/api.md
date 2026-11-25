@@ -11,7 +11,7 @@ see: languages.md, adding-a-language.md, ../README.md
 This page lists each public function, its parameters and an example. Read it
 when you need the exact call for reading a number or for speaking one.
 
-All public functions live in the top-level `ovos_number_parser` package and take a BCP-47 language code (`lang`). The primary language subtag selects the language. It must match exactly, in any letter case and with `-` or `_` between subtags. So `"pt-BR"`, `"pt_PT"` and `"pt"` all reach Portuguese, with variant handling where it matters (Brazilian and European Portuguese), while `"fil"` (Filipino) does not reach Finnish.
+All public functions live in the top-level `ovos_number_parser` package and take a BCP-47 language code (`lang`). [linguatag](https://github.com/TigreGotico/linguatag) reads the tag, in any letter case and with `-` or `_` between subtags. So `"pt-BR"`, `"pt_PT"` and `"pt"` all reach Portuguese, with variant handling where it matters (Brazilian and European Portuguese), while `"fil"` (Filipino) does not reach Finnish. A bare `"pt"` has the region `PT`.
 
 Two engines answer the functions.
 

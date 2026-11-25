@@ -8,8 +8,6 @@ Every expected string is a cell of a published table, copied from its raw wikite
 """
 import unittest
 
-import pytest
-
 from ovos_number_parser.numbers_ar import _tokenize_ar
 from ovos_number_parser import extract_number, numbers_to_digits, pronounce_number, resolve_ar_lect
 
@@ -184,13 +182,10 @@ class TestLevantineCardinals(unittest.TestCase):
         self.assertEqual(pronounce_number(3, lang="apc", gender="feminine"), "ثلاث")
         self.assertEqual(pronounce_number(100, lang="apc", gender="feminine"), "مية")
 
-
 class TestRetiredAjpCode(unittest.TestCase):
-    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/534")
     def test_ajp_speaks_the_levantine_table_of_apc(self):
         # ISO 639-3 change request 2022-006 merged ajp into apc
         self.assertEqual(pronounce_number(13, lang="ajp"), "تلتعش")
-
 
 if __name__ == "__main__":
     unittest.main()

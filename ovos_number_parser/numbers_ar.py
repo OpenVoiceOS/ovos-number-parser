@@ -35,6 +35,9 @@ literary words in the oblique register.
 
 import contextvars
 import re
+from functools import lru_cache
+
+from linguatag import closest_lang
 from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, \
     scientific_parts
 
@@ -128,6 +131,7 @@ AR_DIALECT_DEFAULT_CASE = {
 }
 
 
+@lru_cache(maxsize=4096)
 def resolve_ar_lang(lang: str):
     """
     Resolve a BCP-47 or ISO 639-3 language code to this Arabic engine's
@@ -146,7 +150,7 @@ def resolve_ar_lang(lang: str):
                          default register, or None if ``lang`` does not name
                          an Arabic variety this engine serves.
     """
-    return AR_DIALECT_DEFAULT_CASE.get(lang.lower().replace("_", "-").split("-")[0])
+    return AR_DIALECT_DEFAULT_CASE.get(closest_lang(lang.strip(), AR_DIALECT_DEFAULT_CASE))
 
 
 # Gender. A cardinal takes the form that goes with the gender of the counted
@@ -691,6 +695,7 @@ AR_LECT_FORMS = {
 }
 
 
+@lru_cache(maxsize=4096)
 def resolve_ar_lect(lang: str):
     """The ISO 639-3 code of the lect whose cardinals lang names, or None.
 
@@ -698,8 +703,7 @@ def resolve_ar_lect(lang: str):
     including the macrolanguage ar and the literary arb, returns None and
     keeps the literary cardinals.
     """
-    code = lang.lower().replace("_", "-").split("-")[0]
-    return code if code in AR_LECT_FORMS else None
+    return closest_lang(lang.strip(), AR_LECT_FORMS)
 
 
 def _lect_cardinal(words: str, number, case: str, lect: str,

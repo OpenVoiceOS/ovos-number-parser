@@ -24,6 +24,7 @@ dependencies = [
     "quebra_frases>=0.3.7",
     "unicode-rbnf>=2.5.0",
     "numtag>=0.19.22a1",
+    "linguatag>=0.4.2a4",
 ]
 dynamic = ["version"]
 
