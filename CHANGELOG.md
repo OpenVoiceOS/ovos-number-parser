@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.31.5a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.5a1) (2026-11-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a10...0.31.5a1)
+
+**Closed issues:**
+
+- pronounce\_fraction\("3/4", "gl"\) emits a DeprecationWarning from the public path [\#572](https://github.com/OpenVoiceOS/ovos-number-parser/issues/572)
+
+**Merged pull requests:**
+
+- fix: top-level Galician fractions and ordinals call the GL engine without a warning [\#593](https://github.com/OpenVoiceOS/ovos-number-parser/pull/593) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.4a10](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a10) (2026-11-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a9...0.31.4a10)
@@ -389,17 +401,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.50a1...0.24.51a1)
 
-**Merged pull requests:**
-
-- fix\(pt\): pt-BR writes "quatorze", and both variants read both forms [\#481](https://github.com/OpenVoiceOS/ovos-number-parser/pull/481) ([JarbasAl](https://github.com/JarbasAl))
-
 ## [0.24.50a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.50a1) (2026-11-13)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.49a1...0.24.50a1)
-
-**Merged pull requests:**
-
-- fix\(pt\): read "milhar", and a bare plural scale word as no number [\#480](https://github.com/OpenVoiceOS/ovos-number-parser/pull/480) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.24.49a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.49a1) (2026-11-13)
 
@@ -903,11 +907,11 @@
 
 ## [0.18.9a27](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a27) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a6...0.18.9a27)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a7...0.18.9a27)
 
-## [0.18.9a6](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a6) (2026-07-18)
+## [0.18.9a7](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a7) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a25...0.18.9a6)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a25...0.18.9a7)
 
 ## [0.18.9a25](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a25) (2026-07-18)
 
@@ -979,15 +983,15 @@
 
 ## [0.18.9a8](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a8) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a7...0.18.9a8)
-
-## [0.18.9a7](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a7) (2026-07-18)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a28...0.18.9a7)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a28...0.18.9a8)
 
 ## [0.18.9a28](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a28) (2026-07-18)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.8a1...0.18.9a28)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.9a6...0.18.9a28)
+
+## [0.18.9a6](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.9a6) (2026-07-18)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.18.8a1...0.18.9a6)
 
 ## [0.18.8a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.18.8a1) (2026-07-18)
 
