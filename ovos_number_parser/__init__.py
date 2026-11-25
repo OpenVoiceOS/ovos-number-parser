@@ -930,6 +930,9 @@ _RBNF_CHARACTER_FIXES = {
 }
 
 
+#: Building an engine parses the locale's rule file, so each locale builds one.
+_rbnf_engine = lru_cache(maxsize=None)(RbnfEngine.for_language)
+
 @lru_cache(maxsize=4096)
 def _rbnf_locale(lang: str) -> str:
     """The unicode_rbnf locale that reads ``lang``.
@@ -998,7 +1001,7 @@ def _pronounce_rbnf(number, lang, ordinals, gender):
     base = _base_lang(lang)
     locale = _rbnf_locale(lang)
     try:
-        engine = RbnfEngine.for_language(locale)
+        engine = _rbnf_engine(locale)
         if (base in _RBNF_FRACTIONS and not ordinals and math.isfinite(number)
                 and number > 0 and number != int(number)):
             point, fraction_set = _RBNF_FRACTIONS[base]
