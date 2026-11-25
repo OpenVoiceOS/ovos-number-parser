@@ -3,8 +3,8 @@ whatever its spelling."""
 import unittest
 
 import ovos_number_parser
-from ovos_number_parser import (extract_number, numtag_readers, pronounce_number,
-                                pronounce_ordinal)
+from ovos_number_parser import (extract_number, numtag_readers, pronounce_fraction,
+                                pronounce_number, pronounce_ordinal)
 
 # ISO 639-2 and deprecated codes, and the two-letter code each stands for
 OTHER_CODES = [("deu", "de"), ("eng", "en"), ("fra", "fr"), ("por", "pt"),
@@ -77,6 +77,12 @@ class TestNorwegian(unittest.TestCase):
     def test_no_is_resolved_to_bokmal(self):
         self.assertEqual(ovos_number_parser._base_lang("no"), "nb")
         self.assertEqual(pronounce_number(21, "no"), pronounce_number(21, "nb"))
+
+    def test_no_reads_one_half_as_bokmal_halv(self):
+        # Bokmålsordboka, "halv", article 22016: "som utgjør den ene av to
+        # (mer eller mindre) like store deler"; the example is "to og en halv"
+        self.assertEqual(pronounce_fraction("1/2", "no"), "en halv")
+        self.assertEqual(pronounce_fraction("1/2", "nb"), "en halv")
 
 
 if __name__ == "__main__":

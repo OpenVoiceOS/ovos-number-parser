@@ -51,10 +51,11 @@ def _base(lang: str) -> Optional[str]:
 
 def _numtag_lang(lang: str) -> str:
     """The tag numtag reads: "pt-BR" stays, "no" is "nb"."""
-    if is_arabic_variety(lang.strip()):
-        return "ar"
+    base = _base(lang)
+    if base == "ar":
+        return base
     tag = standardize_lang(lang.strip())
-    return tag if tag.partition("-")[0] in NUMTAG_LANGS else _base(lang)
+    return tag if tag.partition("-")[0] in NUMTAG_LANGS else base
 
 
 def _scale(scale: Optional[Scale], short_scale: Optional[bool]) -> Optional[NumtagScale]:
