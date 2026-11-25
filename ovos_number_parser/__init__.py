@@ -17,80 +17,62 @@ from unicode_rbnf import RbnfEngine, FormatPurpose
 from ovos_number_parser.numbers_ast import AST
 from ovos_number_parser.numbers_an import AN
 from ovos_number_parser.numbers_ar import (pronounce_number_ar, pronounce_ordinal_ar, nice_number_ar, resolve_ar_lang, resolve_ar_lect)
-from ovos_number_parser.numbers_az import pronounce_number_az
+from ovos_number_parser.numbers_az import pronounce_number_az, nice_number_az
 from ovos_number_parser.numbers_bg import pronounce_number_bg, nice_number_bg
-from ovos_number_parser.numbers_ca import pronounce_number_ca, CA
-from ovos_number_parser.numbers_cs import pronounce_number_cs, pronounce_ordinal_cs
-from ovos_number_parser.numbers_da import pronounce_number_da, pronounce_ordinal_da
-from ovos_number_parser.numbers_de import pronounce_number_de, pronounce_ordinal_de
+from ovos_number_parser.numbers_ca import pronounce_number_ca, CA, nice_number_ca
+from ovos_number_parser.numbers_cs import pronounce_number_cs, pronounce_ordinal_cs, nice_number_cs
+from ovos_number_parser.numbers_da import pronounce_number_da, pronounce_ordinal_da, nice_number_da
+from ovos_number_parser.numbers_de import pronounce_number_de, pronounce_ordinal_de, nice_number_de
 from ovos_number_parser.numbers_en import pronounce_number_en
-from ovos_number_parser.numbers_el import pronounce_number_el, pronounce_ordinal_el
-from ovos_number_parser.numbers_es import pronounce_number_es, fraction_noun_es, ES
-from ovos_number_parser.numbers_eu import pronounce_number_eu, pronounce_ordinal_eu
+from ovos_number_parser.numbers_el import pronounce_number_el, pronounce_ordinal_el, nice_number_el
+from ovos_number_parser.numbers_es import pronounce_number_es, fraction_noun_es, ES, nice_number_es
+from ovos_number_parser.numbers_eu import pronounce_number_eu, pronounce_ordinal_eu, nice_number_eu
 from ovos_number_parser.numbers_et import pronounce_number_et, pronounce_ordinal_et, nice_number_et
-from ovos_number_parser.numbers_fa import pronounce_number_fa, pronounce_ordinal_fa
+from ovos_number_parser.numbers_fa import pronounce_number_fa, pronounce_ordinal_fa, nice_number_fa
 from ovos_number_parser.numbers_fi import pronounce_number_fi, pronounce_ordinal_fi, nice_number_fi
-from ovos_number_parser.numbers_fr import FR, FR_BE, FR_CH
+from ovos_number_parser.numbers_fr import FR, FR_BE, FR_CH, nice_number_fr
 from ovos_number_parser.numbers_fy import pronounce_number_fy, pronounce_ordinal_fy, nice_number_fy
 from ovos_number_parser.numbers_gl import GL, pronounce_number_gl, pronounce_ordinal_gl, pronounce_fraction_gl
 from ovos_number_parser.numbers_hr import pronounce_number_hr, pronounce_ordinal_hr, nice_number_hr
 from ovos_number_parser.numbers_he import pronounce_number_he, pronounce_ordinal_he, nice_number_he
 from ovos_number_parser.numbers_hu import (pronounce_number_hu, pronounce_ordinal_hu, nice_number_hu, pronounce_scientific_hu)
 from ovos_number_parser.numbers_id import (pronounce_number_id, pronounce_number_ms, pronounce_ordinal_id, pronounce_ordinal_ms, nice_number_id, nice_number_ms)
-from ovos_number_parser.numbers_it import pronounce_number_it, pronounce_ordinal_it, IT
+from ovos_number_parser.numbers_it import pronounce_number_it, pronounce_ordinal_it, IT, nice_number_it
 from ovos_number_parser.numbers_kab import pronounce_number_kab, pronounce_ordinal_kab
 from ovos_number_parser.numbers_mwl import MWL
 from ovos_number_parser.numbers_oc import OC
 from ovos_number_parser.numbers_nb import nice_number_nb, pronounce_number_nb, pronounce_ordinal_nb
 from ovos_number_parser.numbers_nn import nice_number_nn, pronounce_number_nn, pronounce_ordinal_nn
-from ovos_number_parser.numbers_nl import pronounce_number_nl, pronounce_ordinal_nl
-from ovos_number_parser.numbers_pl import pronounce_number_pl, pronounce_ordinal_pl
+from ovos_number_parser.numbers_nl import pronounce_number_nl, pronounce_ordinal_nl, nice_number_nl
+from ovos_number_parser.numbers_pl import pronounce_number_pl, pronounce_ordinal_pl, nice_number_pl
 from ovos_number_parser.numbers_pt import PortugueseVariant, PT_PT, PT_BR
 from ovos_number_parser.numbers_ro import RO
-from ovos_number_parser.numbers_ru import pronounce_number_ru, _ordinal_ru
+from ovos_number_parser.numbers_ru import pronounce_number_ru, _ordinal_ru, nice_number_ru
 from ovos_number_parser.numbers_sk import pronounce_number_sk, pronounce_ordinal_sk, nice_number_sk
 from ovos_number_parser.numbers_sl import pronounce_number_sl, nice_number_sl
-from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv
+from ovos_number_parser.numbers_sv import pronounce_number_sv, pronounce_ordinal_sv, nice_number_sv
 from ovos_number_parser.numbers_tr import pronounce_number_tr, pronounce_ordinal_tr, nice_number_tr
-from ovos_number_parser.numbers_uk import pronounce_number_uk, pronounce_ordinal_uk
-from ovos_number_parser.numbers_az import nice_number_az
-from ovos_number_parser.numbers_ca import nice_number_ca
-from ovos_number_parser.numbers_cs import nice_number_cs
-from ovos_number_parser.numbers_da import nice_number_da
-from ovos_number_parser.numbers_de import nice_number_de
-from ovos_number_parser.numbers_el import nice_number_el
-from ovos_number_parser.numbers_es import nice_number_es
-from ovos_number_parser.numbers_eu import nice_number_eu
-from ovos_number_parser.numbers_fa import nice_number_fa
-from ovos_number_parser.numbers_fr import nice_number_fr
-from ovos_number_parser.numbers_it import nice_number_it
-from ovos_number_parser.numbers_nl import nice_number_nl
-from ovos_number_parser.numbers_pl import nice_number_pl
-from ovos_number_parser.numbers_ru import nice_number_ru
-from ovos_number_parser.numbers_sv import nice_number_sv
-from ovos_number_parser.numbers_uk import nice_number_uk
+from ovos_number_parser.numbers_uk import pronounce_number_uk, pronounce_ordinal_uk, nice_number_uk
 from ovos_number_parser.util import Scale, GrammaticalGender, DigitPronunciation, \
     scientific_parts, round_half_up
 from ovos_number_parser import numtag_readers
 
 
-# --- canonical short/long scale convention per language --------------------
-#
-# Short scale: 10^9 = "billion", 10^12 = "trillion".
-# Long scale:  10^9 = "thousand million / milliard", 10^12 = "billion".
-# Getting the default wrong mis-scales every number >= 10^9 by 1000x.
-#
-# The convention each language uses is a fixed property of that language, not a
-# caller preference, so a caller that passes no ``scale=`` must get the
-# language's canonical convention. Sources: Wikipedia "Long and short scales"
-# (https://en.wikipedia.org/wiki/Long_and_short_scales), which tabulates the
-# convention per country/language and cites the national language academies,
-# cross-referenced with those academies where they legislate cardinal-numeral
-# spelling (e.g. Euskaltzaindia Araua 7 for Basque, which makes Basque long
-# scale: 10^9 = "mila milioi", "bilioi" = 10^12).
-#
-# Languages absent from this set default to the short scale (en, ru, uk, bg,
-# el, tr, id, ms, az, ...), matching their modern standard usage.
+#: engines that write numbers, ordinals and fractions from a vocabulary, by
+#: bare language code; Galician and Spanish have their own fraction and
+#: ordinal rules
+_ENGINES = {"an": AN, "ast": AST, "ca": CA, "mwl": MWL, "oc": OC, "ro": RO}
+_NUMBER_ENGINES = {**_ENGINES, "es": ES, "gl": GL}
+
+
+def _portuguese(lang: str):
+    return PT_BR if _is_brazilian(lang) else PT_PT
+
+
+# Scale a language uses when the caller names none: 10^9 is "billion" on the
+# short scale and "thousand million" or "milliard" on the long scale. Sources:
+# https://en.wikipedia.org/wiki/Long_and_short_scales and, for Basque,
+# Euskaltzaindia Araua 7. A language not listed here is short scale.
 _LONG_SCALE_LANGS = {
     "de", "fr", "es", "it", "nl", "pl", "sv", "da", "nb", "nn",
     "gl", "ca", "eu", "cs", "sl", "sk", "hr", "hu", "fi", "et", "ro",
@@ -634,16 +616,11 @@ def pronounce_number(number: Union[int, float], lang: str,
         number = float("nan") if number.is_nan() else float(number)
     if isinstance(number, float) and number != number:
         raise ValueError("cannot pronounce NaN (not a number)")
-    # Infinity is not tied to any named-scale table; handle it uniformly for
-    # every language so no per-language path has to convert it to an integer.
     if isinstance(number, float) and math.isinf(number):
         pos, neg = _INFINITY_WORDS.get(lang2, _INFINITY_WORDS["en"])
         return neg if number < 0 else pos
-    # How a language conventionally reads the digits after the decimal marker
-    # is a property of the language, not of the caller: Spanish and Catalan
-    # read them one by one ("tres coma uno cuatro") while Portuguese composes
-    # them ("três vírgula catorze"). `digits=None` means "use the language's
-    # convention"; an explicit value always wins.
+    # Spanish and Catalan read decimals digit by digit ("tres coma uno
+    # cuatro"), Portuguese composes them ("três vírgula catorze")
     if digits is None:
         digits = _DEFAULT_DIGIT_PRONUNCIATION.get(
             lang2, DigitPronunciation.FULL_NUMBER)
@@ -689,14 +666,11 @@ def pronounce_number(number: Union[int, float], lang: str,
             number, lang, places, short_scale, scientific, ordinals,
             digits, gender, scale, case)
     except (IndexError, KeyError, OverflowError) as error:
-        # A finite number overflowed a language's named-scale table. Kabyle
-        # has a documented finite ceiling (raises above 9999), so keep that
-        # contract; every other language falls back to a spoken scientific
-        # reading rather than crashing. An index or key error on an
-        # ordinary-magnitude number keeps its original error so genuine bugs
-        # are not masked. An OverflowError from 10 ** 12 up is a whole part
-        # past the largest scale compound (a million millions at the
-        # smallest), read scientifically where the connective is localized.
+        # The number overflowed the language's scale table. Kabyle has a
+        # finite ceiling and raises; any other language reads it in
+        # scientific form. An error on a number below 10 ** 15 is a real bug
+        # and propagates. An OverflowError from 10 ** 12 up is a whole part
+        # past the largest scale compound.
         if lang2 != "kab" and (
                 abs(number) >= 10 ** 15
                 or (isinstance(error, OverflowError)
@@ -704,10 +678,9 @@ def pronounce_number(number: Union[int, float], lang: str,
                     and lang2 in _SCIENTIFIC_WORDS)):
             return _pronounce_bignum_fallback(number, lang, places)
         raise
-    # A backend that does not raise past its scale table returns padded or
-    # unread output instead (see _is_spoken_reading). Only composed readings
-    # of large numbers are checked: a digit-by-digit rendering repeats words
-    # legitimately, and Kabyle's finite ceiling is a documented contract.
+    # Past its scale table a backend can return padded or unread output.
+    # Digit-by-digit readings repeat words legitimately, so only composed
+    # readings are checked.
     if abs(number) >= 10 ** 15 and lang2 != "kab" and not scientific:
         # padded scale words are never a reading, so always replace them
         if (isinstance(number, int) or float(number).is_integer()) \
@@ -723,6 +696,9 @@ def pronounce_number(number: Union[int, float], lang: str,
 def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
                                ordinals, digits, gender, scale, case=None):
     lang2 = _base_lang(lang)
+    engine = _NUMBER_ENGINES.get(lang2)
+    if engine:
+        return engine.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang2 == "en":
         return pronounce_number_en(number, places, short_scale, scientific, ordinals)
     if lang2 == "az":
@@ -737,14 +713,6 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
                                    gender=gender)
     if lang2 == "bg":
         return pronounce_number_bg(number, places, short_scale, scientific, ordinals)
-    if lang2 == "ca":
-        return CA.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang2 == "ast":
-        return AST.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang2 == "oc":
-        return OC.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang2 == "an":
-        return AN.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang2 == "cs":
         return pronounce_number_cs(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
@@ -754,12 +722,8 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
     if lang2 == "de":
         return pronounce_number_de(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
-    if lang2 == "gl":
-        return GL.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang2 == "el":
         return pronounce_number_el(number, places, scientific, ordinals)
-    if lang2 == "es":
-        return ES.pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang2 == "eu":
         return pronounce_number_eu(number, places)
     if lang2 == "et":
@@ -807,13 +771,7 @@ def _pronounce_number_dispatch(number, lang, places, short_scale, scientific,
         return pronounce_number_pl(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
     if lang2 == "pt":
-        if _is_brazilian(lang):
-            return PT_BR.pronounce_number(number, places, scale, ordinals, digits, gender)
-        return PT_PT.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang2 == "mwl":
-        return MWL.pronounce_number(number, places, scale, ordinals, digits, gender)
-    if lang2 == "ro":
-        return RO.pronounce_number(number, places, scale, ordinals, digits, gender)
+        return _portuguese(lang).pronounce_number(number, places, scale, ordinals, digits, gender)
     if lang2 == "ru":
         return pronounce_number_ru(number, places, short_scale, scientific, ordinals,
                                    gender=gender)
@@ -1058,24 +1016,13 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = N
     """
     lang2 = _base_lang(lang)
     if lang2 == "pt":
-        return PT_BR.pronounce_fraction(fraction_word, scale=scale) if _is_brazilian(lang) \
-            else PT_PT.pronounce_fraction(fraction_word, scale=scale)
-    elif lang2 == "ast":
-        return AST.pronounce_fraction(fraction_word, scale=scale)
-    elif lang2 == "ca":
-        return CA.pronounce_fraction(fraction_word, scale=scale)
-    elif lang2 == "oc":
-        return OC.pronounce_fraction(fraction_word, scale=scale)
-    elif lang2 == "an":
-        return AN.pronounce_fraction(fraction_word, scale=scale)
-    elif lang2 == "mwl":
-        return MWL.pronounce_fraction(fraction_word, scale=scale)
-    elif lang2 == "gl":
+        return _portuguese(lang).pronounce_fraction(fraction_word, scale=scale)
+    if lang2 == "gl":
         return pronounce_fraction_gl(fraction_word, scale=scale)
-    elif lang2 == "ro":
-        return RO.pronounce_fraction(fraction_word, scale=scale)
-    else:
-        return _pronounce_fraction_generic(fraction_word, lang)
+    engine = _ENGINES.get(lang2)
+    if engine:
+        return engine.pronounce_fraction(fraction_word, scale=scale)
+    return _pronounce_fraction_generic(fraction_word, lang)
 
 
 def pronounce_ordinal(number: Union[int, float], lang: str,
@@ -1126,20 +1073,9 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     short_scale = scale == Scale.SHORT
     lang2 = _base_lang(lang)
     if lang2 == "pt":
-        return PT_BR.pronounce_ordinal(number, scale=scale, gender=gender) if _is_brazilian(lang) \
-            else PT_PT.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang2 == "mwl":
-        return MWL.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang2 == "ro":
-        return RO.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang2 == "ast":
-        return AST.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang2 == "ca":
-        return CA.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang2 == "oc":
-        return OC.pronounce_ordinal(number, scale=scale, gender=gender)
-    if lang2 == "an":
-        return AN.pronounce_ordinal(number, scale=scale, gender=gender)
+        return _portuguese(lang).pronounce_ordinal(number, scale=scale, gender=gender)
+    if lang2 in _ENGINES:
+        return _ENGINES[lang2].pronounce_ordinal(number, scale=scale, gender=gender)
     if lang2 == "az" and (isinstance(number, int) or number.is_integer()) \
             and abs(number) < 10 ** 24:
         # the Azerbaijani engine has no ordinal scale word from 10**24 up
