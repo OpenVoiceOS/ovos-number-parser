@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.5a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.5a2) (2026-11-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.5a1...0.31.5a2)
+
+**Merged pull requests:**
+
+- perf: build each unicode\_rbnf engine once per locale [\#591](https://github.com/OpenVoiceOS/ovos-number-parser/pull/591) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.5a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.5a1) (2026-11-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a10...0.31.5a1)
@@ -392,10 +400,6 @@
 ## [0.24.52a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.52a1) (2026-11-14)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.51a1...0.24.52a1)
-
-**Merged pull requests:**
-
-- fix: a decimal before a scale word counts that scale [\#484](https://github.com/OpenVoiceOS/ovos-number-parser/pull/484) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.51a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.51a1) (2026-11-13)
 
