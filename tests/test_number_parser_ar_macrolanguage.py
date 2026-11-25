@@ -16,7 +16,7 @@ ARA_MEMBERS = [
 
 # members with no table of their own: the literary words, oblique register
 NO_TABLE = [c for c in ARA_MEMBERS
-            if c not in ("acw", "afb", "arz", "ars", "apc", "ary", "aeb", "arq", "arb")]
+            if c not in ("acw", "afb", "arz", "ars", "apc", "ajp", "ary", "aeb", "arq", "arb")]
 
 
 class TestArabicMacrolanguageMembers(unittest.TestCase):

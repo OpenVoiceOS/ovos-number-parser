@@ -5,6 +5,7 @@ package ships. Each expected value is hand arithmetic on the sentence.
 """
 import sys
 import unittest
+from contextlib import contextmanager
 from unittest.mock import patch
 
 from ovos_number_parser import (NumberSpan, extract_number, extract_number_spans,
@@ -12,8 +13,12 @@ from ovos_number_parser import (NumberSpan, extract_number, extract_number_spans
                                 numtag_readers, pronounce_ordinal)
 
 
+@contextmanager
 def routed(*langs):
-    return patch.object(numtag_readers, "NUMTAG_LANGS", frozenset(langs))
+    with patch.object(numtag_readers, "NUMTAG_LANGS", frozenset(langs)):
+        numtag_readers._base.cache_clear()
+        yield
+    numtag_readers._base.cache_clear()
 
 
 class TestRouting(unittest.TestCase):

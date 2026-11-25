@@ -178,7 +178,7 @@ class TestArabicDialectResolution(unittest.TestCase):
         # a lect this engine ships no cardinal table for speaks the literary words
         # in its register; one it does ships its own, which the tests beside
         # AR_LECT_FORMS cover
-        for code in ["ajp", "acm"]:
+        for code in ["acm"]:
             with self.subTest(code=code):
                 self.assertEqual(pronounce_number(2, lang=code), 'اثنين')
                 self.assertEqual(pronounce_number(200, lang=code), 'مئتين')
