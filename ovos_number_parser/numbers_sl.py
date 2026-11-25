@@ -398,9 +398,6 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
         def _long_scale(n):
             if n >= max(_LONG_SCALE_SL.keys()):
                 return ""
-            ordi = ordinals
-            if int(n) != n:
-                ordi = False
             n = int(n)
             assert 0 <= n
             res = []

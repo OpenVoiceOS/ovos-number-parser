@@ -170,10 +170,6 @@ def _get_last_vowel(word):
     return "", is_last
 
 
-def _last_vowel_type(word):
-    return _get_last_vowel(word)[0] in _HARD_VOWELS
-
-
 def _get_ordinal_ak(word):
     """Ordinal suffix (-ıncı/-inci/-uncu/-üncü) by vowel harmony."""
     last_vowel, is_last = _get_last_vowel(word)
@@ -199,25 +195,6 @@ def _get_ordinal_ak(word):
         if is_last:
             return "ncü"
         return "üncü"
-
-
-def _generate_plurals_tr(originals):
-    """
-    Return a new set or dict containing the plural form of the original values,
-
-    In Turkish this means appending 'lar' or 'ler' to them according to the last vowel in word.
-
-    Args:
-        originals set(str) or dict(str, any): values to pluralize
-
-    Returns:
-        set(str) or dict(str, any)
-
-    """
-
-    if isinstance(originals, dict):
-        return {key + ('lar' if _last_vowel_type(key) else 'ler'): value for key, value in originals.items()}
-    return {value + ('lar' if _last_vowel_type(value) else 'ler') for value in originals}
 
 
 def nice_number_tr(number, speech=True, denominators=range(1, 21)):

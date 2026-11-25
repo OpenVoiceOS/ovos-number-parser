@@ -28,12 +28,10 @@ Sources:
 from decimal import Decimal
 from math import floor
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, GrammaticalGender, Scale, warn_reader_removed)
+from ovos_number_parser.util import (convert_to_mixed_fraction, GrammaticalGender, Scale, warn_reader_removed)
 from ovos_number_parser import numtag_readers
 
 # indefinite articles are homographs of "one"
-_ARTICLES_NB = {'en', 'ei', 'et', 'ett'}
-
 #: the numeral 1 before a feminine or neuter noun. Wiktionary "ett" (Norwegian
 #: Bokmål, usage notes): the neuter numeral is "ett", and "the corresponding
 #: masculine and feminine forms are én and éi"; Wiktionary "ei" gives the
@@ -79,31 +77,6 @@ _NUM_STRING_NB = {
 # variants (Bokmålsordboka: "syv" and "sju" are equal Bokmål forms) and the
 # traditional counting words "tyve"/"tredve" documented in
 # https://snl.no/den_gamle_tellem%C3%A5ten
-_STRING_NUM_NB = invert_dict(_NUM_STRING_NB)
-_STRING_NUM_NB.update({
-    'én': 1,
-    'ei': 1,
-    'ett': 1,
-    'syv': 7,
-    'tyve': 20,
-    'tredve': 30,
-})
-
-_SCALE_NB = {
-    'hundre': 100,
-    'tusen': 1000,
-    'million': 1000000,
-    'millioner': 1000000,
-    'milliard': 1000000000,
-    'milliarder': 1000000000,
-    'billion': 1000000000000,
-    'billioner': 1000000000000,
-    'billiard': 1000000000000000,
-    'billiarder': 1000000000000000,
-    'trillion': 1000000000000000000,
-    'trillioner': 1000000000000000000,
-}
-
 # scale words in singular, in ascending order, for pronunciation
 _SCALE_ORDER_NB = ['hundre', 'tusen', 'million', 'milliard',
                    'billion', 'billiard', 'trillion']
@@ -147,14 +120,6 @@ _ORDINAL_STRING_NB = {
 }
 
 # variant ordinal forms accepted when parsing (Bokmålsordboka)
-_STRING_ORDINAL_NB = invert_dict(_ORDINAL_STRING_NB)
-_STRING_ORDINAL_NB.update({
-    'annen': 2,
-    'annet': 2,
-    'syvende': 7,
-    'tyvende': 20,
-})
-
 _FRACTION_STRING_NB = {
     2: 'halv',
     3: 'tredjedel',
@@ -178,25 +143,6 @@ _FRACTION_STRING_NB = {
 }
 
 # variant fraction forms accepted when parsing (Bokmålsordboka)
-_STRING_FRACTION_NB = invert_dict(_FRACTION_STRING_NB)
-_STRING_FRACTION_NB.update({
-    'halvdel': 2,
-    'tredel': 3,
-    'kvart': 4,
-    'firedel': 4,
-    'femdel': 5,
-    'seksdel': 6,
-    'sjudel': 7,
-    'syvendedel': 7,
-    'åttedel': 8,
-    'nidel': 9,
-    'tidel': 10,
-})
-
-_NEGATIVES_NB = {'minus'}
-_NUMBER_CONNECTORS_NB = {'og'}
-_COMMA_NB = {'komma'}
-
 # fraction plural suffix: "to tredjedeler"
 _FRACTION_PLURAL_SUFFIX_NB = 'er'
 
@@ -206,25 +152,14 @@ _TABLES_NB = None  # populated at the end of the module
 class _NorwegianTables:
     """Bundle of the variant-specific word tables used by the engine."""
 
-    def __init__(self, num_string, string_num, scale, scale_order,
-                 ordinal_string, string_ordinal, fraction_string,
-                 string_fraction, articles, negatives, connectors, comma,
-                 fraction_plural_suffix, one_word, one_neuter_word):
+    def __init__(self, num_string, scale_order, ordinal_string,
+                 fraction_string, fraction_plural_suffix, one_word):
         self.num_string = num_string
-        self.string_num = string_num
-        self.scale = scale
         self.scale_order = scale_order
         self.ordinal_string = ordinal_string
-        self.string_ordinal = string_ordinal
         self.fraction_string = fraction_string
-        self.string_fraction = string_fraction
-        self.articles = articles
-        self.negatives = negatives
-        self.connectors = connectors
-        self.comma = comma
         self.fraction_plural_suffix = fraction_plural_suffix
         self.one_word = one_word  # "en" / "ein"
-        self.one_neuter_word = one_neuter_word  # "ett" / "eitt"
 
 
 # ---------------------------------------------------------------------------
@@ -378,110 +313,13 @@ def _nice_number(number, t, speech=True, denominators=range(1, 21)):
 # ---------------------------------------------------------------------------
 
 
-def _split_compound_number(word, t):
-    """Split a compound number word into its component number words.
-
-    Handles both counting traditions:
-    "tjueen" -> ["tjue", "en"] and "enogtyve" -> ["en", "og", "tyve"]
-    "tohundreogfemtiseks" -> ["to", "hundre", "og", "femti", "seks"]
-
-    Returns None if the word is not composed purely of known number words.
-    """
-    if word in t.string_num or word in t.scale:
-        return None
-    keys = sorted(set(t.string_num) | set(t.scale), key=len, reverse=True)
-    parts, rest = [], word
-    while rest:
-        if rest.startswith("og") and parts:
-            candidate = rest[2:]
-            if any(candidate.startswith(k) for k in keys):
-                parts.append("og")
-                rest = candidate
-                continue
-        for k in keys:
-            if rest.startswith(k):
-                parts.append(k)
-                rest = rest[len(k):]
-                break
-        else:
-            return None
-    return parts if len(parts) > 1 else None
-
-
-def _compound_value(parts, t):
-    """Evaluate the numeric value of a split compound number word.
-
-    Simple summation below one hundred covers both counting traditions:
-    tjue + en = enogtyve = 21.
-    """
-    total = current = 0
-    for p in parts:
-        if p == "og":
-            continue
-        v = t.string_num.get(p)
-        if v is None:
-            v = t.scale.get(p)
-            if v is None:
-                return None
-            if v >= 1000:
-                total += max(current, 1) * v
-                current = 0
-            else:  # hundre
-                current = max(current, 1) * 100
-        else:
-            current += v
-    return total + current
-
-
-def _word_value(word, t):
-    """Value of a single (possibly compound) Norwegian number word."""
-    if word in t.string_num:
-        return t.string_num[word]
-    if word in t.scale:
-        return t.scale[word]
-    parts = _split_compound_number(word, t)
-    if parts:
-        return _compound_value(parts, t)
-    return None
-
-
-def _is_ordinal(input_str, t):
-    """Ordinal detection, including compounds like "tjueførste" (21st)."""
-    word = input_str.lower().strip()
-    if word in t.string_ordinal:
-        return t.string_ordinal[word]
-    # compound: cardinal prefix + ordinal tail ("tjueførste", "tohundrede")
-    for tail in sorted(t.string_ordinal, key=len, reverse=True):
-        if word.endswith(tail) and len(word) > len(tail):
-            prefix = word[:-len(tail)]
-            if prefix.endswith("og"):
-                prefix = prefix[:-2]
-            prefix_val = _word_value(prefix, t)
-            if prefix_val is None:
-                continue
-            tail_val = t.string_ordinal[tail]
-            if tail_val >= 100:
-                return max(prefix_val, 1) * tail_val
-            return prefix_val + tail_val
-    return False
-
-
 _TABLES_NB = _NorwegianTables(
     num_string=_NUM_STRING_NB,
-    string_num=_STRING_NUM_NB,
-    scale=_SCALE_NB,
     scale_order=_SCALE_ORDER_NB,
     ordinal_string=_ORDINAL_STRING_NB,
-    string_ordinal=_STRING_ORDINAL_NB,
     fraction_string=_FRACTION_STRING_NB,
-    string_fraction=_STRING_FRACTION_NB,
-    articles=_ARTICLES_NB,
-    negatives=_NEGATIVES_NB,
-    connectors=_NUMBER_CONNECTORS_NB,
-    comma=_COMMA_NB,
     fraction_plural_suffix=_FRACTION_PLURAL_SUFFIX_NB,
     one_word='en',
-    one_neuter_word='ett',
 )
 
 
