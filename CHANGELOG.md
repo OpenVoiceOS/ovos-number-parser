@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.4a10](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a10) (2026-11-25)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a9...0.31.4a10)
+
+**Merged pull requests:**
+
+- test: strict xfail for the Bosnian eleven \(\#589\) [\#590](https://github.com/OpenVoiceOS/ovos-number-parser/pull/590) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.4a9](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.4a9) (2026-11-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.4a8...0.31.4a9)
@@ -396,10 +404,6 @@
 ## [0.24.49a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.49a1) (2026-11-13)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.48a1...0.24.49a1)
-
-**Merged pull requests:**
-
-- fix\(pt\): a half after "mil" is half of one [\#478](https://github.com/OpenVoiceOS/ovos-number-parser/pull/478) ([JarbasAl](https://github.com/JarbasAl))
 
 ## [0.24.48a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.48a1) (2026-11-13)
 
