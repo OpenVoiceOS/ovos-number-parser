@@ -1071,7 +1071,7 @@ def pronounce_fraction(fraction_word: str, lang: str, scale: Optional[Scale] = N
     elif lang2 == "mwl":
         return MWL.pronounce_fraction(fraction_word, scale=scale)
     elif lang2 == "gl":
-        return pronounce_fraction_gl(fraction_word, scale=scale)
+        return GL.pronounce_fraction(fraction_word, scale=scale)
     elif lang2 == "ro":
         return RO.pronounce_fraction(fraction_word, scale=scale)
     else:
@@ -1190,7 +1190,7 @@ def pronounce_ordinal(number: Union[int, float], lang: str,
     if lang2 == "sv":
         return pronounce_ordinal_sv(number)
     if lang2 == "gl":
-        return pronounce_ordinal_gl(number, gender=gender, scale=scale)
+        return GL.pronounce_ordinal(number, scale=scale, gender=gender)
     if lang2 == "cs":
         return pronounce_ordinal_cs(number, gender, short_scale=short_scale)
     if lang2 == "sk":
