@@ -17,7 +17,6 @@ https://ordbokene.no):
 Only the modern tens-first counting order is pronounced; the traditional
 units-first order ("einogtjue") is still accepted when parsing.
 """
-from ovos_number_parser.util import invert_dict
 
 from ovos_number_parser.numbers_nb import (
     _NorwegianTables, _nice_number, _pronounce_number, _pronounce_ordinal,
@@ -25,31 +24,8 @@ from ovos_number_parser.numbers_nb import (
 from ovos_number_parser import numtag_readers
 from ovos_number_parser.util import Scale, warn_reader_removed
 
-_ARTICLES_NN = {'ein', 'ei', 'eit', 'eitt'}
-
 _NUM_STRING_NN = dict(_NUM_STRING_NB)
 _NUM_STRING_NN[1] = 'ein'
-
-_STRING_NUM_NN = invert_dict(_NUM_STRING_NN)
-_STRING_NUM_NN.update({
-    'ei': 1,
-    'eitt': 1,
-})
-
-_SCALE_NN = {
-    'hundre': 100,
-    'tusen': 1000,
-    'million': 1000000,
-    'millionar': 1000000,
-    'milliard': 1000000000,
-    'milliardar': 1000000000,
-    'billion': 1000000000000,
-    'billionar': 1000000000000,
-    'billiard': 1000000000000000,
-    'billiardar': 1000000000000000,
-    'trillion': 1000000000000000000,
-    'trillionar': 1000000000000000000,
-}
 
 _ORDINAL_STRING_NN = {
     0: 'nulte',
@@ -89,12 +65,6 @@ _ORDINAL_STRING_NN = {
     10 ** 18: 'trillionte',
 }
 
-_STRING_ORDINAL_NN = invert_dict(_ORDINAL_STRING_NN)
-_STRING_ORDINAL_NN.update({
-    'fyrste': 1,  # equal Nynorsk form of "første"
-    'tusende': 1000,
-})
-
 _FRACTION_STRING_NN = {
     2: 'halv',
     3: 'tredjedel',
@@ -117,36 +87,13 @@ _FRACTION_STRING_NN = {
     20: 'tjuandedel',
 }
 
-_STRING_FRACTION_NN = invert_dict(_FRACTION_STRING_NN)
-_STRING_FRACTION_NN.update({
-    'halvdel': 2,
-    'tredel': 3,
-    'kvart': 4,
-    'firedel': 4,
-    'femdel': 5,
-    'seksdel': 6,
-    'sjudel': 7,
-    'åttedel': 8,
-    'nidel': 9,
-    'tidel': 10,
-})
-
 _TABLES_NN = _NorwegianTables(
     num_string=_NUM_STRING_NN,
-    string_num=_STRING_NUM_NN,
-    scale=_SCALE_NN,
     scale_order=_SCALE_ORDER_NB,
     ordinal_string=_ORDINAL_STRING_NN,
-    string_ordinal=_STRING_ORDINAL_NN,
     fraction_string=_FRACTION_STRING_NN,
-    string_fraction=_STRING_FRACTION_NN,
-    articles=_ARTICLES_NN,
-    negatives={'minus'},
-    connectors={'og'},
-    comma={'komma'},
     fraction_plural_suffix='ar',
     one_word='ein',
-    one_neuter_word='eitt',
 )
 
 

@@ -191,10 +191,6 @@ def _get_last_vowel(word):
     return "", is_last
 
 
-def _last_vowel_type(word):
-    return _get_last_vowel(word)[0] in _HARD_VOWELS
-
-
 def _get_ordinal_ak(word):
     last_vowel, is_last = _get_last_vowel(word)
     if not last_vowel:
@@ -219,57 +215,6 @@ def _get_ordinal_ak(word):
         if is_last:
             return "ncü"
         return "üncü"
-
-
-def _get_full_time_ak(hour):
-    if hour in [1, 3, 4, 5, 8, 11]:
-        return "ə"
-    if hour in [2, 7, 12]:
-        return "yə"
-    if hour in [9, 10]:
-        return "a"
-    return "ya"
-
-
-def _get_half_time_ak(hour):
-    if hour in [1, 5, 8, 11]:
-        return "in"
-    if hour in [2, 7, 12]:
-        return "nin"
-    if hour in [3, 4]:
-        return "ün"
-    if hour in [9, 10]:
-        return "un"
-    return "nın"
-
-
-def _get_daytime(hour):
-    if hour < 6:
-        return "gecə"
-    if hour < 12:
-        return "səhər"
-    if hour < 18:
-        return "gündüz"
-    return "axşam"
-
-
-def _generate_plurals_az(originals):
-    """
-    Return a new set or dict containing the plural form of the original values,
-
-    In Azerbaijani this means appending 'lar' or 'lər' to them according to the last vowel in word.
-
-    Args:
-        originals set(str) or dict(str, any): values to pluralize
-
-    Returns:
-        set(str) or dict(str, any)
-
-    """
-
-    if isinstance(originals, dict):
-        return {key + ('lar' if _last_vowel_type(key) else 'lər'): value for key, value in originals.items()}
-    return {value + ('lar' if _last_vowel_type(value) else 'lər') for value in originals}
 
 
 def nice_number_az(number, speech=True, denominators=range(1, 21)):
