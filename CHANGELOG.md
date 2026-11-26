@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.5a3](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.5a3) (2026-11-26)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.5a2...0.31.5a3)
+
+**Merged pull requests:**
+
+- test: strict xfail for the Bosnian sixteen \(\#589\) [\#594](https://github.com/OpenVoiceOS/ovos-number-parser/pull/594) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.5a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.5a2) (2026-11-25)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.5a1...0.31.5a2)
@@ -377,25 +385,13 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.54a1...0.24.55a1)
 
-**Merged pull requests:**
-
-- fix\(pt\): read dezena, dúzia and centena as counted groups [\#486](https://github.com/OpenVoiceOS/ovos-number-parser/pull/486) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.54a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.54a1) (2026-11-14)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.53a1...0.24.54a1)
 
-**Merged pull requests:**
-
-- fix: digits before a scale word count that scale [\#487](https://github.com/OpenVoiceOS/ovos-number-parser/pull/487) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.53a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.53a1) (2026-11-14)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.52a1...0.24.53a1)
-
-**Merged pull requests:**
-
-- fix: a comma or a sentence mark ends a spoken number [\#485](https://github.com/OpenVoiceOS/ovos-number-parser/pull/485) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.52a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.52a1) (2026-11-14)
 
