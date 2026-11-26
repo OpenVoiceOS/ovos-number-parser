@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.5a6](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.5a6) (2026-11-26)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.5a5...0.31.5a6)
+
+**Merged pull requests:**
+
+- refactor: dispatch vocabulary engines through one table [\#597](https://github.com/OpenVoiceOS/ovos-number-parser/pull/597) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.5a5](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.5a5) (2026-11-26)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.5a4...0.31.5a5)
@@ -377,10 +385,6 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.56a1...0.24.57a1)
 
-**Merged pull requests:**
-
-- fix\(pt\): digits before a collective noun count groups [\#493](https://github.com/OpenVoiceOS/ovos-number-parser/pull/493) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.56a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.56a1) (2026-11-14)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.55a2...0.24.56a1)
@@ -392,10 +396,6 @@
 ## [0.24.55a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.55a2) (2026-11-14)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.55a1...0.24.55a2)
-
-**Merged pull requests:**
-
-- test\(pt\): pin the article before a half group [\#492](https://github.com/OpenVoiceOS/ovos-number-parser/pull/492) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.55a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.55a1) (2026-11-14)
 
