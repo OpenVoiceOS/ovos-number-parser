@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.5a4](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.5a4) (2026-11-26)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.5a3...0.31.5a4)
+
+**Merged pull requests:**
+
+- refactor: remove dead helpers from util and make Token a NamedTuple [\#595](https://github.com/OpenVoiceOS/ovos-number-parser/pull/595) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.5a3](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.5a3) (2026-11-26)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.5a2...0.31.5a3)
