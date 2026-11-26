@@ -139,7 +139,6 @@ class TestOrdinalAndHelperShims(unittest.TestCase):
 
 class TestPublicCallsDoNotWarn(unittest.TestCase):
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/572")
     def test_pronounce_fraction_gl_does_not_warn(self):
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
@@ -147,7 +146,6 @@ class TestPublicCallsDoNotWarn(unittest.TestCase):
         self.assertEqual(spoken, "tres cuartos")
         self.assertEqual([str(w.message) for w in caught], [])
 
-    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/572")
     def test_pronounce_ordinal_gl_does_not_warn(self):
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
