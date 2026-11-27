@@ -28,9 +28,9 @@ Levantine Arabic, apc Levantine Arabic, apd Sudanese Arabic, arb Standard
 Arabic, arq Algerian Arabic, ars Najdi Arabic, ary Moroccan Arabic, arz
 Egyptian Arabic, auz Uzbeki Arabic, avl Eastern Egyptian Bedawi Arabic, ayh
 Hadrami Arabic, ayl Libyan Arabic, ayn Sanaani Arabic, ayp North Mesopotamian
-Arabic, bbz Babalia Creole Arabic, pga Sudanese Creole Arabic, shu Chadian
-Arabic, ssh Shihhi Arabic. A lect with no table in ``AR_LECT_FORMS`` speaks the
-literary words in the oblique register.
+Arabic, pga Sudanese Creole Arabic, shu Chadian Arabic, ssh Shihhi Arabic. A
+lect with no table in ``AR_LECT_FORMS`` speaks the literary words in the
+oblique register.
 """
 
 import contextvars
@@ -124,7 +124,6 @@ AR_DIALECT_DEFAULT_CASE = {
     "ayh": "oblique",     # Hadrami Arabic
     "ayn": "oblique",     # Sanaani Arabic
     "ayp": "oblique",     # North Mesopotamian Arabic
-    "bbz": "oblique",     # Babalia Creole Arabic
     "pga": "oblique",     # Sudanese Creole Arabic
     "shu": "oblique",     # Chadian Arabic
     "ssh": "oblique",     # Shihhi Arabic

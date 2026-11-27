@@ -11,7 +11,7 @@ from ovos_number_parser import pronounce_number
 ARA_MEMBERS = [
     "aao", "abh", "abv", "acm", "acq", "acw", "acx", "acy", "adf", "aeb",
     "aec", "afb", "ajp", "apc", "apd", "arb", "arq", "ars", "ary", "arz",
-    "auz", "avl", "ayh", "ayl", "ayn", "ayp", "bbz", "pga", "shu", "ssh",
+    "auz", "avl", "ayh", "ayl", "ayn", "ayp", "pga", "shu", "ssh",
 ]
 
 # members with no table of their own: the literary words, oblique register
@@ -20,9 +20,13 @@ NO_TABLE = [c for c in ARA_MEMBERS
 
 
 class TestArabicMacrolanguageMembers(unittest.TestCase):
-    def test_the_list_has_30_distinct_codes(self):
-        self.assertEqual(len(ARA_MEMBERS), 30)
-        self.assertEqual(len(set(ARA_MEMBERS)), 30)
+    def test_the_list_has_29_distinct_codes(self):
+        self.assertEqual(len(ARA_MEMBERS), 29)
+        self.assertEqual(len(set(ARA_MEMBERS)), 29)
+
+    def test_retired_bbz_has_no_default_case(self):
+        from ovos_number_parser.numbers_ar import AR_DIALECT_DEFAULT_CASE
+        self.assertNotIn("bbz", AR_DIALECT_DEFAULT_CASE)
 
     def test_no_member_raises_and_each_says_an_arabic_word(self):
         for code in ARA_MEMBERS:
