@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.31.6a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.6a1) (2026-11-27)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.5a7...0.31.6a1)
+
+**Merged pull requests:**
+
+- fix\(ar\): drop bbz, retired by ISO 639-3 \(CR 2019-013\) [\#605](https://github.com/OpenVoiceOS/ovos-number-parser/pull/605) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.31.5a7](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.5a7) (2026-11-27)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.5a6...0.31.5a7)
@@ -384,10 +392,6 @@
 ## [0.24.58a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.58a1) (2026-11-14)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.57a1...0.24.58a1)
-
-**Merged pull requests:**
-
-- fix\(pt\): a collective noun counts the whole cardinal before it [\#497](https://github.com/OpenVoiceOS/ovos-number-parser/pull/497) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.57a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.57a1) (2026-11-14)
 
