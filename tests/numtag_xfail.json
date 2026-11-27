@@ -4009,22 +4009,13 @@
  "tests/test_number_parser_kab.py::TestExtractNumberKab::test_in_sentence": {
   "": "https://github.com/TigreGotico/numtag/issues/168"
  },
- "tests/test_number_parser_kab.py::TestExtractNumberKab::test_loans": {
-  "": "https://github.com/TigreGotico/numtag/issues/168"
- },
  "tests/test_number_parser_kab.py::TestExtractNumberKab::test_pan_amazigh_proposal": {
-  "": "https://github.com/TigreGotico/numtag/issues/168"
- },
- "tests/test_number_parser_kab.py::TestExtractNumberKab::test_roundtrip_sweep": {
   "": "https://github.com/TigreGotico/numtag/issues/168"
  },
  "tests/test_number_parser_kab.py::TestNumbersToDigitsKab::test_in_sentence": {
   "": "https://github.com/TigreGotico/numtag/issues/168"
  },
  "tests/test_number_parser_kab.py::TestNumbersToDigitsKab::test_punctuation_preserved": {
-  "": "https://github.com/TigreGotico/numtag/issues/168"
- },
- "tests/test_number_parser_kab.py::TestNumbersToDigitsKab::test_roundtrip_sweep": {
   "": "https://github.com/TigreGotico/numtag/issues/168"
  },
  "tests/test_number_parser_nb_nn.py::TestOgCompoundsUnderTheFlag::test_a_fraction_line_answers_its_leading_cardinal_under_the_flag": {
@@ -4211,16 +4202,6 @@
   "lang='en-US', text='one thousand, one'": "https://github.com/TigreGotico/numtag/issues/157",
   "lang='en-US', text='two thousand, twenty three'": "https://github.com/TigreGotico/numtag/issues/157"
  },
- "tests/test_da_vigesimal_ordinals.py::TestVigesimalOrdinals::test_each_ten_in_both_forms": {
-  "word='tressende'": "https://github.com/TigreGotico/numtag/issues/264"
- },
- "tests/test_da_vigesimal_ordinals.py::TestVigesimalOrdinals::test_unit_og_ten": {
-  "word='enogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "word='toogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "word='treogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "word='syvogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "word='niogtressende'": "https://github.com/TigreGotico/numtag/issues/264"
- },
  "tests/test_extraction_misreads.py::TestDutchOrdinalTable::test_ordinals": {
   "word='honderdste'": "https://github.com/TigreGotico/numtag/issues/262",
   "word='miljoenste'": "https://github.com/TigreGotico/numtag/issues/262",
@@ -4388,18 +4369,6 @@
  },
  "tests/test_number_parser_ar_natural_language.py::test_said_converts_to_its_digits[13500-ars]": {
   "": "https://github.com/TigreGotico/numtag/issues/266"
- },
- "tests/test_number_parser_da.py::TestDanishOrdinalRecognition::test_is_ordinal_round_trip_0_to_99": {
-  "number=60, spoken='tressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "number=61, spoken='enogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "number=62, spoken='toogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "number=63, spoken='treogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "number=64, spoken='fireogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "number=65, spoken='femogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "number=66, spoken='seksogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "number=67, spoken='syvogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "number=68, spoken='otteogtressende'": "https://github.com/TigreGotico/numtag/issues/264",
-  "number=69, spoken='niogtressende'": "https://github.com/TigreGotico/numtag/issues/264"
  },
  "tests/test_number_parser_he.py::TestHebrewRoundTrip::test_round_trip_ordinals": {
   "number=2": "https://github.com/TigreGotico/numtag/issues/263",
