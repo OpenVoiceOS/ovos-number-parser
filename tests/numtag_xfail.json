@@ -3997,9 +3997,6 @@
  "tests/test_number_parser_it.py::TestItalianFusedRoundTrip::test_dense_fused_ranges_both_signs": {
   "": "https://github.com/TigreGotico/numtag/issues/168"
  },
- "tests/test_number_parser_kab.py::TestExtractNumberKab::test_amazigh": {
-  "": "https://github.com/TigreGotico/numtag/issues/168"
- },
  "tests/test_number_parser_kab.py::TestExtractNumberKab::test_diacritic_tolerance": {
   "": "https://github.com/TigreGotico/numtag/issues/168"
  },
