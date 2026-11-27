@@ -176,7 +176,7 @@ class TestLevantineCardinals(unittest.TestCase):
         with self.subTest(case='extract_number("تنعشر ألف", lang="apc")'):
             self.assertEqual(extract_number("تنعشر ألف", lang="apc"), 12000)
         with self.subTest(case='extract_number("تنعشر ألف", lang="ar")'):
-            self.assertEqual(extract_number("تنعشر ألف", lang="ar"), 1000)
+            self.assertEqual(extract_number("تنعشر ألف", lang="ar"), 12000)
 
     def test_feminine_keeps_the_literary_words_below_twenty(self):
         self.assertEqual(pronounce_number(3, lang="apc", gender="feminine"), "ثلاث")

@@ -171,7 +171,6 @@
   "text='إدعشر'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='إيدعش'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='حداشل'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='تنعش'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='إطنو'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='اطنعش'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='اطنو'": "https://github.com/TigreGotico/numtag/issues/160",
@@ -239,7 +238,9 @@
   "": "https://github.com/TigreGotico/numtag/issues/160",
   "text='ناس ميتين'": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/553",
   "text='الناس دول ميتين'": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/553",
-  "text='الميتين'": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/553"
+  "text='الميتين'": "https://github.com/OpenVoiceOS/ovos-number-parser/issues/553",
+  "text='يوم التلات'": "https://github.com/TigreGotico/numtag/issues/413",
+  "text='الموعد يوم التلات الجاي'": "https://github.com/TigreGotico/numtag/issues/413"
  },
  "tests/test_number_parser_ar_homographs.py::TestLeftAsWritten::test_or_joins_nothing": {
   "text='مية او اثنين'": "https://github.com/TigreGotico/numtag/issues/160",
@@ -249,21 +250,21 @@
   "text='مية بالمية'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='مية في المية'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='تمويل مية بالمية'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='التلات الف'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='الست'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='الست ساعات'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='ميت الف'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='ميت ريال'": "https://github.com/TigreGotico/numtag/issues/160"
+  "text='ميت ريال'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='يوم التلات مية ريال'": "https://github.com/TigreGotico/numtag/issues/413"
  },
  "tests/test_number_parser_ar_homographs.py::TestLicensed::test_numbers": {
   "text='مية بالمية'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='مية في المية'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='تمويل مية بالمية'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='التلات الف'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='الست'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='الست ساعات'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='ميت الف'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='ميت ريال'": "https://github.com/TigreGotico/numtag/issues/160"
+  "text='ميت ريال'": "https://github.com/TigreGotico/numtag/issues/160",
+  "text='يوم التلات مية ريال'": "https://github.com/TigreGotico/numtag/issues/413"
  },
  "tests/test_number_parser_ar_hundred_units.py::TestHundredUnits::test_a_unit_after_a_filled_hundred_joins_it": {
   "text='كم سعره؟ مية و اربعة مية و اربعة'": "https://github.com/TigreGotico/numtag/issues/160",
@@ -340,7 +341,6 @@
  "tests/test_number_parser_ar_sada_teens.py::TestSadaTeens::test_every_sada_spelling": {
   "text='احداعش'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='إحدعشر'": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='احدعشر'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='حدعشر'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='حداعش'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='احداعشر'": "https://github.com/TigreGotico/numtag/issues/160",
@@ -4257,21 +4257,15 @@
   "text='دفعت الست مليون'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='دفعت ميت الف', scale='الف', factor=1000, word='ميت', value=100": "https://github.com/TigreGotico/numtag/issues/160",
   "text='دفعت ميت مليون', scale='مليون', factor=1000000, word='ميت', value=100": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='دفعت التلات الف', scale='الف', factor=1000, word='التلات', value=3": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='دفعت التلات مليون', scale='مليون', factor=1000000, word='التلات', value=3": "https://github.com/TigreGotico/numtag/issues/160",
   "text='دفعت الاتنين الف', scale='الف', factor=1000, word='الاتنين', value=2": "https://github.com/TigreGotico/numtag/issues/160",
   "text='دفعت الاتنين مليون', scale='مليون', factor=1000000, word='الاتنين', value=2": "https://github.com/TigreGotico/numtag/issues/160",
   "text='دفعت الست الف', scale='الف', factor=1000, word='الست', value=6": "https://github.com/TigreGotico/numtag/issues/160",
-  "text='دفعت الست مليون', scale='مليون', factor=1000000, word='الست', value=6": "https://github.com/TigreGotico/numtag/issues/160",
-  "case='[span.value for span in extract_number_spans(\"يوم التلات الف\", \"ar\")]'": "https://github.com/TigreGotico/numtag/issues/160"
+  "text='دفعت الست مليون', scale='مليون', factor=1000000, word='الست', value=6": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar_hundred_units.py::TestHundredUnits::test_a_ten_before_a_hundred_starts_a_second_number": {
   "text='تلاتين مية وعشرين'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='سبعه وخمسين مية واربعه'": "https://github.com/TigreGotico/numtag/issues/160",
   "text='عشرين مية ريال'": "https://github.com/TigreGotico/numtag/issues/160"
- },
- "tests/test_number_parser_ar_hundred_units.py::TestHundredUnits::test_three_to_nine_build_a_hundred": {
-  "text='تلات مية'": "https://github.com/TigreGotico/numtag/issues/160"
  },
  "tests/test_number_parser_ar_najdi.py::TestSpokenHalf::test_after_and_a_unit_or_ten_it_is_a_half": {
   "text='خمسة ونص'": "https://github.com/TigreGotico/numtag/issues/266",
@@ -4564,8 +4558,7 @@
   "value=12, code='acw'": "https://github.com/TigreGotico/numtag/issues/266",
   "value=12, code='afb'": "https://github.com/TigreGotico/numtag/issues/266",
   "value=18, code='afb'": "https://github.com/TigreGotico/numtag/issues/266",
-  "value=2018, code='afb'": "https://github.com/TigreGotico/numtag/issues/266",
-  "value=12, code='apc'": "https://github.com/TigreGotico/numtag/issues/266"
+  "value=2018, code='afb'": "https://github.com/TigreGotico/numtag/issues/266"
  },
  "tests/test_number_parser_ar_levantine.py::TestLevantineCardinals::test_a_composed_number_reads_back": {
   "value=22": "https://github.com/TigreGotico/numtag/issues/266",
@@ -4579,8 +4572,7 @@
   "case='numbers_to_digits(\"كتاب وتنين ريال\", lang=\"apc\")'": "https://github.com/TigreGotico/numtag/issues/266"
  },
  "tests/test_number_parser_ar_levantine.py::TestLevantineCardinals::test_apc_reads_its_own_three_and_attributive_teens": {
-  "case='extract_number(\"تلتة آلاف\", lang=\"apc\")'": "https://github.com/TigreGotico/numtag/issues/266",
-  "case='extract_number(\"تنعشر ألف\", lang=\"apc\")'": "https://github.com/TigreGotico/numtag/issues/266"
+  "case='extract_number(\"تلتة آلاف\", lang=\"apc\")'": "https://github.com/TigreGotico/numtag/issues/266"
  },
  "tests/test_number_parser_ar_levantine.py::TestLevantineCardinals::test_the_lect_is_off_again_after_a_call": {
   "case='extract_number(\"عندي تنين ريال\", lang=\"apc\")'": "https://github.com/TigreGotico/numtag/issues/266",
@@ -5217,10 +5209,8 @@
   "value=14, form='اربعتاشر', code='arz'": "https://github.com/TigreGotico/numtag/issues/266",
   "value=2, form='تنين', code='apc'": "https://github.com/TigreGotico/numtag/issues/266",
   "value=3, form='تلاتة', code='apc'": "https://github.com/TigreGotico/numtag/issues/266",
-  "value=12, form='تنعش', code='apc'": "https://github.com/TigreGotico/numtag/issues/266",
   "value=3000, form='تلتة آلاف', code='apc'": "https://github.com/TigreGotico/numtag/issues/266",
   "value=11000, form='حدعشر ألف', code='apc'": "https://github.com/TigreGotico/numtag/issues/266",
-  "value=12000, form='تنعشر ألف', code='apc'": "https://github.com/TigreGotico/numtag/issues/266",
   "value=13000, form='تلتعشر ألف', code='apc'": "https://github.com/TigreGotico/numtag/issues/266",
   "value=14000, form='أربعتعشر ألف', code='apc'": "https://github.com/TigreGotico/numtag/issues/266",
   "value=15000, form='خمستعشر ألف', code='apc'": "https://github.com/TigreGotico/numtag/issues/266",
