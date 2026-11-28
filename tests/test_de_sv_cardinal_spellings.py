@@ -1,4 +1,4 @@
-"""German and Swedish cardinal spellings around "tausen"/"tusen"."""
+"""German and Swedish cardinal spellings around "tausend"/"tusen" and larger scales."""
 import unittest
 
 from ovos_number_parser import pronounce_number
@@ -11,6 +11,12 @@ class TestCardinalSpellings(unittest.TestCase):
         self.assertEqual(pronounce_number(201000, "de"),
                          "zweihunderteintausend")
         self.assertEqual(pronounce_number(1000, "de"), "eintausend")
+
+    def test_german_ein_before_million(self):
+        # #612: the form before a scale noun is "ein", even above tausend.
+        self.assertEqual(pronounce_number(101000000, "de"),
+                         "einhundertein Millionen")
+        self.assertEqual(pronounce_number(1000000, "de"), "eine Million")
 
     def test_swedish_ett_joins_tusen(self):
         # The trailing scale separator is intentional in this package.
