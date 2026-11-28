@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.31.6a3](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.6a3) (2026-11-28)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.6a2...0.31.6a3)
+
+**Closed issues:**
+
+- pronounce\_number misspells de "einstausend", it "centootto" and sv "etttusen " [\#585](https://github.com/OpenVoiceOS/ovos-number-parser/issues/585)
+
+**Merged pull requests:**
+
+- ci: release on a merged fork pull request too \(pull\_request\_target\) [\#614](https://github.com/OpenVoiceOS/ovos-number-parser/pull/614) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+- fix: German ein before tausend and Swedish ettusen joining \(\#585\) [\#611](https://github.com/OpenVoiceOS/ovos-number-parser/pull/611) ([mamoun123121314](https://github.com/mamoun123121314))
+
 ## [0.31.6a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.6a2) (2026-11-27)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.6a1...0.31.6a2)
@@ -385,17 +398,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.59a1...0.24.59a2)
 
-**Merged pull requests:**
-
-- docs\(pt\): "um milhão e duas dúzias" is one number, 1000024 [\#502](https://github.com/OpenVoiceOS/ovos-number-parser/pull/502) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.59a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.59a1) (2026-11-15)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.58a1...0.24.59a1)
-
-**Merged pull requests:**
-
-- fix\(pt\): a collective noun ends its number, and milhão is a noun [\#500](https://github.com/OpenVoiceOS/ovos-number-parser/pull/500) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.58a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.58a1) (2026-11-14)
 
