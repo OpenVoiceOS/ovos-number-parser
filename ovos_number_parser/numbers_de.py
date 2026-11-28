@@ -360,8 +360,11 @@ def pronounce_number_de(number, places=2, short_scale=True, scientific=False,
             else:
                 result += "eine " + _NUM_POWERS_OF_TEN[scale_level] + ' '
         elif last_triplet > 1:
-            result += pronounce_triplet_de(last_triplet,
-                                           one if scale_level == 0 else "eins")
+            # Before "tausend" the cardinal is "ein", not "eins":
+            # "einhunderteintausend" (not "einhunderteinstausend").
+            one_for_scale = one if scale_level == 0 else (
+                "ein" if scale_level == 1 else "eins")
+            result += pronounce_triplet_de(last_triplet, one_for_scale)
             if scale_level == 1:
                 # result += _EXTRA_SPACE_DA
                 result += 'tausend' + _EXTRA_SPACE
