@@ -2,10 +2,7 @@ import unittest
 
 from ovos_number_parser import (extract_number, pronounce_number,
                                  pronounce_ordinal, is_ordinal, is_fractional)
-from ovos_number_parser.numbers_eu import (extract_number_eu,
-                                           pronounce_number_eu,
-                                           pronounce_ordinal_eu,
-                                           is_ordinal_eu)
+from ovos_number_parser.numbers_eu import pronounce_number_eu, pronounce_ordinal_eu
 
 
 class TestBasquePronounce(unittest.TestCase):
@@ -92,7 +89,7 @@ class TestBasqueLongScale(unittest.TestCase):
                        10 ** 18):
             with self.subTest(number=number):
                 spoken = pronounce_number_eu(number)
-                self.assertEqual(extract_number_eu(spoken), number,
+                self.assertEqual(extract_number(spoken, lang="eu"), number,
                                  f"{number} spoken as {spoken!r}")
 
     def test_bilioi_is_not_ten_to_the_nine(self):
@@ -105,8 +102,10 @@ class TestBasqueLongScale(unittest.TestCase):
         self.assertIsInstance(pronounce_number(1e-9, lang="eu"), str)
         self.assertIsInstance(pronounce_number(6.022e23, lang="eu"), str)
         self.assertIsInstance(pronounce_number(-1e-12, lang="eu"), str)
-        # a value that rounds away at the requested places carries no koma tail
-        self.assertNotIn('koma', pronounce_number(1e-9, lang="eu"))
+        # a value below the requested places reads up to its first digit
+        self.assertEqual(pronounce_number(1e-9, lang="eu"),
+                         pronounce_number(1e-9, lang="eu", places=9))
+        self.assertIn('bat', pronounce_number(1e-9, lang="eu"))
 
 
 class TestBasqueOrdinals(unittest.TestCase):
@@ -253,10 +252,16 @@ class TestBasqueAdversarial(unittest.TestCase):
     numbers."""
 
     def test_empty_and_junk(self):
-        for text in ["", "   ", "kaixo zer moduz", "eta", "minus",
-                     "hogeitabat"]:
+        for text in ["", "   ", "kaixo zer moduz", "eta", "minus"]:
             with self.subTest(text=text):
                 self.assertIn(extract_number(text, lang="eu"), (False, None))
+
+    def test_the_numeral_written_as_one_word(self):
+        # Euskaltzaindia Araua 7, 4: "hogeitazazpi bezalakoak aurki
+        # daitezke" and "Azken urteotan hogeitazazpi da gehien zabaldu
+        # dena"; "hogeitabat" is the same form for 21
+        self.assertEqual(extract_number("hogeitabat", lang="eu"), 21)
+        self.assertEqual(extract_number("hogeitazazpi", lang="eu"), 27)
 
     def test_junk_around_number(self):
         self.assertEqual(extract_number("xyz 123 abc", lang="eu"), 123)
@@ -270,7 +275,7 @@ class TestBasqueCardinalSweep(unittest.TestCase):
         numbers = list(range(0, 2101)) + list(range(2101, 1_000_001, 997))
         for number in numbers:
             spoken = pronounce_number_eu(number)
-            self.assertEqual(extract_number_eu(spoken), number,
+            self.assertEqual(extract_number(spoken, lang="eu"), number,
                              f"{number} spoken as {spoken!r}")
 
     def test_hundreds_within_thousands(self):
@@ -287,13 +292,13 @@ class TestBasqueCardinalSweep(unittest.TestCase):
             said = pronounce_number_eu(number)
             if spoken is not None:
                 self.assertEqual(said, spoken)
-            self.assertEqual(extract_number_eu(said), number, said)
+            self.assertEqual(extract_number(said, lang="eu"), number, said)
 
     def test_round_trip_millions_sweep(self):
         for number in range(1_000_000, 10_000_001, 4993):
             for signed in (number, -number):
                 spoken = pronounce_number_eu(signed)
-                self.assertEqual(extract_number_eu(spoken), signed,
+                self.assertEqual(extract_number(spoken, lang="eu"), signed,
                                  f"{signed} spoken as {spoken!r}")
 
 
@@ -303,28 +308,35 @@ class TestBasqueOrdinalSweep(unittest.TestCase):
     def test_ordinal_round_trip(self):
         for number in range(1, 1001):
             spoken = pronounce_ordinal_eu(number)
-            self.assertEqual(is_ordinal_eu(spoken), number,
+            self.assertEqual(is_ordinal(spoken, "eu"), number,
                              f"{number} spoken as {spoken!r}")
 
     def test_is_ordinal_rejects_junk(self):
         for text in ["", "garren", "katua", "hogei"]:
             with self.subTest(text=text):
-                self.assertFalse(is_ordinal_eu(text))
+                self.assertFalse(is_ordinal(text, "eu"))
 
 
 class TestBasqueFractions(unittest.TestCase):
     """Basque fraction nouns, including capitalized forms."""
 
     def test_basic(self):
-        self.assertEqual(is_fractional("erdi", lang="eu"), 0.5)
-        self.assertEqual(is_fractional("heren", lang="eu"), 1.0 / 3)
-        self.assertEqual(is_fractional("laurden", lang="eu"), 0.25)
-        self.assertEqual(is_fractional("ehunen", lang="eu"), 0.01)
+        with self.subTest(case='is_fractional("erdi", lang="eu")'):
+            self.assertEqual(is_fractional("erdi", lang="eu"), 0.5)
+        with self.subTest(case='is_fractional("heren", lang="eu")'):
+            self.assertEqual(is_fractional("heren", lang="eu"), 1.0 / 3)
+        with self.subTest(case='is_fractional("laurden", lang="eu")'):
+            self.assertEqual(is_fractional("laurden", lang="eu"), 0.25)
+        with self.subTest(case='is_fractional("ehunen", lang="eu")'):
+            self.assertEqual(is_fractional("ehunen", lang="eu"), 0.01)
 
     def test_capitalized_input_does_not_crash(self):
-        self.assertEqual(is_fractional("Erdi", lang="eu"), 0.5)
-        self.assertEqual(is_fractional("LAURDEN", lang="eu"), 0.25)
-        self.assertEqual(is_fractional("Ehunen", lang="eu"), 0.01)
+        with self.subTest(case='is_fractional("Erdi", lang="eu")'):
+            self.assertEqual(is_fractional("Erdi", lang="eu"), 0.5)
+        with self.subTest(case='is_fractional("LAURDEN", lang="eu")'):
+            self.assertEqual(is_fractional("LAURDEN", lang="eu"), 0.25)
+        with self.subTest(case='is_fractional("Ehunen", lang="eu")'):
+            self.assertEqual(is_fractional("Ehunen", lang="eu"), 0.01)
 
     def test_non_fraction_returns_false(self):
         for word in ["", "kaixo", "bost"]:
@@ -344,6 +356,33 @@ class TestBasqueNonDecimalUnicodeDigits(unittest.TestCase):
         self.assertEqual(extract_number('١', lang="eu"), 1)
         self.assertEqual(extract_number('٢', lang="eu"), 2)
         self.assertEqual(extract_number('٣', lang="eu"), 3)
+
+
+class TestBasqueOrdinalsUnderTheFlag(unittest.TestCase):
+    """ordinals=True reads the -garren ordinal (Euskaltzaindia Araua 18)."""
+
+    LINES = [("hirugarren atea", 3),       # the third door
+             ("bigarren aldiz", 2),         # for the second time
+             ("hamargarren eguna", 10),     # the tenth day
+             ("lehenengo lekua", 1)]        # the first place
+
+    def test_the_flag_reads_the_ordinal(self):
+        for line, value in self.LINES:
+            with self.subTest(line=line):
+                self.assertEqual(extract_number(line, lang="eu",
+                                                ordinals=True), value)
+
+    def test_without_the_flag_no_ordinal_is_read(self):
+        for line, _ in self.LINES:
+            with self.subTest(line=line):
+                self.assertIs(extract_number(line, lang="eu"), False)
+
+    def test_a_cardinal_still_reads_under_the_flag(self):
+        # "eta" joins a hundred or a thousand to the rest ("101 ehun eta
+        # bat", Euskaltzaindia Araua 7), so "bi eta hiru" is the numbers 2
+        # and 3 and the first one is read
+        self.assertEqual(extract_number("bi eta hiru", lang="eu",
+                                        ordinals=True), 2)
 
 
 if __name__ == "__main__":

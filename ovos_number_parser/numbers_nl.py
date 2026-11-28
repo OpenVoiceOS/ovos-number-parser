@@ -14,13 +14,52 @@
 # limitations under the License.
 #
 
-from collections import OrderedDict
+"""Dutch number words.
+
+Rules and sources:
+
+* Cardinals: Taaladvies.net (Nederlandse Taalunie), "Aaneenschrijven van
+  telwoorden (algemeen)", https://taaladvies.net/aaneenschrijven-van-telwoorden/
+  Cardinals are written as one word up to and including "duizend" ("135
+  honderdvijfendertig", "6000 zesduizend"). "Na het woord duizend (en
+  samenstellingen hiermee, zoals vierduizend) staat een spatie": 4002 is
+  "vierduizend twee" and 28 064 is "achtentwintigduizend vierenzestig".
+  "Miljoen en miljard zijn altijd aparte woorden": 3 000 000 is "drie miljoen".
+  Onze Taal, "Getallen uitschrijven",
+  https://onzetaal.nl/taalloket/getallen-uitschrijven, gives the same rule and
+  says it holds for cardinals and ordinals.
+* Ordinals: the same Taaladvies page ("Rangtelwoorden worden gevormd door
+  toevoeging van het achtervoegsel -ste, -de of -e aan het overeenkomstige
+  hoofdtelwoord. Met de hoofdtelwoorden een en drie corresponderen evenwel de
+  rangtelwoorden eerste en derde"; examples "102e honderdentweede", "3220e
+  drieduizend tweehonderdtwintigste", "4 000 000e vier miljoenste"). Onze Taal,
+  "Honderdeneende / honderdeneerste",
+  https://onzetaal.nl/taalloket/honderdeneende-honderdeneerste: "In
+  samengestelde rangtelwoorden ga je van het laatste deel uit:
+  negenhonderdzevende, driehonderdachtste, honderdeneerste"; the forms without
+  "en" ("honderdeerste") are correct as well. The suffix follows the last
+  part: 1 "eerste", 3 "derde", 8 "achtste", the other numbers up to 19 take
+  "-de", tens, "honderd", "duizend" and the scale words take "-ste". The
+  Wiktionary entries "eerste", "derde", "achtste" and "miljoenste" agree.
+  Onze Taal writes the 1001st as "duizendeneerste" and "duizendeerste" in
+  that page; the spacing rule of Taaladvies and of Onze Taal's "Getallen
+  uitschrijven" ("Deze regel geldt zowel voor hoofdtelwoorden als voor
+  rangtelwoorden") wins, so the 1001st is "duizend eerste".
+* Stress mark: Taaladvies.net, "Klemtoonteken (algemeen)": accents are only
+  needed where a misreading threatens, so a number inside a longer number
+  ("tweeduizend een", "honderdeen") takes no accent, and the numeral on its
+  own and before "miljoen" or "miljard" takes "één".
+* Trema: Taaladvies.net, "Klinkerbotsing" ("tweeëntwintig").
+"""
+
+from decimal import Decimal
 from math import floor
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, Token, \
-    ReplaceableNumber, tokenize, partition_list, invert_dict
+from ovos_number_parser.util import convert_to_mixed_fraction, invert_dict
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
+from ovos_number_parser.util import Scale
 
-_ARTICLES_NL = {'de', 'het'}
 
 _NUM_STRING_NL = {
     0: 'nul',
@@ -76,108 +115,6 @@ _FRACTION_STRING_NL = {
     20: 'twintigste'
 }
 
-_LONG_SCALE_NL = OrderedDict([
-    (100, 'honderd'),
-    (1000, 'duizend'),
-    (1000000, 'miljoen'),
-    (1e12, "biljoen"),
-    (1e18, 'triljoen'),
-    (1e24, "quadriljoen"),
-    (1e30, "quintillion"),
-    (1e36, "sextillion"),
-    (1e42, "septillion"),
-    (1e48, "octillion"),
-    (1e54, "nonillion"),
-    (1e60, "decillion"),
-    (1e66, "undecillion"),
-    (1e72, "duodecillion"),
-    (1e78, "tredecillion"),
-    (1e84, "quattuordecillion"),
-    (1e90, "quinquadecillion"),
-    (1e96, "sedecillion"),
-    (1e102, "septendecillion"),
-    (1e108, "octodecillion"),
-    (1e114, "novendecillion"),
-    (1e120, "vigintillion"),
-    (1e306, "unquinquagintillion"),
-    (1e312, "duoquinquagintillion"),
-    (1e336, "sesquinquagintillion"),
-    (1e366, "unsexagintillion")
-])
-
-_SHORT_SCALE_NL = OrderedDict([
-    (100, 'honderd'),
-    (1000, 'duizend'),
-    (1000000, 'miljoen'),
-    (1e9, "miljard"),
-    (1e12, 'biljoen'),
-    (1e15, "quadrillion"),
-    (1e18, "quintiljoen"),
-    (1e21, "sextiljoen"),
-    (1e24, "septiljoen"),
-    (1e27, "octiljoen"),
-    (1e30, "noniljoen"),
-    (1e33, "deciljoen"),
-    (1e36, "undeciljoen"),
-    (1e39, "duodeciljoen"),
-    (1e42, "tredeciljoen"),
-    (1e45, "quattuordeciljoen"),
-    (1e48, "quinquadeciljoen"),
-    (1e51, "sedeciljoen"),
-    (1e54, "septendeciljoen"),
-    (1e57, "octodeciljoen"),
-    (1e60, "novendeciljoen"),
-    (1e63, "vigintiljoen"),
-    (1e66, "unvigintiljoen"),
-    (1e69, "uuovigintiljoen"),
-    (1e72, "tresvigintiljoen"),
-    (1e75, "quattuorvigintiljoen"),
-    (1e78, "quinquavigintiljoen"),
-    (1e81, "qesvigintiljoen"),
-    (1e84, "septemvigintiljoen"),
-    (1e87, "octovigintiljoen"),
-    (1e90, "novemvigintiljoen"),
-    (1e93, "trigintiljoen"),
-    (1e96, "untrigintiljoen"),
-    (1e99, "duotrigintiljoen"),
-    (1e102, "trestrigintiljoen"),
-    (1e105, "quattuortrigintiljoen"),
-    (1e108, "quinquatrigintiljoen"),
-    (1e111, "sestrigintiljoen"),
-    (1e114, "septentrigintiljoen"),
-    (1e117, "octotrigintiljoen"),
-    (1e120, "noventrigintiljoen"),
-    (1e123, "quadragintiljoen"),
-    (1e153, "quinquagintiljoen"),
-    (1e183, "sexagintiljoen"),
-    (1e213, "septuagintiljoen"),
-    (1e243, "octogintiljoen"),
-    (1e273, "nonagintiljoen"),
-    (1e303, "centiljoen"),
-    (1e306, "uncentiljoen"),
-    (1e309, "duocentiljoen"),
-    (1e312, "trescentiljoen"),
-    (1e333, "decicentiljoen"),
-    (1e336, "undecicentiljoen"),
-    (1e363, "viginticentiljoen"),
-    (1e366, "unviginticentiljoen"),
-    (1e393, "trigintacentiljoen"),
-    (1e423, "quadragintacentiljoen"),
-    (1e453, "quinquagintacentiljoen"),
-    (1e483, "sexagintacentiljoen"),
-    (1e513, "septuagintacentiljoen"),
-    (1e543, "ctogintacentiljoen"),
-    (1e573, "nonagintacentiljoen"),
-    (1e603, "ducentiljoen"),
-    (1e903, "trecentiljoen"),
-    (1e1203, "quadringentiljoen"),
-    (1e1503, "quingentiljoen"),
-    (1e1803, "sescentiljoen"),
-    (1e2103, "septingentiljoen"),
-    (1e2403, "octingentiljoen"),
-    (1e2703, "nongentiljoen"),
-    (1e3003, "milliniljoen")
-])
 
 _ORDINAL_STRING_BASE_NL = {
     1: 'eerste',
@@ -207,17 +144,17 @@ _ORDINAL_STRING_BASE_NL = {
     70: "zeventigste",
     80: "tachtigste",
     90: "negentigste",
-    10e3: "honderdste",
+    100: "honderdste",
     1e3: "duizendste"
 }
 
 _SHORT_ORDINAL_STRING_NL = {
-    1e6: "miloenste",
+    1e6: "miljoenste",
     1e9: "miljardste",
     1e12: "biljoenste",
     1e15: "biljardste",
     1e18: "triljoenste",
-    1e21: "trijardste",
+    1e21: "triljardste",
     1e24: "quadriljoenste",
     1e27: "quadriljardste",
     1e30: "quintiljoenste",
@@ -227,12 +164,12 @@ _SHORT_ORDINAL_STRING_NL = {
 _SHORT_ORDINAL_STRING_NL.update(_ORDINAL_STRING_BASE_NL)
 
 _LONG_ORDINAL_STRING_NL = {
-    1e6: "miloenste",
+    1e6: "miljoenste",
     1e9: "miljardste",
     1e12: "biljoenste",
     1e15: "biljardste",
     1e18: "triljoenste",
-    1e21: "trijardste",
+    1e21: "triljardste",
     1e24: "quadriljoenste",
     1e27: "quadriljardste",
     1e30: "quintiljoenste",
@@ -241,23 +178,6 @@ _LONG_ORDINAL_STRING_NL = {
 }
 _LONG_ORDINAL_STRING_NL.update(_ORDINAL_STRING_BASE_NL)
 
-# negate next number (-2 = 0 - 2)
-_NEGATIVES_NL = {"min", "minus"}
-
-# sum the next number (twenty two = 20 + 2)
-_SUMS_NL = {'twintig', '20', 'dertig', '30', 'veertig', '40', 'vijftig', '50',
-            'zestig', '60', 'zeventig', '70', 'techtig', '80', 'negentig',
-            '90'}
-
-_MULTIPLIES_LONG_SCALE_NL = set(_LONG_SCALE_NL.values())
-
-_MULTIPLIES_SHORT_SCALE_NL = set(_SHORT_SCALE_NL.values())
-
-# split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
-_FRACTION_MARKER_NL = {"en"}
-
-# decimal marker ( 1 point 5 = 1 + 0.5)
-_DECIMAL_MARKER_NL = {"komma", "punt"}
 
 _STRING_NUM_NL = invert_dict(_NUM_STRING_NL)
 _STRING_NUM_NL.update({
@@ -268,8 +188,6 @@ _STRING_NUM_NL.update({
     "paar": 2
 })
 
-_STRING_SHORT_ORDINAL_NL = invert_dict(_SHORT_ORDINAL_STRING_NL)
-_STRING_LONG_ORDINAL_NL = invert_dict(_LONG_ORDINAL_STRING_NL)
 
 _MONTHS_NL = ['januari', 'februari', 'maart', 'april', 'mei', 'juni',
               'juli', 'augustus', 'september', 'oktober', 'november',
@@ -400,55 +318,36 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
                                 places):  # fixed number of places even with
         # trailing zeros
         result = ""
-        num = round(num, places)
-        place = 10
-        while places > 0:  # doesn't work with 1.0001 and places = 2: int(
-            # number*place) % 10 > 0 and places > 0:
-            result += " " + _NUM_STRING_NL[int(num * place) % 10]
-            if int(num * place) % 10 == 1:
-                result += ''  # "1" is pronounced "eins" after the decimal
-                # point
-            place *= 10
-            places -= 1
+        for digit in f"{Decimal(str(num)):f}".split(".")[1][:places].ljust(places, "0"):
+            result += " " + _NUM_STRING_NL[int(digit)]
         return result
 
-    def pronounce_whole_number_nl(num, scale_level=0):
-        if num == 0:
-            return ''
-
+    def pronounce_whole_number_nl(num):
+        # Taaladvies.net, "Aaneenschrijven van telwoorden": a space follows
+        # "duizend" and its compounds, and "miljoen", "miljard" ... are
+        # separate words, so every group of the number is its own word.
         num = floor(num)
-        result = ''
-        last_triplet = num % 1000
-
-        if last_triplet == 1:
-            if scale_level == 0:
-                result += "een"
-            elif scale_level == 1:
-                # 1000 is "duizend", not "eenduizend" (same Taalunie rule)
-                result += 'duizend' + _EXTRA_SPACE_NL
-            else:
-                # from a million up the count word IS written ("één miljoen"):
-                # here "een" would read as the article "a million", so the
-                # accented "één" marks the numeral
-                result += "één " + _NUM_POWERS_OF_TEN[scale_level] + ' '
-        elif last_triplet > 1:
-            result += pronounce_triplet_nl(last_triplet)
-            if scale_level == 1:
-                # result += _EXTRA_SPACE_DA
-                result += 'duizend' + _EXTRA_SPACE_NL
-            if scale_level >= 2:
-                # if _EXTRA_SPACE_DA == '':
-                #    result += " "
-                result += " " + _NUM_POWERS_OF_TEN[scale_level] + ' '
-            if scale_level >= 2:
-                if scale_level % 2 == 0:
-                    result += ""  # Miljioen
-                result += ""  # Miljard, Miljoen
-
-        num = floor(num / 1000)
-        scale_level += 1
-        return pronounce_whole_number_nl(num,
-                                         scale_level) + result + ''
+        groups = []
+        scale_level = 0
+        while num:
+            triplet = num % 1000
+            if triplet:
+                if scale_level == 0:
+                    groups.append("een" if triplet == 1
+                                  else pronounce_triplet_nl(triplet))
+                elif scale_level == 1:
+                    # 1000 is "duizend", not "eenduizend" (same Taalunie rule)
+                    groups.append("duizend" if triplet == 1 else
+                                  pronounce_triplet_nl(triplet) + "duizend")
+                else:
+                    # from a million up the count word IS written; "één"
+                    # marks the numeral where "een" would read as the article
+                    count = "één" if triplet == 1 \
+                        else pronounce_triplet_nl(triplet)
+                    groups.append(count + " " + _NUM_POWERS_OF_TEN[scale_level])
+            num //= 1000
+            scale_level += 1
+        return " ".join(reversed(groups))
 
     result = ""
     if abs(number) >= 1000000000000000000000000:  # cannot do more than this
@@ -467,7 +366,6 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             return spoken
         else:
             whole_number_part = floor(number)
-            fractional_part = number - whole_number_part
             whole_spoken = pronounce_whole_number_nl(whole_number_part) or \
                 _NUM_STRING_NL[0]
             if whole_spoken == "een":
@@ -475,7 +373,7 @@ def pronounce_number_nl(number, places=2, short_scale=True, scientific=False,
             result += whole_spoken
             if places > 0:
                 result += " komma"
-                result += pronounce_fractional_nl(fractional_part, places)
+                result += pronounce_fractional_nl(number, places)
             return result
 
 
@@ -483,563 +381,63 @@ def pronounce_ordinal_nl(number):
     """
     This function pronounces a number as an ordinal
 
-    1 -> first
-    2 -> second
+    1 -> eerste
+    2 -> tweede
+    101 -> honderdeerste
+    4002 -> vierduizend tweede
+    1000000 -> miljoenste
+
+    The ending follows the last part of the number: 1, 3 and 8 are irregular
+    ("eerste", "derde", "achtste"), the rest of 1 to 19 take "-de", and the
+    tens and the scale words take "-ste".
+
+    Sources: Taaladvies.net, "Aaneenschrijven van telwoorden (algemeen)"
+    (rangtelwoorden: "-ste, -de of -e" at the matching cardinal, "eerste" and
+    "derde" for 1 and 3, "drieduizend tweehonderdtwintigste", "vier
+    miljoenste"); Onze Taal, "Honderdeneende / honderdeneerste" ("In
+    samengestelde rangtelwoorden ga je van het laatste deel uit:
+    negenhonderdzevende, driehonderdachtste, honderdeneerste"); Onze Taal,
+    "Getallen uitschrijven" (the spacing rule holds for ordinals);
+    Wiktionary nl "eerste", "derde", "achtste".
 
     Args:
         number (int): the number to format
     Returns:
         (str): The pronounced number string.
     """
-    ordinals = ["nulste", "eerste", "tweede", "derde", "vierde", "vijfde",
-                "zesde", "zevende", "achtste"]
     # only for whole positive numbers including zero
     if number < 0 or number != int(number):
         return number
-    if number < 4:
-        return ordinals[number]
-    if number < 8:
-        return pronounce_number_nl(number) + "de"
-    if number < 9:
-        return pronounce_number_nl(number) + "ste"
-    if number < 20:
-        return pronounce_number_nl(number) + "de"
-    return pronounce_number_nl(number) + "ste"
-
-
-def numbers_to_digits_nl(text, short_scale=True, ordinals=False):
-    """Convert words in a string into their equivalent numbers.
-    Args:
-        text str:
-        short_scale boolean: True if short scale numbers should be used.
-        ordinals boolean: True if ordinals (e.g. first, second, third) should
-                          be parsed to their number values (1, 2, 3...)
-
-    Returns:
-        str
-        The original text, with numbers subbed in where appropriate.
-    """
-    text = text.lower()
-    tokens = tokenize(text)
-    numbers_to_replace = \
-        _extract_numbers_with_text_nl(tokens, short_scale, ordinals)
-    numbers_to_replace.sort(key=lambda number: number.start_index)
-
-    results = []
-    for token in tokens:
-        if not numbers_to_replace or \
-                token.index < numbers_to_replace[0].start_index:
-            results.append(token.word)
-        else:
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].start_index:
-                results.append(str(numbers_to_replace[0].value))
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].end_index:
-                numbers_to_replace.pop(0)
-
-    return ' '.join(results)
-
-
-def _extract_numbers_with_text_nl(tokens, short_scale=True,
-                                  ordinals=False, fractional_numbers=True):
-    """Extract all numbers from a list of _Tokens, with the representing words.
-
-    Args:
-        [Token]: The tokens to parse.
-        short_scale bool: True if short scale numbers should be used, False for
-                          long scale. True by default.
-        ordinals bool: True if ordinal words (first, second, third, etc) should
-                       be parsed.
-        fractional_numbers bool: True if we should look for fractions and
-                                 decimals.
-
-    Returns:
-        [_ReplaceableNumber]: A list of tuples, each containing a number and a
-                         string.
-    """
-    placeholder = "<placeholder>"  # inserted to maintain correct indices
-    results = []
-    while True:
-        to_replace = \
-            _extract_number_with_text_nl(tokens, short_scale,
-                                         ordinals, fractional_numbers)
-
-        if not to_replace:
-            break
-
-        results.append(to_replace)
-
-        tokens = [
-            t if not
-            to_replace.start_index <= t.index <= to_replace.end_index
-            else
-            Token(placeholder, t.index) for t in tokens
-        ]
-    results.sort(key=lambda n: n.start_index)
-    return results
-
-
-def _extract_number_with_text_nl(tokens, short_scale=True,
-                                 ordinals=False, fractional_numbers=True):
-    """This function extracts a number from a list of _Tokens.
-
-    Args:
-        tokens str: the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
-        fractional_numbers (bool): True if we should look for fractions and
-                                   decimals.
-    Returns:
-        _ReplaceableNumber
-    """
-    number, tokens = \
-        _extract_number_with_text_nl_helper(tokens, short_scale,
-                                            ordinals, fractional_numbers)
-    while tokens and tokens[0].word in _ARTICLES_NL:
-        tokens.pop(0)
-    return ReplaceableNumber(number, tokens)
-
-
-def _extract_number_with_text_nl_helper(tokens,
-                                        short_scale=True, ordinals=False,
-                                        fractional_numbers=True):
-    """Helper for _extract_number_with_text_nl.
-
-    This contains the real logic for parsing, but produces
-    a result that needs a little cleaning (specific, it may
-    contain leading articles that can be trimmed off).
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-        fractional_numbers boolean:
-
-    Returns:
-        int or float, [_Tokens]
-    """
-    if fractional_numbers:
-        fraction, fraction_text = \
-            _extract_fraction_with_text_nl(tokens, short_scale, ordinals)
-        if fraction:
-            return fraction, fraction_text
-
-        decimal, decimal_text = \
-            _extract_decimal_with_text_nl(tokens, short_scale, ordinals)
-        if decimal:
-            return decimal, decimal_text
-
-    return _extract_whole_number_with_text_nl(tokens, short_scale, ordinals)
-
-
-def _extract_fraction_with_text_nl(tokens, short_scale, ordinals):
-    """Extract fraction numbers from a string.
-
-    This function handles text such as '2 and 3/4'. Note that "one half" or
-    similar will be parsed by the whole number function.
-
-    Args:
-        tokens [Token]: words and their indexes in the original string.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (int or float, [Token])
-        The value found, and the list of relevant tokens.
-        (None, None) if no fraction value is found.
-    """
-    for c in _FRACTION_MARKER_NL:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_nl(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_nl(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=True)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            # ensure first is not a fraction and second is a fraction
-            num1 = numbers1[-1]
-            num2 = numbers2[0]
-            if num1.value >= 1 and 0 < num2.value < 1:
-                return num1.value + num2.value, \
-                       num1.tokens + partitions[1] + num2.tokens
-
-    return None, None
-
-
-def _extract_decimal_with_text_nl(tokens, short_scale, ordinals):
-    """Extract decimal numbers from a string.
-
-    This function handles text such as '2 point 5'.
-
-    Notes:
-        While this is a helper for extractnumber_nl, it also depends on
-        extractnumber_nl, to parse out the components of the decimal.
-
-        This does not currently handle things like:
-            number dot number number number
-
-    Args:
-        tokens [Token]: The text to parse.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (float, [Token])
-        The value found and relevant tokens.
-        (None, None) if no decimal value is found.
-    """
-    for c in _DECIMAL_MARKER_NL:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_nl(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_nl(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=False)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            number = numbers1[-1]
-            decimal = numbers2[0]
-            # concatenate consecutive single digits after the marker
-            # ("point one four" -> .14)
-            _digits = ""
-            _digit_tokens = []
-            _prev_end = None
-            for _num in numbers2:
-                _v = _num.value
-                if _v is None or _v is False or float(_v) != int(_v) \
-                        or not 0 <= _v <= 9:
-                    break
-                if _prev_end is not None and _num.start_index != _prev_end + 1:
-                    break
-                _digits += str(int(_v))
-                _digit_tokens.extend(_num.tokens)
-                _prev_end = _num.end_index
-            if len(_digits) > 1:
-                _frac = float("0." + _digits)
-                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_NL for _t in number.tokens))
-                        else number.value + _frac), \
-                    number.tokens + partitions[1] + _digit_tokens
-
-            # TODO handle number dot number number number
-            if "." not in str(decimal.text):
-                _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_NL for _t in number.tokens))
-                        else number.value + _frac2), \
-                       number.tokens + partitions[1] + decimal.tokens
-    return None, None
-
-
-def _extract_whole_number_with_text_nl(tokens, short_scale, ordinals):
-    """Handle numbers not handled by the decimal or fraction functions.
-
-    This is generally whole numbers. Note that phrases such as "one half" will
-    be handled by this function, while "one and a half" are handled by the
-    fraction function.
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        int or float, [_Tokens]
-        The value parsed, and tokens that it corresponds to.
-    """
-    multiplies, string_num_ordinal, string_num_scale = \
-        _initialize_number_data_nl(short_scale)
-
-    number_words = []  # type: [Token]
-    val = False
-    prev_val = None
-    next_val = None
-    to_sum = []
-    for idx, token in enumerate(tokens):
-        current_val = None
-        if next_val:
-            next_val = None
-            continue
-
-        word = token.word
-        if word in _ARTICLES_NL or word in _NEGATIVES_NL:
-            number_words.append(token)
-            continue
-
-        prev_word = tokens[idx - 1].word if idx > 0 else ""
-        next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
-
-        if word not in string_num_scale and \
-                word not in _STRING_NUM_NL and \
-                word not in _SUMS_NL and \
-                word not in multiplies and \
-                not (ordinals and word in string_num_ordinal) and \
-                not is_numeric(word) and \
-                not is_fractional_nl(word, short_scale=short_scale) and \
-                not look_for_fractions(word.split('/')):
-            words_only = [token.word for token in number_words]
-            if number_words and not all([w in _ARTICLES_NL |
-                                         _NEGATIVES_NL for w in words_only]):
-                break
-            else:
-                number_words = []
-                continue
-        elif word not in multiplies \
-                and prev_word not in multiplies \
-                and prev_word not in _SUMS_NL \
-                and not (ordinals and prev_word in string_num_ordinal) \
-                and prev_word not in _NEGATIVES_NL \
-                and prev_word not in _ARTICLES_NL:
-            number_words = [token]
-        elif prev_word in _SUMS_NL and word in _SUMS_NL:
-            number_words = [token]
-        else:
-            number_words.append(token)
-
-        # is this word already a number ?
-        if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
-            current_val = val
-
-        # is this word the name of a number ?
-        if word in _STRING_NUM_NL:
-            val = _STRING_NUM_NL.get(word)
-            current_val = val
-        elif word in string_num_scale:
-            val = string_num_scale.get(word)
-            current_val = val
-        elif ordinals and word in string_num_ordinal:
-            val = string_num_ordinal[word]
-            current_val = val
-
-        # is the prev word an ordinal number and current word is one?
-        # second one, third one
-        if ordinals and prev_word in string_num_ordinal and val == 1:
-            val = prev_val
-
-        # is the prev word a number and should we sum it?
-        # twenty two, fifty six
-        if prev_word in _SUMS_NL and val and val < 10:
-            if prev_val < 0:
-                # continue a negated number: "minus forty two" = -(40+2)
-                val = prev_val - val
-            else:
-                val = prev_val + val
-
-        # is the prev word a number and should we multiply it?
-        # twenty hundred, six hundred
-        if word in multiplies:
-            if not prev_val:
-                prev_val = 1
-            val = prev_val * val
-
-        # is this a spoken fraction?
-        # half cup
-        if val is False:
-            val = is_fractional_nl(word, short_scale=short_scale)
-            current_val = val
-
-        # 2 fifths
-        if not ordinals:
-            next_val = is_fractional_nl(next_word, short_scale=short_scale)
-            if next_val:
-                if not val:
-                    val = 1
-                val = val * next_val
-                number_words.append(tokens[idx + 1])
-
-        # is this a negative number?
-        if val and prev_word and prev_word in _NEGATIVES_NL:
-            val = 0 - val
-
-        # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            aPieces = word.split('/')
-            if look_for_fractions(aPieces):
-                val = float(aPieces[0]) / float(aPieces[1])
-                current_val = val
-
-        else:
-            if prev_word in _SUMS_NL and word not in _SUMS_NL and current_val >= 10:
-                # Backtrack - we've got numbers we can't sum.
-                number_words.pop()
-                val = prev_val
-                break
-            prev_val = val
-
-            # handle long numbers
-            # six hundred sixty six
-            # two million five hundred thousand
-            if word in multiplies and next_word not in multiplies:
-                to_sum.append(val)
-                val = 0
-                prev_val = 0
-
-    if val is not None and to_sum:
-        # The negative marker only reaches the first scale group, so a spoken
-        # "min vijf miljoen ..." leaves the trailing groups positive. When the
-        # leading group is negative the whole magnitude is, so recombine the
-        # absolute parts and restore the sign once.
-        if to_sum[0] < 0:
-            val = -(abs(val) + sum(abs(part) for part in to_sum))
-        else:
-            val += sum(to_sum)
-
-    return val, number_words
-
-
-def _initialize_number_data_nl(short_scale):
-    """Generate dictionaries of words to numbers, based on scale.
-
-    This is a helper function for _extract_whole_number.
-
-    Args:
-        short_scale boolean:
-
-    Returns:
-        (set(str), dict(str, number), dict(str, number))
-        multiplies, string_num_ordinal, string_num_scale
-    """
-    multiplies = _MULTIPLIES_SHORT_SCALE_NL if short_scale \
-        else _MULTIPLIES_LONG_SCALE_NL
-
-    string_num_ordinal_nl = _STRING_SHORT_ORDINAL_NL if short_scale \
-        else _STRING_LONG_ORDINAL_NL
-
-    string_num_scale_nl = _SHORT_SCALE_NL if short_scale else _LONG_SCALE_NL
-    string_num_scale_nl = invert_dict(string_num_scale_nl)
-
-    return multiplies, string_num_ordinal_nl, string_num_scale_nl
-
-
-def _split_compound_number_nl(word):
-    """
-    Split a Dutch compound number word into its component number words.
-
-    "eenentwintig" -> ["een", "en", "twintig"]
-    "tweehonderddrieentwintig" -> ["twee", "honderd", "drie", "en", "twintig"]
-
-    Returns None if the word is not composed purely of known number words.
-    """
-    if word in _STRING_NUM_NL:
-        return None
-    keys = sorted(set(_STRING_NUM_NL) |
-                  set(_MULTIPLIES_LONG_SCALE_NL) |
-                  set(_MULTIPLIES_SHORT_SCALE_NL),
-                  key=len, reverse=True)
-    parts, rest = [], word
-    while rest:
-        if rest.startswith("en") and parts and rest != "en":
-            candidate = rest[2:]
-            if any(candidate.startswith(k) for k in keys):
-                parts.append("en")
-                rest = candidate
-                continue
-        for k in keys:
-            if rest.startswith(k):
-                parts.append(k)
-                rest = rest[len(k):]
-                break
-        else:
-            return None
-    return parts if len(parts) > 1 else None
-
-
-def _compound_value_nl(parts, short_scale=True):
-    """Evaluate the numeric value of a split compound number word."""
-    scale = _SHORT_SCALE_NL if short_scale else _LONG_SCALE_NL
-    string_scale = invert_dict(scale)
-    # "tweeëneenhalf" == "twee en een half" == 2.5: the "een" before "half"
-    # is the article "a", not an extra unit to add
-    parts = [p for i, p in enumerate(parts)
-             if not (p == "een" and i + 1 < len(parts)
-                     and parts[i + 1] == "half")]
-    total = current = 0
-    for p in parts:
-        if p == "en":
-            continue
-        v = _STRING_NUM_NL.get(p)
-        if v is None:
-            v = string_scale.get(p)
-        if v is None:
-            return None
-        if v >= 1000:
-            total += max(current, 1) * v
-            current = 0
-        elif v == 100:
-            current = max(current, 1) * 100
-        else:
-            current += v
-    return total + current
-
-
-def _expand_compound_numbers_nl(text, short_scale=True):
-    """Rewrite compound number words as their digit value for parsing."""
-    out = []
-    for w in text.split():
-        parts = _split_compound_number_nl(w)
-        if parts:
-            value = _compound_value_nl(parts, short_scale)
-            out.append(str(value) if value is not None else w)
-        else:
-            out.append(w)
-    return " ".join(out)
+    number = int(number)
+    if number >= 10 ** 24:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a Dutch ordinal")
+    if number == 0:
+        return "nulste"
+    spoken = pronounce_number_nl(number)
+    if spoken == "één":
+        return "eerste"
+    if spoken.split(" ")[0] == "één" and len(spoken.split(" ")) == 2:
+        spoken = spoken.split(" ")[1]  # "één miljoen" -> "miljoenste"
+    last = number % 100
+    if last == 1:
+        return spoken[:-len("een")] + "eerste"
+    if last == 3:
+        return spoken[:-len("drie")] + "derde"
+    if last == 8:
+        return spoken + "ste"
+    if 0 < last < 20:
+        return spoken + "de"
+    return spoken + "ste"
 
 
 def extract_number_nl(text, short_scale=True, ordinals=False):
-    """Extract a number from a text string
-
-    The function handles pronunciations in long scale and short scale
-
-    https://en.wikipedia.org/wiki/Names_of_large_numbers
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
-    Returns:
-        (int) or (float) or False: The extracted number or False if no number
-                                   was found
-    """
-    text = text.lower().replace("ë", "e").replace("é", "e")
-    text = _expand_compound_numbers_nl(text, short_scale)
-    return _extract_number_with_text_nl(tokenize(text),
-                                        short_scale, ordinals).value
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "nl")``."""
+    warn_reader_removed("extract_number_nl", 'ovos_number_parser.extract_number(text, "nl")')
+    return numtag_readers.extract_number(text, "nl", short_scale, ordinals)
 
 
-def is_fractional_nl(input_str, short_scale=True):
-    """This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    fracts = {"heel": 1, "half": 2, "halve": 2, "kwart": 4}
-    if short_scale:
-        for num in _SHORT_ORDINAL_STRING_NL:
-            if num > 2:
-                fracts[_SHORT_ORDINAL_STRING_NL[num]] = num
-    else:
-        for num in _LONG_ORDINAL_STRING_NL:
-            if num > 2:
-                fracts[_LONG_ORDINAL_STRING_NL[num]] = num
-
-    if input_str.lower() in fracts:
-        return 1.0 / fracts[input_str.lower()]
-    return False
+def numbers_to_digits_nl(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "nl")``."""
+    warn_reader_removed("numbers_to_digits_nl", 'ovos_number_parser.numbers_to_digits(text, "nl")')
+    return numtag_readers.numbers_to_digits(text, "nl", Scale.SHORT if short_scale else Scale.LONG, ordinals)

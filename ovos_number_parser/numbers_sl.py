@@ -1,7 +1,20 @@
-from math import isfinite
+"""Slovenian number words.
+
+Sources for the writer rules:
+
+* Slovenski pravopis, člen 544, quoted by ZRC SAZU, svetovalnica "Zapis
+  stotic": "Druge glavne števnike pišemo narazen: sto enajst, dva tisoč,
+  sedem milijonov, tristo tisoč sto".
+* Wiktionary, Module:number list/data/sl: 2000 is "dva tisoč" and its
+  ordinal is "dvatisoči". A count of 2 before tisoč or milijon is therefore
+  masculine.
+* Lektorsko društvo Slovenije, Jezikovni pogovor 2014: "leto 2002 pravilno
+  samo kot [dva tisoč dve]". The last digit keeps the counting form "dve".
+"""
+from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import (convert_to_mixed_fraction)
+from ovos_number_parser.util import convert_to_mixed_fraction, scientific_parts
 
 _NUM_STRING_SL = {
     0: 'nič',
@@ -222,9 +235,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus neskončno"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negatives of powers separately from the normal
@@ -293,7 +304,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
                 else:
                     qstr = digits[q]
                 return (qstr + "sto" + (
-                    " " + _sub_thousand(r, ordinals) if r else ""))
+                    " " + _sub_thousand(r, ordinals, is_male) if r else ""))
 
         def _plural_hundreds(n, hundred, ordi=True):
             if hundred[-3:] != "jon":
@@ -331,7 +342,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n >= max(_SHORT_SCALE_SL.keys()):
-                return "neskončno"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -352,8 +363,11 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
                 if z == 1 and i == 1:
                     number = ""
-                elif z > 100 and z % 100 == 2 and not ordi:
-                    number = _sub_thousand(z, not i and ordi, is_male=True)
+                elif z % 100 == 2 and i:
+                    # a count of tisoč or milijon ends in the masculine dva:
+                    # "dva tisoč", "sto dva tisoč"; the units group keeps the
+                    # counting form "dve"
+                    number = _sub_thousand(z, False, is_male=True)
                 elif z > 100 and z % 100 == 3 and not ordi:
                     number = _sub_thousand(z, not i and ordi) + "je"
                 elif z > 1 or i == 0 or ordi:
@@ -383,10 +397,7 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
 
         def _long_scale(n):
             if n >= max(_LONG_SCALE_SL.keys()):
-                return "neskončno"
-            ordi = ordinals
-            if int(n) != n:
-                ordi = False
+                return ""
             n = int(n)
             assert 0 <= n
             res = []
@@ -456,17 +467,19 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "minus ") and num >= 1e6:
+        return result + pronounce_number_sl(
+            num, places, short_scale, scientific=True)
+
     if ordinals:
         result = result.replace(" ", "")
 
-    # deal with scientific notation unpronounceable as number
-    if (not result or result == "neskončno") and "e" in str(num):
-        return pronounce_number_sl(num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "minus " or not result):
+        result += "nič"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "minus " or not result):
-            result += "nič"
-
+    if not num == int(num) and places > 0:
         if int(abs(num)) % 100 == 1:
             result += " cela"
         elif int(abs(num)) % 100 == 2:
@@ -476,220 +489,16 @@ def pronounce_number_sl(num, places=2, short_scale=True, scientific=False,
         else:
             result += " celih"
 
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
     return result
 
 
-_MINUS_SL = ("minus",)
-
-_DECIMAL_MARKERS_SL = ("cela", "celi", "cele", "celih")
-
 # unit word → value map, including the allomorphs used inside compounds
 _STRING_NUM_SL = {word: val for val, word in _NUM_STRING_SL.items()}
 _STRING_NUM_SL["en"] = 1
 _STRING_NUM_SL["eno"] = 1
-_STRING_NUM_SL["dva"] = 2
-_STRING_NUM_SL["trije"] = 3
-
-# scale stems match declined forms too ("milijona", "milijonov", ...)
-_SCALE_STEMS_SHORT_SL = {
-    'tisoč': 1000,
-    'milijon': 1000000,
-    'bilijon': 1000000000,
-    'trilijon': 1000000000000,
-    'kvadrilijon': 1000000000000000,
-    'kvintilijon': 1000000000000000000,
-}
-
-_SCALE_STEMS_LONG_SL = {
-    'tisoč': 1000,
-    'milijon': 1000000,
-    'milijard': 1000000000,
-    'bilijon': 1000000000000,
-    'bilijard': 1000000000000000,
-    'trilijon': 1000000000000000000,
-}
-
-_TENS_WORDS_SL = {word: val for val, word in _NUM_STRING_SL.items()
-                  if 20 <= val <= 90 and val % 10 == 0}
 
 
-def _parse_number_word_sl(word):
-    """Parse a single Slovenian number word into its value, or None.
-
-    Handles simple words ("pet"), in-compounds ("enaindvajset" = 21) and
-    hundred compounds ("dvesto" = 200, "sto" = 100).
-    """
-    word = word.lower().strip()
-    if not word:
-        return None
-    if word in _STRING_NUM_SL:
-        return _STRING_NUM_SL[word]
-    if word == "sto":
-        return 100
-    # "enaindvajset" → ena + in + dvajset
-    for tens_word, tens_val in _TENS_WORDS_SL.items():
-        if word.endswith(tens_word):
-            prefix = word[:-len(tens_word)]
-            if prefix.endswith("in"):
-                unit = prefix[:-2]
-                if unit in _STRING_NUM_SL and _STRING_NUM_SL[unit] < 10:
-                    return tens_val + _STRING_NUM_SL[unit]
-    # "dvesto", "tristo", "sto petdeset" (remainder is a separate token)
-    if word.endswith("sto"):
-        prefix = word[:-3]
-        if not prefix:
-            return 100
-        if prefix in _STRING_NUM_SL and _STRING_NUM_SL[prefix] < 10:
-            return _STRING_NUM_SL[prefix] * 100
-    return None
-
-
-def _parse_scale_word_sl(word, short_scale=True):
-    """Return the scale value for a (possibly declined) Slovenian scale word."""
-    word = word.lower().strip()
-    stems = _SCALE_STEMS_SHORT_SL if short_scale else _SCALE_STEMS_LONG_SL
-    # "milijarda" is unambiguous and only exists in the long scale
-    if word.startswith("milijard") and len(word) - len("milijard") <= 2:
-        return 1000000000
-    for stem, val in stems.items():
-        if word == stem or (word.startswith(stem) and
-                            len(word) - len(stem) <= 2):
-            return val
-    return None
-
-
-def is_fractional_sl(input_str, short_scale=True):
-    """
-    Check if the given word is a Slovenian fraction.
-
-    Accepts the inflected forms used after numerals ("dve tretjini",
-    "pet tretjin") as well as the base form.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, present for API compatibility
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    word = input_str.lower().strip()
-    for den, base in _FRACTION_STRING_SL.items():
-        forms = {base, base[:-1], base[:-1] + 'i', base[:-1] + 'e'}
-        if word in forms:
-            return 1.0 / den
-    return False
-
-
-_ORDINAL_REVERSE_SL = {}
-
-
-def is_ordinal_sl(input_str):
-    """
-    Check if the given word is a Slovenian ordinal number.
-
-    Args:
-        input_str (str): the string to check if ordinal
-    Returns:
-        (bool) or (int): False if not an ordinal, otherwise the number
-    """
-    if not _ORDINAL_REVERSE_SL:
-        candidates = list(range(1, 1000)) + [1000, 1000000]
-        for n in candidates:
-            _ORDINAL_REVERSE_SL[pronounce_number_sl(n, ordinals=True)] = n
-    return _ORDINAL_REVERSE_SL.get(input_str.lower().strip(), False)
-
-
-def extract_number_sl(text, short_scale=True, ordinals=False):
-    """
-    Extract the first number from Slovenian text.
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): use short (True) or long (False) scale
-        ordinals (bool): consider ordinal numbers ("drugi" → 2)
-    Returns:
-        (int, float or False): the extracted number or False if no number
-                               was found
-    """
-    tokens = [t.strip('.,!?;:').lower() for t in text.split()]
-    tokens = [t for t in tokens if t]
-
-    for idx, token in enumerate(tokens):
-        negative = idx > 0 and tokens[idx - 1] in _MINUS_SL
-
-        # digits, including comma decimals
-        cleaned = token.replace(',', '.')
-        try:
-            val = float(cleaned)
-            if isfinite(val):
-                if val == int(val) and '.' not in cleaned:
-                    val = int(val)
-                return -val if negative else val
-        except ValueError:
-            pass
-
-        if ordinals:
-            val = is_ordinal_sl(token)
-            if val is not False:
-                return -val if negative else val
-
-        if _parse_number_word_sl(token) is None and \
-                _parse_scale_word_sl(token, short_scale) is None:
-            frac = is_fractional_sl(token)
-            if frac:
-                return -frac if negative else frac
-            continue
-
-        # accumulate a run of number/scale words starting here
-        total = 0
-        current = 0
-        j = idx
-        while j < len(tokens):
-            tok = tokens[j]
-            scale = _parse_scale_word_sl(tok, short_scale)
-            if scale is not None:
-                total += (current or 1) * scale
-                current = 0
-                j += 1
-                continue
-            v = _parse_number_word_sl(tok)
-            if v is None:
-                try:
-                    v = int(tok)
-                except ValueError:
-                    v = None
-            if v is None:
-                break
-            if v == 100 or (v % 100 == 0 and v < 1000 and current == 0):
-                # "sto" after a unit multiplies implicitly only in compounds,
-                # standalone "sto"/"dvesto" tokens are additive values
-                current += v
-            else:
-                current += v
-            j += 1
-        val = total + current
-
-        # decimals: "pet celih dve tri" → 5.23
-        if j < len(tokens) and tokens[j] in _DECIMAL_MARKERS_SL:
-            digits = ""
-            k = j + 1
-            while k < len(tokens):
-                d = _parse_number_word_sl(tokens[k])
-                if d is None or d > 9:
-                    break
-                digits += str(d)
-                k += 1
-            if digits:
-                val = float(f"{val}.{digits}")
-
-        # fractions: "dve tretjini" → 2/3
-        elif j < len(tokens):
-            frac = is_fractional_sl(tokens[j])
-            if frac:
-                val = val * frac
-
-        return -val if negative else val
-    return False

@@ -13,11 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import re
+from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, Token, ReplaceableNumber)
+from ovos_number_parser.util import (convert_to_mixed_fraction, scientific_parts)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
+from ovos_number_parser.util import Scale
 
 _NUM_STRING_AZ = {
     0: 'sıfır',
@@ -136,9 +138,9 @@ _ORDINAL_BASE_AZ = {
     40: "qırxıncı",
     50: "əllinci",
     60: "altmışıncı",
-    70: "yetmışinci",
+    70: "yetmişinci",
     80: "səksəninci",
-    90: "doxsanınçı",
+    90: "doxsanıncı",
     1e2: "yüzüncü",
     1e3: "mininci"
 }
@@ -173,12 +175,6 @@ _LONG_ORDINAL_AZ = {
 }
 _LONG_ORDINAL_AZ.update(_ORDINAL_BASE_AZ)
 
-# negate next number (-2 = 0 - 2)
-_NEGATIVES_AZ = {"mənfi", "minus"}
-
-# sum the next number (iyirmi iki = 20 + 2)
-_SUMS_AZ = {'on', '10', 'iyirmi', '20', 'otuz', '30', 'qırx', '40', 'əlli', '50',
-            'altmış', '60', 'yetmiş', '70', 'səksən', '80', 'doxsan', '90'}
 
 _HARD_VOWELS = ['a', 'ı', 'o', 'u']
 _SOFT_VOWELS = ['e', 'ə', 'i', 'ö', 'ü']
@@ -193,10 +189,6 @@ def _get_last_vowel(word):
         is_last = False
 
     return "", is_last
-
-
-def _last_vowel_type(word):
-    return _get_last_vowel(word)[0] in _HARD_VOWELS
 
 
 def _get_ordinal_ak(word):
@@ -223,81 +215,6 @@ def _get_ordinal_ak(word):
         if is_last:
             return "ncü"
         return "üncü"
-
-
-def _get_full_time_ak(hour):
-    if hour in [1, 3, 4, 5, 8, 11]:
-        return "ə"
-    if hour in [2, 7, 12]:
-        return "yə"
-    if hour in [9, 10]:
-        return "a"
-    return "ya"
-
-
-def _get_half_time_ak(hour):
-    if hour in [1, 5, 8, 11]:
-        return "in"
-    if hour in [2, 7, 12]:
-        return "nin"
-    if hour in [3, 4]:
-        return "ün"
-    if hour in [9, 10]:
-        return "un"
-    return "nın"
-
-
-def _get_daytime(hour):
-    if hour < 6:
-        return "gecə"
-    if hour < 12:
-        return "səhər"
-    if hour < 18:
-        return "gündüz"
-    return "axşam"
-
-
-def _generate_plurals_az(originals):
-    """
-    Return a new set or dict containing the plural form of the original values,
-
-    In Azerbaijani this means appending 'lar' or 'lər' to them according to the last vowel in word.
-
-    Args:
-        originals set(str) or dict(str, any): values to pluralize
-
-    Returns:
-        set(str) or dict(str, any)
-
-    """
-
-    if isinstance(originals, dict):
-        return {key + ('lar' if _last_vowel_type(key) else 'lər'): value for key, value in originals.items()}
-    return {value + ('lar' if _last_vowel_type(value) else 'lər') for value in originals}
-
-
-_MULTIPLIES_LONG_SCALE_AZ = set(_LONG_SCALE_AZ.values()) | \
-                            set(_LONG_SCALE_AZ.values())
-
-_MULTIPLIES_SHORT_SCALE_AZ = set(_SHORT_SCALE_AZ.values()) | \
-                             set(_SHORT_SCALE_AZ.values())
-
-# split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
-_FRACTION_MARKER_AZ = {"və"}
-
-# decimal marker ( 1 nöqtə 5 = 1 + 0.5)
-_DECIMAL_MARKER_AZ = {"nöqtə"}
-
-_STRING_NUM_AZ = invert_dict(_NUM_STRING_AZ)
-
-_SPOKEN_EXTRA_NUM_AZ = {
-    "yarım": 0.5,
-    "üçdəbir": 1 / 3,
-    "dörddəbir": 1 / 4
-}
-
-_STRING_SHORT_ORDINAL_AZ = invert_dict(_SHORT_ORDINAL_AZ)
-_STRING_LONG_ORDINAL_AZ = invert_dict(_LONG_ORDINAL_AZ)
 
 
 def nice_number_az(number, speech=True, denominators=range(1, 21)):
@@ -368,9 +285,7 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "mənfi sonsuzluq"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negatives of powers separately from the normal
@@ -415,7 +330,9 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
     num = abs(num)
 
     # check for a direct match
-    if num in number_names and not ordinals:
+    if num == 0 and ordinals:
+        result += "sıfır" + _get_ordinal_ak("sıfır")
+    elif num in number_names and not ordinals:
         if num > 1000:
             result += "bir "
         result += number_names[num]
@@ -432,12 +349,15 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                                       else "")
             else:
                 q, r = divmod(n, 100)
-                return (digits[q] + " " if q != 1 else "") + "yüz" + (
-                    " " + _sub_thousand(r, ordinals) if r else "")
+                if r:
+                    tail = " " + _sub_thousand(r, ordinals)
+                else:
+                    tail = _get_ordinal_ak("yüz") if ordinals else ""
+                return (digits[q] + " " if q != 1 else "") + "yüz" + tail
 
         def _short_scale(n):
             if n >= 999 * max(_SHORT_SCALE_AZ.keys()):
-                return "sonsuzluq"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -458,7 +378,9 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
                     if ordi:
 
                         if 1000 ** i in _SHORT_ORDINAL_AZ:
-                            if z == 1:
+                            # "min" is said without "bir"; a larger scale
+                            # word drops it only when it stands alone
+                            if z == 1 and (i == 1 or n == 1000 ** i):
                                 number = _SHORT_ORDINAL_AZ[1000 ** i]
                             else:
                                 number += _SHORT_ORDINAL_AZ[1000 ** i]
@@ -488,7 +410,7 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
 
         def _long_scale(n):
             if n >= max(_LONG_SCALE_AZ.keys()):
-                return "sonsuzluq"
+                return ""
             ordi = ordinals
             if int(n) != n:
                 ordi = False
@@ -510,7 +432,7 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
 
                     if ordi:
                         if 1000000 ** i in _LONG_ORDINAL_AZ:
-                            if z == 1:
+                            if z == 1 and n == 1000000 ** i:
                                 number = _LONG_ORDINAL_AZ[1000000 ** i]
                             else:
                                 number += " " + _LONG_ORDINAL_AZ[1000000 ** i]
@@ -526,6 +448,7 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
 
                         number += " " + hundreds[i + 1]
                 res.append(number)
+                ordi = False
             return ", ".join(reversed(res))
 
         if short_scale:
@@ -533,598 +456,30 @@ def pronounce_number_az(number, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_az(num, places, short_scale, scientific=True)
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "mənfi ") and num >= 1e6:
+        return result + pronounce_number_az(
+            num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "mənfi " or not result):
+        result += "sıfır"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "mənfi " or not result):
-            result += "sıfır"
+    if not num == int(num) and places > 0:
         result += " nöqtə"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
     return result
 
 
-def numbers_to_digits_az(text, short_scale=True, ordinals=False):
-    """
-    Convert words in a string into their equivalent numbers.
-    Args:
-        text str:
-        short_scale boolean: True if short scale numbers should be used.
-        ordinals boolean: True if ordinals (e.g. birinci, ikinci, üçüncü) should
-                          be parsed to their number values (1, 2, 3...)
-
-    Returns:
-        str
-        The original text, with numbers subbed in where appropriate.
-
-    """
-    tokens = tokenize(text)
-    numbers_to_replace = \
-        _extract_numbers_with_text_az(tokens, short_scale, ordinals)
-
-    numbers_to_replace.sort(key=lambda number: number.start_index)
-
-    results = []
-    for token in tokens:
-        if not numbers_to_replace or \
-                token.index < numbers_to_replace[0].start_index:
-            results.append(token.word)
-        else:
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].start_index:
-                results.append(str(numbers_to_replace[0].value))
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].end_index:
-                numbers_to_replace.pop(0)
-
-    return ' '.join(results)
-
-
-def _extract_numbers_with_text_az(tokens, short_scale=True,
-                                  ordinals=False, fractional_numbers=True):
-    """
-    Extract all numbers from a list of Tokens, with the words that
-    represent them.
-
-    Args:
-        [Token]: The tokens to parse.
-        short_scale bool: True if short scale numbers should be used, False for
-                          long scale. True by default.
-        ordinals bool: True if ordinal words (birinci, ikinci, üçüncü, etc) should
-                       be parsed.
-        fractional_numbers bool: True if we should look for fractions and
-                                 decimals.
-
-    Returns:
-        [ReplaceableNumber]: A list of tuples, each containing a number and a
-                         string.
-
-    """
-    placeholder = "<placeholder>"  # inserted to maintain correct indices
-    results = []
-    while True:
-        to_replace = \
-            _extract_number_with_text_az(tokens, short_scale,
-                                         ordinals, fractional_numbers)
-        if not to_replace:
-            break
-
-        results.append(to_replace)
-
-        tokens = [
-            t if not
-            to_replace.start_index <= t.index <= to_replace.end_index
-            else
-            Token(placeholder, t.index) for t in tokens
-        ]
-    results.sort(key=lambda n: n.start_index)
-    return results
-
-
-def _extract_number_with_text_az(tokens, short_scale=True,
-                                 ordinals=False, fractional_numbers=True):
-    """
-    This function extracts a number from a list of Tokens.
-
-    Args:
-        tokens str: the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers
-        fractional_numbers (bool): True if we should look for fractions and
-                                   decimals.
-    Returns:
-        ReplaceableNumber
-
-    """
-    number, tokens = \
-        _extract_number_with_text_az_helper(tokens, short_scale,
-                                            ordinals, fractional_numbers)
-    return ReplaceableNumber(number, tokens)
-
-
-def _extract_number_with_text_az_helper(tokens,
-                                        short_scale=True, ordinals=False,
-                                        fractional_numbers=True):
-    """
-    Helper for _extract_number_with_text_az.
-
-    This contains the real logic for parsing, but produces
-    a result that needs a little cleaning (specific, it may
-    contain leading articles that can be trimmed off).
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-        fractional_numbers boolean:
-
-    Returns:
-        int or float, [Tokens]
-
-    """
-    if fractional_numbers:
-        fraction, fraction_text = \
-            _extract_fraction_with_text_az(tokens, short_scale, ordinals)
-        if fraction:
-            # print("fraction")
-            return fraction, fraction_text
-
-        decimal, decimal_text = \
-            _extract_decimal_with_text_az(tokens, short_scale, ordinals)
-        if decimal:
-            # print("decimal")
-            return decimal, decimal_text
-
-    return _extract_whole_number_with_text_az(tokens, short_scale, ordinals)
-
-
-def _extract_fraction_with_text_az(tokens, short_scale, ordinals):
-    """
-    Extract fraction numbers from a string.
-
-    This function handles text such as '2 və dörddə üç'. Note that "yarım" or
-    similar will be parsed by the whole number function.
-
-    Args:
-        tokens [Token]: words and their indexes in the original string.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (int or float, [Token])
-        The value found, and the list of relevant tokens.
-        (None, None) if no fraction value is found.
-
-    """
-    for c in _FRACTION_MARKER_AZ:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_az(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_az(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=True)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            # ensure first is not a fraction and second is a fraction
-            num1 = numbers1[-1]
-            num2 = numbers2[0]
-            if num1.value >= 1 and 0 < num2.value < 1:
-                return num1.value + num2.value, \
-                       num1.tokens + partitions[1] + num2.tokens
-
-    return None, None
-
-
-def _extract_decimal_with_text_az(tokens, short_scale, ordinals):
-    """
-    Extract decimal numbers from a string.
-
-    This function handles text such as '2 nöqtə 5'.
-
-    Notes:
-        While this is a helper for extractnumber_az, it also depends on
-        extractnumber_az, to parse out the components of the decimal.
-
-        This does not currently handle things like:
-            number dot number number number
-
-    Args:
-        tokens [Token]: The text to parse.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (float, [Token])
-        The value found and relevant tokens.
-        (None, None) if no decimal value is found.
-
-    """
-    for c in _DECIMAL_MARKER_AZ:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_az(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_az(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=False)
-            if not numbers1 or not numbers2:
-                return None, None
-
-            number = numbers1[-1]
-            decimal = numbers2[0]
-            # concatenate consecutive single digits after the marker
-            # ("point one four" -> .14)
-            _digits = ""
-            _digit_tokens = []
-            _prev_end = None
-            for _num in numbers2:
-                _v = _num.value
-                if _v is None or _v is False or float(_v) != int(_v) \
-                        or not 0 <= _v <= 9:
-                    break
-                if _prev_end is not None and _num.start_index != _prev_end + 1:
-                    break
-                _digits += str(int(_v))
-                _digit_tokens.extend(_num.tokens)
-                _prev_end = _num.end_index
-            if len(_digits) > 1:
-                _frac = float("0." + _digits)
-                return (number.value - _frac if number.value < 0
-                        else number.value + _frac), \
-                    number.tokens + partitions[1] + _digit_tokens
-
-            # TODO handle number dot number number number
-            if "." not in str(decimal.text):
-                _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if number.value < 0
-                        else number.value + _frac2), \
-                       number.tokens + partitions[1] + decimal.tokens
-    return None, None
-
-
-def _extract_whole_number_with_text_az(tokens, short_scale, ordinals):
-    """
-    Handle numbers not handled by the decimal or fraction functions. This is
-    generally whole numbers. Note that phrases such as "yarım" will be
-    handled by this function.
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        int or float, [Tokens]
-        The value parsed, and tokens that it corresponds to.
-
-    """
-    multiplies, string_num_ordinal, string_num_scale = \
-        _initialize_number_data_az(short_scale, speech=ordinals is not None)
-
-    number_words = []  # type: List[Token]
-    val = False
-    prev_val = None
-    next_val = None
-    negative = False
-    to_sum = []
-    # print(tokens, ordinals)
-    for idx, token in enumerate(tokens):
-        current_val = None
-        if next_val:
-            next_val = None
-            continue
-
-        word = token.word.lower()
-        if word in _NEGATIVES_AZ:
-            negative = True
-            number_words.append(token)
-            continue
-
-        prev_word = tokens[idx - 1].word.lower() if idx > 0 else ""
-        next_word = tokens[idx + 1].word.lower() if idx + 1 < len(tokens) else ""
-        # print(prev_word, word, next_word, number_words)
-        if word not in string_num_scale and \
-                word not in _STRING_NUM_AZ and \
-                word not in _SUMS_AZ and \
-                word not in multiplies and \
-                not (ordinals and word in string_num_ordinal) and \
-                not is_numeric(word) and \
-                not is_fractional_az(word, short_scale=short_scale) and \
-                not look_for_fractions(word.split('/')):
-            # print("a1")
-            words_only = [token.word for token in number_words]
-
-            if number_words and not all([w.lower() in
-                                         _NEGATIVES_AZ for w in words_only]):
-                break
-            else:
-                number_words = []
-                continue
-        elif word not in multiplies \
-                and word not in _SPOKEN_EXTRA_NUM_AZ \
-                and prev_word not in multiplies \
-                and prev_word not in _SUMS_AZ \
-                and not (ordinals and prev_word in string_num_ordinal) \
-                and prev_word not in _NEGATIVES_AZ:
-            number_words = [token]
-            # print("a2")
-        elif prev_word in _SUMS_AZ and word in _SUMS_AZ:
-            number_words = [token]
-            # print("a3")
-        elif ordinals is None and \
-                (word in string_num_ordinal or word in _SPOKEN_EXTRA_NUM_AZ):
-            # print("a4")
-            # flagged to ignore this token
-            continue
-        else:
-            # print("a5")
-            number_words.append(token)
-
-        # is this word already a number ?
-        if is_numeric(word):
-            # print("b")
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
-            current_val = val
-
-        # is this word the name of a number ?
-        if word in _STRING_NUM_AZ:
-            val = _STRING_NUM_AZ.get(word)
-            current_val = val
-            # print("c1", current_val)
-        elif word in string_num_scale:
-            val = string_num_scale.get(word)
-            current_val = val
-            # print("c2")
-        elif ordinals and word in string_num_ordinal:
-            val = string_num_ordinal[word]
-            current_val = val
-            # print("c3")
-        # is the prev word a number and should we sum it?
-        # twenty two, fifty six
-        if (prev_word in _SUMS_AZ and val and val < 10) or all([prev_word in
-                                                                multiplies,
-                                                                val < prev_val if prev_val else False]):
-            if prev_val < 0:
-                # continue a negated number: "minus forty two" = -(40+2)
-                val = prev_val - val
-            else:
-                val = prev_val + val
-            # print("d")
-
-        # is the prev word a number and should we multiply it?
-        # twenty hundred, six hundred
-        if word in multiplies:
-            if not prev_val:
-                prev_val = 1
-            if current_val is None or prev_val < current_val:
-                val = prev_val * val
-            # else: the scale word is smaller than what came before it, so it
-            # opens a new addend ("min yüz" = 1000 + 100) already accumulated
-            # by the summing branch above rather than a multiplier
-            # print("e")
-
-        # is this a spoken fraction?
-        # 1 yarım fincan - yarım fincan
-        if current_val is None and not (ordinals is None and word in _SPOKEN_EXTRA_NUM_AZ):
-            val = is_fractional_az(word, short_scale=short_scale,
-                                   spoken=ordinals is not None)
-            if val:
-                if prev_val:
-                    val += prev_val
-                current_val = val
-                # print("f", current_val, prev_val)
-                if word in _SPOKEN_EXTRA_NUM_AZ:
-                    break
-
-        # dörddə bir
-        if ordinals is False:
-            temp = prev_val
-            prev_val = is_fractional_az(prev_word, short_scale=short_scale)
-            if prev_val:
-                if not val:
-                    val = 1
-                val = val * prev_val
-                if idx + 1 < len(tokens):
-                    number_words.append(tokens[idx + 1])
-            else:
-                prev_val = temp
-            # print("g", prev_val)
-
-        # is this a negative number?
-        # the sign is applied once to the whole number after parsing,
-        # so no per-token negation happens here
-            # print("h")
-
-        # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            aPieces = word.split('/')
-            if look_for_fractions(aPieces):
-                val = float(aPieces[0]) / float(aPieces[1])
-                current_val = val
-            # print("i")
-
-        else:
-            if current_val and all([
-                prev_word in _SUMS_AZ,
-                word not in _SUMS_AZ,
-                word not in multiplies,
-                current_val >= 10]):
-                # Backtrack - we've got numbers we can't sum.
-                # print("j", number_words, prev_val)
-                number_words.pop()
-                val = prev_val
-                break
-            prev_val = val
-
-            if word in multiplies:
-                # handle long numbers
-                # six hundred sixty six
-                # two million five hundred thousand
-                #
-                # This logic is somewhat complex, and warrants
-                # extensive documentation for the next coder's sake.
-                #
-                # The current word is a power of ten. `current_val` is
-                # its integer value. `val` is our working sum
-                # (above, when `current_val` is 1 million, `val` is
-                # 2 million.)
-                #
-                # We have a dict `string_num_scale` containing [value, word]
-                # pairs for "all" powers of ten: string_num_scale[10] == "ten.
-                #
-                # We need go over the rest of the tokens, looking for other
-                # powers of ten. If we find one, we compare it with the current
-                # value, to see if it's smaller than the current power of ten.
-                #
-                # Numbers which are not powers of ten will be passed over.
-                #
-                # If all the remaining powers of ten are smaller than our
-                # current value, we can set the current value aside for later,
-                # and begin extracting another portion of our final result.
-                # For example, suppose we have the following string.
-                # The current word is "million".`val` is 9000000.
-                # `current_val` is 1000000.
-                #
-                #    "nine **million** nine *hundred* seven **thousand**
-                #     six *hundred* fifty seven"
-                #
-                # Iterating over the rest of the string, the current
-                # value is larger than all remaining powers of ten.
-                #
-                # The if statement passes, and nine million (9000000)
-                # is appended to `to_sum`.
-                #
-                # The main variables are reset, and the main loop begins
-                # assembling another number, which will also be appended
-                # under the same conditions.
-                #
-                # By the end of the main loop, to_sum will be a list of each
-                # "place" from 100 up: [9000000, 907000, 600]
-                #
-                # The final three digits will be added to the sum of that list
-                # at the end of the main loop, to produce the extracted number:
-                #
-                #    sum([9000000, 907000, 600]) + 57
-                # == 9,000,000 + 907,000 + 600 + 57
-                # == 9,907,657
-                #
-                # >>> foo = "nine million nine hundred seven thousand six
-                #            hundred fifty seven"
-                # >>> extract_number(foo)
-                # 9907657
-                # print("k", tokens[idx+1:])
-                time_to_sum = True
-                for other_token in tokens[idx + 1:]:
-                    if other_token.word.lower() in multiplies:
-                        if string_num_scale[other_token.word.lower()] >= current_val:
-                            time_to_sum = False
-                        else:
-                            continue
-                    if not time_to_sum:
-                        break
-                if time_to_sum:
-                    # print("l")
-                    to_sum.append(val)
-                    val = 0
-                    prev_val = 0
-
-    if val is not None and to_sum:
-        # print("m", to_sum)
-        val += sum(to_sum)
-    if negative and val not in (None, False):
-        val = -val
-    # print(val, number_words, "end")
-    return val, number_words
-
-
-def _initialize_number_data_az(short_scale, speech=True):
-    """
-    Generate dictionaries of words to numbers, based on scale.
-
-    This is a helper function for _extract_whole_number.
-
-    Args:
-        short_scale (bool):
-        speech (bool): consider extra words (_SPOKEN_EXTRA_NUM_AZ) to be numbers
-
-    Returns:
-        (set(str), dict(str, number), dict(str, number))
-        multiplies, string_num_ordinal, string_num_scale
-
-    """
-    multiplies = _MULTIPLIES_SHORT_SCALE_AZ if short_scale \
-        else _MULTIPLIES_LONG_SCALE_AZ
-
-    string_num_ordinal_az = _STRING_SHORT_ORDINAL_AZ if short_scale \
-        else _STRING_LONG_ORDINAL_AZ
-
-    string_num_scale_az = _SHORT_SCALE_AZ if short_scale else _LONG_SCALE_AZ
-    string_num_scale_az = invert_dict(string_num_scale_az)
-
-    return multiplies, string_num_ordinal_az, string_num_scale_az
-
-
-def is_fractional_az(input_str, short_scale=True, spoken=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-        spoken (bool):
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-
-    fracts = {"dörddəbir": 4, "yarım": 2, "üçdəbir": 3}
-    for num in _FRACTION_STRING_AZ:
-        if num > 2:
-            fracts[_FRACTION_STRING_AZ[num]] = num
-
-    if input_str.lower() in fracts and spoken:
-        return 1.0 / fracts[input_str.lower()]
-    return False
-
-
 def extract_number_az(text, short_scale=True, ordinals=False):
-    """
-    This function extracts a number from a text string,
-    handles pronunciations in long scale and short scale
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "az")``."""
+    warn_reader_removed("extract_number_az", 'ovos_number_parser.extract_number(text, "az")')
+    return numtag_readers.extract_number(text, "az", short_scale, ordinals)
 
-    https://en.wikipedia.org/wiki/Names_of_large_numbers
 
-    Azerbaijani cardinals are written as separate words (yüz = 100, min =
-    1000, milyon = 1e6): the million group multiplies the group before it,
-    while the thousand and hundred groups form their own additive portions
-    (yüz on = 110, yüz iyirmi beş = 125). Each such group is set aside and
-    summed independently, so a millions group followed by a thousands group
-    accumulates correctly. See "Say (dilçilik)", az.wikipedia.
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers
-    Returns:
-        (int) or (float) or False: The extracted number or False if no number
-                                   was found
-
-    """
-    text = re.sub(r"(?<=[^\W\d]),", " ", text)
-    return _extract_number_with_text_az(tokenize(text.lower()),
-                                        short_scale, ordinals).value
+def numbers_to_digits_az(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "az")``."""
+    warn_reader_removed("numbers_to_digits_az", 'ovos_number_parser.numbers_to_digits(text, "az")')
+    return numtag_readers.numbers_to_digits(text, "az", Scale.SHORT if short_scale else Scale.LONG, ordinals)

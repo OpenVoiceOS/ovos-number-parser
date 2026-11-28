@@ -47,7 +47,6 @@ _AST = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "mil" vs "um mil"  / "cem" vs "um cem"
     NO_PLURAL=[1000],  # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
 
-    NUMBER_OVERFLOW="número exageradamente grande",
     DEFAULT_SCALE=Scale.LONG,
     JOIN_WORD=["y"],
 
@@ -122,9 +121,6 @@ _AST = NumberVocabulary(
         11: 'onceavos',
         12: 'doceavos'
     },
-    FRACTION_FEMALE={
-        2: "media"  # una y media -> 1.5
-    },
     SHORT_SCALE={
         10 ** 6: "millón",
         10 ** 3: "mil"
@@ -144,7 +140,6 @@ _AST = NumberVocabulary(
             1: "una"
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         "unu": 1,
         "oito": 8,  # https://en.wiktionary.org/wiki/ocho#Asturian
@@ -241,13 +236,3 @@ if __name__ == '__main__':
     print('1st (f):', AST.pronounce_ordinal(1, GrammaticalGender.FEMININE))
     print('23rd (m):', AST.pronounce_ordinal(23))
     print('100th:', AST.pronounce_ordinal(100))
-
-    print('\n--- Extraction ---')
-    print("'un millón' ->", AST.extract_number('un millón'))
-    print("'dos millones trescientos' ->", AST.extract_number('dos millones trescientos'))
-    print("'ventiuno' ->", AST.extract_number('ventiuno'))
-    print("'tres cuartos' (fraction word) ->", AST.extract_number('tres cuartos'))
-
-    print('\n--- numbers_to_digits ---')
-    print(AST.numbers_to_digits('hai dos millones cincuenta persoas'))
-    print(AST.numbers_to_digits('merquei ventiuno panes'))

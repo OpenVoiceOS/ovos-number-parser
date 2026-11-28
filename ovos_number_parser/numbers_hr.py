@@ -6,10 +6,12 @@ the count: "tisuću" (1000), "dvije tisuće" (2000), "pet tisuća" (5000),
 "milijun" / "dva milijuna", "milijarda" / "dvije milijarde" / "pet milijardi".
 Croatian uses the long scale (milijun = 1e6, milijarda = 1e9, bilijun = 1e12).
 """
+from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token
+from ovos_number_parser.util import convert_to_mixed_fraction, invert_dict, scientific_parts
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _NUM_STRING_HR = {
     0: 'nula',
@@ -132,43 +134,6 @@ _SHORT_ORDINAL_HR = {
 }
 _SHORT_ORDINAL_HR.update(_ORDINAL_BASE_HR)
 
-# negate next number (-2 = 0 - 2)
-_NEGATIVES = {"minus"}
-
-# words that continue a number ("dvadeset i jedan" = 21)
-_CONNECTORS = {"i"}
-
-# sum the next number (dvadeset dva = 20 + 2, sto deset = 100 + 10)
-_SUMS = {'dvadeset', '20', 'trideset', '30', 'četrdeset', '40', 'pedeset', '50',
-         'šezdeset', '60', 'sedamdeset', '70', 'osamdeset', '80', 'devedeset', '90',
-         'sto', '100', 'dvjesto', '200', 'tristo', '300', 'četiristo', '400',
-         'petsto', '500', 'šesto', '600', 'sedamsto', '700', 'osamsto', '800',
-         'devetsto', '900'}
-
-# declined forms of the scale words used when speaking multiples
-_SCALE_DECLENSIONS_HR = {
-    "tisuću": 1e3,
-    "tisuće": 1e3,
-    "milijuna": 1e6,
-    "milijardu": 1e9,
-    "milijarde": 1e9,
-    "milijardi": 1e9,
-    "bilijuna": 1e12,
-    "bilijarde": 1e15,
-    "bilijardi": 1e15,
-    "trilijuna": 1e18,
-    "trilijarde": 1e21,
-    "trilijardi": 1e21,
-    "kvadrilijuna": 1e24,
-}
-
-_MULTIPLIES_HR = set(_SCALE_HR.values()) | set(_SCALE_DECLENSIONS_HR)
-
-# split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
-_FRACTION_MARKER = {"i"}
-
-# decimal marker ( 1 point 5 = 1 + 0.5)
-_DECIMAL_MARKER = {"zarez", "cijela", "cijele", "cijelih", "točka"}
 
 _STRING_NUM_HR = invert_dict(_NUM_STRING_HR)
 _STRING_NUM_HR.update({
@@ -179,8 +144,6 @@ _STRING_NUM_HR.update({
     "pola": 0.5,
     "pol": 0.5,
 })
-
-_STRING_SHORT_ORDINAL_HR = invert_dict(_SHORT_ORDINAL_HR)
 
 
 def plural_hr(num: int, one: str, few: str, many: str):
@@ -271,9 +234,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "minus beskonačnost"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             return '{}{} puta deset na {}{}'.format(
                 'minus ' if float(n) < 0 else '',
@@ -281,7 +242,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
                     abs(float(n)), places, short_scale, False, ordinals=False),
                 'minus ' if power < 0 else '',
                 pronounce_number_hr(abs(power), places, short_scale, False,
-                                    ordinals=True))
+                                    ordinals=False))
 
     number_names = _NUM_STRING_HR.copy()
     number_names.update(_SCALE_HR)
@@ -321,7 +282,7 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
 
         def _scale_hr(n):
             if n > max(_SCALE_HR.keys()):
-                return "beskonačnost"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -385,15 +346,17 @@ def pronounce_number_hr(number, places=2, short_scale=True, scientific=False,
 
         result += _scale_hr(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_hr(num, places, short_scale, scientific=True)
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "minus ") and num >= 1e6:
+        return result + pronounce_number_hr(
+            num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "minus " or not result):
+        result += "nula"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "minus " or not result):
-            result += "nula"
+    if not num == int(num) and places > 0:
         result += " zarez"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
@@ -430,533 +393,7 @@ def pronounce_ordinal_hr(number):
     raise NotImplementedError(f"cannot pronounce {number} as a Croatian ordinal")
 
 
-def numbers_to_digits_hr(text, short_scale=True, ordinals=False):
-    """
-    Convert words in a string into their equivalent numbers.
-    Args:
-        text str:
-        short_scale boolean: ignored, Croatian only uses the long scale
-        ordinals boolean: True if ordinals (e.g. first, second, third) should
-                          be parsed to their number values (1, 2, 3...)
-
-    Returns:
-        str
-        The original text, with numbers subbed in where appropriate.
-
-    """
-    text = text.lower()
-    tokens = _drop_connectors_hr(tokenize(text))
-    numbers_to_replace = \
-        _extract_numbers_with_text_hr(tokens, short_scale, ordinals)
-    numbers_to_replace.sort(key=lambda number: number.start_index)
-
-    results = []
-    for token in tokens:
-        if not numbers_to_replace or \
-                token.index < numbers_to_replace[0].start_index:
-            results.append(token.word)
-        else:
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].start_index:
-                results.append(str(numbers_to_replace[0].value))
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].end_index:
-                numbers_to_replace.pop(0)
-
-    return ' '.join(results)
-
-
-def _extract_numbers_with_text_hr(tokens, short_scale=True,
-                                  ordinals=False, fractional_numbers=True):
-    """
-    Extract all numbers from a list of Tokens, with the words that
-    represent them.
-
-    Args:
-        [Token]: The tokens to parse.
-        short_scale bool: ignored, Croatian only uses the long scale
-        ordinals bool: True if ordinal words (first, second, third, etc) should
-                       be parsed.
-        fractional_numbers bool: True if we should look for fractions and
-                                 decimals.
-
-    Returns:
-        [ReplaceableNumber]: A list of tuples, each containing a number and a
-                         string.
-
-    """
-    placeholder = "<placeholder>"  # inserted to maintain correct indices
-    results = []
-    while True:
-        to_replace = \
-            _extract_number_with_text_hr(tokens, short_scale,
-                                         ordinals, fractional_numbers)
-
-        if not to_replace:
-            break
-
-        results.append(to_replace)
-
-        tokens = [
-            t if not
-            to_replace.start_index <= t.index <= to_replace.end_index
-            else
-            Token(placeholder, t.index) for t in tokens
-        ]
-    results.sort(key=lambda n: n.start_index)
-    return results
-
-
-def _extract_number_with_text_hr(tokens, short_scale=True,
-                                 ordinals=False, fractional_numbers=True):
-    """
-    This function extracts a number from a list of Tokens.
-
-    Args:
-        tokens str: the string to normalize
-        short_scale (bool): ignored, Croatian only uses the long scale
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
-        fractional_numbers (bool): True if we should look for fractions and
-                                   decimals.
-    Returns:
-        ReplaceableNumber
-
-    """
-    number, tokens = \
-        _extract_number_with_text_hr_helper(tokens, short_scale,
-                                            ordinals, fractional_numbers)
-    return ReplaceableNumber(number, tokens)
-
-
-def _extract_number_with_text_hr_helper(tokens,
-                                        short_scale=True, ordinals=False,
-                                        fractional_numbers=True):
-    """
-    Helper for _extract_number_with_text_hr.
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-        fractional_numbers boolean:
-
-    Returns:
-        int or float, [Tokens]
-
-    """
-    if fractional_numbers:
-        fraction, fraction_text = \
-            _extract_fraction_with_text_hr(tokens, short_scale, ordinals)
-        if fraction:
-            return fraction, fraction_text
-
-        decimal, decimal_text = \
-            _extract_decimal_with_text_hr(tokens, short_scale, ordinals)
-        if decimal:
-            return decimal, decimal_text
-
-    return _extract_whole_number_with_text_hr(tokens, short_scale, ordinals)
-
-
-def _extract_fraction_with_text_hr(tokens, short_scale, ordinals):
-    """
-    Extract fraction numbers from a string ("dva i pol" = 2.5).
-
-    Args:
-        tokens [Token]: words and their indexes in the original string.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (int or float, [Token])
-        The value found, and the list of relevant tokens.
-        (None, None) if no fraction value is found.
-
-    """
-    for c in _FRACTION_MARKER:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_hr(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_hr(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=True)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            # ensure first is not a fraction and second is a fraction
-            num1 = numbers1[-1]
-            num2 = numbers2[0]
-            if num1.value >= 1 and 0 < num2.value < 1:
-                return num1.value + num2.value, \
-                       num1.tokens + partitions[1] + num2.tokens
-
-    return None, None
-
-
-def _extract_decimal_with_text_hr(tokens, short_scale, ordinals):
-    """
-    Extract decimal numbers from a string ("pet zarez dva" = 5.2).
-
-    Notes:
-        While this is a helper for extract_number_hr, it also depends on
-        extract_number_hr, to parse out the components of the decimal.
-
-        This does not currently handle things like:
-            number dot number number number
-
-    Args:
-        tokens [Token]: The text to parse.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (float, [Token])
-        The value found and relevant tokens.
-        (None, None) if no decimal value is found.
-
-    """
-    for c in _DECIMAL_MARKER:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_hr(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_hr(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=False)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            number = numbers1[-1]
-            decimal = numbers2[0]
-            # concatenate consecutive single digits after the marker
-            # ("zarez jedan četiri" -> .14)
-            _digits = ""
-            _digit_tokens = []
-            _prev_end = None
-            for _num in numbers2:
-                _v = _num.value
-                if _v is None or _v is False or float(_v) != int(_v) \
-                        or not 0 <= _v <= 9:
-                    break
-                if _prev_end is not None and _num.start_index != _prev_end + 1:
-                    break
-                _digits += str(int(_v))
-                _digit_tokens.extend(_num.tokens)
-                _prev_end = _num.end_index
-            if len(_digits) > 1:
-                _frac = float("0." + _digits)
-                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES for _t in number.tokens))
-                        else number.value + _frac), \
-                    number.tokens + partitions[1] + _digit_tokens
-
-            # TODO handle number dot number number number
-            if "." not in str(decimal.text):
-                _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES for _t in number.tokens))
-                        else number.value + _frac2), \
-                       number.tokens + partitions[1] + decimal.tokens
-    return None, None
-
-
-def _extract_whole_number_with_text_hr(tokens, short_scale, ordinals):
-    """
-    Handle numbers not handled by the decimal or fraction functions. This is
-    generally whole numbers.
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        int or float, [Tokens]
-        The value parsed, and tokens that it corresponds to.
-
-    """
-    multiplies, string_num_ordinal, string_num_scale = \
-        _initialize_number_data(short_scale)
-
-    number_words = []  # type: [Token]
-    val = False
-    prev_val = None
-    next_val = None
-    negative = False
-    to_sum = []
-    for idx, token in enumerate(tokens):
-        current_val = None
-        if next_val:
-            next_val = None
-            continue
-
-        word = token.word
-        if word in _NEGATIVES:
-            negative = True
-            number_words.append(token)
-            continue
-
-        prev_word = tokens[idx - 1].word if idx > 0 else ""
-        next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
-
-        # In Croatian ordinals in digits are written with a trailing
-        # point (1., 2., ...)
-        if is_numeric(word[:-1]) and \
-                (word.endswith(".")):
-            word = word[:-1]
-
-        # Normalize Croatian gender inflection (jedan, jedna, jedno, ...)
-        if not ordinals:
-            word = _text_hr_inflection_normalize(word)
-
-        if word not in string_num_scale and \
-                word not in _STRING_NUM_HR and \
-                word not in _SUMS and \
-                word not in multiplies and \
-                not (ordinals and word in string_num_ordinal) and \
-                not is_numeric(word) and \
-                not is_fractional_hr(word, short_scale=short_scale) and \
-                not look_for_fractions(word.split('/')):
-            words_only = [token.word for token in number_words]
-            if number_words and not all([w in _NEGATIVES for w in words_only]):
-                break
-            else:
-                number_words = []
-                continue
-        elif word not in multiplies \
-                and prev_word not in multiplies \
-                and prev_word not in _SUMS \
-                and not (ordinals and prev_word in string_num_ordinal) \
-                and prev_word not in _NEGATIVES:
-            number_words = [token]
-        elif prev_word in _SUMS and word in _SUMS:
-            number_words = [token]
-        else:
-            number_words.append(token)
-
-        # is this word already a number ?
-        if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
-            current_val = val
-
-        # is this word the name of a number ?
-        if word in _STRING_NUM_HR:
-            val = _STRING_NUM_HR.get(word)
-            current_val = val
-        elif word in string_num_scale:
-            val = string_num_scale.get(word)
-            current_val = val
-        elif ordinals and word in string_num_ordinal:
-            val = string_num_ordinal[word]
-            current_val = val
-
-        # is the prev word an ordinal number and current word is one?
-        if ordinals and prev_word in string_num_ordinal and val == 1:
-            val = prev_val
-
-        # is the prev word a number and should we sum it?
-        # dvadeset dva, pedeset šest
-        if (prev_word in _SUMS and val and val < 10) \
-                or (prev_word in _SUMS and val and val < 100 and prev_val >= 100) \
-                or all([prev_word in multiplies, word not in multiplies,
-                        val < prev_val if prev_val else False]):
-            if prev_val < 0:
-                # continue a negated number: "minus četrdeset dva" = -(40+2)
-                val = prev_val - val
-            else:
-                val = prev_val + val
-
-        # is the prev word a number and should we multiply it?
-        # dvije tisuće, šest milijuna
-        if word in multiplies:
-            if not prev_val:
-                prev_val = 1
-            if prev_val >= current_val:
-                # a bare larger scale already sits in prev_val ("milijun
-                # tisuću"): this smaller scale word opens a new additive group
-                # of one, rather than multiplying the larger scale by itself
-                to_sum.append(prev_val)
-                prev_val = 1
-            val = prev_val * val
-
-        # is this a spoken fraction?
-        # pola šalice
-        if val is False:
-            val = is_fractional_hr(word, short_scale=short_scale)
-            current_val = val
-
-        # 2 petine
-        if not ordinals:
-            next_val = is_fractional_hr(next_word, short_scale=short_scale)
-            if next_val:
-                if not val:
-                    val = 1
-                val = val * next_val
-                number_words.append(tokens[idx + 1])
-
-        # the sign is applied once to the whole number after parsing,
-        # so no per-token negation happens here
-
-        # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            a_pieces = word.split('/')
-            if look_for_fractions(a_pieces):
-                val = float(a_pieces[0]) / float(a_pieces[1])
-        else:
-            if all([
-                prev_word in _SUMS,
-                word not in _SUMS,
-                word not in multiplies,
-                current_val >= 10,
-                # teens continue a preceding hundred ("sto deset" = 110)
-                not (prev_val and prev_val >= 100 and current_val < 100)
-            ]):
-                # Backtrack - we've got numbers we can't sum.
-                number_words.pop()
-                val = prev_val
-                break
-            prev_val = val
-
-            if word in multiplies and next_word not in multiplies:
-                # handle long numbers
-                # šesto šezdeset šest
-                # dva milijuna petsto tisuća
-                #
-                # If all remaining scale words are smaller than the
-                # current one, set the current group aside in to_sum
-                # and start assembling the next group.
-                time_to_sum = True
-                for other_token in tokens[idx + 1:]:
-                    if other_token.word in multiplies:
-                        if string_num_scale[other_token.word] >= current_val:
-                            time_to_sum = False
-                        else:
-                            continue
-                    if not time_to_sum:
-                        break
-                if time_to_sum:
-                    to_sum.append(val)
-                    val = 0
-                    prev_val = 0
-
-    if val is not None and to_sum:
-        val += sum(to_sum)
-    if negative and val not in (None, False):
-        val = -val
-
-    return val, number_words
-
-
-def _initialize_number_data(short_scale):
-    """
-    Generate dictionaries of words to numbers.
-
-    This is a helper function for _extract_whole_number.
-
-    Args:
-        short_scale boolean: ignored, Croatian only uses the long scale
-
-    Returns:
-        (set(str), dict(str, number), dict(str, number))
-        multiplies, string_num_ordinal, string_num_scale
-
-    """
-    string_num_scale_hr = invert_dict(_SCALE_HR)
-    string_num_scale_hr.update(_SCALE_DECLENSIONS_HR)
-    return _MULTIPLIES_HR, _STRING_SHORT_ORDINAL_HR, string_num_scale_hr
-
-
-def _drop_connectors_hr(tokens):
-    """Drop the joiner "i" between number words ("dvadeset i jedan" = 21).
-
-    The "i" is kept when it introduces a fraction ("dva i pol" = 2.5), which
-    is handled by the fraction marker logic instead.
-    """
-    def _is_whole_number_word(word):
-        word = _text_hr_inflection_normalize(word)
-        if word in _STRING_NUM_HR:
-            return _STRING_NUM_HR[word] >= 1
-        return word in _SUMS or word in _MULTIPLIES_HR or \
-            (is_numeric(word) and float(word) >= 1)
-
-    filtered = []
-    for idx, token in enumerate(tokens):
-        if token.word in _CONNECTORS and 0 < idx < len(tokens) - 1 and \
-                _is_whole_number_word(tokens[idx - 1].word) and \
-                _is_whole_number_word(tokens[idx + 1].word):
-            continue
-        filtered.append(token)
-    return [Token(t.word, i) for i, t in enumerate(filtered)]
-
-
 def extract_number_hr(text, short_scale=True, ordinals=False):
-    """
-    This function extracts a number from a text string
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): ignored, Croatian only uses the long scale
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
-    Returns:
-        (int) or (float) or False: The extracted number or False if no number
-                                   was found
-
-    """
-    tokens = _drop_connectors_hr(tokenize(text.lower()))
-    value = _extract_number_with_text_hr(tokens, short_scale, ordinals).value
-    if isinstance(value, float) and value.is_integer():
-        value = int(value)
-    return value
-
-
-def is_fractional_hr(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, Croatian only uses the long scale
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    input_str = input_str.lower()
-    # normalize plural forms (dvije trećine -> trećina)
-    if input_str.endswith("ine"):
-        input_str = input_str[:-1] + "a"
-
-    fractions = {"pola": 2, "pol": 2, "polovica": 2, "polovice": 2}
-
-    for num, name in _FRACTION_STRING_HR.items():
-        fractions[name] = num
-
-    if input_str in fractions:
-        return 1.0 / fractions[input_str]
-    return False
-
-
-def _text_hr_inflection_normalize(word):
-    """
-    Croatian gender/case normalizer for the numerals one and two.
-
-    Args:
-        word (str)
-
-    Returns:
-        word (str)
-
-    """
-    if word in ("jedna", "jedno", "jednu", "jednog", "jednom", "jednoj"):
-        return "jedan"
-    if word in ("dvije", "dvje"):
-        return "dva"
-    return word
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "hr")``."""
+    warn_reader_removed("extract_number_hr", 'ovos_number_parser.extract_number(text, "hr")')
+    return numtag_readers.extract_number(text, "hr", short_scale, ordinals)

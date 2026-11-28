@@ -5,6 +5,8 @@ from typing import Optional, Union
 from ovos_number_parser.util import (convert_to_mixed_fraction, DigitPronunciation,
                                      Scale, GrammaticalGender, NumberVocabulary,
                                      RomanceNumberExtractor)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 # Fraction nouns, kept for the standalone ``nice_number_ca`` helper below.
 _FRACTION_STRING_CA = {
@@ -128,8 +130,8 @@ _CA = NumberVocabulary(
     NO_PREV_UNIT=[1000],  # "mil" not "un mil"
     NO_PLURAL=[1000],     # "dos mil" not "dos mils"
 
-    NUMBER_OVERFLOW="número exageradament gran",
     DEFAULT_SCALE=Scale.LONG,  # 10^9 = "miliard", 10^12 = "bilió"
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["i"],
 
     JOINER_ON_TWENTYS=True,       # "vint i un" (hyphenated on output)
@@ -137,7 +139,6 @@ _CA = NumberVocabulary(
     JOINER_ON_HUNDREDS=False,     # "cent vint-i-tres", "dos-cents trenta-quatre"
     JOINER_ON_THOUSANDS=False,    # "mil dos-cents"
     JOINER_ON_SCALE_REMAINDER=False,  # "dos mil vint-i-tres", not "... i ..."
-    MULTIPLY_HUNDREDS=True,       # "dos cents" (from "dos-cents") = 200
 
     DECIMAL_MARKER=["coma", "amb", "punt", ".", ","],
     NEGATIVE_SIGN=["menys"],
@@ -207,11 +208,6 @@ _CA = NumberVocabulary(
         100: 'centè',
         1000: 'milè'
     },
-    FRACTION_FEMALE={
-        2: 'mitja',
-        3: 'terça',
-        4: 'quarta'
-    },
     SHORT_SCALE={
         1000: 'mil',
         10 ** 6: 'milió',
@@ -239,7 +235,6 @@ _CA = NumberVocabulary(
             2: "dues"
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # standalone "u" (before nouns it becomes "un"), dialectal "huit" forms,
         # and the bare hundreds particle used inside compounds after the hyphen
@@ -381,10 +376,11 @@ class CatalanNumberExtractor(RomanceNumberExtractor):
                          digits: DigitPronunciation = DigitPronunciation.DIGIT_BY_DIGIT,
                          gender: GrammaticalGender = GrammaticalGender.MASCULINE,
                          _force_hundreds_join: bool = False,
-                         _under_higher_scale: bool = False) -> str:
+                         _under_higher_scale: bool = False,
+                         _fraction_digits: bool = False) -> str:
         spoken = super().pronounce_number(number, places, scale, ordinals,
                                           digits, gender, _force_hundreds_join,
-                                          _under_higher_scale)
+                                          _under_higher_scale, _fraction_digits)
         return _hyphenate_ca(spoken)
 
 
@@ -461,43 +457,6 @@ def pronounce_number_ca(number, places=2, short_scale=False, scientific=False):
     return CA.pronounce_number(number, places, scale=scale)
 
 
-def is_fractional_ca(input_str, short_scale=True):
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return CA.is_fractional(input_str)
-
-
-def extract_number_ca(text, short_scale=False, ordinals=False):
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    scale = Scale.SHORT if short_scale else Scale.LONG
-    return CA.extract_number(text, ordinals=ordinals, scale=scale)
-
-
-def numbers_to_digits_ca(utterance: str) -> str:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return CA.numbers_to_digits(utterance)
-
-
 if __name__ == '__main__':
     print('--- Catalan number tests ---')
     for n in (16, 21, 42, 66, 99, 100, 101, 123, 200, 500, 999, 1000, 2023,
@@ -505,6 +464,9 @@ if __name__ == '__main__':
         print(f'{n} ->', CA.pronounce_number(n))
     print('10^9 ->', CA.pronounce_number(10 ** 9))
     print('10^12 ->', CA.pronounce_number(10 ** 12))
-    print("'vint-i-un' ->", CA.extract_number('vint-i-un'))
-    print("'un milió dos-cents trenta-quatre mil sis-cents' ->",
-          CA.extract_number('un milió dos-cents trenta-quatre mil sis-cents'))
+
+
+def numbers_to_digits_ca(utterance: str) -> str:
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, "ca")``."""
+    warn_reader_removed("numbers_to_digits_ca", 'ovos_number_parser.numbers_to_digits(utterance, "ca")')
+    return numtag_readers.numbers_to_digits(utterance, "ca")

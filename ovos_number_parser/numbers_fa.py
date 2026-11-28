@@ -1,7 +1,9 @@
 import math
+from decimal import Decimal
 from enum import IntEnum
 
-from ovos_number_parser.util import (convert_to_mixed_fraction)
+from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, numeric_value, scientific_parts, \
+    round_half_up
 
 _FRACTION_STRING_FA = {
     2: 'دوم',
@@ -104,15 +106,6 @@ class NumberVariantFA(IntEnum):
     FORMAL = 1
 
 
-def _is_number(s):
-    try:
-        # a non-finite token ("inf", "nan", "1e309" or an overflowing digit
-        # string) carries no usable number and must not be treated as one
-        return math.isfinite(float(s))
-    except ValueError:
-        return False
-
-
 def _parse_sentence(text):
     for key, value in _COLLOQUIAL_VARIANT.items():
         text = text.replace(key, value)
@@ -181,9 +174,9 @@ def _parse_sentence(text):
             current_number += s
             s = 0
             mode = 'num'
-        elif _is_number(x):
+        elif is_numeric(x):
             current_words.append(x)
-            current_number = float(x)
+            current_number = numeric_value(x)
             finish_num()
         else:
             finish_num()
@@ -191,75 +184,6 @@ def _parse_sentence(text):
     if mode[:3] == 'num':
         finish_num()
     return result
-
-
-def extract_numbers_fa(text, short_scale=True, ordinals=False):
-    """
-        Takes in a string and extracts a list of numbers.
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): Use "short scale" or "long scale" for large
-            numbers -- over a million.  The default is short scale, which
-            is now common in most English speaking countries.
-            See https://en.wikipedia.org/wiki/Names_of_large_numbers
-        ordinals (bool): consider ordinal numbers, e.g. third=3 instead of 1/3
-    Returns:
-        list: list of extracted numbers as floats
-    """
-
-    ar = _parse_sentence(text)
-    # fold spoken decimals: [(3, [.. "و"]), (14, [..]), "صدم"] -> 3.14
-    _denoms = {"دهم": 10, "صدم": 100, "هزارم": 1000}
-    folded = []
-    i = 0
-    while i < len(ar):
-        x = ar[i]
-        if type(x) == tuple and i + 1 < len(ar) and \
-                isinstance(ar[i + 1], str) and ar[i + 1] in _denoms:
-            frac = x[0] / _denoms[ar[i + 1]]
-            if folded and type(folded[-1]) == tuple and \
-                    folded[-1][1] and folded[-1][1][-1] == "و":
-                whole = folded.pop()
-                frac = whole[0] + frac if whole[0] >= 0 \
-                    else whole[0] - frac
-            folded.append((frac, x[1] + [ar[i + 1]]))
-            i += 2
-            continue
-        folded.append(x)
-        i += 1
-    result = []
-    for x in folded:
-        if type(x) == tuple:
-            result.append(x[0])
-    return result
-
-
-def extract_number_fa(text, ordinals=False):
-    """
-    This function extracts a number from a text string,
-    handles pronunciations in long scale and short scale
-
-    https://en.wikipedia.org/wiki/Names_of_large_numbers
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
-    Returns:
-        (int) or (float) or False: The extracted number or False if no number
-                                   was found
-
-    """
-    negative = False
-    words = text.split()
-    if words and words[0] == "منفی":
-        negative = True
-        text = " ".join(words[1:])
-    x = extract_numbers_fa(text, ordinals=ordinals)
-    if (len(x) == 0):
-        return False
-    return -x[0] if negative else x[0]
 
 
 def nice_number_fa(number, speech=True, denominators=range(1, 21),
@@ -378,10 +302,6 @@ def _to_ordinal(number):
     return r + 'م'
 
 
-def _to_ordinal_num(value):
-    return str(value) + "م"
-
-
 def _to_cardinal(number, places):
     if number < 0:
         return "منفی " + _to_cardinal(-number, places)
@@ -420,42 +340,29 @@ def pronounce_number_fa(number, places=2, scientific=False,
     if scientific:
         if number == 0:
             return "صفر"
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             return '{}{} ضرب در ده به توان {}{}'.format(
                 'منفی ' if float(n) < 0 else '',
                 pronounce_number_fa(
-                    abs(float(n)), places, False, ordinals=False),
+                    abs(n), places, False, ordinals=False),
                 'منفی ' if power < 0 else '',
                 pronounce_number_fa(abs(power), places, False, ordinals=False))
         return '{}{}'.format(
             'منفی ' if float(n) < 0 else '',
-            pronounce_number_fa(abs(float(n)), places, False, ordinals=False))
+            pronounce_number_fa(abs(n), places, False, ordinals=False))
+    if abs(number) >= 1000 ** len(_FARSI_BIG) or places > 0 and \
+            0 < abs(number) < 10 ** (1 - 3 * len(_FARSI_FRAC_BIG)):
+        # a magnitude or a fraction with no spoken name reads scientifically
+        return pronounce_number_fa(number, places, scientific=True)
     if ordinals:
         return _to_ordinal(number)
+    # the finest fraction word names the 11th decimal
+    most_places = 3 * len(_FARSI_FRAC_BIG) - 1
+    if places > most_places and not isinstance(number, int):
+        places = most_places
+        number = float(round_half_up(Decimal(str(number)), places))
     return _to_cardinal(number, places)
-
-
-_STRING_FRACTION_FA = {word: val for val, word in _FRACTION_STRING_FA.items()}
-_STRING_FRACTION_FA["نیم"] = 2
-
-
-def is_fractional_fa(input_str, short_scale=True):
-    """
-    Check if the given word is a Farsi fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, present for API compatibility
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    word = input_str.strip()
-    if word in _STRING_FRACTION_FA:
-        return 1.0 / _STRING_FRACTION_FA[word]
-    return False
 
 
 def pronounce_ordinal_fa(number):

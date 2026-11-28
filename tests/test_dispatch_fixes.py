@@ -9,10 +9,13 @@ from ovos_number_parser.numbers_es import nice_number_es
 class TestDispatchFixes(unittest.TestCase):
     def test_nl_is_fractional_uses_dutch(self):
         # "derde" is Dutch for third; the Polish table does not know it
-        self.assertAlmostEqual(is_fractional("derde", "nl"), 1 / 3)
-        self.assertEqual(is_fractional("kwart", "nl"), 0.25)
+        with self.subTest(case='is_fractional("derde", "nl")'):
+            self.assertAlmostEqual(is_fractional("derde", "nl"), 1 / 3)
+        with self.subTest(case='is_fractional("kwart", "nl")'):
+            self.assertEqual(is_fractional("kwart", "nl"), 0.25)
         # Polish words must not leak into Dutch
-        self.assertFalse(is_fractional("trzecie", "nl"))
+        with self.subTest(case='is_fractional("trzecie", "nl")'):
+            self.assertFalse(is_fractional("trzecie", "nl"))
 
     def test_da_extract_returns_false_not_none(self):
         self.assertIs(extract_number("hej med dig", "da"), False)

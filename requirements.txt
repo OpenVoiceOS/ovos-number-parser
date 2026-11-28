@@ -1,2 +1,0 @@
-quebra_frases>=0.3.7
-unicode-rbnf

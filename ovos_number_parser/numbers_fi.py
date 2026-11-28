@@ -13,10 +13,17 @@ References:
       "Numeraalit" / "Lukusanat"
     * https://fi.wikipedia.org/wiki/Numeraali
     * https://en.wiktionary.org/wiki/Appendix:Finnish_numbers
+    * Kotus, Kielitoimiston ohjepankki, "Luvut ja numerot: järjestyslukujen
+      taivuttaminen" (every part of a compound ordinal takes the ordinal
+      stem); fi.wiktionary "miljardis" ("lukua miljardi vastaava
+      järjestysluku"); "biljoonas" follows the same -s derivation
 """
-from math import floor, isfinite
+from decimal import Decimal
+from math import floor
 
 from ovos_number_parser.util import convert_to_mixed_fraction
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _NUM_STRING_FI = {
     0: 'nolla',
@@ -72,28 +79,6 @@ _FRACTION_STRING_FI = {
     18: 'kahdeksastoistaosa',
     19: 'yhdeksästoistaosa',
     20: 'kahdeskymmenesosa',
-}
-
-_NNES_FRACTIONS_FI = {
-    'kolmannes': 3,
-    'neljännes': 4,
-    'viidennes': 5,
-    'kuudennes': 6,
-    'seitsemännes': 7,
-    'kahdeksannes': 8,
-    'yhdeksännes': 9,
-}
-
-_MINUS_FI = ("miinus",)
-_DECIMAL_MARKER_FI = ("pilkku",)
-
-# well-attested colloquial short forms (accepted on extraction only)
-_COLLOQUIAL_NUM_FI = {
-    'yks': 1,
-    'kaks': 2,
-    'viis': 5,
-    'kuus': 6,
-    'seittemän': 7,
 }
 
 
@@ -172,21 +157,27 @@ def pronounce_number_fi(number, places=2, short_scale=True, scientific=False,
     Returns:
         (str): The pronounced number
     """
-    if ordinals:
+    if ordinals and number == int(number) and number >= 0:
         return pronounce_ordinal_fi(number)
     if abs(number) >= 10 ** 15:  # beyond the supported scale words
-        return str(number)
+        return f"{Decimal(str(number)):f}".removesuffix(".0")
     if number < 0:
-        return "miinus " + pronounce_number_fi(abs(number), places)
+        return "miinus " + pronounce_number_fi(abs(number), places,
+                                                ordinals=ordinals)
     if number == int(number):
         return _pronounce_int_fi(int(number))
     result = _pronounce_int_fi(floor(number))
     if places > 0:
         # decimals are read digit by digit after "pilkku"
-        fraction = str(round(number - floor(number), places))[2:]
+        fraction = f"{Decimal(str(round(number - floor(number), places))):f}"[2:]
         digits = [_NUM_STRING_FI[int(d)] for d in fraction[:places]]
         result += " pilkku " + " ".join(digits)
     return result
+
+
+# round scale ordinals, largest first
+_ORDINAL_SCALES_FI = ((10 ** 12, 'biljoonas'), (10 ** 9, 'miljardis'),
+                      (10 ** 6, 'miljoonas'), (1000, 'tuhannes'))
 
 
 def _ordinal_multiplier_fi(number):
@@ -238,30 +229,20 @@ def pronounce_ordinal_fi(number):
         hundreds = number // 100
         return 'sadas' if hundreds == 1 else \
             _ORDINAL_UNITS_COMPOUND_FI[hundreds] + 'sadas'
-    if number < 10 ** 6 and number % 1000 == 0:
-        thousands = number // 1000
-        return 'tuhannes' if thousands == 1 else \
-            _ordinal_multiplier_fi(thousands) + 'tuhannes'
-    if number < 10 ** 9 and number % 10 ** 6 == 0:
-        millions = number // 10 ** 6
-        return 'miljoonas' if millions == 1 else \
-            _ordinal_multiplier_fi(millions) + 'miljoonas'
-    if number >= 10 ** 9:
-        # above the supported "miljoonas" scale: fall back to digits rather
-        # than composing an unidiomatic mix of words and figures
-        return str(number)
+    if number >= 10 ** 15:
+        raise NotImplementedError(
+            f"cannot pronounce {number} as a Finnish ordinal")
+    for base, word in _ORDINAL_SCALES_FI:
+        count, rest = divmod(number, base)
+        if not rest and count < 1000:
+            return word if count == 1 else \
+                _ordinal_multiplier_fi(count) + word
     # compose: ordinal prefix from the largest round part + remainder.
-    # ``head`` must be a strict prefix of ``number`` or the recursion never
-    # shrinks; an exact multiple of a base is handled by the branches above,
-    # so a base yielding ``head == number`` here is out of representable range.
-    for base in (10 ** 6, 1000, 100):
+    for base in (10 ** 12, 10 ** 9, 10 ** 6, 1000, 100):
         if number > base:
             head = (number // base) * base
-            if head == number:
-                continue
             return pronounce_ordinal_fi(head) + \
                 pronounce_ordinal_fi(number - head)
-    return str(number)
 
 
 def nice_number_fi(number, speech=True, denominators=range(1, 21)):
@@ -303,298 +284,13 @@ def nice_number_fi(number, speech=True, denominators=range(1, 21)):
     return '{} ja {}'.format(whole, frac)
 
 
-# word → value map used to split compound numbers, including the partitive
-# allomorphs that only appear inside compounds ("kymmentä", "sataa",
-# "tuhatta") and the teen suffix "toista"
-_STRING_NUM_FI = {word: val for val, word in _NUM_STRING_FI.items()}
-
-_COMPOUND_MULTIPLIERS_FI = {
-    'kymmentä': 10,
-    'sataa': 100,
-    'sata': 100,
-    'tuhatta': 1000,
-    'tuhat': 1000,
-}
-
-_SCALE_WORDS_FI = {
-    'miljoona': 10 ** 6,
-    'miljoonaa': 10 ** 6,
-    'miljardi': 10 ** 9,
-    'miljardia': 10 ** 9,
-    'biljoona': 10 ** 12,
-    'biljoonaa': 10 ** 12,
-}
-
-
-def _split_compound_number_fi(word):
-    """Split an agglutinated Finnish numeral into its vocabulary parts.
-
-    Returns the list of matched (word, value) parts, or None if the word is
-    not entirely composed of number vocabulary.
-    """
-    vocab = dict(_STRING_NUM_FI)
-    vocab.update(_COMPOUND_MULTIPLIERS_FI)
-    vocab['toista'] = 'teen'
-    keys = sorted(vocab, key=len, reverse=True)
-    parts = []
-    rest = word
-    while rest:
-        for key in keys:
-            if rest.startswith(key):
-                parts.append((key, vocab[key]))
-                rest = rest[len(key):]
-                break
-        else:
-            return None
-    return parts
-
-
-def _compound_value_fi(parts):
-    """Evaluate the value of a split Finnish compound numeral."""
-    total = 0
-    current = 0
-    last_unit = 0
-    for word, val in parts:
-        if val == 'teen':  # "toista" turns the preceding unit into a teen
-            current += 10
-            last_unit = 0
-        elif word in ('tuhatta', 'tuhat'):
-            total += (current or 1) * 1000
-            current = 0
-            last_unit = 0
-        elif word in ('sataa', 'sata', 'kymmentä'):
-            mult = _COMPOUND_MULTIPLIERS_FI[word]
-            if last_unit:
-                current += last_unit * (mult - 1)
-            else:
-                current += mult
-            last_unit = 0
-        else:
-            current += val
-            last_unit = val
-    return total + current
-
-
-def _parse_number_word_fi(word):
-    """Parse a single Finnish numeral word (possibly compound) into its
-    value, or None."""
-    word = word.lower().strip().replace('-', '')
-    if not word:
-        return None
-    if word in _STRING_NUM_FI:
-        return _STRING_NUM_FI[word]
-    if word in _COLLOQUIAL_NUM_FI:
-        return _COLLOQUIAL_NUM_FI[word]
-    if word in _COMPOUND_MULTIPLIERS_FI:
-        return _COMPOUND_MULTIPLIERS_FI[word]
-    if word in _SCALE_WORDS_FI:
-        return _SCALE_WORDS_FI[word]
-    parts = _split_compound_number_fi(word)
-    if parts:
-        return _compound_value_fi(parts)
-    return None
-
-
-_ORDINAL_REVERSE_FI = {}
-
-
 def is_ordinal_fi(input_str):
-    """
-    Check if the given word is a Finnish ordinal number.
-
-    Args:
-        input_str (str): the string to check if ordinal
-    Returns:
-        (bool) or (int): False if not an ordinal, otherwise the number
-    """
-    if not _ORDINAL_REVERSE_FI:
-        candidates = list(range(0, 101)) + \
-            [n * 100 for n in range(1, 11)] + [1000, 10 ** 6]
-        for n in candidates:
-            _ORDINAL_REVERSE_FI[pronounce_ordinal_fi(n)] = n
-    return _ORDINAL_REVERSE_FI.get(input_str.lower().strip(), False)
-
-
-def is_fractional_fi(input_str, short_scale=True):
-    """
-    Check if the given word is a Finnish fraction.
-
-    Accepts both the productive ordinal + "osa" pattern ("kolmasosa") and
-    the -nnes nouns ("kolmannes", "neljännes"), plus the partitive forms
-    that follow numerals ("kolme neljäsosaa").
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, present for API compatibility
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-    """
-    word = input_str.lower().strip()
-    if word in ('puoli', 'puolta'):
-        return 0.5
-    for den, den_str in _FRACTION_STRING_FI.items():
-        if word in (den_str, den_str + 'a'):
-            return 1.0 / den
-    if word in _NNES_FRACTIONS_FI:
-        return 1.0 / _NNES_FRACTIONS_FI[word]
-    return False
-
-
-def _extract_span_fi(tokens, idx):
-    """Parse the number starting at tokens[idx].
-
-    Returns (value, next_index) or None. Consumes multi-token constructs:
-    "kaksi miljoonaa", "viisi pilkku kaksi", "kaksi kolmasosaa".
-    """
-    token = tokens[idx]
-
-    if token == 'puolitoista':
-        return 1.5, idx + 1
-
-    # digits, including comma decimals
-    cleaned = token.replace(',', '.')
-    try:
-        val = float(cleaned)
-        if isfinite(val):
-            if val == int(val) and '.' not in cleaned:
-                val = int(val)
-            return val, idx + 1
-    except ValueError:
-        pass
-
-    frac = is_fractional_fi(token)
-    if frac:
-        return frac, idx + 1
-
-    val = _parse_number_word_fi(token)
-    if val is None:
-        return None
-    end = idx + 1
-
-    # Large numbers read as a sequence of "[multiplier] scale" groups followed
-    # by a sub-million remainder, and the split follows the written form: the
-    # sub-thousand part, the thousands part and each scale part are their own
-    # words (Kotus, Kielitoimiston ohjepankki, "Luvut ja numerot: numeroina
-    # vai kirjoitettuina sanoina?"). A multiplier of one is written bare
-    # ("miljoona", not "yksi miljoonaa"), so a scale noun can head the number
-    # with no preceding multiplier; the remainder that follows must still be
-    # added ("miljoona viisisataatuhatta" = 1 500 000).
-    total = 0
-    if token in _SCALE_WORDS_FI:
-        total = _SCALE_WORDS_FI[token]
-        val = 0
-        if end < len(tokens):
-            nxt = _parse_number_word_fi(tokens[end])
-            if nxt is not None and (end + 1 >= len(tokens)
-                                    or tokens[end + 1] in _SCALE_WORDS_FI
-                                    or nxt < 10 ** 6):
-                val = nxt
-                end += 1
-
-    # separate scale nouns: "kaksi miljoonaa"
-    while end < len(tokens) and tokens[end] in _SCALE_WORDS_FI:
-        total += val * _SCALE_WORDS_FI[tokens[end]]
-        end += 1
-        val = 0
-        # a following smaller group continues the same number
-        # ("kaksi miljoonaa kolmesataatuhatta")
-        if end < len(tokens):
-            nxt = _parse_number_word_fi(tokens[end])
-            if nxt is not None and (end + 1 >= len(tokens)
-                                    or tokens[end + 1] in _SCALE_WORDS_FI
-                                    or nxt < 10 ** 6):
-                val = nxt
-                end += 1
-                if end >= len(tokens) or tokens[end] not in _SCALE_WORDS_FI:
-                    break
-    val += total
-
-    # "kaksi kolmasosaa" → 2/3
-    if end < len(tokens):
-        frac = is_fractional_fi(tokens[end])
-        if frac:
-            return val * frac, end + 1
-
-    # decimals: "viisi pilkku kaksi kolme" → 5.23
-    if end + 1 < len(tokens) and tokens[end] in _DECIMAL_MARKER_FI:
-        digits = []
-        j = end + 1
-        while j < len(tokens):
-            d = _parse_number_word_fi(tokens[j])
-            if d is None or d > 9:
-                break
-            digits.append(str(d))
-            j += 1
-        if digits:
-            return float(str(val) + '.' + ''.join(digits)), j
-    return val, end
+    """Deprecated: use ``ovos_number_parser.is_ordinal(text, "fi")``."""
+    warn_reader_removed("is_ordinal_fi", 'ovos_number_parser.is_ordinal(text, "fi")')
+    return numtag_readers.is_ordinal(input_str, "fi")
 
 
 def extract_number_fi(text, short_scale=True, ordinals=False):
-    """
-    Extract the first number from Finnish text.
-
-    A written Finnish number splits into parts the same way as its digits: the
-    sub-thousand part is one agglutinated word, the thousands part is one word,
-    and each scale part (miljoona, miljardi) is its own word, per Kotimaisten
-    kielten keskus (Kotus), Kielitoimiston ohjepankki, "Luvut ja numerot:
-    numeroina vai kirjoitettuina sanoina?" and "peruslukujen taivuttaminen".
-    A multiplier of one is written bare ("miljoona", not "yksi miljoonaa"), so
-    a scale noun may head the number with the remainder following it
-    ("miljoona viisisataatuhatta" = 1 500 000).
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): ignored, Finnish uses its own scale words
-        ordinals (bool): consider ordinal numbers ("toinen" → 2)
-    Returns:
-        (int, float or False): the extracted number or False if no number
-                               was found
-    """
-    tokens = [t.strip('.,!?;:').lower() for t in text.split()]
-    tokens = [t for t in tokens if t]
-    for idx in range(len(tokens)):
-        negative = idx > 0 and tokens[idx - 1] in _MINUS_FI
-        if ordinals:
-            val = is_ordinal_fi(tokens[idx])
-            if val is not False:
-                return -val if negative else val
-        span = _extract_span_fi(tokens, idx)
-        if span is None:
-            continue
-        val = span[0]
-        return -val if negative else val
-    return False
-
-
-def extract_numbers_fi(text, short_scale=True, ordinals=False):
-    """
-    Extract all numbers from Finnish text.
-
-    Args:
-        text (str): the string to extract numbers from
-        short_scale (bool): ignored, Finnish uses its own scale words
-        ordinals (bool): consider ordinal numbers
-    Returns:
-        list: list of extracted numbers
-    """
-    tokens = [t.strip('.,!?;:').lower() for t in text.split()]
-    tokens = [t for t in tokens if t]
-    results = []
-    idx = 0
-    while idx < len(tokens):
-        negative = tokens[idx] in _MINUS_FI and idx + 1 < len(tokens)
-        start = idx + 1 if negative else idx
-        if ordinals and start < len(tokens):
-            val = is_ordinal_fi(tokens[start])
-            if val is not False:
-                results.append(-val if negative else val)
-                idx = start + 1
-                continue
-        span = _extract_span_fi(tokens, start) if start < len(tokens) else None
-        if span is None:
-            idx += 1
-            continue
-        val, idx = span
-        results.append(-val if negative else val)
-    return results
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "fi")``."""
+    warn_reader_removed("extract_number_fi", 'ovos_number_parser.extract_number(text, "fi")')
+    return numtag_readers.extract_number(text, "fi", short_scale, ordinals)

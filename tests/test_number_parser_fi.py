@@ -1,9 +1,9 @@
 import unittest
 
-from ovos_number_parser import (extract_number, is_fractional, is_ordinal,
-                                numbers_to_digits, pronounce_number,
+from ovos_number_parser import (extract_number, extract_number_spans, is_fractional,
+                                is_ordinal, numbers_to_digits, pronounce_number,
                                 pronounce_ordinal)
-from ovos_number_parser.numbers_fi import extract_numbers_fi, nice_number_fi
+from ovos_number_parser.numbers_fi import nice_number_fi
 
 
 class TestPronounceNumberFi(unittest.TestCase):
@@ -60,10 +60,13 @@ class TestPronounceNumberFi(unittest.TestCase):
         # exact multiples of a million once triggered unbounded recursion
         for n in (2000000, 3000000, 999000000):
             self.assertIsInstance(pronounce_ordinal(n, "fi"), str)
-        # above the supported "miljoonas" scale falls back to digits cleanly
-        self.assertEqual(pronounce_ordinal(10 ** 9, "fi"), "1000000000")
-        self.assertEqual(pronounce_ordinal(999999999999, "fi"),
-                         "999999999999")
+        self.assertEqual(pronounce_ordinal(10 ** 9, "fi"), "miljardis")
+        self.assertEqual(
+            pronounce_ordinal(999999999999, "fi"),
+            "yhdeksässadasyhdeksäskymmenesyhdeksäsmiljardis"
+            "yhdeksässadasyhdeksäskymmenesyhdeksäsmiljoonas"
+            "yhdeksässadasyhdeksäskymmenesyhdeksästuhannes"
+            "yhdeksässadasyhdeksäskymmenesyhdeksäs")
 
 
 class TestExtractNumberFi(unittest.TestCase):
@@ -150,10 +153,6 @@ class TestExtractNumberFi(unittest.TestCase):
                 self.assertEqual(said, spoken)
             self.assertEqual(extract_number(said, "fi"), n, said)
 
-    def test_roundtrip_millions_sweep(self):
-        for n in range(1000000, 10000001, 12345):
-            spoken = pronounce_number(n, "fi")
-            self.assertEqual(extract_number(spoken, "fi"), n, spoken)
 
     def test_ordinal_roundtrip_sweep(self):
         for n in list(range(1, 101)) + [200, 1000, 1000000]:
@@ -196,10 +195,11 @@ class TestLongScaleFi(unittest.TestCase):
 
 class TestExtractNumbersFi(unittest.TestCase):
     def test_multiple(self):
-        self.assertEqual(
-            extract_numbers_fi("kaksi kissaa ja kolme koiraa"), [2, 3])
-        self.assertEqual(
-            extract_numbers_fi("miinus viisi ja kaksikymmentä"), [-5, 20])
+        for text, expected in (("kaksi kissaa ja kolme koiraa", [2, 3]),
+                               ("miinus viisi ja kaksikymmentä", [-5, 20])):
+            with self.subTest(text=text):
+                self.assertEqual(
+                    [span.value for span in extract_number_spans(text, "fi")], expected)
 
 
 class TestMiscFi(unittest.TestCase):

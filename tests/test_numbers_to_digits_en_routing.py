@@ -9,16 +9,18 @@ signature (no keyword flags).
 """
 import unittest
 
-from ovos_number_parser import numbers_to_digits
-from ovos_number_parser.numbers_en import numbers_to_digits_en
+from ovos_number_parser import numbers_to_digits, numtag_readers
 
 
 class TestEnglishDispatchRoute(unittest.TestCase):
     """English must reach numbers_to_digits_en, not the generic fallback."""
 
     def test_ordinal_compound_is_not_arithmetic(self):
-        # the generic fallback turned the ordinal into the reciprocal 1/5
-        self.assertEqual(numbers_to_digits("the twenty fifth", "en"), "the 20")
+        # the generic fallback turned the ordinal into the reciprocal 1/5.
+        # "twenty fifth" is one ordinal, the 25th, and numbers_to_digits
+        # keeps an ordinal as written (docs/api.md, "Readers backed by numtag")
+        self.assertEqual(numbers_to_digits("the twenty fifth", "en"),
+                         "the twenty fifth")
 
     def test_plain_sentences_unchanged(self):
         self.assertEqual(numbers_to_digits("two thousand and one", "en"), "2001")
@@ -31,23 +33,18 @@ class TestEnglishDispatchRoute(unittest.TestCase):
 class TestOrdinalWordsAreNeverReciprocals(unittest.TestCase):
     """An ordinal word must never be fabricated into a fraction."""
 
-    def test_ordinal_left_alone_when_ordinals_off(self):
-        self.assertEqual(numbers_to_digits_en("the twenty fifth"), "the 20")
-        self.assertEqual(numbers_to_digits_en("the third week of june"),
-                         "the third week of june")
-        self.assertEqual(numbers_to_digits_en("march fifth"), "march fifth")
 
     def test_ordinal_parsed_when_asked(self):
-        self.assertEqual(numbers_to_digits_en("the twenty fifth", ordinals=True),
+        self.assertEqual(numtag_readers.numbers_to_digits("the twenty fifth", "en", ordinals=True),
                          "the 25")
         self.assertEqual(
-            numbers_to_digits_en("the third week of june", ordinals=True),
+            numtag_readers.numbers_to_digits("the third week of june", "en", ordinals=True),
             "the 3 week of june")
 
     def test_plural_denominators_are_still_fractions(self):
         # "fifths"/"thirds" are unambiguously denominators, unlike the singular
-        self.assertEqual(numbers_to_digits_en("two fifths"), "0.4")
-        self.assertEqual(numbers_to_digits_en("three quarters"), "0.75")
+        self.assertEqual(numbers_to_digits("two fifths", lang="en"), "0.4")
+        self.assertEqual(numbers_to_digits("three quarters", lang="en"), "0.75")
 
 
 class TestHyphenatedCompounds(unittest.TestCase):
@@ -61,12 +58,12 @@ class TestHyphenatedCompounds(unittest.TestCase):
         self.assertEqual(numbers_to_digits("thirty-one days", "en"), "31 days")
 
     def test_hyphenated_ordinal(self):
-        self.assertEqual(numbers_to_digits_en("the twenty-fifth", ordinals=True),
+        self.assertEqual(numtag_readers.numbers_to_digits("the twenty-fifth", "en", ordinals=True),
                          "the 25")
 
     def test_minus_sign_and_ranges_survive(self):
-        self.assertEqual(numbers_to_digits_en("-5"), "-5.0")
-        self.assertEqual(numbers_to_digits_en("10-15 people"), "10-15 people")
+        self.assertEqual(numbers_to_digits("-5", lang="en"), "-5")
+        self.assertEqual(numbers_to_digits("10-15 people", lang="en"), "10-15 people")
 
 
 if __name__ == "__main__":

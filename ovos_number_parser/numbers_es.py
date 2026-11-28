@@ -1,8 +1,10 @@
-from typing import List, Optional, Union
+import unicodedata
+from typing import Optional, Union
 
-from ovos_number_parser.util import (convert_to_mixed_fraction, tokenize, Token,
-                                     Scale, GrammaticalGender, DigitPronunciation,
+from ovos_number_parser.util import (convert_to_mixed_fraction, Scale, GrammaticalGender, DigitPronunciation,
                                      NumberVocabulary, RomanceNumberExtractor)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 
 def swap_gender_es(word: str, gender: GrammaticalGender) -> str:
@@ -46,9 +48,9 @@ _ES = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "cien"/"mil", never "un cien"/"un mil"
     NO_PLURAL=[1000],  # "dos mil", never "dos miles"
 
-    NUMBER_OVERFLOW="número exageradamente grande",
     # Spain follows the long scale: millón 10^6, millardo 10^9, billón 10^12
     DEFAULT_SCALE=Scale.LONG,
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["y"],
 
     JOINER_ON_TWENTYS=True,  # "treinta y uno"; 21-29 are fused, joiner kept for extraction
@@ -133,6 +135,16 @@ _ES = NumberVocabulary(
         800: 'ochocientos',
         900: 'novecientos'
     },
+    # RAE and ASALE, Diccionario panhispánico de dudas, "uno" § 2.3: "Los
+    # numerales uno, una y sus compuestos concuerdan en género con el
+    # sustantivo al que acompañan cuando lo preceden inmediatamente", so the
+    # group after a scale word agrees. Before "mil" the feminine is optional
+    # for "uno" and its compounds ("cuarenta y una mil pesetas") and required
+    # for the hundreds ("setecientas mil toneladas"); this reads both as
+    # feminine. DLE "millón" ("m.") makes millón a masculine noun, so the
+    # count before it stays masculine; only "mil" is listed here
+    AGREEING_SCALES=[1000],
+    AGREE_AFTER_SCALE=True,
     FRACTION={
         2: 'medio',
         3: 'tercio',
@@ -155,12 +167,6 @@ _ES = NumberVocabulary(
         20: 'veinteavo',
         100: 'centésimo',
         1000: 'milésimo'
-    },
-    FRACTION_FEMALE={
-        2: "media",
-        4: "cuarta",
-        100: "centésima",
-        1000: "milésima"
     },
     SHORT_SCALE={
         10 ** 3: "mil",
@@ -193,7 +199,6 @@ _ES = NumberVocabulary(
             21: "veintiún",
         },
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # apocopated forms and accent-free variants, accepted for extraction
         "un": 1,
@@ -220,9 +225,32 @@ _ES = NumberVocabulary(
         8: 'octavo',
         9: 'noveno'
     },
+    # DPD "ordinales" § 2c: undécimo and duodécimo are "las preferidas en el
+    # uso culto"; § 3: from 13 to 29 the one-word spelling is "hoy
+    # mayoritaria y siempre preferible"; § 5: "vigesimoctavo (mejor que
+    # vigesimooctavo)". From 30 on the two-word spelling stays.
+    PREFER_EXPLICIT_ORDINALS=True,
     ORDINAL_TENS={
         10: 'décimo',
+        11: 'undécimo',
+        12: 'duodécimo',
+        13: 'decimotercero',
+        14: 'decimocuarto',
+        15: 'decimoquinto',
+        16: 'decimosexto',
+        17: 'decimoséptimo',
+        18: 'decimoctavo',
+        19: 'decimonoveno',
         20: 'vigésimo',
+        21: 'vigesimoprimero',
+        22: 'vigesimosegundo',
+        23: 'vigesimotercero',
+        24: 'vigesimocuarto',
+        25: 'vigesimoquinto',
+        26: 'vigesimosexto',
+        27: 'vigesimoséptimo',
+        28: 'vigesimoctavo',
+        29: 'vigesimonoveno',
         30: 'trigésimo',
         40: 'cuadragésimo',
         50: 'quincuagésimo',
@@ -256,7 +284,60 @@ _ES = NumberVocabulary(
     }
 )
 
-ES = RomanceNumberExtractor(_ES)
+class SpanishNumberExtractor(RomanceNumberExtractor):
+    """Castilian number engine.
+
+    Ordinals follow the DPD "ordinales" (RAE and ASALE, 2nd ed.). The
+    feminine replaces the final -o with -a in every word of a two-word
+    ordinal ("vigésima primera") and in the last part of a one-word ordinal
+    ("decimotercera"). Every word of a Spanish ordinal ends in -o, so the
+    swap goes word by word on the masculine reading. Above 999 the cardinal
+    that multiplies a scale ordinal joins it in one word ("dosmilésimo",
+    "quinientosmilésimo", "milmillonésimo"), stressed on the last part only.
+    """
+
+    def pronounce_ordinal(self,
+                          number: Union[int, float],
+                          gender: GrammaticalGender = GrammaticalGender.MASCULINE,
+                          scale: Optional[Scale] = None
+                          ) -> str:
+        masculine = super().pronounce_ordinal(
+            number, GrammaticalGender.MASCULINE, scale)
+        if gender != GrammaticalGender.FEMININE or not number:
+            return masculine
+        return " ".join(word[:-1] + "a" if word.endswith("o") else word
+                        for word in masculine.split(" "))
+
+    def _pronounce_ordinal_core(self,
+                                number: Union[int, float],
+                                gender: GrammaticalGender = GrammaticalGender.MASCULINE,
+                                scale: Optional[Scale] = None
+                                ) -> str:
+        if not isinstance(number, (int, float)) or number < 1000:
+            return super()._pronounce_ordinal_core(number, gender, scale)
+        scale = scale or self.vocab.DEFAULT_SCALE
+        scales = self.vocab.ORDINAL_SHORT_SCALE if scale == Scale.SHORT \
+            else self.vocab.ORDINAL_LONG_SCALE
+        n = int(number)
+        scale_val, scale_word = max((v, w) for v, w in scales.items() if v <= n)
+        count, remainder = divmod(n, scale_val)
+        if count == 1:
+            words = scale_word
+        else:
+            # DPD "ordinales" § 2d: "prefijando al ordinal simple el cardinal
+            # que lo multiplica". The count stands as it does before the scale
+            # noun ("treinta y un mil"), written as one word as DPD
+            # "cardinales" § 2 allows ("treintaicinco") and as the fraction
+            # noun of the same number is ("treintaiunmilésimo").
+            count_words = self.pronounce_number(count, scale=scale,
+                                                gender=GrammaticalGender.NEUTRAL)
+            words = _one_word_es(count_words) + scale_word
+        if remainder:
+            words += " " + self._pronounce_ordinal_core(remainder, gender, scale)
+        return words
+
+
+ES = SpanishNumberExtractor(_ES)
 
 # fraction denominator spellings kept for nice_number_es
 _FRACTION_STRING_ES = {
@@ -282,34 +363,54 @@ _FRACTION_STRING_ES = {
 }
 
 
-def extract_number_es(text, short_scale=True, ordinals=False):
-    """Extract a number from Castilian Spanish text.
+def _one_word_es(cardinal: str) -> str:
+    """Write a cardinal as one word ("cincuenta y seis" -> "cincuentaiseis").
 
-    Delegates to the shared :class:`RomanceNumberExtractor`. The Spanish
-    vocabulary follows RAE, *Ortografía de la lengua española* (2010, p. 671):
-    the twenties are written solid ("veintiuno".."veintinueve") while from
-    thirty on the parts stand apart ("treinta y uno"), "y" joins only tens to
-    units, and "cien" apocopates to "ciento" inside compounds.
-
-    This low-level entry point defaults ``short_scale`` to ``True``. The public
-    :func:`ovos_number_parser.extract_number` wrapper instead resolves the scale
-    from the language configuration, applying the long scale used in Spain
-    (millón 10^6, billón 10^12) that Castilian Spanish speakers expect.
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): use the short scale (default) instead of the long scale
-        ordinals (bool): also recognise ordinal words
-    Returns:
-        (int, float) or False: the extracted number, or False if none is found
+    The suffix after it takes the stress, so the written accent goes
+    ("veintidós" -> "veintidos-").
     """
-    scale = Scale.SHORT if short_scale else _ES.DEFAULT_SCALE
-    return ES.extract_number(text, ordinals=ordinals, scale=scale)
+    word = cardinal.replace(" y ", "i").replace(" ", "")
+    return unicodedata.normalize("NFC", "".join(
+        c for c in unicodedata.normalize("NFD", word) if c != "\u0301"))
 
 
-def is_fractional_es(input_str, short_scale=True):
-    """Return the fractional value of a Spanish fraction word, else False."""
-    return ES.is_fractional(input_str)
+def fraction_noun_es(denominator: int, plural: bool = False) -> str:
+    """The masculine fraction noun (sustantivo fraccionario) of a denominator.
+
+    RAE and ASALE, Diccionario panhispánico de dudas, "fraccionarios": mil,
+    millón and their multiples take the ordinal form in -ésimo ("dosmilésimo",
+    "milmillonésimo"); every other denominator outside the table takes -avo
+    on the cardinal written as one word ("cincuentaiseisavo", "doscientosavo").
+    The cardinal drops a final -a and keeps -e or -o (§ 5); "uno" drops its
+    -o ("cientounava" in § 2, "veintiunavo" in § 3 c). The -ésimo noun is
+    the ordinal of DPD "ordinales" § 2d, formed "prefijando al ordinal
+    simple el cardinal que lo multiplica", so it equals
+    ``ES.pronounce_ordinal`` for a count times mil or millón.
+
+    Raises OverflowError from 10**24 up, where the vocabulary has no noun.
+    """
+    if denominator >= 10 ** 24:
+        raise OverflowError(f"no fraction noun for {denominator}")
+    if denominator in _ES.FRACTION:
+        noun = _ES.FRACTION[denominator]
+    elif denominator % 10 ** 6 == 0:
+        # "millonésimo", "dosmillonésimo", "milmillonésimo", "billonésimo"
+        value = max(v for v in _ES.ORDINAL_LONG_SCALE if denominator % v == 0)
+        count = denominator // value
+        noun = _ES.ORDINAL_LONG_SCALE[value]
+        if count > 1:
+            noun = _one_word_es(ES.pronounce_number(
+                count, gender=GrammaticalGender.NEUTRAL)) + noun
+    elif denominator % 1000 == 0:
+        # the cardinal ends in "mil": "dosmilésimo", "cienmilésimo"
+        cardinal = ES.pronounce_number(denominator, gender=GrammaticalGender.NEUTRAL)
+        noun = _one_word_es(cardinal[:-len("mil")]) + _ES.ORDINAL_LONG_SCALE[1000]
+    else:
+        cardinal = _one_word_es(ES.pronounce_number(denominator))
+        if cardinal.endswith("uno") or cardinal.endswith("a"):
+            cardinal = cardinal[:-1]  # veintiunavo, treintavo
+        noun = cardinal + "avo"
+    return pluralize_es(noun) if plural else noun
 
 
 def pronounce_number_es(number, places=2, short_scale=False):
@@ -327,11 +428,6 @@ def pronounce_number_es(number, places=2, short_scale=False):
     scale = Scale.SHORT if short_scale else _ES.DEFAULT_SCALE
     return ES.pronounce_number(number, places=places, scale=scale,
                                digits=DigitPronunciation.DIGIT_BY_DIGIT)
-
-
-def numbers_to_digits_es(utterance: str) -> str:
-    """Replace written numbers in Spanish text with their digit equivalents."""
-    return ES.numbers_to_digits(utterance)
 
 
 def nice_number_es(number, speech=True, denominators=range(1, 21)):
@@ -400,3 +496,9 @@ def nice_number_es(number, speech=True, denominators=range(1, 21)):
             strNumber += 's'
 
     return strNumber
+
+
+def numbers_to_digits_es(utterance: str) -> str:
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, "es")``."""
+    warn_reader_removed("numbers_to_digits_es", 'ovos_number_parser.numbers_to_digits(utterance, "es")')
+    return numtag_readers.numbers_to_digits(utterance, "es")

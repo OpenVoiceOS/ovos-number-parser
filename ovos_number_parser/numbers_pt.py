@@ -1,9 +1,138 @@
+"""Number tools for Portuguese, European (pt-PT) and Brazilian (pt-BR).
+
+A tag that contains "br" reads Brazilian Portuguese. Every other tag reads
+European Portuguese. pt-PT uses the long scale ("mil milhões", "bilião") and
+pt-BR the short scale ("bilhão").
+
+Each variety also reads the other spelling of a scale word above "milhão",
+with its own value. Ciberdúvidas, answer 30031 ("As grafias e as pronúncias
+de bilião e bilhão"): "ambas as formas — bilião e bilhão — se encontram
+registadas", and "bilhão" is of informal use "apesar de significar o mesmo
+que bilião"; the answer extends this to "trilhão/trilião" and
+"quatrilhão/quatrilião". Priberam, "bilhão", sense 1: "[Informal] Um milhão
+de milhões (10^12)", synonym "BILIÃO"; Priberam, "bilião", sense 2:
+"[Brasil] Mil milhões (10^9)". So "um bilhão" is 10^12 in pt-PT and
+"um bilião" is 10^9 in pt-BR. "Milhão" has one spelling.
+
+Fourteen. pt-BR writes "quatorze" and pt-PT "catorze"; both read both.
+Dicio, "Catorze ou quatorze" (Flávia Neves): "As duas palavras existem na
+língua portuguesa e estão corretas", and "Já no português falado em
+Portugal, a palavra quatorze está em desuso, sendo mais correto o uso da
+palavra catorze". Estratégia, "Catorze ou quatorze: entenda a diferença
+e o uso correto" (portal.estrategia.com/materias/portugues/
+catorze-ou-quatorze-entenda-a-diferenca-e-o-uso-correto/): "Ao
+considerarmos o uso no Brasil, "quatorze" é, sem dúvida, a forma mais comum
+e aceita pelas regras gramaticais vigentes". The fractions of pt-BR take its own spellings
+("dezesseis avos"), as its cardinals do.
+
+Sources for the rules in this module:
+
+Conjunction between classes. Cunha & Cintra, "Nova Gramática do Português
+Contemporâneo" (1984), p. 372: "Não se emprega a conjunção entre os milhares
+e as centenas, salvo quando o número terminar numa centena com dois zeros".
+So 1892 is "mil oitocentos e noventa e dois" and 1800 is "mil e oitocentos".
+Ciberdúvidas, answer 34389: the conjunction also joins the two rightmost
+classes when the second begins with a zero ("mil e vinte", "mil e um").
+
+Gender. Only "um", "dois" and the hundreds from "duzentos" inflect
+(linguagem.pt, "Numerais": "Um, dois e as centenas concordam em género com o
+substantivo que contam"). "Mil" is an invariable numeral (linguagem.pt: "Mil
+é invariável como numeral"), so the count before it agrees with the counted
+noun. Só Português, FAQ 359: "o numeral que a antecede deve ser flexionado de
+acordo com o gênero do substantivo seguinte", hence "duas mil pessoas" and
+"duzentas mil casas". The group after a scale word also counts the noun
+(Priberam, "mil": "mil e uma artimanhas"). "Milhão" is a masculine noun
+(Só Português, FAQ 359), so its own count stays masculine: "dois milhões".
+
+Fractions. Priberam, "vigésimo", noun sense 2: "Cada uma das vinte partes
+iguais em que se divide um todo." Priberam, "avo": "doze vinte e cinco avos
+= 12/25".
+
+Ordinals of thousands. Teyssier, "Manual de Língua Portuguesa", p. 183,
+writes 2000.º as "dois milésimo": the count before "milésimo" is cardinal.
+
+Halves. A half counts the unit before it. Dicio, "Meio-dia e meio ou
+meio-dia e meia" (Flávia Neves): "A palavra meia é um numeral fracionário e
+se refere à metade de um todo, de uma unidade. Sendo um numeral fracionário,
+deverá estabelecer concordância com a unidade fracionada"; in "meio-dia e
+meia" the unit is the hour, "meio-dia e meia hora". "Milhão" and "milhar"
+are masculine nouns, and "mil" is a numeral, not a noun (Dad Squarisi,
+"Milhão, milhar e mil — concordância", Correio Braziliense: "Milhar, também
+substantivo masculino, segue regra idêntica a milhão"; "O numeral mil, por
+não ser substantivo, recebe tratamento diferente").
+
+This module reads the rule so: after a scale noun the unit is that noun, and
+"um milhão e meio" is 1500000. "Mil" names no unit, so after it the unit is
+one, as after any other numeral: "mil e meio" is 1000.5, as "dois e meio" is
+2.5. A decimal after a scale noun needs the decimal marker: 1000000.5 is "um
+milhão vírgula cinco". Only the half is of the scale: "dois milhões e um
+quarto" adds a quarter of one.
+
+A decimal before a scale word counts that scale: "dois vírgula cinco
+milhões" is 2,5 milhões, 2500000. Só Matemática, "Como ler números grandes
+(acima de 1 milhão)" (https://www.somatematica.com.br/faq/numerosGrandes.php):
+"o correto é 1,4 milhão", and "se escrevermos esse
+número por extenso, teremos "um milhão e quatrocentos mil""; "Somente a
+partir de 2 é que a concordância é feita no plural: 2,5 milhões". CLDR 49
+writes the same values with its long compact patterns "0 milhão" and
+"0 milhões" ("2,5 milhões").
+
+"Milhar" is a scale noun of 1000 (Priberam, "milhar", sense 1: "Grupo de mil
+unidades"), read but never written: "dois milhares" is 2000 and "um milhar e
+meio" is 1500. A plural scale word with no count before it names no number.
+Priberam, "milhar", sense 4: "[Figurado] Um grande número"; Priberam,
+"milhão", sense 2: "[Informal, Figurado] Número ou quantidade muito grande".
+So "milhares de pessoas" and "milhões de pessoas" read as no number, while
+"dois milhões de pessoas" is 2000000.
+
+"Dezena", "dúzia" and "centena" are collective nouns that count groups of a
+fixed size. Priberam, "dezena", sense 1: "Grupo de dez."
+(https://dicionario.priberam.org/dezena); Priberam, "dúzia", sense 1:
+"Conjunto de doze.", and "meia dúzia": "Conjunto de seis."
+(https://dicionario.priberam.org/dúzia); Priberam, "centena", sense 3:
+"Conjunto de 100 elementos." (https://dicionario.priberam.org/centena). The
+cardinal before one multiplies it: "duas dúzias" is 24, "meia dúzia" is 6, and
+a half after one is half a group, as after a scale noun: "dúzia e meia" is 18.
+"Mil" is a numeral (Priberam, "mil": "quantificador numeral cardinal", "Dez
+vezes cem."), so the whole cardinal it is part of counts the noun, as in
+Priberam, "mil", locution "mil e um": "Grande quantidade (ex.: ele tem mil e
+uma artimanhas)" (https://dicionario.priberam.org/mil), where "mil e uma"
+counts "artimanhas". So "mil e duas dúzias" is 1002 dozens and "duas mil e
+duzentas dúzias" is 2200 dozens. "Milhão" is a noun (Priberam, "milhão":
+"nome masculino", "Mil vezes mil", https://dicionario.priberam.org/milhão),
+so a collective noun after it counts only the cardinal after it: "um milhão
+e duas dúzias" is one number, 1000000 plus 24, which is 1000024. Right after
+it, through "de", the noun counts the "milhão" itself: "dois milhões de
+dúzias" is 24000000. Before a plural, only the bare "de" does this. "Dos" is
+"de" and the article (Priberam, "dos":
+"Contracção de preposição de e do artigo e pronome os.",
+https://dicionario.priberam.org/dos), so the noun after it names groups
+already known and the count picks some out of them: "uma dezena dos
+milhares de manifestantes" is 10. A collective noun ends its number, so
+after "e" a new number starts: "uma dúzia e duas mil dúzias" is two
+numbers, 12 and 24000. Only a half after "e" stays in the number, as half a
+group: "duas dúzias e meia" is 30.
+"Meia dúzia" is a group of its own, so "cem e meia dúzia" is one number,
+100 plus 6, which is 106.
+A plural with no count names no number, as "milhares" does: "dúzias de ovos"
+and "centenas de pessoas" read as no number.
+
+Digits before a scale word. The digits count the scale, as a count in words
+does: "2 milhões" is 2000000 and "2,5 mil milhões" is 2500000000. CLDR 47
+writes large numbers in this form with its long compact decimal patterns:
+"0 mil", "0 milhões" and "0 mil milhões" for pt-PT, "0 bilhões" for pt-BR.
+
+Overview of the numerals: https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
+"""
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Union, Optional
+from typing import Dict, Union, Optional, Tuple
 import warnings
 from ovos_number_parser.util import (Scale, GrammaticalGender,
                                      DigitPronunciation,
                                      NumberVocabulary, RomanceNumberExtractor)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 
 class PortugueseVariant(str, Enum):
@@ -27,7 +156,7 @@ def swap_gender_pt(word: str, gender: GrammaticalGender) -> str:
     Returns:
         str: The word with its ending swapped to match the specified gender, if applicable; otherwise, the original word.
     """
-    invariant = {"zero", "quatro", "cinco", "oito", "cem", "cento",
+    invariant = {"zero", "quatro", "cinco", "oito", "dezoito", "cem", "cento",
                  "mil", "milhão", "bilhão", "trilhão", "conto"}
     if word in invariant:
         # most portuguese cardinals do not inflect for gender
@@ -55,38 +184,66 @@ def swap_gender_pt(word: str, gender: GrammaticalGender) -> str:
 def pluralize_pt(word: str):
     if word.endswith("ão"):
         return word[:-2] + "ões"
+    if word.endswith("r"):
+        return word + "es"
     if not word.endswith("s"):
         return word + "s"
     return word
 
 
-# https://pt.wikipedia.org/wiki/Numerais_em_l%C3%ADngua_portuguesa
-_PT_PT = NumberVocabulary(
+@dataclass
+class PortugueseVocabulary(NumberVocabulary):
+    """The vocabulary, plus the other spelling of the scale words, read but
+    never written."""
+
+    #: the ending of a scale word and its other spelling ("lião", "lhão")
+    SCALE_ALT_ENDING: Tuple[str, str] = ("", "")
+    #: scale nouns that name a value the scale tables write with another
+    #: word ("um milhar" is "mil")
+    SCALE_NOUNS: Dict[str, int] = field(default_factory=dict)
+
+    def get_number_strings(self, scale: Optional[Scale] = None) -> Dict[str, int]:
+        numbers = super().get_number_strings(scale)
+        ending, alt = self.SCALE_ALT_ENDING
+        scales = self.SHORT_SCALE if (scale or self.DEFAULT_SCALE) == Scale.SHORT \
+            else self.LONG_SCALE
+        for value, word in scales.items():
+            if value > 10 ** 6 and word.endswith(ending):
+                other = word[:-len(ending)] + alt
+                numbers.setdefault(other, value)
+                numbers.setdefault(self.pluralize(other), value)
+        for word, value in self.SCALE_NOUNS.items():
+            numbers.setdefault(word, value)
+            numbers.setdefault(self.pluralize(word), value)
+        return numbers
+
+
+_PT_PT = PortugueseVocabulary(
     LANG="pt-PT",
+    SCALE_ALT_ENDING=("lião", "lhão"),  # "bilhão" reads as "bilião"
+    SCALE_NOUNS={"milhar": 1000},  # "dois milhares" = 2000
+    COUNT_NOUNS={"dezena": 10, "dúzia": 12, "centena": 100},  # "duas dúzias" = 24
 
     swap_gender=swap_gender_pt, # used for female forms
     pluralize=pluralize_pt, # use for plural forms
 
     HUNDRED_PARTICLE="cento", # how to read "1XX"
     DENOMINATOR_PARTICLE="avos",   # for fractions  X / N {PARTICLE}
-    NUMBER_OVERFLOW="número exageradamente grande",
     DIVIDED_BY_ZERO="a dividir por zero", # how to read X/0 values
     NO_PREV_UNIT=[100, 1000], # "mil" vs "um mil"  / "cem" vs "um cem"
     NO_PLURAL=[1000], # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
 
     DEFAULT_SCALE=Scale.LONG,
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["e"],
     JOINER_ON_TWENTYS = True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS = True,   # add JOIN_WORD from 100-1000 - "duzentos e um"
-    # Cunha & Cintra, "Nova Gramática do Português Contemporâneo" (1984),
-    # p. 372: "Não se emprega a conjunção entre os milhares e as centenas,
-    # salvo quando o número terminar numa centena com dois zeros" -- so
-    # 1892 = "mil oitocentos e noventa e dois" but 1800 = "mil e oitocentos".
-    # Ciberdúvidas (ISCTE-IUL, resposta 34389) adds the other half: the
-    # conjunction also joins the two rightmost classes when the second begins
-    # with a zero ("mil e vinte", "mil e um"). Together: join when the
-    # remainder is below 100 or is a whole number of hundreds.
+    # join when the remainder is below 100 or a whole number of hundreds
     JOINER_ON_THOUSANDS = True,  # "mil e duzentos", "mil e cem"
+    # the count before "mil" and the group after a scale word agree with
+    # the counted noun; "milhão" is a masculine noun
+    AGREEING_SCALES=[1000],
+    AGREE_AFTER_SCALE=True,
 
     DECIMAL_MARKER=["vírgula", "virgula", "ponto", ".", ","],
     NEGATIVE_SIGN=["menos"],
@@ -165,7 +322,6 @@ _PT_PT = NumberVocabulary(
         900: 'nonngentésimo', # / 'noningentésimo'
         1000: 'milésimo'
     },
-    FRACTION_FEMALE={2: "meia"},
     SHORT_SCALE={
         10 ** 303: "centilião",
         10 ** 63: "vigintilião", # / "vintilião"
@@ -218,9 +374,9 @@ _PT_PT = NumberVocabulary(
     GENDERED_SPELLINGS={
         GrammaticalGender.FEMININE: {1: "uma", 2: "duas"}
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # pt-BR regionalisms
+        'quatorze': 14,
         'dezesseis': 16,
         'dezessete': 17,
         'dezenove': 19
@@ -278,41 +434,45 @@ _PT_PT = NumberVocabulary(
     }
 )
 
-_PT_BR = NumberVocabulary(
+_PT_BR = PortugueseVocabulary(
     LANG="pt-BR",
+    SCALE_ALT_ENDING=("lhão", "lião"),  # "bilião" reads as "bilhão"
+    SCALE_NOUNS=_PT_PT.SCALE_NOUNS,
+    COUNT_NOUNS=_PT_PT.COUNT_NOUNS,
     swap_gender=swap_gender_pt,  # used for female forms
     pluralize=pluralize_pt,  # use for plural forms
     DEFAULT_SCALE=Scale.SHORT,
+    MAX_SCALE_COUNT=10 ** 6,
     DIVIDED_BY_ZERO=_PT_PT.DIVIDED_BY_ZERO,
     DENOMINATOR_PARTICLE=_PT_PT.DENOMINATOR_PARTICLE,
     HUNDRED_PARTICLE=_PT_PT.HUNDRED_PARTICLE,
     NO_PREV_UNIT=_PT_PT.NO_PREV_UNIT,
     NO_PLURAL=_PT_PT.NO_PLURAL,
-    NUMBER_OVERFLOW=_PT_PT.NUMBER_OVERFLOW,
     JOIN_WORD=_PT_PT.JOIN_WORD,
     JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e um"
     JOINER_ON_HUNDREDS=True,  # add JOIN_WORD from 100-1000 - "duzentos e um"
-    # Cunha & Cintra, "Nova Gramática do Português Contemporâneo" (1984),
-    # p. 372: "Não se emprega a conjunção entre os milhares e as centenas,
-    # salvo quando o número terminar numa centena com dois zeros" -- so
-    # 1892 = "mil oitocentos e noventa e dois" but 1800 = "mil e oitocentos".
-    # Ciberdúvidas (ISCTE-IUL, resposta 34389) adds the other half: the
-    # conjunction also joins the two rightmost classes when the second begins
-    # with a zero ("mil e vinte", "mil e um"). Together: join when the
-    # remainder is below 100 or is a whole number of hundreds.
+    # join when the remainder is below 100 or a whole number of hundreds
     JOINER_ON_THOUSANDS=True,  # "mil e duzentos", "mil e cem"
+    AGREEING_SCALES=_PT_PT.AGREEING_SCALES,
+    AGREE_AFTER_SCALE=_PT_PT.AGREE_AFTER_SCALE,
     DECIMAL_MARKER=_PT_PT.DECIMAL_MARKER,
     NEGATIVE_SIGN=_PT_PT.NEGATIVE_SIGN,
     UNITS=_PT_PT.UNITS,
     TENS={
         **_PT_PT.TENS,
+        14: 'quatorze',
         16: 'dezesseis',
         17: 'dezessete',
         19: 'dezenove'
     },
     HUNDREDS=_PT_PT.HUNDREDS,
-    FRACTION=_PT_PT.FRACTION,
-    FRACTION_FEMALE=_PT_PT.FRACTION_FEMALE,
+    FRACTION={
+        **_PT_PT.FRACTION,
+        14: 'quatorze avos',
+        16: 'dezesseis avos',
+        17: 'dezessete avos',
+        19: 'dezenove avos'
+    },
     SHORT_SCALE={
         10 ** 303: "centilhão",
         10 ** 63: "vigintilhão",  # / "vintilhão"
@@ -362,11 +522,9 @@ _PT_BR = NumberVocabulary(
         10 ** 3: "mil"
     },
     GENDERED_SPELLINGS=_PT_PT.GENDERED_SPELLINGS,
-    DIGIT_SPELLINGS={
-        6: "meia" # coloquialism
-    },
     ALT_SPELLINGS={
         # pt-PT regionalisms
+        'catorze': 14,
         'dezasseis': 16,
         'dezassete': 17,
         'dezanove': 19
@@ -418,53 +576,6 @@ def pronounce_ordinal_pt(
     return PT_BR.pronounce_ordinal(number, gender, scale)
 
 
-def is_fractional_pt(
-        input_str: str
-) -> Union[float, bool]:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return PT_PT.is_fractional(input_str)
-
-
-def is_ordinal_pt(input_str: str) -> bool:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return PT_PT.is_ordinal(input_str)
-
-
-def extract_number_pt(
-        text: str,
-        ordinals: bool = False,
-        scale: Optional[Scale] = None,
-        variant: PortugueseVariant = PortugueseVariant.PT
-) -> Union[int, float, bool]:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if variant == PortugueseVariant.PT:
-        scale = scale or PT_PT.vocab.DEFAULT_SCALE
-        return PT_PT.extract_number(text, ordinals, scale)
-    scale = scale or PT_BR.vocab.DEFAULT_SCALE
-    return PT_BR.extract_number(text, ordinals, scale)
-
-
 def pronounce_number_pt(
         number: Union[int, float],
         places: int = 5,
@@ -487,27 +598,6 @@ def pronounce_number_pt(
         return PT_PT.pronounce_number(number, places, scale, ordinals, digits, gender)
     scale = scale or PT_BR.vocab.DEFAULT_SCALE
     return PT_BR.pronounce_number(number, places, scale, ordinals, digits, gender)
-
-
-def numbers_to_digits_pt(
-        utterance: str,
-        scale: Optional[Scale] = None,
-        variant: PortugueseVariant = PortugueseVariant.PT
-) -> str:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if variant == PortugueseVariant.PT:
-        scale = scale or PT_PT.vocab.DEFAULT_SCALE
-        return PT_PT.numbers_to_digits(utterance, scale)
-    scale = scale or PT_BR.vocab.DEFAULT_SCALE
-    return PT_BR.numbers_to_digits(utterance, scale)
-
 
 
 def pronounce_fraction_pt(word: str,
@@ -564,35 +654,6 @@ if __name__ == "__main__":
     print(
         f"1,000,000,000,000th (PT, long): {pronounce_number_pt(1_000_000_000_000, ordinals=True, variant=PortugueseVariant.PT, scale=Scale.LONG)}")
 
-    print("\n--- Testing numbers_to_digits_pt (BR) ---")
-    print(f"'quinhentos e cinquenta' -> '{numbers_to_digits_pt('quinhentos e cinquenta')}'")
-    print(f"'um milhão' -> '{numbers_to_digits_pt('um milhão')}'")
-    print(f"'dezesseis' -> '{numbers_to_digits_pt('dezesseis')}'")
-    print(f"'há duzentos e cinquenta carros' -> '{numbers_to_digits_pt('há duzentos e cinquenta carros')}'")
-
-    print("\n--- Testing numbers_to_digits_pt (PT) ---")
-    print(
-        f"'quinhentos e cinquenta' -> '{numbers_to_digits_pt('quinhentos e cinquenta', variant=PortugueseVariant.PT)}'")
-    print(f"'um milhão' -> '{numbers_to_digits_pt('um milhão', variant=PortugueseVariant.PT)}'")
-    print(f"'dezasseis' -> '{numbers_to_digits_pt('dezasseis', variant=PortugueseVariant.PT)}'")
-
-    print("\n--- Testing Ordinal Extraction ---")
-    print(f"'o segundo carro' -> {extract_number_pt('o segundo carro', ordinals=True)}")
-    print(f"'primeiro lugar' -> {extract_number_pt('primeiro lugar', ordinals=True)}")
-    print(f"'o milésimo dia' -> {extract_number_pt('o milésimo dia', ordinals=True)}")
-    print(f"'a milésima vez' -> {extract_number_pt('a milésima vez', ordinals=True)}")
-    print(f"'a primeira vez' -> {extract_number_pt('a primeira vez', ordinals=True)}")
-    print(f"'a sexagésima quarta vez' -> {extract_number_pt('a sexagésima quarta vez', ordinals=True)}")
-
-    print("\n--- Testing Cardinal Extraction ---")
-    print(f"'um' -> {extract_number_pt('um')}")
-    print(f"'uma' -> {extract_number_pt('uma')}")
-    print(f"'vinte e um' -> {extract_number_pt('vinte e um')}")
-    print(f"'um milhão' -> {extract_number_pt('um milhão')}")
-    print(f"'dois milhões e quinhentos' -> {extract_number_pt('dois milhões e quinhentos')}")
-    print(f"'mil e vinte e três' -> {extract_number_pt('mil e vinte e três')}")
-    print(f"'trinta e cinco vírgula quatro' -> {extract_number_pt('trinta e cinco vírgula quatro')}")
-
     print("\n--- Testing Fractions ---")
     print(f"1/2: {pronounce_fraction_pt('1/2')}")
     print(f"2/2: {pronounce_fraction_pt('2/2')}")
@@ -603,3 +664,14 @@ if __name__ == "__main__":
     print(f"0/20: {pronounce_fraction_pt('0/20')}")
     print(f"1/0: {pronounce_fraction_pt('1/0')}")
     print(f"0/0: {pronounce_fraction_pt('0/0')}")
+
+
+def numbers_to_digits_pt(
+        utterance: str,
+        scale: Optional[Scale] = None,
+        variant: PortugueseVariant = PortugueseVariant.PT
+) -> str:
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, "pt-PT")``."""
+    warn_reader_removed("numbers_to_digits_pt", 'ovos_number_parser.numbers_to_digits(utterance, "pt-PT")')
+    lang = "pt-PT" if variant == PortugueseVariant.PT else "pt-BR"
+    return numtag_readers.numbers_to_digits(utterance, lang, scale)

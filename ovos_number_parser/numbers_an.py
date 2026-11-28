@@ -39,8 +39,8 @@ _AN = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "mil" not "un mil" / "cient" not "un cient"
     NO_PLURAL=[1000],  # "dos mil" not "dos mils"
 
-    NUMBER_OVERFLOW="numero exageradament gran",
     DEFAULT_SCALE=Scale.LONG,
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["y"],
 
     JOINER_ON_TWENTYS=True,  # 21-29 have fused spellings, joiner kept for extraction
@@ -106,9 +106,6 @@ _AN = NumberVocabulary(
         3: 'tercio',
         4: 'cuarto'
     },
-    FRACTION_FEMALE={
-        2: "meya"  # una y meya -> 1.5
-    },
     SHORT_SCALE={
         10 ** 3: "mil",
         10 ** 6: "millón"
@@ -123,7 +120,6 @@ _AN = NumberVocabulary(
             1: "una"
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # dialectal / variant spellings kept for extraction only
         "uno": 1,
@@ -225,11 +221,3 @@ if __name__ == '__main__':
     print('1st (f):', AN.pronounce_ordinal(1, GrammaticalGender.FEMININE))
     print('4th (m):', AN.pronounce_ordinal(4))
     print('11th:', AN.pronounce_ordinal(11))
-
-    print('\n--- Extraction ---')
-    print("'un millón' ->", AN.extract_number('un millón'))
-    print("'trenta y cinco' ->", AN.extract_number('trenta y cinco'))
-    print("'vintiún' ->", AN.extract_number('vintiún'))
-
-    print('\n--- numbers_to_digits ---')
-    print(AN.numbers_to_digits('bi ha docientos cincuanta personas'))

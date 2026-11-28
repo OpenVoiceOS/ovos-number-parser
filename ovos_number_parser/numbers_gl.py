@@ -1,11 +1,8 @@
-from collections import OrderedDict
-from typing import List, Optional, Union
+from typing import Optional, Union
 import warnings
-from ovos_number_parser.util import (convert_to_mixed_fraction, look_for_fractions, DigitPronunciation,
-                                     is_numeric, tokenize, Token)
+from ovos_number_parser.util import DigitPronunciation
 
 from ovos_number_parser.util import (Scale, GrammaticalGender, NumberVocabulary, RomanceNumberExtractor)
-
 
 
 def swap_gender_gl(word: str, gender: GrammaticalGender) -> str:
@@ -47,7 +44,6 @@ def pluralize_gl(word: str):
     return word
 
 
-
 _GL = NumberVocabulary(
     LANG="gl-ES",
     swap_gender=swap_gender_gl,  # used for female forms
@@ -59,8 +55,8 @@ _GL = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "mil" vs "um mil"  / "cem" vs "um cem"
     NO_PLURAL=[1000],  # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
 
-    NUMBER_OVERFLOW="número exageradamente grande",
     DEFAULT_SCALE=Scale.LONG,
+    MAX_SCALE_COUNT=10 ** 6,
     JOIN_WORD=["e"],
 
     JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e un"
@@ -135,9 +131,6 @@ _GL = NumberVocabulary(
         20: 'vinteavo',
         100: "centésimo",
         1000: "milésimo"
-    },
-    FRACTION_FEMALE={
-        2: "media"  # una y media -> 1.5
     },
     SHORT_SCALE={
         1000: 'mil',
@@ -245,7 +238,6 @@ _GL = NumberVocabulary(
             2: "dúas"
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
 
     },
@@ -336,49 +328,6 @@ def pronounce_ordinal_gl(
     return GL.pronounce_ordinal(number, gender, scale)
 
 
-def is_fractional_gl(
-        input_str: str
-) -> Union[float, bool]:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return GL.is_fractional(input_str)
-
-
-def is_ordinal_gl(input_str: str) -> bool:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return GL.is_ordinal(input_str)
-
-
-def extract_number_gl(
-        text: str,
-        ordinals: bool = False,
-        scale: Optional[Scale] = None
-) -> Union[int, float, bool]:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    scale = scale or GL.vocab.DEFAULT_SCALE
-    return GL.extract_number(text, ordinals, scale)
-
-
 def pronounce_number_gl(
         number: Union[int, float],
         places: int = 5,
@@ -397,23 +346,6 @@ def pronounce_number_gl(
     )
     scale = scale or GL.vocab.DEFAULT_SCALE
     return GL.pronounce_number(number, places, scale, ordinals, digits, gender)
-
-
-def numbers_to_digits_gl(
-        utterance: str,
-        scale: Optional[Scale] = None
-) -> str:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    scale = scale or GL.vocab.DEFAULT_SCALE
-    return GL.numbers_to_digits(utterance, scale)
-
 
 
 def pronounce_fraction_gl(word: str, scale: Optional[Scale] = None) -> str:
@@ -478,52 +410,6 @@ if __name__ == "__main__":
     print(f"1,000,000th: {GL.pronounce_number(1_000_000, ordinals=True)}")
     # $1,000,000,000,000^{th}$: billonésimo
     print(f"1,000,000,000,000th: {GL.pronounce_number(1_000_000_000_000, ordinals=True)}")
-
-    print("\n--- Testing GL.numbers_to_digits ---")
-    # duzentos e cinquenta -> 250 (Using correct Galician: douscentos cincuenta)
-    print(f"'douscentos cincuenta' -> '{GL.numbers_to_digits('douscentos cincuenta')}'")
-    # un milhon -> 1000000 (Using correct Galician: un millón)
-    print(f"'un millón' -> '{GL.numbers_to_digits('un millón')}'")
-    # zasseis -> 16 (Using correct Galician: dezaseis)
-    print(f"'dezaseis' -> '{GL.numbers_to_digits('dezaseis')}'")
-    # hai duzientos e cinquenta carros -> hai 250 carros (Using correct Galician)
-    print(f"'hai douscentos cincuenta carros' -> '{GL.numbers_to_digits('hai douscentos cincuenta carros')}'")
-
-    print("\n--- Testing Ordinal Extraction ---")
-    # o segundo carro -> 2 (Galician: o segundo carro)
-    print(f"'o segundo carro' -> {GL.extract_number('o segundo carro', ordinals=True)}")
-    # primeiro lugar -> 1 (Galician: primeiro lugar)
-    print(f"'primeiro lugar' -> {GL.extract_number('primeiro lugar', ordinals=True)}")
-    # o milésimo dia -> 1000 (Galician: o milésimo día)
-    print(f"'o milésimo día' -> {GL.extract_number('o milésimo día', ordinals=True)}")
-    # a milésima vez -> 1000 (Galician: a milésima vez)
-    print(f"'a milésima vez' -> {GL.extract_number('a milésima vez', ordinals=True)}")
-    # a primeira vez -> 1 (Galician: a primeira vez)
-    print(f"'a primeira vez' -> {GL.extract_number('a primeira vez', ordinals=True)}")
-    # a sexagésima cuarta vez -> 64 (Galician: a sexagésima cuarta vez)
-    print(f"'a sexagésima cuarta vez' -> {GL.extract_number('a sexagésima cuarta vez', ordinals=True)}")
-
-    print("\n--- Testing Cardinal Extraction ---")
-    # un -> 1
-    print(f"'un' -> {GL.extract_number('un')}")
-    # unha -> 1
-    print(f"'unha' -> {GL.extract_number('unha')}")
-    # vinte e un -> 21
-    print(f"'vinte e un' -> {GL.extract_number('vinte e un')}")
-    # vinte e unha -> 21
-    print(f"'vinte e unha' -> {GL.extract_number('vinte e unha')}")
-    # vinte e dous -> 22
-    print(f"'vinte e dous' -> {GL.extract_number('vinte e dous')}")
-    # vinte e dúas -> 22
-    print(f"'vinte e dúas' -> {GL.extract_number('vinte e dúas')}")
-    # un millón -> 1000000
-    print(f"'un millón' -> {GL.extract_number('un millón')}")
-    # dous millóns e cincocentos -> 2500500 (Galician: dous millóns cincocentos)
-    print(f"'dous millóns cincocentos' -> {GL.extract_number('dous millóns cincocentos')}")
-    # mil vinte e tres -> 1023 (Galician: mil vinte e tres)
-    print(f"'mil vinte e tres' -> {GL.extract_number('mil vinte e tres')}")
-    # trinta e cinco coma catro -> 35.4 (Galician: trinta e cinco coma catro)
-    print(f"'trinta e cinco coma catro' -> {GL.extract_number('trinta e cinco coma catro')}")
 
     print("\n--- Testing Fractions ---")
     # $1/2$: un medio

@@ -140,21 +140,34 @@ class TestHebrewExtract(unittest.TestCase):
         self.assertIn(extract_number("", lang="he"), (False, None))
 
     def test_is_fractional(self):
-        self.assertEqual(is_fractional("חצי", lang="he"), 0.5)
-        self.assertEqual(is_fractional("רבע", lang="he"), 0.25)
-        self.assertEqual(is_fractional("הרבע", lang="he"), 0.25)
-        self.assertAlmostEqual(is_fractional("שליש", lang="he"), 1 / 3)
-        self.assertAlmostEqual(is_fractional("חמישית", lang="he"), 0.2)
-        self.assertAlmostEqual(is_fractional("עשירית", lang="he"), 0.1)
-        self.assertFalse(is_fractional("ספר", lang="he"))
+        with self.subTest(case='is_fractional("חצי", lang="he")'):
+            self.assertEqual(is_fractional("חצי", lang="he"), 0.5)
+        with self.subTest(case='is_fractional("רבע", lang="he")'):
+            self.assertEqual(is_fractional("רבע", lang="he"), 0.25)
+        with self.subTest(case='is_fractional("הרבע", lang="he")'):
+            self.assertEqual(is_fractional("הרבע", lang="he"), 0.25)
+        with self.subTest(case='is_fractional("שליש", lang="he")'):
+            self.assertAlmostEqual(is_fractional("שליש", lang="he"), 1 / 3)
+        with self.subTest(case='is_fractional("חמישית", lang="he")'):
+            self.assertAlmostEqual(is_fractional("חמישית", lang="he"), 0.2)
+        with self.subTest(case='is_fractional("עשירית", lang="he")'):
+            self.assertAlmostEqual(is_fractional("עשירית", lang="he"), 0.1)
+        with self.subTest(case='is_fractional("ספר", lang="he")'):
+            self.assertFalse(is_fractional("ספר", lang="he"))
 
     def test_is_ordinal(self):
-        self.assertEqual(is_ordinal("ראשון", lang="he"), 1)
-        self.assertEqual(is_ordinal("ראשונה", lang="he"), 1)
-        self.assertEqual(is_ordinal("שלישית", lang="he"), 3)
-        self.assertEqual(is_ordinal("האחד עשר", lang="he"), 11)
-        self.assertEqual(is_ordinal("העשרים וחמישה", lang="he"), 25)
-        self.assertFalse(is_ordinal("שלום", lang="he"))
+        with self.subTest(case='is_ordinal("ראשון", lang="he")'):
+            self.assertEqual(is_ordinal("ראשון", lang="he"), 1)
+        with self.subTest(case='is_ordinal("ראשונה", lang="he")'):
+            self.assertEqual(is_ordinal("ראשונה", lang="he"), 1)
+        with self.subTest(case='is_ordinal("שלישית", lang="he")'):
+            self.assertEqual(is_ordinal("שלישית", lang="he"), 3)
+        with self.subTest(case='is_ordinal("האחד עשר", lang="he")'):
+            self.assertEqual(is_ordinal("האחד עשר", lang="he"), 11)
+        with self.subTest(case='is_ordinal("העשרים וחמישה", lang="he")'):
+            self.assertEqual(is_ordinal("העשרים וחמישה", lang="he"), 25)
+        with self.subTest(case='is_ordinal("שלום", lang="he")'):
+            self.assertFalse(is_ordinal("שלום", lang="he"))
 
     def test_numbers_to_digits(self):
         self.assertEqual(

@@ -122,17 +122,25 @@ class TestRussianFractions(unittest.TestCase):
     """Fraction nouns, singular citation form and inflected plurals."""
 
     def test_singular_forms(self):
-        self.assertEqual(is_fractional("целая", lang="ru"), 1.0)
-        self.assertEqual(is_fractional("пятая", lang="ru"), 0.2)
-        self.assertEqual(is_fractional("десятая", lang="ru"), 0.1)
-        self.assertEqual(is_fractional("сотая", lang="ru"), 0.01)
+        with self.subTest(case='is_fractional("целая", lang="ru")'):
+            self.assertEqual(is_fractional("целая", lang="ru"), 1.0)
+        with self.subTest(case='is_fractional("пятая", lang="ru")'):
+            self.assertEqual(is_fractional("пятая", lang="ru"), 0.2)
+        with self.subTest(case='is_fractional("десятая", lang="ru")'):
+            self.assertEqual(is_fractional("десятая", lang="ru"), 0.1)
+        with self.subTest(case='is_fractional("сотая", lang="ru")'):
+            self.assertEqual(is_fractional("сотая", lang="ru"), 0.01)
 
     def test_plural_forms_normalize_to_singular(self):
         # "две пятые" = 2/5, "три пятых" = 3/5 -> each fifth is 1/5
-        self.assertEqual(is_fractional("пятые", lang="ru"), 0.2)
-        self.assertEqual(is_fractional("пятых", lang="ru"), 0.2)
-        self.assertEqual(is_fractional("десятые", lang="ru"), 0.1)
-        self.assertEqual(is_fractional("десятых", lang="ru"), 0.1)
+        with self.subTest(case='is_fractional("пятые", lang="ru")'):
+            self.assertEqual(is_fractional("пятые", lang="ru"), 0.2)
+        with self.subTest(case='is_fractional("пятых", lang="ru")'):
+            self.assertEqual(is_fractional("пятых", lang="ru"), 0.2)
+        with self.subTest(case='is_fractional("десятые", lang="ru")'):
+            self.assertEqual(is_fractional("десятые", lang="ru"), 0.1)
+        with self.subTest(case='is_fractional("десятых", lang="ru")'):
+            self.assertEqual(is_fractional("десятых", lang="ru"), 0.1)
 
     def test_non_fraction_returns_false(self):
         for word in ["", "привет", "пять", "целые", "тые"]:

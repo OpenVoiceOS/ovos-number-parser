@@ -8,6 +8,7 @@ that the test asserts the knob's effect, not any single language's data.
 import unittest
 from dataclasses import replace
 
+from ovos_number_parser import numbers_to_digits
 from ovos_number_parser.numbers_gl import _GL
 from ovos_number_parser.util import (GrammaticalGender, RomanceNumberExtractor)
 
@@ -84,26 +85,6 @@ class TestJoinerOnScaleRemainder(unittest.TestCase):
                          "mil douscentos e trinta e catro")
 
 
-class TestMultiplyHundreds(unittest.TestCase):
-    def test_hundred_word_multiplies_preceding_units(self):
-        eng = _engine(MULTIPLY_HUNDREDS=True)
-        self.assertEqual(eng.extract_number("dous cen"), 200)
-        self.assertEqual(eng.extract_number("tres cen corenta e cinco"), 345)
-
-    def test_bare_hundred_still_one_hundred(self):
-        eng = _engine(MULTIPLY_HUNDREDS=True)
-        self.assertEqual(eng.extract_number("cen"), 100)
-
-    def test_higher_groups_untouched(self):
-        # only the sub-hundred residue multiplies: 2000 + 3*100
-        eng = _engine(MULTIPLY_HUNDREDS=True)
-        self.assertEqual(eng.extract_number("dous mil tres cen"), 2300)
-
-    def test_default_additive(self):
-        eng = _engine()
-        self.assertEqual(eng.extract_number("dous cen"), 102)
-
-
 class TestOrdinalPrefix(unittest.TestCase):
     PREFIX = {GrammaticalGender.MASCULINE: "al", GrammaticalGender.FEMININE: "a"}
 
@@ -123,12 +104,6 @@ class TestOrdinalPrefix(unittest.TestCase):
         eng = _engine(ORDINAL_PREFIX=self.PREFIX)
         self.assertEqual(eng.pronounce_ordinal(1001), "al milésimo primeiro")
 
-    def test_is_ordinal_strips_particles(self):
-        eng = _engine(ORDINAL_PREFIX=self.PREFIX)
-        self.assertEqual(eng.is_ordinal("al segundo"), 2)
-        self.assertEqual(eng.is_ordinal("a segunda"), 2)
-        self.assertFalse(eng.is_ordinal("al gato"))
-
     def test_default_no_prefix(self):
         eng = _engine()
         self.assertEqual(eng.pronounce_ordinal(2), "segundo")
@@ -145,8 +120,6 @@ class TestOrdinalCompoundCardinalTens(unittest.TestCase):
         self.assertEqual(eng.pronounce_ordinal(21), "vinte e primo")
         # the standalone ordinal keeps its own word
         self.assertEqual(eng.pronounce_ordinal(1), "primeiro")
-        # the compound spelling is recognised during extraction
-        self.assertEqual(eng.is_ordinal("primo"), 1)
 
     def test_exact_teen_entries_preferred(self):
         eng = _engine(ORDINAL_COMPOUND_CARDINAL_TENS=True)
@@ -177,11 +150,10 @@ class TestFractionOne(unittest.TestCase):
 
 class TestNumbersToDigitsTrailingJoiner(unittest.TestCase):
     def test_trailing_joiner_left_in_text(self):
-        eng = _engine()
-        self.assertEqual(eng.numbers_to_digits("vinte e dous gatos e un can"),
+        self.assertEqual(numbers_to_digits("vinte e dous gatos e un can", "gl"),
                          "22 gatos e 1 can")
         # a joiner that does not extend the number stays in the sentence
-        self.assertEqual(eng.numbers_to_digits("tres e logo catro"),
+        self.assertEqual(numbers_to_digits("tres e logo catro", "gl"),
                          "3 e logo 4")
 
 

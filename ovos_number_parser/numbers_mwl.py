@@ -61,13 +61,12 @@ _MWL = NumberVocabulary(
     DIVIDED_BY_ZERO="a dibidir por zero",  # how to read X/0 values
     NO_PREV_UNIT=[100, 1000],  # "mil" vs "um mil"  / "cem" vs "um cem"
     NO_PLURAL=[1000],  # "dois mil" vs "dois mils" / "dois milhões" vs "dois milhão"
-    NUMBER_OVERFLOW="número exageradamente grande",
     DEFAULT_SCALE=Scale.LONG,
     JOIN_WORD=["i"],
 
-    JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "vinte e um"
-    JOINER_ON_HUNDREDS=True,  # add JOIN_WORD from 100-1000 - "duzentos e um"
-    JOINER_ON_THOUSANDS=False,  # add JOIN_WORD from 1000-10000 - "mil e duzentos"
+    JOINER_ON_TWENTYS=True,  # add JOIN_WORD from 20-30 - "bint'i un"
+    JOINER_ON_HUNDREDS=True,  # add JOIN_WORD from 100-1000 - "dous cientos i un"
+    JOINER_ON_THOUSANDS=False,  # add JOIN_WORD from 1000-10000 - "mil dous cientos"
 
     DECIMAL_MARKER=["bírgula", "ponto", "birgula", ".", ","],
     NEGATIVE_SIGN=["menos"],
@@ -112,16 +111,19 @@ _MWL = NumberVocabulary(
         80: 'uitenta',
         90: 'nobenta'
     },
+    # the usual spoken pattern is periphrastic, "<unit> cientos";
+    # the synthetic forms (duzientos, quatrocientos, ...) are understood
+    # but read as lusisms, so they are accepted on extraction only
     HUNDREDS={
         100: 'cien',
-        200: 'duzientos',
-        300: 'trezientos',
-        400: 'quatrocientos',
-        500: 'quinhentos',
-        600: 'seiscientos',
-        700: 'sietecientos',
-        800: 'uitocientos',
-        900: 'nuobecientos'
+        200: 'dous cientos',
+        300: 'trés cientos',
+        400: 'quatro cientos',
+        500: 'cinco cientos',
+        600: 'seis cientos',
+        700: 'siete cientos',
+        800: 'uito cientos',
+        900: 'nuobe cientos'
     },
     FRACTION={
         2: 'meio',
@@ -147,9 +149,6 @@ _MWL = NumberVocabulary(
         100: 'centésimo',
         1000: 'milésimo'
     },
-    FRACTION_FEMALE={
-        2: "meia"  # ũa i meia -> 1.5
-    },
     SHORT_SCALE={
         10 ** 21: "sextilion",
         10 ** 18: "quintilion",
@@ -174,21 +173,22 @@ _MWL = NumberVocabulary(
             2: "dues"
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         'dezasseis': 16,
         'dezassiete': 17,
         'dezuito': 18,
         'dezanuobe': 19,
+        'ciento': 100,
+        'cientos': 100,
         'un ciento': 100,
-        'dous cientos': 200,
-        'trés cientos': 300,
-        'quatro cientos': 400,
-        'cinco cientos': 500,
-        'seis cientos': 600,
-        'siete cientos': 700,
-        'uito cientos': 800,
-        'nuobe cientos': 900,
+        'duzientos': 200,
+        'trezientos': 300,
+        'quatrocientos': 400,
+        'quinhentos': 500,
+        'seiscientos': 600,
+        'sietecientos': 700,
+        'uitocientos': 800,
+        'nuobecientos': 900,
         "bint": 20,
         "bint'i": 20
     },
@@ -268,49 +268,6 @@ def pronounce_ordinal_mwl(
     return MWL.pronounce_ordinal(number, gender, scale)
 
 
-def is_fractional_mwl(
-        input_str: str
-) -> Union[float, bool]:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return MWL.is_fractional(input_str)
-
-
-def is_ordinal_mwl(input_str: str) -> bool:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return MWL.is_ordinal(input_str)
-
-
-def extract_number_mwl(
-        text: str,
-        ordinals: bool = False,
-        scale: Optional[Scale] = None
-) -> Union[int, float, bool]:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    scale = scale or MWL.vocab.DEFAULT_SCALE
-    return MWL.extract_number(text, ordinals, scale)
-
-
 def pronounce_number_mwl(
         number: Union[int, float],
         places: int = 5,
@@ -329,23 +286,6 @@ def pronounce_number_mwl(
     )
     scale = scale or MWL.vocab.DEFAULT_SCALE
     return MWL.pronounce_number(number, places, scale, ordinals, digits, gender)
-
-
-def numbers_to_digits_mwl(
-        utterance: str,
-        scale: Optional[Scale] = None
-) -> str:
-    """
-    DEPRECATED
-    """
-    warnings.warn(
-        "migrate to use RomanceNumberExtractor and NumberVocabulary directly instead",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    scale = scale or MWL.vocab.DEFAULT_SCALE
-    return MWL.numbers_to_digits(utterance, scale)
-
 
 
 def pronounce_fraction_mwl(word: str, scale: Optional[Scale] = None) -> str:
@@ -392,32 +332,6 @@ if __name__ == "__main__":
     print(f"1000th: {MWL.pronounce_number(1000, ordinals=True)}")
     print(f"1,000,000th: {MWL.pronounce_number(1_000_000, ordinals=True)}")
     print(f"1,000,000,000,000th (long): {MWL.pronounce_number(1_000_000_000_000, ordinals=True, scale=Scale.LONG)}")
-
-    print("\n--- Testing MWL.numbers_to_digits ---")
-    print(f"'duzientos i cinquenta' -> '{MWL.numbers_to_digits('duzientos i cinquenta')}'")
-    print(f"'un milhon' -> '{MWL.numbers_to_digits('un milhon')}'")
-    print(f"'zasseis' -> '{MWL.numbers_to_digits('zasseis')}'")
-    print(f"'hai duzientos i cinquenta carros' -> '{MWL.numbers_to_digits('hai duzientos i cinquenta carros')}'")
-
-    print("\n--- Testing Ordinal Extraction ---")
-    print(f"'l segundo carro' -> {MWL.extract_number('l segundo carro', ordinals=True)}")
-    print(f"'purmerio lugar' -> {MWL.extract_number('purmerio lugar', ordinals=True)}")
-    print(f"'l milésimo die' -> {MWL.extract_number('l milésimo dia', ordinals=True)}")
-    print(f"'la milésima beç' -> {MWL.extract_number('la milésima beç', ordinals=True)}")
-    print(f"'la purmeria beç' -> {MWL.extract_number('la purmeria beç', ordinals=True)}")
-    print(f"'la sessagésima quarta beç' -> {MWL.extract_number('la sessagésima quarta beç', ordinals=True)}")
-
-    print("\n--- Testing Cardinal Extraction ---")
-    print(f"'un' -> {MWL.extract_number('un')}")
-    print(f"'ũa' -> {MWL.extract_number('ũa')}")
-    print(f"'bint'i un' ->", MWL.extract_number("bint'i un"))
-    print(f"'bint'i ũa' ->", MWL.extract_number("bint'i ũa"))
-    print(f"'bint'i dous' ->", MWL.extract_number("bint'i dous"))
-    print(f"'bint'i dues' ->", MWL.extract_number("bint'i dues"))
-    print(f"'un milhon' -> {MWL.extract_number('un milhon')}")
-    print(f"'dous milhones e quinhentos' -> {MWL.extract_number('dous milhones i quinhentos')}")
-    print(f"'mil i binte i trés' -> {MWL.extract_number('mil i binte i trés')}")
-    print(f"'trinta i cinco bírgula quatro' -> {MWL.extract_number('trinta i cinco bírgula quatro')}")
 
     print("\n--- Testing Fractions ---")
     print(f"1/2: {MWL.pronounce_fraction('1/2')}")

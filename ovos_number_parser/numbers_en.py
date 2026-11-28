@@ -15,14 +15,13 @@
 # limitations under the License.
 #
 import math
-import re
 from collections import OrderedDict
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, Token, ReplaceableNumber)
+from ovos_number_parser.util import (invert_dict, scientific_parts,
+                                     round_half_up, Scale, warn_reader_removed)
+from ovos_number_parser import numtag_readers
 
-_ARTICLES_EN = {'a', 'an', 'the'}
 
 _NUM_STRING_EN = {
     0: 'zero',
@@ -55,27 +54,6 @@ _NUM_STRING_EN = {
     90: 'ninety'
 }
 
-_FRACTION_STRING_EN = {
-    2: 'half',
-    3: 'third',
-    4: 'forth',
-    5: 'fifth',
-    6: 'sixth',
-    7: 'seventh',
-    8: 'eigth',
-    9: 'ninth',
-    10: 'tenth',
-    11: 'eleventh',
-    12: 'twelveth',
-    13: 'thirteenth',
-    14: 'fourteenth',
-    15: 'fifteenth',
-    16: 'sixteenth',
-    17: 'seventeenth',
-    18: 'eighteenth',
-    19: 'nineteenth',
-    20: 'twentyith'
-}
 
 _LONG_SCALE_EN = OrderedDict([
     (100, 'hundred'),
@@ -300,13 +278,6 @@ _LONG_ORDINAL_EN = {
 }
 _LONG_ORDINAL_EN.update(_ORDINAL_BASE_EN)
 
-# negate next number (-2 = 0 - 2)
-_NEGATIVES_EN = {"negative", "minus"}
-
-# sum the next number (twenty two = 20 + 2)
-_SUMS_EN = {'twenty', '20', 'thirty', '30', 'forty', '40', 'fifty', '50',
-            'sixty', '60', 'seventy', '70', 'eighty', '80', 'ninety', '90'}
-
 
 def _generate_plurals_en(originals):
     """
@@ -327,44 +298,8 @@ def _generate_plurals_en(originals):
     return {value + "s" for value in originals}
 
 
-_MULTIPLIES_LONG_SCALE_EN = set(_LONG_SCALE_EN.values()) | \
-                            _generate_plurals_en(_LONG_SCALE_EN.values())
-
-_MULTIPLIES_SHORT_SCALE_EN = set(_SHORT_SCALE_EN.values()) | \
-                             _generate_plurals_en(_SHORT_SCALE_EN.values())
-
-# split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
-_FRACTION_MARKER_EN = {"and"}
-
-# decimal marker ( 1 point 5 = 1 + 0.5)
-_DECIMAL_MARKER_EN = {"point", "dot"}
-
 _STRING_NUM_EN = invert_dict(_NUM_STRING_EN)
 _STRING_NUM_EN.update(_generate_plurals_en(_STRING_NUM_EN))
-
-_SPOKEN_EXTRA_NUM_EN = {
-    "half": 0.5,
-    "halves": 0.5,
-    "couple": 2
-}
-_STRING_SHORT_ORDINAL_EN = invert_dict(_SHORT_ORDINAL_EN)
-_STRING_LONG_ORDINAL_EN = invert_dict(_LONG_ORDINAL_EN)
-
-
-def is_ordinal_en(input_str: str):
-    """
-    Check if the given text is an ordinal word.
-
-    Returns:
-        (bool) or (int/float): False if not an ordinal, otherwise the number
-        corresponding to the ordinal
-    """
-    input_str = input_str.lower()
-    if input_str in _STRING_LONG_ORDINAL_EN:
-        return _STRING_LONG_ORDINAL_EN[input_str]
-    if input_str in _STRING_SHORT_ORDINAL_EN:
-        return _STRING_SHORT_ORDINAL_EN[input_str]
-    return False
 
 
 def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
@@ -400,20 +335,9 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
     # and collapses a value that rounds to zero to a plain "zero".
     if not scientific and isinstance(num, float) and math.isfinite(num) \
             and num != int(num):
-        num = float(Decimal(str(num)).quantize(Decimal(1).scaleb(-places),
-                                               rounding=ROUND_HALF_UP)) or 0.0
+        num = float(round_half_up(Decimal(str(num)), places)) or 0.0
     if scientific:
-        try:
-            number = '%E' % num
-        except OverflowError:
-            # int larger than the float range: derive the mantissa and
-            # exponent from its digits so it still reads scientifically.
-            digits = str(abs(int(num)))
-            frac = digits[1:7].rstrip("0")
-            number = "%s%s%sE+%d" % ("-" if num < 0 else "", digits[0],
-                                     "." + frac if frac else "", len(digits) - 1)
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles negatives of powers separately from the normal
@@ -492,14 +416,19 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
             print('ERROR: Exception in pronounce_number_en: {}' + repr(e))
 
     # check for a direct match
-    if num in number_names and not ordinals:
+    if ordinals and num == 0:
+        result += "zeroth"
+    elif ordinals and num == 100:
+        # a round unit alone takes no "one", as "thousandth" and "millionth"
+        result += _SHORT_ORDINAL_EN[100]
+    elif num in number_names and not ordinals:
         if num > 90:
             result += "one "
         result += number_names[num]
     else:
         def _sub_thousand(n, ordinals=False):
             assert 0 <= n <= 999
-            if n in _SHORT_ORDINAL_EN and ordinals:
+            if n < 100 and n in _SHORT_ORDINAL_EN and ordinals:
                 return _SHORT_ORDINAL_EN[n]
             if n <= 19:
                 return digits[n]
@@ -509,8 +438,9 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
                                       else "")
             else:
                 q, r = divmod(n, 100)
-                return digits[q] + " hundred" + (
-                    " and " + _sub_thousand(r, ordinals) if r else "")
+                if r:
+                    return digits[q] + " hundred and " + _sub_thousand(r, ordinals)
+                return digits[q] + (" hundredth" if ordinals else " hundred")
 
         def _short_scale(n):
             # A finite value above the largest named scale returns "" so the
@@ -537,7 +467,7 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
                     if ordi:
 
                         if 1000 ** i in _SHORT_ORDINAL_EN:
-                            if z == 1:
+                            if z == 1 and n == 1000 ** i:
                                 number = _SHORT_ORDINAL_EN[1000 ** i]
                             else:
                                 number += _SHORT_ORDINAL_EN[1000 ** i]
@@ -579,6 +509,10 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
                     continue
                 number = pronounce_number_en(z, places, True, scientific,
                                              ordinals=ordi and not i)
+                if ordi and not i and z != n \
+                        and number in ("hundredth", "thousandth"):
+                    # the bare form is for the round unit alone
+                    number = "one " + number
                 # strip off the comma after the thousand
                 if i:
                     if i >= len(hundreds):
@@ -589,7 +523,7 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
 
                     if ordi:
                         if 1000000 ** i in _LONG_ORDINAL_EN:
-                            if z == 1:
+                            if z == 1 and n == 1000000 ** i:
                                 number = _LONG_ORDINAL_EN[1000000 ** i]
                             else:
                                 number += " " + _LONG_ORDINAL_EN[1000000 ** i]
@@ -605,6 +539,7 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
 
                         number += " " + hundreds[i + 1]
                 res.append(number)
+                ordi = False
             return ", ".join(reversed(res))
 
         if short_scale:
@@ -615,688 +550,29 @@ def pronounce_number_en(number, places=2, short_scale=True, scientific=False,
     # deal with a magnitude that has no spoken name: read it scientifically
     # (covers floats in "e" notation and very large ints alike) so a finite
     # value never returns an empty string.
-    if not result and abs(num) >= 1e6:
-        return pronounce_number_en(num, places, short_scale, scientific=True)
+    if result in ("", "minus ") and num >= 1e6:
+        # the scientific reading speaks its own sign word
+        return pronounce_number_en(
+            -num if result else num, places, short_scale, scientific=True)
     # Deal with fractional part
     elif not num == int(num) and places > 0:
         if abs(num) < 1.0 and (result == "minus " or not result):
             result += "zero"
         result += " point"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
     return result
 
 
-#: A hyphen or underscore between two letters spells the space that joins a
-#: compound numeral, so "ninety-nine", "ninety_nine" and "ninety nine" read
-#: alike. Only letter-letter joins are rewritten: a leading "-" is a minus sign
-#: and a digit on either side is a range ("10-15"), both of which survive.
-_COMPOUND_JOIN_RE_EN = re.compile(r"(?<=[^\W\d_])[-_](?=[^\W\d_])", re.UNICODE)
-
-#: A comma between two number words is spoken punctuation inside one numeral
-#: ("two thousand, five hundred"), not a separator.
-_SPOKEN_COMMA_RE_EN = re.compile(r"\b(\w+),(\s+)(?=\w)", re.UNICODE)
-
-
-def _numeral_separators_en(text):
-    """Normalise the separators that spell a single English numeral.
-
-    Rewrites "-"/"_" written between letters to a space so the tokenizer does not
-    cut a compound in half ("nineteen ninety-nine" was read as "19 90 - 9"), and
-    drops a comma standing between two number words. Commas in ordinary prose are
-    left alone: only a comma with a number word on each side is removed.
-    """
-    text = _COMPOUND_JOIN_RE_EN.sub(" ", text)
-
-    def _is_number_word(word):
-        word = word.lower()
-        return (word in _STRING_NUM_EN or word in _SUMS_EN
-                or word in _MULTIPLIES_SHORT_SCALE_EN
-                or word in _MULTIPLIES_LONG_SCALE_EN
-                or is_numeric(word))
-
-    def _drop(match):
-        before = match.group(1)
-        after = text[match.end():].split(maxsplit=1)[0] if text[match.end():].split() else ""
-        after = re.split(r"\W", after, maxsplit=1)[0]
-        if _is_number_word(before) and _is_number_word(after):
-            return f"{before}{match.group(2)}"
-        return match.group(0)
-
-    return _SPOKEN_COMMA_RE_EN.sub(_drop, text)
-
-
 def numbers_to_digits_en(text, short_scale=True, ordinals=False):
-    """
-    Convert words in a string into their equivalent numbers.
-    Args:
-        text str:
-        short_scale boolean: True if short scale numbers should be used.
-        ordinals boolean: True if ordinals (e.g. first, second, third) should
-                          be parsed to their number values (1, 2, 3...)
-
-    Returns:
-        str
-        The original text, with numbers subbed in where appropriate.
-
-    """
-    tokens = tokenize(_numeral_separators_en(text))
-    numbers_to_replace = \
-        _extract_numbers_with_text_en(tokens, short_scale, ordinals)
-    numbers_to_replace.sort(key=lambda number: number.start_index)
-
-    results = []
-    for token in tokens:
-        if not numbers_to_replace or \
-                token.index < numbers_to_replace[0].start_index:
-            results.append(token.word)
-        else:
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].start_index:
-                nr = numbers_to_replace[0]
-                if nr.start_index == nr.end_index and token.word.isdigit():
-                    # a lone token that is already a digit run ("007") must
-                    # not be round-tripped through int(): that destroys
-                    # leading zeros in phone numbers, OTP codes, and any
-                    # zero-padded identifier.
-                    results.append(token.word)
-                else:
-                    results.append(str(nr.value))
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].end_index:
-                numbers_to_replace.pop(0)
-
-    return ' '.join(results)
-
-
-def _extract_numbers_with_text_en(tokens, short_scale=True,
-                                  ordinals=False, fractional_numbers=True):
-    """
-    Extract all numbers from a list of Tokens, with the words that
-    represent them.
-
-    Args:
-        [Token]: The tokens to parse.
-        short_scale bool: True if short scale numbers should be used, False for
-                          long scale. True by default.
-        ordinals bool: True if ordinal words (first, second, third, etc) should
-                       be parsed.
-        fractional_numbers bool: True if we should look for fractions and
-                                 decimals.
-
-    Returns:
-        [ReplaceableNumber]: A list of tuples, each containing a number and a
-                         string.
-
-    """
-    placeholder = "<placeholder>"  # inserted to maintain correct indices
-    results = []
-    while True:
-        to_replace = \
-            _extract_number_with_text_en(tokens, short_scale,
-                                         ordinals, fractional_numbers)
-
-        if not to_replace:
-            break
-
-        results.append(to_replace)
-
-        tokens = [
-            t if not
-            to_replace.start_index <= t.index <= to_replace.end_index
-            else
-            Token(placeholder, t.index) for t in tokens
-        ]
-    results.sort(key=lambda n: n.start_index)
-    return results
-
-
-def _extract_number_with_text_en(tokens, short_scale=True,
-                                 ordinals=False, fractional_numbers=True):
-    """
-    This function extracts a number from a list of Tokens.
-
-    Args:
-        tokens str: the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
-        fractional_numbers (bool): True if we should look for fractions and
-                                   decimals.
-    Returns:
-        ReplaceableNumber
-
-    """
-    number, tokens = \
-        _extract_number_with_text_en_helper(tokens, short_scale,
-                                            ordinals, fractional_numbers)
-    while tokens and tokens[0].word in _ARTICLES_EN:
-        tokens.pop(0)
-    return ReplaceableNumber(number, tokens)
-
-
-def _extract_number_with_text_en_helper(tokens,
-                                        short_scale=True, ordinals=False,
-                                        fractional_numbers=True):
-    """
-    Helper for _extract_number_with_text_en.
-
-    This contains the real logic for parsing, but produces
-    a result that needs a little cleaning (specific, it may
-    contain leading articles that can be trimmed off).
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-        fractional_numbers boolean:
-
-    Returns:
-        int or float, [Tokens]
-
-    """
-    if fractional_numbers:
-        fraction, fraction_text = \
-            _extract_fraction_with_text_en(tokens, short_scale, ordinals)
-        if fraction:
-            return fraction, fraction_text
-
-        decimal, decimal_text = \
-            _extract_decimal_with_text_en(tokens, short_scale, ordinals)
-        if decimal:
-            return decimal, decimal_text
-
-    return _extract_whole_number_with_text_en(tokens, short_scale, ordinals)
-
-
-def _extract_fraction_with_text_en(tokens, short_scale, ordinals):
-    """
-    Extract fraction numbers from a string.
-
-    This function handles text such as '2 and 3/4'. Note that "one half" or
-    similar will be parsed by the whole number function.
-
-    Args:
-        tokens [Token]: words and their indexes in the original string.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (int or float, [Token])
-        The value found, and the list of relevant tokens.
-        (None, None) if no fraction value is found.
-
-    """
-    for c in _FRACTION_MARKER_EN:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_en(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_en(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=True)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            # ensure first is not a fraction and second is a fraction
-            num1 = numbers1[-1]
-            num2 = numbers2[0]
-            if num1.value >= 1 and 0 < num2.value < 1:
-                return num1.value + num2.value, \
-                       num1.tokens + partitions[1] + num2.tokens
-
-    return None, None
-
-
-def _extract_decimal_with_text_en(tokens, short_scale, ordinals):
-    """
-    Extract decimal numbers from a string.
-
-    This function handles text such as '2 point 5'.
-
-    Notes:
-        While this is a helper for extractnumber_en, it also depends on
-        extractnumber_en, to parse out the components of the decimal.
-
-        This does not currently handle things like:
-            number dot number number number
-
-    Args:
-        tokens [Token]: The text to parse.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (float, [Token])
-        The value found and relevant tokens.
-        (None, None) if no decimal value is found.
-
-    """
-    for c in _DECIMAL_MARKER_EN:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_en(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_en(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=False)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            number = numbers1[-1]
-            decimal = numbers2[0]
-            # concatenate consecutive single digits after the marker
-            # ("point one four" -> .14)
-            _digits = ""
-            _digit_tokens = []
-            _prev_end = None
-            for _num in numbers2:
-                _v = _num.value
-                if _v is None or _v is False or float(_v) != int(_v) \
-                        or not 0 <= _v <= 9:
-                    break
-                if _prev_end is not None and _num.start_index != _prev_end + 1:
-                    break
-                _digits += str(int(_v))
-                _digit_tokens.extend(_num.tokens)
-                _prev_end = _num.end_index
-            if len(_digits) > 1:
-                _frac = float("0." + _digits)
-                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_EN for _t in number.tokens))
-                        else number.value + _frac), \
-                    number.tokens + partitions[1] + _digit_tokens
-
-            # TODO handle number dot number number number
-            if "." not in str(decimal.text):
-                _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_EN for _t in number.tokens))
-                        else number.value + _frac2), \
-                       number.tokens + partitions[1] + decimal.tokens
-    return None, None
-
-
-def _extract_whole_number_with_text_en(tokens, short_scale, ordinals):
-    """
-    Handle numbers not handled by the decimal or fraction functions. This is
-    generally whole numbers. Note that phrases such as "one half" will be
-    handled by this function, while "one and a half" are handled by the
-    fraction function.
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        int or float, [Tokens]
-        The value parsed, and tokens that it corresponds to.
-
-    """
-    multiplies, string_num_ordinal, string_num_scale = \
-        _initialize_number_data_en(short_scale, speech=ordinals is not None)
-
-    number_words = []  # type: [Token]
-    val = False
-    prev_val = None
-    next_val = None
-    negative = False
-    to_sum = []
-    for idx, token in enumerate(tokens):
-        current_val = None
-        if next_val:
-            next_val = None
-            continue
-
-        word = token.word.lower()
-        if word in _ARTICLES_EN or word in _NEGATIVES_EN:
-            number_words.append(token)
-            continue
-
-        prev_word = tokens[idx - 1].word.lower() if idx > 0 else ""
-        next_word = tokens[idx + 1].word.lower() if idx + 1 < len(tokens) else ""
-
-        # "and" connects parts of the same number ("one hundred and one");
-        # skip over it when linking two number words
-        if word == "and" and number_words and prev_word in multiplies and (
-                next_word in _STRING_NUM_EN or
-                next_word in string_num_scale or
-                (ordinals and next_word in string_num_ordinal) or
-                is_numeric(next_word)):
-            number_words.append(token)
-            continue
-        if prev_word == "and" and idx > 1:
-            prev_word = tokens[idx - 2].word.lower()
-
-        if is_numeric(word[:-2]) and \
-                (word.endswith("st") or word.endswith("nd") or
-                 word.endswith("rd") or word.endswith("th")):
-
-            # explicit ordinals, 1st, 2nd, 3rd, 4th.... Nth
-            word = word[:-2]
-
-            # handle nth one
-            if next_word == "one":
-                # would return 1 instead otherwise
-                tokens[idx + 1] = Token("", idx)
-                next_word = ""
-
-        # TODO replaces the wall of "and" and "or" with all() or any() as
-        #  appropriate, the whole codebase should be checked for this pattern
-        if word not in string_num_scale and \
-                word not in _STRING_NUM_EN and \
-                word not in _SUMS_EN and \
-                word not in multiplies and \
-                not (ordinals and word in string_num_ordinal) and \
-                not is_numeric(word) and \
-                not is_fractional_en(word, short_scale=short_scale) and \
-                not look_for_fractions(word.split('/')):
-            words_only = [token.word for token in number_words]
-
-            if number_words and not all([w.lower() in _ARTICLES_EN |
-                                         _NEGATIVES_EN for w in words_only]):
-                break
-            else:
-                number_words = []
-                continue
-        elif word not in multiplies \
-                and prev_word not in multiplies \
-                and prev_word not in _SUMS_EN \
-                and not (ordinals and prev_word in string_num_ordinal) \
-                and prev_word not in _NEGATIVES_EN \
-                and prev_word not in _ARTICLES_EN:
-            number_words = [token]
-
-        elif prev_word in _SUMS_EN and word in _SUMS_EN:
-            number_words = [token]
-        elif ordinals is None and \
-                (word in string_num_ordinal or word in _SPOKEN_EXTRA_NUM_EN):
-            # flagged to ignore this token
-            continue
-        else:
-            number_words.append(token)
-
-        # is this word already a number ?
-        if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
-            current_val = val
-
-        # is this word the name of a number ?
-        if word in _STRING_NUM_EN:
-            val = _STRING_NUM_EN.get(word)
-            current_val = val
-        elif word in string_num_scale:
-            val = string_num_scale.get(word)
-            current_val = val
-        elif ordinals and word in string_num_ordinal:
-            val = string_num_ordinal[word]
-            current_val = val
-
-        # is the prev word an ordinal number and current word is one?
-        # second one, third one
-        if ordinals and prev_word in string_num_ordinal and val == 1:
-            val = prev_val
-
-        # is the prev word a number and should we sum it?
-        # twenty two, fifty six
-        if (prev_word in _SUMS_EN and val and val < 10) or all([prev_word in
-                                                                multiplies,
-                                                                val < prev_val if prev_val else False]):
-            val = prev_val + val
-
-        # is the prev word a number and should we multiply it?
-        # twenty hundred, six hundred
-        if word in multiplies:
-            if not prev_val:
-                prev_val = 1
-            val = prev_val * val
-
-        # is this a spoken fraction?
-        # half cup
-        if val is False and \
-                not (ordinals is None and word in string_num_ordinal):
-            val = _fraction_value_en(word, short_scale=short_scale,
-                                     spoken=ordinals is not None,
-                                     ordinals=ordinals)
-            current_val = val
-
-        # 2 fifths
-        if ordinals is False:
-            next_val = _fraction_value_en(next_word, short_scale=short_scale,
-                                          ordinals=ordinals)
-            if next_val:
-                if not val:
-                    val = 1
-                val = val * next_val
-                number_words.append(tokens[idx + 1])
-
-        # is this a negative number? Track the sign for the whole segment and
-        # apply it once at the end so every "place" of a compound number
-        # ("minus nine hundred and ninety nine") is negated together.
-        if val and prev_word and prev_word in _NEGATIVES_EN:
-            negative = True
-
-        # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            aPieces = word.split('/')
-            if look_for_fractions(aPieces):
-                val = float(aPieces[0]) / float(aPieces[1])
-                current_val = val
-
-        else:
-            if current_val and all([
-                prev_word in _SUMS_EN,
-                word not in _SUMS_EN,
-                word not in multiplies,
-                current_val >= 10]):
-                # Backtrack - we've got numbers we can't sum.
-                number_words.pop()
-                val = prev_val
-                break
-            prev_val = val
-
-            if word in multiplies and next_word not in multiplies:
-                # handle long numbers
-                # six hundred sixty six
-                # two million five hundred thousand
-                #
-                # This logic is somewhat complex, and warrants
-                # extensive documentation for the next coder's sake.
-                #
-                # The current word is a power of ten. `current_val` is
-                # its integer value. `val` is our working sum
-                # (above, when `current_val` is 1 million, `val` is
-                # 2 million.)
-                #
-                # We have a dict `string_num_scale` containing [value, word]
-                # pairs for "all" powers of ten: string_num_scale[10] == "ten.
-                #
-                # We need go over the rest of the tokens, looking for other
-                # powers of ten. If we find one, we compare it with the current
-                # value, to see if it's smaller than the current power of ten.
-                #
-                # Numbers which are not powers of ten will be passed over.
-                #
-                # If all the remaining powers of ten are smaller than our
-                # current value, we can set the current value aside for later,
-                # and begin extracting another portion of our final result.
-                # For example, suppose we have the following string.
-                # The current word is "million".`val` is 9000000.
-                # `current_val` is 1000000.
-                #
-                #    "nine **million** nine *hundred* seven **thousand**
-                #     six *hundred* fifty seven"
-                #
-                # Iterating over the rest of the string, the current
-                # value is larger than all remaining powers of ten.
-                #
-                # The if statement passes, and nine million (9000000)
-                # is appended to `to_sum`.
-                #
-                # The main variables are reset, and the main loop begins
-                # assembling another number, which will also be appended
-                # under the same conditions.
-                #
-                # By the end of the main loop, to_sum will be a list of each
-                # "place" from 100 up: [9000000, 907000, 600]
-                #
-                # The final three digits will be added to the sum of that list
-                # at the end of the main loop, to produce the extracted number:
-                #
-                #    sum([9000000, 907000, 600]) + 57
-                # == 9,000,000 + 907,000 + 600 + 57
-                # == 9,907,657
-                #
-                # >>> foo = "nine million nine hundred seven thousand six
-                #            hundred fifty seven"
-                # >>> extract_number(foo)
-                # 9907657
-
-                time_to_sum = True
-                for other_token in tokens[idx + 1:]:
-                    if other_token.word.lower() in multiplies:
-                        if string_num_scale[other_token.word.lower()] >= current_val:
-                            time_to_sum = False
-                        else:
-                            continue
-                    if not time_to_sum:
-                        break
-                if time_to_sum:
-                    to_sum.append(val)
-                    val = 0
-                    prev_val = 0
-
-    if val is not None and to_sum:
-        val += sum(to_sum)
-
-    if negative and val:
-        val = -val
-
-    return val, number_words
-
-
-def _initialize_number_data_en(short_scale, speech=True):
-    """
-    Generate dictionaries of words to numbers, based on scale.
-
-    This is a helper function for _extract_whole_number.
-
-    Args:
-        short_scale (bool):
-        speech (bool): consider extra words (_SPOKEN_EXTRA_NUM_EN) to be numbers
-
-    Returns:
-        (set(str), dict(str, number), dict(str, number))
-        multiplies, string_num_ordinal, string_num_scale
-
-    """
-    multiplies = _MULTIPLIES_SHORT_SCALE_EN if short_scale \
-        else _MULTIPLIES_LONG_SCALE_EN
-
-    string_num_ordinal_en = _STRING_SHORT_ORDINAL_EN if short_scale \
-        else _STRING_LONG_ORDINAL_EN
-
-    string_num_scale_en = _SHORT_SCALE_EN if short_scale else _LONG_SCALE_EN
-    string_num_scale_en = invert_dict(string_num_scale_en)
-    string_num_scale_en.update(_generate_plurals_en(string_num_scale_en))
-
-    # "googol" is a named power of ten (10^100), not part of the -illion series;
-    # accept it as a scale word so "one googol" reads as 1e100. "googolplex"
-    # (10^(10^100)) overflows a float and is intentionally not recognised.
-    multiplies = multiplies | {"googol"}
-    string_num_scale_en["googol"] = 1e100
-
-    if speech:
-        string_num_scale_en.update(_SPOKEN_EXTRA_NUM_EN)
-    return multiplies, string_num_ordinal_en, string_num_scale_en
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "en")``."""
+    warn_reader_removed("numbers_to_digits_en", 'ovos_number_parser.numbers_to_digits(text, "en")')
+    return numtag_readers.numbers_to_digits(text, "en", Scale.SHORT if short_scale else Scale.LONG, ordinals)
 
 
 def extract_number_en(text, short_scale=True, ordinals=False):
-    """
-    This function extracts a number from a text string,
-    handles pronunciations in long scale and short scale
-
-    https://en.wikipedia.org/wiki/Names_of_large_numbers
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
-    Returns:
-        (int) or (float) or False: The extracted number or False if no number
-                                   was found
-
-    """
-    text = text.lower()
-    # digit grouping ("1,000,000") and spoken-style commas
-    # ("two thousand, twenty three")
-    text = re.sub(r"(?<=\d),(?=\d{3}\b)", "", text)
-    text = re.sub(r"(?<=[a-z]),", "", text)
-    return _extract_number_with_text_en(tokenize(text),
-                                        short_scale, ordinals).value
-
-
-def _is_ordinal_word_en(input_str, short_scale=True):
-    """True if the word is an ordinal name ("third", "fifth") in singular form.
-
-    The plural ("thirds", "fifths") is excluded: that is unambiguously a
-    fraction denominator, while the singular is the ordinal.
-    """
-    table = _SHORT_ORDINAL_EN if short_scale else _LONG_ORDINAL_EN
-    return input_str.lower() in {name for num, name in table.items() if num > 2}
-
-
-def _fraction_value_en(input_str, short_scale=True, spoken=True, ordinals=True):
-    """Fraction value of a word, refusing to reinterpret ordinals as reciprocals.
-
-    English reuses ordinal names as fraction denominators ("two fifths" = 2/5),
-    but a singular ordinal in running text is an ordinal, not a reciprocal.
-    Reading it as one fabricates numbers that were never spoken: "the twenty
-    fifth" became 20 * 1/5 = 4.0 and "the third week" became 0.333. When ordinal
-    parsing is explicitly off, such a word is left alone rather than converted to
-    something the speaker did not say. "half", "quarter" and plural denominators
-    are unaffected.
-    """
-    if ordinals is False and _is_ordinal_word_en(input_str, short_scale):
-        return False
-    return is_fractional_en(input_str, short_scale=short_scale, spoken=spoken)
-
-
-def is_fractional_en(input_str, short_scale=True, spoken=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-        spoken (bool): consider "half", "quarter", "whole" a fraction
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    if input_str.endswith('s', -1):
-        input_str = input_str[:len(input_str) - 1]  # e.g. "fifths"
-
-    fracts = {"whole": 1, "half": 2, "halve": 2, "quarter": 4}
-    if short_scale:
-        for num in _SHORT_ORDINAL_EN:
-            if num > 2:
-                fracts[_SHORT_ORDINAL_EN[num]] = num
-    else:
-        for num in _LONG_ORDINAL_EN:
-            if num > 2:
-                fracts[_LONG_ORDINAL_EN[num]] = num
-
-    if input_str.lower() in fracts and spoken:
-        return 1.0 / fracts[input_str.lower()]
-    return False
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "en")``."""
+    warn_reader_removed("extract_number_en", 'ovos_number_parser.extract_number(text, "en")')
+    return numtag_readers.extract_number(text, "en", short_scale, ordinals)

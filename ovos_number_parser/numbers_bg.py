@@ -25,10 +25,12 @@ tens ("единайсет", "двайсет", "трийсет", "четирий�
 when parsing, but pronunciation always produces the full standard forms
 ("единадесет", "двадесет", "тридесет", "четиридесет", "шестдесет").
 """
+from decimal import Decimal
 from collections import OrderedDict
 
-from ovos_number_parser.util import convert_to_mixed_fraction, is_numeric, look_for_fractions, \
-    invert_dict, ReplaceableNumber, partition_list, tokenize, Token
+from ovos_number_parser.util import convert_to_mixed_fraction, invert_dict, scientific_parts
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
 _NUM_STRING_BG = {
     0: 'нула',
@@ -95,11 +97,11 @@ _VARIANT_NUM_BG = {
 
 # thousands and the international scale words with their count forms
 _SCALE_BG = OrderedDict([
-    (1e3, 'хиляда'),
-    (1e6, 'милион'),
-    (1e9, 'милиард'),
-    (1e12, 'трилион'),
-    (1e15, 'квадрилион'),
+    (10 ** 3, 'хиляда'),
+    (10 ** 6, 'милион'),
+    (10 ** 9, 'милиард'),
+    (10 ** 12, 'трилион'),
+    (10 ** 15, 'квадрилион'),
 ])
 
 _SCALE_PLURAL_BG = {
@@ -193,33 +195,12 @@ _FRACTION_STRING_BG = {
     1e9: 'милиардна',
 }
 
-# negate next number (-2 = 0 - 2)
-_NEGATIVES_BG = {"минус"}
-
-# words that a following number is summed onto (двадесет и три = 20 + 3)
-_SUMS_BG = {'двадесет', 'двайсет', '20', 'тридесет', 'трийсет', '30',
-            'четиридесет', 'четирийсет', '40', 'петдесет', '50',
-            'шестдесет', 'шейсет', '60', 'седемдесет', '70',
-            'осемдесет', '80', 'деветдесет', '90',
-            'сто', '100', 'двеста', '200', 'триста', '300',
-            'четиристотин', '400', 'петстотин', '500', 'шестстотин', '600',
-            'седемстотин', '700', 'осемстотин', '800', 'деветстотин', '900'}
 
 _STRING_SCALE_BG = {}
 for _value, _word in _SCALE_BG.items():
     _STRING_SCALE_BG[_word] = _value
     _STRING_SCALE_BG[_SCALE_PLURAL_BG[_word]] = _value
 
-_MULTIPLIES_BG = set(_STRING_SCALE_BG.keys())
-
-# the conjunction joining the last element of a compound number
-_JOINERS_BG = {"и"}
-
-# split sentence, parse separately and sum (две и половина = 2 + 0.5)
-_FRACTION_MARKER_BG = {"и"}
-
-# decimal marker (пет запетая две = 5.2, пет цяло и две = 5.2)
-_DECIMAL_MARKER_BG = {"запетая", "цяло"}
 
 _STRING_NUM_BG = invert_dict(_NUM_STRING_BG)
 _STRING_NUM_BG.update(_VARIANT_NUM_BG)
@@ -408,9 +389,7 @@ def pronounce_number_bg(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "минус безкрайност"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             return '{}{} по десет на степен {}{}'.format(
                 'минус ' if float(n) < 0 else '',
@@ -428,464 +407,21 @@ def pronounce_number_bg(number, places=2, short_scale=True, scientific=False,
 
     whole_words = _int_bg(int(num))
     if whole_words is None:
-        return "безкрайност"
+        # a magnitude with no spoken name reads scientifically
+        return result + pronounce_number_bg(
+            num, places, short_scale, scientific=True)
     result += " ".join(whole_words)
 
     # deal with fractional part
     if not num == int(num) and places > 0:
         result += " запетая"
-        _num_str = str(num).split(".")[1][0:places]
+        _num_str = f"{Decimal(str(num)):f}".split(".")[1][0:places]
         for char in _num_str:
             result += " " + _NUM_STRING_BG[int(char)]
     return result
 
 
-def numbers_to_digits_bg(text, short_scale=True, ordinals=False):
-    """
-    Convert words in a string into their equivalent numbers.
-    Args:
-        text str:
-        short_scale boolean: True if short scale numbers should be used.
-        ordinals boolean: True if ordinals (e.g. first, second, third) should
-                          be parsed to their number values (1, 2, 3...)
-
-    Returns:
-        str
-        The original text, with numbers subbed in where appropriate.
-
-    """
-    text = text.lower()
-    tokens = tokenize(text)
-    numbers_to_replace = \
-        _extract_numbers_with_text_bg(tokens, short_scale, ordinals)
-    numbers_to_replace.sort(key=lambda number: number.start_index)
-
-    results = []
-    for token in tokens:
-        if not numbers_to_replace or \
-                token.index < numbers_to_replace[0].start_index:
-            results.append(token.word)
-        else:
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].start_index:
-                results.append(str(numbers_to_replace[0].value))
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].end_index:
-                numbers_to_replace.pop(0)
-
-    return ' '.join(results)
-
-
-def _extract_numbers_with_text_bg(tokens, short_scale=True,
-                                  ordinals=False, fractional_numbers=True):
-    """
-    Extract all numbers from a list of Tokens, with the words that
-    represent them.
-
-    Args:
-        [Token]: The tokens to parse.
-        short_scale bool: ignored, Bulgarian uses a single scale
-        ordinals bool: True if ordinal words (първи, втори, ...) should
-                       be parsed.
-        fractional_numbers bool: True if we should look for fractions and
-                                 decimals.
-
-    Returns:
-        [ReplaceableNumber]: A list of tuples, each containing a number and a
-                         string.
-
-    """
-    placeholder = "<placeholder>"  # inserted to maintain correct indices
-    results = []
-    while True:
-        to_replace = \
-            _extract_number_with_text_bg(tokens, short_scale,
-                                         ordinals, fractional_numbers)
-
-        if not to_replace:
-            break
-
-        results.append(to_replace)
-
-        tokens = [
-            t if not
-            to_replace.start_index <= t.index <= to_replace.end_index
-            else
-            Token(placeholder, t.index) for t in tokens
-        ]
-    results.sort(key=lambda n: n.start_index)
-    return results
-
-
-def _extract_number_with_text_bg(tokens, short_scale=True,
-                                 ordinals=False, fractional_numbers=True):
-    """
-    This function extracts a number from a list of Tokens.
-
-    Args:
-        tokens [Token]: the tokens to parse
-        short_scale (bool): ignored, Bulgarian uses a single scale
-        ordinals (bool): consider ordinal numbers, трети=3 instead of 1/3
-        fractional_numbers (bool): True if we should look for fractions and
-                                   decimals.
-    Returns:
-        ReplaceableNumber
-
-    """
-    number, tokens = \
-        _extract_number_with_text_bg_helper(tokens, short_scale,
-                                            ordinals, fractional_numbers)
-    return ReplaceableNumber(number, tokens)
-
-
-def _extract_number_with_text_bg_helper(tokens,
-                                        short_scale=True, ordinals=False,
-                                        fractional_numbers=True):
-    """
-    Helper for _extract_number_with_text_bg.
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-        fractional_numbers boolean:
-
-    Returns:
-        int or float, [Tokens]
-
-    """
-    if fractional_numbers:
-        fraction, fraction_text = \
-            _extract_fraction_with_text_bg(tokens, short_scale, ordinals)
-        if fraction:
-            return fraction, fraction_text
-
-        decimal, decimal_text = \
-            _extract_decimal_with_text_bg(tokens, short_scale, ordinals)
-        if decimal:
-            return decimal, decimal_text
-
-    return _extract_whole_number_with_text_bg(tokens, short_scale, ordinals)
-
-
-def _extract_fraction_with_text_bg(tokens, short_scale, ordinals):
-    """
-    Extract fraction numbers from a string ("две и половина" = 2.5).
-
-    Args:
-        tokens [Token]: words and their indexes in the original string.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (int or float, [Token])
-        The value found, and the list of relevant tokens.
-        (None, None) if no fraction value is found.
-
-    """
-    for c in _FRACTION_MARKER_BG:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_bg(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_bg(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=True)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            # ensure first is not a fraction and second is a fraction
-            num1 = numbers1[-1]
-            num2 = numbers2[0]
-            if num1.value >= 1 and 0 < num2.value < 1:
-                return num1.value + num2.value, \
-                       num1.tokens + partitions[1] + num2.tokens
-
-    return None, None
-
-
-def _extract_decimal_with_text_bg(tokens, short_scale, ordinals):
-    """
-    Extract decimal numbers from a string ("пет запетая две" = 5.2).
-
-    Args:
-        tokens [Token]: The text to parse.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (float, [Token])
-        The value found and relevant tokens.
-        (None, None) if no decimal value is found.
-
-    """
-    for c in _DECIMAL_MARKER_BG:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_bg(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_bg(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=False)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            number = numbers1[-1]
-            decimal = numbers2[0]
-            # concatenate consecutive single digits after the marker
-            # ("запетая едно четири" -> .14)
-            _digits = ""
-            _digit_tokens = []
-            _prev_end = None
-            for _num in numbers2:
-                _v = _num.value
-                if _v is None or _v is False or float(_v) != int(_v) \
-                        or not 0 <= _v <= 9:
-                    break
-                if _prev_end is not None and _num.start_index != _prev_end + 1:
-                    break
-                _digits += str(int(_v))
-                _digit_tokens.extend(_num.tokens)
-                _prev_end = _num.end_index
-            if len(_digits) > 1:
-                _frac = float("0." + _digits)
-                return (number.value - _frac if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_BG for _t in number.tokens))
-                        else number.value + _frac), \
-                    number.tokens + partitions[1] + _digit_tokens
-
-            if "." not in str(decimal.text) and \
-                    float(decimal.value) == int(decimal.value):
-                _frac2 = float('0.' + str(int(decimal.value)))
-                return (number.value - _frac2 if (number.value < 0 or any(_t.word.lower() in _NEGATIVES_BG for _t in number.tokens))
-                        else number.value + _frac2), \
-                       number.tokens + partitions[1] + decimal.tokens
-    return None, None
-
-
-def _extract_whole_number_with_text_bg(tokens, short_scale, ordinals):
-    """
-    Handle numbers not handled by the decimal or fraction functions.
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        int or float, [Tokens]
-        The value parsed, and tokens that it corresponds to.
-
-    """
-    # the conjunction "и" joins the last element of a compound number
-    # ("двадесет и три" = 23); drop it so the summing logic sees
-    # adjacent number words. Original token indices are preserved.
-    tokens = [t for t in tokens if t.word not in _JOINERS_BG]
-
-    number_words = []  # type: [Token]
-    val = False
-    prev_val = None
-    next_val = None
-    negative = False
-    to_sum = []
-    for idx, token in enumerate(tokens):
-        current_val = None
-        if next_val:
-            next_val = None
-            continue
-
-        word = token.word
-        if word in _NEGATIVES_BG:
-            negative = True
-            number_words.append(token)
-            continue
-
-        prev_word = tokens[idx - 1].word if idx > 0 else ""
-        next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
-
-        # explicit ordinals written as digits with a period (1., 2., ...)
-        if is_numeric(word[:-1]) and word.endswith("."):
-            word = word[:-1]
-
-        if word not in _STRING_SCALE_BG and \
-                word not in _STRING_NUM_BG and \
-                word not in _SUMS_BG and \
-                word not in _MULTIPLIES_BG and \
-                not (ordinals and word in _STRING_ORDINAL_BG) and \
-                not is_numeric(word) and \
-                not is_fractional_bg(word, short_scale=short_scale) and \
-                not look_for_fractions(word.split('/')):
-            words_only = [token.word for token in number_words]
-            if number_words and not all([w in _NEGATIVES_BG for w in words_only]):
-                break
-            else:
-                number_words = []
-                continue
-        elif word not in _MULTIPLIES_BG \
-                and prev_word not in _MULTIPLIES_BG \
-                and prev_word not in _SUMS_BG \
-                and not (ordinals and prev_word in _STRING_ORDINAL_BG) \
-                and prev_word not in _NEGATIVES_BG:
-            number_words = [token]
-        elif prev_word in _SUMS_BG and word in _SUMS_BG:
-            number_words = [token]
-        else:
-            number_words.append(token)
-
-        # is this word already a number?
-        if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
-            current_val = val
-
-        # is this word the name of a number?
-        if word in _STRING_NUM_BG:
-            val = _STRING_NUM_BG.get(word)
-            current_val = val
-        elif word in _STRING_SCALE_BG:
-            val = _STRING_SCALE_BG.get(word)
-            current_val = val
-        elif ordinals and word in _STRING_ORDINAL_BG:
-            val = _STRING_ORDINAL_BG[word]
-            current_val = val
-
-        # is the prev word a number and should we sum it?
-        # двадесет [и] три, сто [и] пет
-        if (prev_word in _SUMS_BG and val and val < 10) \
-                or (prev_word in _SUMS_BG and val and val < 100 and prev_val >= 100) \
-                or all([prev_word in _MULTIPLIES_BG, word not in _MULTIPLIES_BG,
-                        val < prev_val if prev_val else False]):
-            if prev_val < 0:
-                # continue a negated number: "минус четиридесет и две" = -(40+2)
-                val = prev_val - val
-            else:
-                val = prev_val + val
-
-        # is the prev word a number and should we multiply it?
-        # две хиляди, три милиона
-        if word in _MULTIPLIES_BG:
-            if not prev_val:
-                prev_val = 1
-            if prev_val >= current_val:
-                # a bare larger scale already sits in prev_val ("милион
-                # хиляда"): this smaller scale word opens a new additive group
-                # of one, rather than multiplying the larger scale by itself
-                to_sum.append(prev_val)
-                prev_val = 1
-            val = prev_val * val
-
-        # is this a spoken fraction? половин чаша
-        if val is False:
-            val = is_fractional_bg(word, short_scale=short_scale)
-            current_val = val
-
-        # две трети
-        if not ordinals:
-            next_val = is_fractional_bg(next_word, short_scale=short_scale)
-            if next_val:
-                if not val:
-                    val = 1
-                val = val * next_val
-                number_words.append(tokens[idx + 1])
-
-        # the sign is applied once to the whole number after parsing,
-        # so no per-token negation happens here
-
-        # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            a_pieces = word.split('/')
-            if look_for_fractions(a_pieces):
-                val = float(a_pieces[0]) / float(a_pieces[1])
-        else:
-            if all([
-                prev_word in _SUMS_BG,
-                word not in _SUMS_BG,
-                word not in _MULTIPLIES_BG,
-                current_val >= 10,
-                # teens continue a preceding hundred ("сто и десет" = 110)
-                not (prev_val and prev_val >= 100 and current_val < 100)
-            ]):
-                # Backtrack - we've got numbers we can't sum.
-                number_words.pop()
-                val = prev_val
-                break
-            prev_val = val
-
-            if word in _MULTIPLIES_BG and next_word not in _MULTIPLIES_BG:
-                # handle long numbers, e.g.
-                # две хиляди петстотин двадесет и три
-                # look ahead: if all remaining scale words are smaller,
-                # this chunk is complete and can be set aside to sum later
-                time_to_sum = True
-                for other_token in tokens[idx + 1:]:
-                    if other_token.word in _MULTIPLIES_BG:
-                        if _STRING_SCALE_BG[other_token.word] >= current_val:
-                            time_to_sum = False
-                        else:
-                            continue
-                    if not time_to_sum:
-                        break
-                if time_to_sum:
-                    to_sum.append(val)
-                    val = 0
-                    prev_val = 0
-
-    if val is not None and to_sum:
-        val += sum(to_sum)
-    if negative and val not in (None, False):
-        val = -val
-
-    return val, number_words
-
-
 def extract_number_bg(text, short_scale=True, ordinals=False):
-    """
-    This function extracts a number from a text string
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): ignored, Bulgarian uses a single scale
-        ordinals (bool): consider ordinal numbers, трети=3 instead of 1/3
-    Returns:
-        (int) or (float) or False: The extracted number or False if no number
-                                   was found
-
-    """
-    value = _extract_number_with_text_bg(tokenize(text.lower()),
-                                         short_scale, ordinals).value
-    if isinstance(value, float) and value.is_integer():
-        value = int(value)
-    return value
-
-
-def is_fractional_bg(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): ignored, Bulgarian uses a single scale
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    fractions = {"цяло": 1, "половин": 2, "третина": 3, "четвъртина": 4}
-    for num, word in _FRACTION_STRING_BG.items():
-        fractions[word] = num
-        # plural (трета -> трети, четвърт -> четвърти)
-        if word.endswith('а'):
-            fractions[word[:-1] + 'и'] = num
-        else:
-            fractions[word + 'и'] = num
-
-    if input_str.lower() in fractions:
-        return 1.0 / fractions[input_str.lower()]
-    return False
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "bg")``."""
+    warn_reader_removed("extract_number_bg", 'ovos_number_parser.extract_number(text, "bg")')
+    return numtag_readers.extract_number(text, "bg", short_scale, ordinals)

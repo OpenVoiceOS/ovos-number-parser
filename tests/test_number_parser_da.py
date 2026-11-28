@@ -7,13 +7,13 @@ class TestDanishPronounce(unittest.TestCase):
     """Anchors for spoken Danish numbers."""
 
     def test_pronounce_number(self):
-        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elleve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'hundrede', 101: 'hundrede og et', 123: 'hundrede og treogtyve', 200: 'to hundrede', 500: 'fem hundrede', 999: 'ni hundrede og nioghalvfems', 1000: 'tusind', 2000: 'to tusinde', 2023: 'to tusinde treogtyve', 1000000: 'en million', 2000000: 'to millioner'}
+        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elleve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'hundrede', 101: 'hundrede og en', 123: 'hundrede og treogtyve', 200: 'to hundrede', 500: 'fem hundrede', 999: 'ni hundrede og nioghalvfems', 1000: 'tusind', 2000: 'to tusinde', 2023: 'to tusinde og treogtyve', 1000000: 'en million', 2000000: 'to millioner'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="da"), spoken)
 
     def test_pronounce_negative_and_decimal(self):
-        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: 'komma fem nul nul'}
+        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: 'nul komma fem nul nul'}
         for number, spoken in expected.items():
             with self.subTest(number=number):
                 self.assertEqual(pronounce_number(number, lang="da"), spoken)
@@ -58,13 +58,13 @@ class TestDanishExtract(unittest.TestCase):
     """Anchors for extracting numbers from Danish text."""
 
     def test_extract_number(self):
-        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elleve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'hundrede', 101: 'hundrede og et', 123: 'hundrede og treogtyve', 200: 'to hundrede', 500: 'fem hundrede', 999: 'ni hundrede og nioghalvfems', 1000: 'tusind', 2000: 'to tusinde', 2023: 'to tusinde treogtyve', 1000000: 'en million', 2000000: 'to millioner'}
+        expected = {0: 'nul', 1: 'en', 2: 'to', 3: 'tre', 4: 'fire', 5: 'fem', 6: 'seks', 7: 'syv', 8: 'otte', 9: 'ni', 10: 'ti', 11: 'elleve', 12: 'tolv', 13: 'tretten', 14: 'fjorten', 15: 'femten', 16: 'seksten', 17: 'sytten', 18: 'atten', 19: 'nitten', 20: 'tyve', 21: 'enogtyve', 30: 'tredive', 42: 'toogfyrre', 50: 'halvtreds', 66: 'seksogtres', 70: 'halvfjerds', 80: 'firs', 90: 'halvfems', 99: 'nioghalvfems', 100: 'hundrede', 101: 'hundrede og en', 123: 'hundrede og treogtyve', 200: 'to hundrede', 500: 'fem hundrede', 999: 'ni hundrede og nioghalvfems', 1000: 'tusind', 2000: 'to tusinde', 2023: 'to tusinde og treogtyve', 1000000: 'en million', 2000000: 'to millioner'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="da"), number)
 
     def test_extract_negative_and_decimal(self):
-        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: 'komma fem nul nul'}
+        expected = {-7: 'minus syv', -42: 'minus toogfyrre', 2.5: 'to komma fem nul nul', 3.14: 'tre komma en fire nul', -3.5: 'minus tre komma fem nul nul', 0.5: 'nul komma fem nul nul'}
         for number, spoken in expected.items():
             with self.subTest(spoken=spoken):
                 self.assertEqual(extract_number(spoken, lang="da"), number)
@@ -199,3 +199,86 @@ class TestDanishNonDecimalUnicodeDigits(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDanishOrdinalsFlagKeepsCardinals(unittest.TestCase):
+    """`ordinals=True` adds the ordinal reading, it does not remove the
+    cardinal one.
+
+    Sixteen of the eighteen languages measured answer the cardinal under
+    `ordinals=True`; Danish and German answered nothing at all, for any
+    input, because a filter kept only a value that is a string ending in
+    ".", a shape the extractor never produces. ovos-skill-count always
+    passes `ordinals=True`, so "tæl til fem" spoke the failure dialog in
+    da-DK.
+    """
+
+    CARDINALS = {
+        "en": 1, "to": 2, "tre": 3, "fire": 4, "fem": 5, "seks": 6,
+        "syv": 7, "otte": 8, "ni": 9, "ti": 10, "elleve": 11, "tolv": 12,
+        "tretten": 13, "fjorten": 14, "femten": 15, "seksten": 16,
+        "sytten": 17, "atten": 18, "nitten": 19, "tyve": 20,
+    }
+
+    ORDINALS = {
+        "første": 1, "anden": 2, "tredje": 3, "fjerde": 4, "femte": 5,
+        "sjette": 6, "syvende": 7, "ottende": 8, "niende": 9, "tiende": 10,
+    }
+
+    def test_every_cardinal_survives_the_ordinals_flag(self):
+        for word, value in self.CARDINALS.items():
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="da", ordinals=True), value)
+
+    def test_the_skill_utterance_counts(self):
+        # ovos-skill-count's own call, the one that spoke the failure dialog
+        self.assertEqual(
+            extract_number("tæl til fem", lang="da", ordinals=True), 5)
+
+    def test_every_ordinal_reads_under_the_flag(self):
+        for word, value in self.ORDINALS.items():
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, lang="da", ordinals=True), value)
+
+    def test_the_first_number_of_the_line_answers(self):
+        """A line that holds an ordinal and a cardinal answers its first
+        number, whatever its kind: numtag reads two adjacent numbers as two
+        (numtag docs/rulings.md, "The leftmost longest number"). The
+        ordinal reads when it comes first."""
+        self.assertEqual(
+            extract_number("den femte af ti", lang="da", ordinals=True), 5)
+        self.assertEqual(
+            extract_number("tre femte", lang="da", ordinals=True), 3)
+        self.assertEqual(
+            extract_number("three fifth seven", lang="en", ordinals=True), 3)
+
+    def test_two_ordinals_resolve_the_same_way_as_german(self):
+        """Both languages take the first number of the line."""
+        for lang, line in (("da", "den tredje femte"), ("de", "der dritte fünfte")):
+            with self.subTest(lang=lang):
+                self.assertEqual(extract_number(line, lang=lang, ordinals=True), 3)
+        for lang, line in (("da", "ti tredje femte"), ("de", "zehn dritte fünfte")):
+            with self.subTest(lang=lang, shape="with a cardinal"):
+                self.assertEqual(extract_number(line, lang=lang, ordinals=True), 10)
+
+    def test_an_ordinal_shaped_word_that_is_not_an_ordinal(self):
+        """"anden" is the ordinal "second" and the definite form of "and",
+        the duck. `is_ordinal_da` matches it on the word alone, so
+        "jeg så anden i parken" ("I saw the duck in the park") reads as 2.
+
+        This test records the answer rather than blessing it. The same 2
+        comes out of `_extract_number_with_text_da_helper` with no
+        caller-side scan at all, so the ambiguity belongs to the table and
+        the scan in `extract_number_da` adds no reading of its own. Whether
+        an ordinal-shaped token should need context is T-3900. If that lands,
+        this expectation changes with it, deliberately.
+        """
+        self.assertEqual(
+            extract_number("jeg så anden i parken", lang="da", ordinals=True), 2)
+        # the default path never had the ordinal reading and still does not
+        self.assertEqual(
+            extract_number("jeg så anden i parken", lang="da"), False)
+
+    def test_the_default_is_unchanged(self):
+        self.assertEqual(extract_number("tæl til fem", lang="da"), 5)
+        self.assertEqual(extract_number("den femte", lang="da"), False)

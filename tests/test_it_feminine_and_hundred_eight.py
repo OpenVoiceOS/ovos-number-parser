@@ -1,0 +1,162 @@
+"""Italian feminine "una", "centootto" and the ordinals after "millesimo".
+
+Gold values are worked by hand from these sources:
+
+- Treccani, Enciclopedia dell'Italiano, "Numerali": "uno [...] al femminile
+  assume la forma una"; "con cento seguito da una decina o da un'unità,
+  l'elisione è poco comune con uno, otto e undici [...] centootto [raramente
+  centotto]".
+- Treccani, Vocabolario, "uno": "ventuna pagina, le mille e una notte,
+  centouna volte, ma più spesso in tal caso si usa la forma non declinata
+  del masch. sing."; Crusca 1077: the feminine of compounds "oggi [...] è
+  meno comune".
+- Accademia della Crusca, consulenza 1077: "108: centootto, meno bene
+  centotto"; "180: centottanta o centoottanta"; "21.000: ventunomila o
+  ventunmila: entrambe le forme vanno bene".
+- Treccani, Vocabolario, "ordinale": "centesimo decimo, millesimo primo,
+  millesimo secondo, millesimo decimo, millesimo undecimo o undicesimo".
+"""
+import unittest
+
+from ovos_number_parser import (extract_number, pronounce_number,
+                                pronounce_ordinal)
+from ovos_number_parser.numbers_it import pronounce_ordinal_it
+from ovos_number_parser.util import GrammaticalGender
+
+FEMININE = GrammaticalGender.FEMININE
+
+
+def feminine(number):
+    return pronounce_number(number, "it", gender=FEMININE)
+
+
+class TestFeminineOne(unittest.TestCase):
+    def test_one_before_a_feminine_noun(self):
+        self.assertEqual(f"{feminine(1)} volta", "una volta")
+        self.assertEqual(f"Ho letto {feminine(1)} pagina.",
+                         "Ho letto una pagina.")
+
+    def test_compounds_keep_uno(self):
+        # Treccani, "uno": "più spesso [...] la forma non declinata"
+        self.assertEqual(f"{feminine(21)} pagine", "ventuno pagine")
+        self.assertEqual(f"{feminine(101)} volte", "centouno volte")
+        self.assertEqual(feminine(31), "trentuno")
+        self.assertEqual(feminine(121), "centoventuno")
+        self.assertEqual(feminine(1001), "milleuno")
+        self.assertEqual(feminine(2001), "duemilauno")
+        self.assertEqual(feminine(101001), "centounomilauno")
+
+    def test_negative(self):
+        self.assertEqual(feminine(-1), "meno una")
+        self.assertEqual(feminine(-21), "meno ventuno")
+
+    def test_after_a_million(self):
+        self.assertEqual(feminine(1000001), "un milione uno")
+
+    def test_masculine_is_unchanged(self):
+        self.assertEqual(pronounce_number(1, "it"), "uno")
+        self.assertEqual(pronounce_number(1, "it",
+                                          gender=GrammaticalGender.NEUTRAL),
+                         "uno")
+        self.assertEqual(pronounce_number(21, "it"), "ventuno")
+
+    def test_other_numbers_keep_their_form(self):
+        self.assertEqual(feminine(11), "undici")
+        self.assertEqual(feminine(2), "due")
+        self.assertEqual(feminine(10), "dieci")
+        self.assertEqual(feminine(21000), "ventunomila")
+        self.assertEqual(feminine(1000000), "un milione")
+
+    def test_decimals_keep_uno(self):
+        self.assertEqual(feminine(1.5), "uno virgola cinque")
+
+    def test_una_is_read_back(self):
+        self.assertEqual(extract_number("una pagina", lang="it"), 1)
+
+
+class TestCentoOtto(unittest.TestCase):
+    def test_hundreds_keep_o_before_otto(self):
+        for number, expected in [
+                (108, "centootto"), (208, "duecentootto"),
+                (308, "trecentootto"), (908, "novecentootto"),
+                (1108, "millecentootto"), (108000, "centoottomila"),
+                (100008, "centomilaotto")]:
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_number(number, "it"), expected)
+
+    def test_hundreds_elide_before_ottanta(self):
+        for number, expected in [
+                (180, "centottanta"), (188, "centottantotto"),
+                (880, "ottocentottanta"), (788, "settecentottantotto")]:
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_number(number, "it"), expected)
+
+    def test_no_elision_before_uno_or_undici(self):
+        self.assertEqual(pronounce_number(101, "it"), "centouno")
+        self.assertEqual(pronounce_number(111, "it"), "centoundici")
+
+    def test_sentence(self):
+        self.assertEqual(
+            f"Il numero {pronounce_number(108, 'it')} è pari.",
+            "Il numero centootto è pari.")
+
+    def test_ordinal_follows_the_cardinal(self):
+        self.assertEqual(pronounce_ordinal(108, "it"), "centoottesimo")
+        self.assertEqual(pronounce_ordinal(108, "it", gender=FEMININE),
+                         "centoottesima")
+
+
+class TestOrdinalsAfterMillesimo(unittest.TestCase):
+    def assertOrdinals(self, cases, gender=GrammaticalGender.MASCULINE):
+        for number, expected in cases:
+            with self.subTest(number=number, gender=gender.name):
+                self.assertEqual(pronounce_ordinal(number, "it",
+                                                   gender=gender), expected)
+                self.assertEqual(pronounce_number(number, "it", ordinals=True,
+                                                  gender=gender), expected)
+
+    def test_two_words(self):
+        self.assertOrdinals([
+            (1001, "millesimo primo"), (1002, "millesimo secondo"),
+            (1010, "millesimo decimo"), (1011, "millesimo undicesimo")])
+
+    def test_two_words_feminine(self):
+        self.assertOrdinals([
+            (1001, "millesima prima"), (1002, "millesima seconda"),
+            (1010, "millesima decima"), (1011, "millesima undicesima")],
+            gender=FEMININE)
+
+    def test_sentence(self):
+        self.assertEqual(
+            f"Il {pronounce_ordinal(1001, 'it')} cliente riceve un premio.",
+            "Il millesimo primo cliente riceve un premio.")
+
+    def test_neighbours_keep_one_word(self):
+        self.assertOrdinals([
+            (1000, "millesimo"), (1003, "milletreesimo"),
+            (1012, "milledodicesimo"), (1100, "millecentesimo"),
+            (2001, "duemilaunesimo")])
+
+    def test_two_words_only_on_their_own(self):
+        # inside a scale word the ordinal stays one fused word, as before
+        for number, masculine, feminine in [
+                (1001001, "milionemilleunesimo", "milionemilleunesima"),
+                (10 ** 9 + 1001, "miliardomilleunesimo",
+                 "miliardomilleunesima"),
+                (10 ** 12 + 1002, "bilionemilleduesimo",
+                 "bilionemilleduesima"),
+                (2001010, "duemilionemilledecimo", "duemilionemilledecima"),
+                (1001011, "milionemilleundicesimo", "milionemilleundicesima")]:
+            with self.subTest(number=number):
+                self.assertEqual(pronounce_ordinal_it(number), masculine)
+                self.assertEqual(
+                    pronounce_ordinal_it(number, FEMININE), feminine)
+
+    def test_ventunomila_is_kept(self):
+        # Crusca: "ventunomila o ventunmila: entrambe le forme vanno bene"
+        self.assertOrdinals([(21000, "ventunomillesimo"),
+                             (31000, "trentunomillesimo")])
+
+
+if __name__ == "__main__":
+    unittest.main()

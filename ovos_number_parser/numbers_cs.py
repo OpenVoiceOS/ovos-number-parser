@@ -1,8 +1,19 @@
+from decimal import Decimal
 from collections import OrderedDict
 
-import re
-from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, tokenize, look_for_fractions,
-                                     partition_list, is_numeric, Token, ReplaceableNumber)
+from ovos_number_parser.util import (invert_dict, convert_to_mixed_fraction, GrammaticalGender, scientific_parts)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
+from ovos_number_parser.util import Scale
+
+#: the last word of a cardinal that agrees with a feminine or neuter noun
+#: (ICU RBNF cs spellout-cardinal-feminine and -neuter). The masculine keeps
+#: the counting form "jedna": it is the default gender, so it also serves a
+#: caller that names no noun.
+_GENDERED_LAST_WORD_CS = {
+    GrammaticalGender.FEMININE: {"dva": "dvě"},
+    GrammaticalGender.NEUTRAL: {"jedna": "jedno", "dva": "dvě"},
+}
 
 
 _NUM_STRING_CS = {
@@ -70,31 +81,43 @@ _FRACTION_STRING_CS = {
 _LONG_SCALE_CS = OrderedDict([
     (100, 'sto'),
     (1000, 'tisíc'),
-    (1000000, 'milion'),
-    (1e9, "miliarda"),
-    (1e12, "bilion"),
-    (1e15, "biliarda"),
-    (1e18, "trilion"),
-    (1e21, "triliarda"),
-    (1e24, "kvadrilion"),
-    (1e27, "kvadriliarda"),
-    (1e30, "kvintilion"),
-    (1e33, "kvintiliarda"),
-    (1e36, "sextilion"),
-    (1e39, "sextiliarda"),
-    (1e42, "septilion"),
-    (1e45, "septiliarda"),
-    (1e48, "oktilion"),
-    (1e51, "oktiliarda"),
-    (1e54, "nonilion"),
-    (1e57, "noniliarda"),
-    (1e60, "decilion"),
-    (1e63, "deciliarda"),
-    (1e120, "vigintilion"),
-    (1e180, "trigintilion"),
-    (1e303, "kvinkvagintiliarda"),
-    (1e600, "centilion"),
-    (1e603, "centiliarda")
+    (10 ** 6, 'milion'),
+    (10 ** 9, "miliarda"),
+    (10 ** 12, "bilion"),
+    (10 ** 15, "biliarda"),
+    (10 ** 18, "trilion"),
+    (10 ** 21, "triliarda"),
+    (10 ** 24, "kvadrilion"),
+    (10 ** 27, "kvadriliarda"),
+    (10 ** 30, "kvintilion"),
+    (10 ** 33, "kvintiliarda"),
+    (10 ** 36, "sextilion"),
+    (10 ** 39, "sextiliarda"),
+    (10 ** 42, "septilion"),
+    (10 ** 45, "septiliarda"),
+    (10 ** 48, "oktilion"),
+    (10 ** 51, "oktiliarda"),
+    (10 ** 54, "nonilion"),
+    (10 ** 57, "noniliarda"),
+    (10 ** 60, "decilion"),
+    (10 ** 63, "deciliarda"),
+    (10 ** 66, "undecilion"),
+    (10 ** 69, "undeciliarda"),
+    (10 ** 72, "duodecilion"),
+    (10 ** 75, "duodeciliarda"),
+    (10 ** 78, "tredecilion"),
+    (10 ** 81, "tredeciliarda"),
+    (10 ** 84, "kvadrodecilion"),
+    (10 ** 87, "kvadrodeciliarda"),
+    (10 ** 90, "kvindecilion"),
+    (10 ** 93, "kvindeciliarda"),
+    (10 ** 96, "sexdecilion"),
+    (10 ** 99, "sexdeciliarda"),
+    (10 ** 120, "vigintilion"),
+    (10 ** 180, "trigintilion"),
+    (10 ** 303, "kvingintiliarda"),
+    (10 ** 600, "centilion"),
+    (10 ** 603, "centiliarda")
 ])
 
 _SHORT_SCALE_CS = OrderedDict([
@@ -261,36 +284,6 @@ def generate_plurals_cs(originals):
     return {value + "ý" for value in originals}
 
 
-# negate next number (-2 = 0 - 2)
-_NEGATIVES = {"záporné", "mínus", "minus"}
-
-# sum the next number (twenty two = 20 + 2)
-_SUMS = {'dvacet', '20', 'třicet', '30', 'čtyřicet', '40', 'padesát', '50',
-         'šedesát', '60', 'sedmdesát', '70', 'osmdesát', '80', 'devadesát', '90'}
-
-# declined forms of the scale words ("dvě stě", "tři sta", "pět set",
-# "dva tisíce") used when speaking multiples
-_SCALE_DECLENSIONS_CS = {
-    "stě": 100,
-    "sta": 100,
-    "set": 100,
-    "tisíce": 1000
-}
-
-_MULTIPLIES_LONG_SCALE_CS = set(_LONG_SCALE_CS.values()) | \
-                            generate_plurals_cs(_LONG_SCALE_CS.values()) | \
-                            set(_SCALE_DECLENSIONS_CS)
-
-_MULTIPLIES_SHORT_SCALE_CS = set(_SHORT_SCALE_CS.values()) | \
-                             generate_plurals_cs(_SHORT_SCALE_CS.values()) | \
-                             set(_SCALE_DECLENSIONS_CS)
-
-# split sentence parse separately and sum ( 2 and a half = 2 + 0.5 )
-_FRACTION_MARKER = {"a"}
-
-# decimal marker ( 1 point 5 = 1 + 0.5)
-_DECIMAL_MARKER = {"bod", "tečka", "čárka", "celá"}
-
 _STRING_NUM_CS = invert_dict(_NUM_STRING_CS)
 _STRING_NUM_CS.update(generate_plurals_cs(_STRING_NUM_CS))
 _STRING_NUM_CS.update({
@@ -301,712 +294,6 @@ _STRING_NUM_CS.update({
     "dvojice": 2,
     "dvoje": 2
 })
-
-
-_STRING_SHORT_ORDINAL_CS = invert_dict(_SHORT_ORDINAL_CS)
-_STRING_LONG_ORDINAL_CS = invert_dict(_LONG_ORDINAL_CS)
-
-
-def numbers_to_digits_cs(text, short_scale=True, ordinals=False):
-    """
-    Convert words in a string into their equivalent numbers.
-    Args:
-        text str:
-        short_scale boolean: True if short scale numbers should be used.
-        ordinals boolean: True if ordinals (e.g. first, second, third) should
-                          be parsed to their number values (1, 2, 3...)
-
-    Returns:
-        str
-        The original text, with numbers subbed in where appropriate.
-
-    """
-    text = text.lower()
-    tokens = tokenize(text)
-    numbers_to_replace = \
-        _extract_numbers_with_text_cs(tokens, short_scale, ordinals)
-    numbers_to_replace.sort(key=lambda number: number.start_index)
-
-    results = []
-    for token in tokens:
-        if not numbers_to_replace or \
-                token.index < numbers_to_replace[0].start_index:
-            results.append(token.word)
-        else:
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].start_index:
-                results.append(str(numbers_to_replace[0].value))
-            if numbers_to_replace and \
-                    token.index == numbers_to_replace[0].end_index:
-                numbers_to_replace.pop(0)
-
-    return ' '.join(results)
-
-
-def _extract_numbers_with_text_cs(tokens, short_scale=True,
-                                  ordinals=False, fractional_numbers=True):
-    """
-    Extract all numbers from a list of Tokens, with the words that
-    represent them.
-
-    Args:
-        [Token]: The tokens to parse.
-        short_scale bool: True if short scale numbers should be used, False for
-                          long scale. True by default.
-        ordinals bool: True if ordinal words (first, second, third, etc) should
-                       be parsed.
-        fractional_numbers bool: True if we should look for fractions and
-                                 decimals.
-
-    Returns:
-        [ReplaceableNumber]: A list of tuples, each containing a number and a
-                         string.
-
-    """
-    placeholder = "<placeholder>"  # inserted to maintain correct indices
-    results = []
-    while True:
-        to_replace = \
-            _extract_number_with_text_cs(tokens, short_scale,
-                                         ordinals, fractional_numbers)
-
-        if not to_replace:
-            break
-
-        results.append(to_replace)
-
-        tokens = [
-            t if not
-            to_replace.start_index <= t.index <= to_replace.end_index
-            else
-            Token(placeholder, t.index) for t in tokens
-        ]
-    results.sort(key=lambda n: n.start_index)
-    return results
-
-
-def _extract_number_with_text_cs(tokens, short_scale=True,
-                                 ordinals=False, fractional_numbers=True):
-    """
-    This function extracts a number from a list of Tokens.
-
-    Args:
-        tokens str: the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
-        fractional_numbers (bool): True if we should look for fractions and
-                                   decimals.
-    Returns:
-        ReplaceableNumber
-
-    """
-    number, tokens = \
-        _extract_number_with_text_cs_helper(tokens, short_scale,
-                                            ordinals, fractional_numbers)
-    # while tokens and tokens[0].word in _ARTICLES_CS:
-    #    tokens.pop(0)
-    return ReplaceableNumber(number, tokens)
-
-
-def _extract_number_with_text_cs_helper(tokens,
-                                        short_scale=True, ordinals=False,
-                                        fractional_numbers=True):
-    """
-    Helper for _extract_number_with_text_en.
-
-    This contains the real logic for parsing, but produces
-    a result that needs a little cleaning (specific, it may
-    contain leading articles that can be trimmed off).
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-        fractional_numbers boolean:
-
-    Returns:
-        int or float, [Tokens]
-
-    """
-    if fractional_numbers:
-        fraction, fraction_text = \
-            _extract_fraction_with_text_cs(tokens, short_scale, ordinals)
-        if fraction:
-            return fraction, fraction_text
-
-        decimal, decimal_text = \
-            _extract_decimal_with_text_cs(tokens, short_scale, ordinals)
-        if decimal:
-            return decimal, decimal_text
-
-    return _extract_whole_number_with_text_cs(tokens, short_scale, ordinals)
-
-
-def _extract_fraction_with_text_cs(tokens, short_scale, ordinals):
-    """
-    Extract fraction numbers from a string.
-
-    This function handles text such as '2 and 3/4'. Note that "one half" or
-    similar will be parsed by the whole number function.
-
-    Args:
-        tokens [Token]: words and their indexes in the original string.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (int or float, [Token])
-        The value found, and the list of relevant tokens.
-        (None, None) if no fraction value is found.
-
-    """
-    for c in _FRACTION_MARKER:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_cs(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_cs(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=True)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            # ensure first is not a fraction and second is a fraction
-            num1 = numbers1[-1]
-            num2 = numbers2[0]
-            if num1.value >= 1 and 0 < num2.value < 1:
-                return num1.value + num2.value, \
-                       num1.tokens + partitions[1] + num2.tokens
-
-    return None, None
-
-
-def _extract_decimal_with_text_cs(tokens, short_scale, ordinals):
-    """
-    Extract decimal numbers from a string.
-
-    This function handles text such as '2 point 5'.
-
-    Notes:
-        While this is a helper for extract_number_xx, it also depends on
-        extract_number_xx, to parse out the components of the decimal.
-
-        This does not currently handle things like:
-            number dot number number number
-
-    Args:
-        tokens [Token]: The text to parse.
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        (float, [Token])
-        The value found and relevant tokens.
-        (None, None) if no decimal value is found.
-
-    """
-    for c in _DECIMAL_MARKER:
-        partitions = partition_list(tokens, lambda t: t.word == c)
-
-        if len(partitions) == 3:
-            numbers1 = \
-                _extract_numbers_with_text_cs(partitions[0], short_scale,
-                                              ordinals, fractional_numbers=False)
-            numbers2 = \
-                _extract_numbers_with_text_cs(partitions[2], short_scale,
-                                              ordinals, fractional_numbers=False)
-
-            if not numbers1 or not numbers2:
-                return None, None
-
-            number = numbers1[-1]
-            decimal = numbers2[0]
-            # concatenate consecutive single digits after the marker
-            # ("point one four" -> .14)
-            _digits = ""
-            _digit_tokens = []
-            _prev_end = None
-            for _num in numbers2:
-                _v = _num.value
-                if _v is None or _v is False or float(_v) != int(_v) \
-                        or not 0 <= _v <= 9:
-                    break
-                if _prev_end is not None and _num.start_index != _prev_end + 1:
-                    break
-                _digits += str(int(_v))
-                _digit_tokens.extend(_num.tokens)
-                _prev_end = _num.end_index
-            if len(_digits) > 1:
-                _frac = float("0." + _digits)
-                return (number.value - _frac if number.value < 0
-                        else number.value + _frac), \
-                    number.tokens + partitions[1] + _digit_tokens
-
-            # TODO handle number dot number number number
-            if "." not in str(decimal.text):
-                _frac2 = float('0.' + str(decimal.value))
-                return (number.value - _frac2 if number.value < 0
-                        else number.value + _frac2), \
-                       number.tokens + partitions[1] + decimal.tokens
-    return None, None
-
-
-def _extract_whole_number_with_text_cs(tokens, short_scale, ordinals):
-    """
-    Handle numbers not handled by the decimal or fraction functions. This is
-    generally whole numbers. Note that phrases such as "one half" will be
-    handled by this function, while "one and a half" are handled by the
-    fraction function.
-
-    Args:
-        tokens [Token]:
-        short_scale boolean:
-        ordinals boolean:
-
-    Returns:
-        int or float, [Tokens]
-        The value parsed, and tokens that it corresponds to.
-
-    """
-    multiplies, string_num_ordinal, string_num_scale = \
-        _initialize_number_data(short_scale)
-
-    number_words = []  # type: [Token]
-    val = False
-    prev_val = None
-    next_val = None
-    negative = False
-    to_sum = []
-    for idx, token in enumerate(tokens):
-        current_val = None
-        if next_val:
-            next_val = None
-            continue
-
-        word = token.word
-        # if word in _ARTICLES_CS or word in _NEGATIVES:
-        if word in _NEGATIVES:
-            negative = True
-            number_words.append(token)
-            continue
-
-        prev_word = tokens[idx - 1].word if idx > 0 else ""
-        next_word = tokens[idx + 1].word if idx + 1 < len(tokens) else ""
-
-        # In czech we do no use suffix (1st,2nd,..) but use point instead (1.,2.,..)
-        if is_numeric(word[:-1]) and \
-                (word.endswith(".")):
-            # explicit ordinals, 1st, 2nd, 3rd, 4th.... Nth
-            word = word[:-1]
-
-            # handle nth one
-        #    if next_word == "one":
-        # would return 1 instead otherwise
-        #        tokens[idx + 1] = Token("", idx)
-        #        next_word = ""
-
-        # Normalize Czech inflection of numbers(jedna,jeden,jedno,...)
-        if not ordinals:
-            word = _text_cs_inflection_normalize(word, 1)
-
-        if word not in string_num_scale and \
-                word not in _STRING_NUM_CS and \
-                word not in _SUMS and \
-                word not in multiplies and \
-                not (ordinals and word in string_num_ordinal) and \
-                not is_numeric(word) and \
-                not is_fractional_cs(word, short_scale=short_scale) and \
-                not look_for_fractions(word.split('/')):
-            words_only = [token.word for token in number_words]
-            # if number_words and not all([w in _ARTICLES_CS |
-            #                             _NEGATIVES for w in words_only]):
-            if number_words and not all([w in _NEGATIVES for w in words_only]):
-                break
-            else:
-                number_words = []
-                continue
-        elif word not in multiplies \
-                and prev_word not in multiplies \
-                and prev_word not in _SUMS \
-                and not (ordinals and prev_word in string_num_ordinal) \
-                and prev_word not in _NEGATIVES:  # \
-            # and prev_word not in _ARTICLES_CS:
-            number_words = [token]
-        elif prev_word in _SUMS and word in _SUMS:
-            number_words = [token]
-        else:
-            number_words.append(token)
-
-        # is this word already a number ?
-        if is_numeric(word):
-            if word.isdigit():  # doesn't work with decimals
-                val = int(word)
-            else:
-                val = float(word)
-            current_val = val
-
-        # is this word the name of a number ?
-        if word in _STRING_NUM_CS:
-            val = _STRING_NUM_CS.get(word)
-            current_val = val
-        elif word in string_num_scale:
-            val = string_num_scale.get(word)
-            current_val = val
-        elif ordinals and word in string_num_ordinal:
-            val = string_num_ordinal[word]
-            current_val = val
-
-        # is the prev word an ordinal number and current word is one?
-        # second one, third one
-        if ordinals and prev_word in string_num_ordinal and val == 1:
-            val = prev_val
-
-        # is the prev word a number and should we sum it?
-        # twenty two, fifty six
-        if (prev_word in _SUMS and val and val < 10) or all([prev_word in
-                                                             multiplies,
-                                                             val < prev_val if prev_val else False]):
-            if prev_val < 0:
-                # continue a negated number: "minus forty two" = -(40+2)
-                val = prev_val - val
-            else:
-                val = prev_val + val
-
-        # For Czech only: If Ordinal previous number will be also in ordinal number format
-        # dvacátý první = twentieth first
-        if (prev_word in string_num_ordinal and val and val < 10) or all([prev_word in
-                                                                          multiplies,
-                                                                          val < prev_val if prev_val else False]):
-            if prev_val < 0:
-                # continue a negated number: "minus forty two" = -(40+2)
-                val = prev_val - val
-            else:
-                val = prev_val + val
-
-        # is the prev word a number and should we multiply it?
-        # twenty hundred, six hundred
-        if word in multiplies:
-            if not prev_val:
-                prev_val = 1
-                val = prev_val * val
-            elif current_val is not None and current_val > prev_val:
-                # ascending scale word multiplies ("dvě stě" = 2 * 100)
-                val = prev_val * val
-            # a descending scale word ("tisíc sto" = 1000 + 100) has already
-            # been summed above; multiplying here would corrupt the value
-
-        # is this a spoken fraction?
-        # half cup
-        if val is False:
-            val = is_fractional_cs(word, short_scale=short_scale)
-            current_val = val
-
-        # 2 fifths
-        if not ordinals:
-            next_val = is_fractional_cs(next_word, short_scale=short_scale)
-            if next_val:
-                if not val:
-                    val = 1
-                val = val * next_val
-                number_words.append(tokens[idx + 1])
-
-        # the sign is applied once to the whole number after parsing,
-        # so no per-token negation happens here
-
-        # let's make sure it isn't a fraction
-        if not val:
-            # look for fractions like "2/3"
-            aPieces = word.split('/')
-            if look_for_fractions(aPieces):
-                val = float(aPieces[0]) / float(aPieces[1])
-                current_val = val
-
-        else:
-            if all([
-                prev_word in _SUMS,
-                word not in _SUMS,
-                word not in multiplies,
-                current_val >= 10]):
-                # Backtrack - we've got numbers we can't sum.
-                number_words.pop()
-                val = prev_val
-                break
-            prev_val = val
-
-            if word in multiplies:
-                # handle long numbers
-                # six hundred sixty six
-                # two million five hundred thousand
-                #
-                # This logic is somewhat complex, and warrants
-                # extensive documentation for the next coder's sake.
-                #
-                # The current word is a power of ten. `current_val` is
-                # its integer value. `val` is our working sum
-                # (above, when `current_val` is 1 million, `val` is
-                # 2 million.)
-                #
-                # We have a dict `string_num_scale` containing [value, word]
-                # pairs for "all" powers of ten: string_num_scale[10] == "ten.
-                #
-                # We need go over the rest of the tokens, looking for other
-                # powers of ten. If we find one, we compare it with the current
-                # value, to see if it's smaller than the current power of ten.
-                #
-                # Numbers which are not powers of ten will be passed over.
-                #
-                # If all the remaining powers of ten are smaller than our
-                # current value, we can set the current value aside for later,
-                # and begin extracting another portion of our final result.
-                # For example, suppose we have the following string.
-                # The current word is "million".`val` is 9000000.
-                # `current_val` is 1000000.
-                #
-                #    "nine **million** nine *hundred* seven **thousand**
-                #     six *hundred* fifty seven"
-                #
-                # Iterating over the rest of the string, the current
-                # value is larger than all remaining powers of ten.
-                #
-                # The if statement passes, and nine million (9000000)
-                # is appended to `to_sum`.
-                #
-                # The main variables are reset, and the main loop begins
-                # assembling another number, which will also be appended
-                # under the same conditions.
-                #
-                # By the end of the main loop, to_sum will be a list of each
-                # "place" from 100 up: [9000000, 907000, 600]
-                #
-                # The final three digits will be added to the sum of that list
-                # at the end of the main loop, to produce the extracted number:
-                #
-                #    sum([9000000, 907000, 600]) + 57
-                # == 9,000,000 + 907,000 + 600 + 57
-                # == 9,907,657
-                #
-                # >>> foo = "nine million nine hundred seven thousand six
-                #            hundred fifty seven"
-                # >>> extract_number(foo)
-                # 9907657
-
-                time_to_sum = True
-                for other_token in tokens[idx + 1:]:
-                    if other_token.word in multiplies:
-                        if string_num_scale[other_token.word] >= current_val:
-                            time_to_sum = False
-                        else:
-                            continue
-                    if not time_to_sum:
-                        break
-                if time_to_sum:
-                    to_sum.append(val)
-                    val = 0
-                    prev_val = 0
-
-    if val is not None and to_sum:
-        val += sum(to_sum)
-    if negative and val not in (None, False):
-        val = -val
-
-    return val, number_words
-
-
-def _initialize_number_data(short_scale):
-    """
-    Generate dictionaries of words to numbers, based on scale.
-
-    This is a helper function for _extract_whole_number.
-
-    Args:
-        short_scale boolean:
-
-    Returns:
-        (set(str), dict(str, number), dict(str, number))
-        multiplies, string_num_ordinal, string_num_scale
-
-    """
-    multiplies = _MULTIPLIES_SHORT_SCALE_CS if short_scale \
-        else _MULTIPLIES_LONG_SCALE_CS
-
-    string_num_ordinal_cs = _STRING_SHORT_ORDINAL_CS if short_scale \
-        else _STRING_LONG_ORDINAL_CS
-
-    string_num_scale_cs = _SHORT_SCALE_CS if short_scale else _LONG_SCALE_CS
-    string_num_scale_cs = invert_dict(string_num_scale_cs)
-    string_num_scale_cs.update(_SCALE_DECLENSIONS_CS)
-    string_num_scale_cs.update(generate_plurals_cs(string_num_scale_cs))
-    return multiplies, string_num_ordinal_cs, string_num_scale_cs
-
-
-def extract_number_cs(text, short_scale=True, ordinals=False):
-    """
-    This function extracts a number from a text string,
-    handles pronunciations in long scale and short scale
-
-    https://en.wikipedia.org/wiki/Names_of_large_numbers
-
-    Numeral structure follows the Internetová jazyková příručka of the
-    Ústav pro jazyk český AV ČR (§791, "Členění čísel, víceslovné číslovkové
-    výrazy"): a spelled-out number splits into groups written as separate
-    words (tisíc devět set sedmdesát dva), where million groups multiply the
-    group before them and the thousand and hundred groups form their own
-    additive portions. Each such group is set aside and summed independently,
-    so a millions group followed by a hundred-thousands group accumulates
-    correctly.
-
-    Args:
-        text (str): the string to normalize
-        short_scale (bool): use short scale if True, long scale if False
-        ordinals (bool): consider ordinal numbers, third=3 instead of 1/3
-    Returns:
-        (int) or (float) or False: The extracted number or False if no number
-                                   was found
-
-    """
-    text = re.sub(r"(?<=[^\W\d]),", " ", text)
-    return _extract_number_with_text_cs(tokenize(text.lower()),
-                                        short_scale, ordinals).value
-
-
-def is_fractional_cs(input_str, short_scale=True):
-    """
-    This function takes the given text and checks if it is a fraction.
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    if input_str.endswith('iny', -3):  # leading number is bigger than one ( one třetina, two třetiny)
-        # Normalize to format of one (třetiny > třetina)
-        input_str = input_str[:len(input_str) - 1] + "a"
-
-    fracts = {"celá": 1}  # first four numbers have little different format
-
-    for num in _FRACTION_STRING_CS:  # Numbers from 2 to 1 hundret, more is not usualy used in common speech
-        if num > 1:
-            fracts[_FRACTION_STRING_CS[num]] = num
-
-    if input_str.lower() in fracts:
-        return 1.0 / fracts[input_str.lower()]
-    return False
-
-
-def _text_cs_inflection_normalize(word, arg):
-    """
-    Czech Inflection normalizer.
-
-    This try to normalize known inflection. This function is called
-    from multiple places, each one is defined with arg.
-
-    Args:
-        word [Word]
-        arg [Int]
-
-    Returns:
-        word [Word]
-
-    """
-    if arg == 1:  # _extract_whole_number_with_text_cs
-        # Number one (jedna)
-        if len(word) == 5 and word.startswith("jed"):
-            suffix = 'en', 'no', 'ny'
-            if word.endswith(suffix, 3):
-                word = "jedna"
-
-        # Number two (dva)
-        elif word == "dvě":
-            word = "dva"
-
-    elif arg == 2:  # extract_datetime_cs  TODO: This is ugly
-        if word == "hodina":
-            word = "hodin"
-        if word == "hodiny":
-            word = "hodin"
-        if word == "hodinu":
-            word = "hodin"
-        if word == "minuta":
-            word = "minut"
-        if word == "minuty":
-            word = "minut"
-        if word == "minutu":
-            word = "minut"
-        if word == "minutu":
-            word = "minut"
-        if word == "sekunda":
-            word = "sekund"
-        if word == "sekundy":
-            word = "sekund"
-        if word == "sekundu":
-            word = "sekund"
-        if word == "dní":
-            word = "den"
-        if word == "dnů":
-            word = "den"
-        if word == "dny":
-            word = "den"
-        if word == "týdny":
-            word = "týden"
-        if word == "týdnů":
-            word = "týden"
-        if word == "měsíců":
-            word = "měsíc"
-        if word == "měsíce":
-            word = "měsíc"
-        if word == "měsíci":
-            word = "měsíc"
-        if word == "roky":
-            word = "rok"
-        if word == "roků":
-            word = "rok"
-        if word == "let":
-            word = "rok"
-        if word == "včerejšku":
-            word = "včera"
-        if word == "zítřku":
-            word = "zítra"
-        if word == "zítřejší":
-            word = "zítra"
-        if word == "ranní":
-            word = "ráno"
-        if word == "dopolední":
-            word = "dopoledne"
-        if word == "polední":
-            word = "poledne"
-        if word == "odpolední":
-            word = "odpoledne"
-        if word == "večerní":
-            word = "večer"
-        if word == "noční":
-            word = "noc"
-        if word == "víkendech":
-            word = "víkend"
-        if word == "víkendu":
-            word = "víkend"
-        if word == "všedních":
-            word = "všední"
-        if word == "všedním":
-            word = "všední"
-
-        # Months
-        if word == "únoru":
-            word = "únor"
-        elif word == "červenci":
-            word = "červenec"
-        elif word == "července":
-            word = "červenec"
-        elif word == "listopadu":
-            word = "listopad"
-        elif word == "prosinci":
-            word = "prosinec"
-
-    return word
 
 
 def nice_number_cs(number, speech=True, denominators=range(1, 21)):
@@ -1058,7 +345,7 @@ def nice_number_cs(number, speech=True, denominators=range(1, 21)):
 
 
 def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
-                        ordinals=False):
+                        ordinals=False, gender=GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
 
@@ -1075,6 +362,7 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
         ordinals (bool): pronounce in ordinal form "first" instead of "one"
+        gender (GrammaticalGender): gender of the noun a cardinal counts
     Returns:
         (str): The pronounced number
     """
@@ -1085,9 +373,7 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
     elif num == float("-inf"):
         return "záporné nekonečno"
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             if ordinals:
                 # This handles zápornés of powers separately from the normal
@@ -1137,6 +423,9 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
     # check for a direct match
     if num in number_names and not ordinals:
         result += number_names[num]
+    elif ordinals and num == int(num) and \
+            (word := _ordinal_cs(int(num), short_scale)):
+        result += word
     else:
         def _sub_thousand(n, ordinals=False):
             assert 0 <= n <= 999
@@ -1163,7 +452,7 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
 
         def _short_scale(n):
             if n >= max(_SHORT_SCALE_CS.keys()):
-                return "nekonečno"
+                return ""
             ordi = ordinals
 
             if int(n) != n:
@@ -1194,6 +483,8 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
                                 number += _SHORT_SCALE_CS[num] + "tý"
                             else:
                                 number = _SHORT_SCALE_CS[n] + "tý"
+                    elif i == 1:
+                        number = _counted(z, "tisíc")
                     else:
                         number += hundreds[i]
                 res.append(number)
@@ -1209,48 +500,48 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
                 res.append(r)
             return res
 
+        def _counted(z, name):
+            """``z`` of the scale noun ``name``, in the form the count takes:
+            jeden/jedna, then the nominative plural after 2-4 and after a
+            compound ending in 2-4, else the genitive plural"""
+            feminine = name.endswith("a")
+            if z == 1:
+                if name == "tisíc":
+                    return name
+                return ("jedna " if feminine else "jeden ") + name
+            count = _sub_thousand(z)
+            if z % 10 in (2, 3, 4) and z % 100 // 10 != 1:
+                if feminine:
+                    *head, last = count.split(" ")
+                    count = " ".join(head + [_GENDERED_LAST_WORD_CS[
+                        GrammaticalGender.FEMININE].get(last, last)])
+                    return count + " " + name[:-1] + "y"
+                return count + " " + ("tisíce" if name == "tisíc"
+                                      else name + "y")
+            if feminine:
+                return count + " " + name[:-1]
+            return count + " " + (name if name == "tisíc" else name + "ů")
+
         def _long_scale(n):
             if n >= max(_LONG_SCALE_CS.keys()):
-                return "nekonečno"
-            ordi = ordinals
-            if int(n) != n:
-                ordi = False
+                return ""
+            ordi = ordinals and int(n) == n
             n = int(n)
             assert 0 <= n
             res = []
-            for i, z in enumerate(_split_by(n, 1000000)):
+            for i, z in enumerate(_split_by(n, 1000)):
                 if not z:
                     continue
-                number = pronounce_number_cs(z, places, True, scientific,
-                                             ordinals=ordi and not i)
-                # strip off the comma after the thousand
-                if i:
-                    if i >= len(hundreds):
-                        return ""
-                    # plus one as we skip 'thousand'
-                    # (and 'hundred', but this is excluded by index value)
-                    number = number.replace(',', '')
-
-                    if ordi:
-                        if i * 1000000 in _LONG_ORDINAL_CS:
-                            if z == 1:
-                                number = _LONG_ORDINAL_CS[
-                                    (i + 1) * 1000000]
-                            else:
-                                number += _LONG_ORDINAL_CS[
-                                    (i + 1) * 1000000]
-                        else:
-                            if n not in _LONG_SCALE_CS:
-                                num = int("1" + "0" * (len(str(n)) - 2))
-
-                                number += " " + _LONG_SCALE_CS[
-                                    num] + "tý"
-                            else:
-                                number = " " + _LONG_SCALE_CS[n] + "tý"
-                    else:
-
-                        number += " " + hundreds[i + 1]
-                res.append(number)
+                if not i:
+                    res.append(_sub_thousand(z))
+                    continue
+                if ordi:
+                    # _ordinal_cs found no ordinal name for this group
+                    raise OverflowError(f"no Czech ordinal for {n}")
+                name = _LONG_SCALE_CS.get(1000 ** i)
+                if name is None:
+                    return ""
+                res.append(_counted(z, name))
             return ", ".join(reversed(res))
 
         if short_scale:
@@ -1258,18 +549,28 @@ def pronounce_number_cs(number, places=2, short_scale=True, scientific=False,
         else:
             result += _long_scale(num)
 
-    # deal with scientific notation unpronounceable as number
-    if not result and "e" in str(num):
-        return pronounce_number_cs(num, places, short_scale, scientific=True)
+    # a magnitude with no spoken name reads scientifically
+    if result in ("", "mínus ") and num >= 1e6:
+        # the scientific reading speaks its own sign word
+        return pronounce_number_cs(
+            -num if result else num, places, short_scale, scientific=True)
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "mínus " or not result):
+        result += "nula"
     # Deal with fractional part
-    elif not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "mínus " or not result):
-            result += "nula"
+    if not num == int(num) and places > 0:
         result += " tečka"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
+    elif not ordinals:
+        *head, last = result.split(" ")
+        last = _GENDERED_LAST_WORD_CS.get(gender, {}).get(last, last)
+        result = " ".join(head + [last])
+    else:
+        result = " ".join(_ordinal_gender_cs(word, gender)
+                          for word in result.split(" "))
     return result
 
 
@@ -1279,28 +580,97 @@ _ORDINAL_HUNDREDS_CS = {
 }
 
 
-def pronounce_ordinal_cs(number):
+# Stems that join a count to "-tisící", "-miliontý", written as one word
+# (IJP ÚJČ "třítisící", "stotisící"; SSČ "dvou~ v slož.").
+_ORDINAL_STEM_UNITS_CS = ["", "jedna", "dvou", "tří", "čtyř", "pěti", "šesti",
+                          "sedmi", "osmi", "devíti"]
+_ORDINAL_STEM_TEENS_CS = ["deseti", "jedenácti", "dvanácti", "třinácti",
+                          "čtrnácti", "patnácti", "šestnácti", "sedmnácti",
+                          "osmnácti", "devatenácti"]
+_ORDINAL_STEM_TENS_CS = ["", "", "dvaceti", "třiceti", "čtyřiceti", "padesáti",
+                         "šedesáti", "sedmdesáti", "osmdesáti", "devadesáti"]
+_ORDINAL_STEM_HUNDREDS_CS = ["", "sto", "dvouset", "tříset", "čtyřset",
+                             "pětiset", "šestiset", "sedmiset", "osmiset",
+                             "devítiset"]
+
+
+def _ordinal_stem_cs(n):
+    hundreds, rest = divmod(n, 100)
+    tens, units = divmod(rest, 10)
+    if tens == 1:
+        return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + _ORDINAL_STEM_TEENS_CS[units]
+    return _ORDINAL_STEM_HUNDREDS_CS[hundreds] + _ORDINAL_STEM_TENS_CS[tens] + \
+        _ORDINAL_STEM_UNITS_CS[units]
+
+
+def _ordinal_cs(n, short_scale=True):
+    """Masculine ordinal of a whole number. Every part is ordinal (IJP ÚJČ
+    "tisící dvoustý padesátý druhý" = 1252., "třítisící dvoustý padesátý
+    první" = 3251.). Return None for 0 or when a group has no scale name."""
+    if n < 1:
+        return None
+    ordinals = _SHORT_ORDINAL_CS if short_scale else _LONG_ORDINAL_CS
+    words = []
+    for scale in reversed(range(len(str(n)) // 3 + 1)):
+        group = n // 1000 ** scale % 1000
+        if not group:
+            continue
+        if scale:
+            name = ordinals.get(1000 ** scale)
+            if name is None:
+                return None
+            words.append(("" if group == 1 else _ordinal_stem_cs(group)) + name)
+            continue
+        hundreds, rest = divmod(group, 100)
+        if hundreds:
+            words.append(_ORDINAL_HUNDREDS_CS.get(group - rest) or
+                         _ORDINAL_BASE_CS[100])
+        if rest in _ORDINAL_BASE_CS:
+            words.append(_ORDINAL_BASE_CS[rest])
+        elif rest:
+            words += [_ORDINAL_BASE_CS[rest - rest % 10],
+                      _ORDINAL_BASE_CS[rest % 10]]
+    return " ".join(words)
+
+
+def _ordinal_gender_cs(word, gender):
+    """Inflect a masculine ordinal as an adjective: the hard "druhý" ->
+    "druhá", "druhé"; a soft ordinal ("první", "třetí") has one form."""
+    if word.endswith("ý"):
+        if gender == GrammaticalGender.FEMININE:
+            return word[:-1] + "á"
+        if gender == GrammaticalGender.NEUTRAL:
+            return word[:-1] + "é"
+    return word
+
+
+def pronounce_ordinal_cs(number, gender=GrammaticalGender.MASCULINE,
+                         short_scale=False):
     """
-    Pronounce a number as a Czech ordinal.
+    Pronounce a number as a Czech ordinal in the nominative.
 
     Args:
         number (int): the number to pronounce
+        gender (GrammaticalGender): gender of the noun the ordinal agrees with
+        short_scale (bool): use the short scale; Czech uses the long scale,
+            where 10^9 is "miliarda"
     Returns:
         (str): the ordinal in Czech
     """
     number = int(number)
     if number <= 0:
         raise ValueError("Czech ordinals start at 1")
-    if number in _SHORT_ORDINAL_CS:
-        return _SHORT_ORDINAL_CS[number]
-    if number in _ORDINAL_HUNDREDS_CS:
-        return _ORDINAL_HUNDREDS_CS[number]
-    if number < 100:
-        tens = number // 10 * 10
-        unit = number % 10
-        return f"{_SHORT_ORDINAL_CS[tens]} {_SHORT_ORDINAL_CS[unit]}"
-    last = number % 100
-    if last:
-        prefix = number - last
-        return f"{pronounce_number_cs(prefix)} {pronounce_ordinal_cs(last)}"
-    raise NotImplementedError(f"cannot pronounce {number} as a Czech ordinal")
+    return pronounce_number_cs(number, short_scale=short_scale, ordinals=True,
+                               gender=gender)
+
+
+def extract_number_cs(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "cs")``."""
+    warn_reader_removed("extract_number_cs", 'ovos_number_parser.extract_number(text, "cs")')
+    return numtag_readers.extract_number(text, "cs", short_scale, ordinals)
+
+
+def numbers_to_digits_cs(text, short_scale=True, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.numbers_to_digits(text, "cs")``."""
+    warn_reader_removed("numbers_to_digits_cs", 'ovos_number_parser.numbers_to_digits(text, "cs")')
+    return numtag_readers.numbers_to_digits(text, "cs", Scale.SHORT if short_scale else Scale.LONG, ordinals)

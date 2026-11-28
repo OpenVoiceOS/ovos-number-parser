@@ -16,6 +16,7 @@ Notes on the grammar encoded below:
 - "mila" (thousand) is invariable and never takes a preceding "un".
 - Occitan uses the long scale (milion, miliard).
 """
+
 from ovos_number_parser.util import (Scale, GrammaticalGender, NumberVocabulary,
                                      RomanceNumberExtractor)
 
@@ -44,11 +45,19 @@ def swap_gender_oc(word: str, gender: GrammaticalGender) -> str:
 
 
 def pluralize_oc(word: str) -> str:
-    """Pluralize an Occitan word (sibilant-final words take -es)."""
+    """Pluralize an Occitan word.
+
+    Noun classes after the Diccionari ortografic gramatical e morfologic de
+    l'occitan (Ubaud): consonant+vowel plus -is/-f/-g/-ns/-st/-sc/-xt finals
+    take -es; -tz loses the z and takes -ses ("votz" -> "voses"); -ç becomes
+    -ces ("tèrç" -> "tèrces"); everything else takes -s.
+    """
+    if word.endswith("tz"):
+        return word[:-2] + "ses"  # votz -> voses
     if word.endswith("ç"):
         return word[:-1] + "ces"  # tèrç -> tèrces
-    if word.endswith("ch") or word.endswith("x"):
-        return word + "es"
+    if word.endswith(("is", "f", "g", "ns", "st", "sc", "xt")):
+        return word + "es"  # peis -> peises, serf -> serfes, fàsc -> fàsces
     if not word.endswith("s"):
         return word + "s"
     return word
@@ -80,14 +89,12 @@ _OC = NumberVocabulary(
     NO_PREV_UNIT=[100, 1000],  # "cent" / "mila", never "un cent" / "un mila"
     NO_PLURAL=[1000],  # "mila" is invariable: "dos mila"
 
-    NUMBER_OVERFLOW="nombre tròp grand",
     DEFAULT_SCALE=Scale.LONG,
     JOIN_WORD=["e"],
 
     JOINER_ON_TWENTYS=True,  # vint-e-un
     JOINER_ONLY_ON_TWENTYS=True,  # but "trenta dos", "cinquanta sèt"
     PREFER_EXPLICIT_ORDINALS=True,  # onzen, vint-e-unen
-    MULTIPLY_HUNDREDS=True,  # analytic hundreds: "dos cents" = 200
     JOINER_ON_HUNDREDS=False,  # "dos cents trenta"
     JOINER_ON_HUNDRED_PARTICLE=False,  # "cent vint"
     JOINER_ON_THOUSANDS=False,  # "mila dos cents"
@@ -157,9 +164,6 @@ _OC = NumberVocabulary(
         100: 'centen',
         1000: 'milen'
     },
-    FRACTION_FEMALE={
-        2: 'mièja'  # "una e mièja" -> 1.5
-    },
     SHORT_SCALE={
         1000: 'mila',
         10 ** 6: 'milion',
@@ -178,9 +182,14 @@ _OC = NumberVocabulary(
             2: 'doas'
         }
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
-        'ueitanta': 80,  # attested alternative for ochanta
+        # variant spellings of 8 and 80 (issue #302, native reporter)
+        'ueit': 8,
+        'uèit': 8,
+        'uòch': 8,  # Montpellier
+        'ueitanta': 80,  # Wiktionary alternative form (Cantalausa)
+        'uechanta': 80,
+        'uòchanta': 80,  # Montpellier
     },
     ORDINAL_UNITS={
         1: 'primièr',

@@ -25,7 +25,7 @@ class TestNoLeadingEen(unittest.TestCase):
         (101, "honderdeen"),
         (135, "honderdvijfendertig"),       # Taalunie example
         (1000, "duizend"),
-        (1135, "duizendhonderdvijfendertig"),
+        (1135, "duizend honderdvijfendertig"),
         (100000, "honderdduizend"),          # Taalunie example
     ]
 

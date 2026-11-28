@@ -1,40 +1,23 @@
 import math
+import warnings
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP, localcontext
 from enum import Enum
-from typing import List, Dict, Union, Any, Tuple, Optional, Callable
+from typing import List, Dict, NamedTuple, Union, Any, Tuple, Optional, Callable
 import re
 
+from ovos_number_parser.version import VERSION_MAJOR
 
-@dataclass
-class Token:
+
+def warn_reader_removed(name: str, use: str) -> None:
+    """Warn that the reader ``name`` is removed in the next major release."""
+    warnings.warn(f"{name} is deprecated and is removed in {VERSION_MAJOR + 1}.0.0; use {use}",
+                  DeprecationWarning, stacklevel=3)
+
+
+class Token(NamedTuple):
     word: str
     index: int
-
-    def __iter__(self):
-        yield self.word
-        yield self.index
-
-    def __getitem__(self, item):
-        if item == 0:
-            return self.word
-        elif item == 1:
-            return self.index
-        raise IndexError
-
-    def __setattr__(self, key, value):
-        """
-        Prevent modification of existing attributes, allowing only new attributes to be set.
-
-        Raises:
-            Exception: If attempting to modify an attribute that already exists.
-        """
-        try:
-            getattr(self, key)
-        except AttributeError:
-            super().__setattr__(key, value)
-        else:
-            raise AttributeError("Immutable!")
 
 
 class Scale(str, Enum):
@@ -59,59 +42,6 @@ class GrammaticalGender(str, Enum):
 class DigitPronunciation(str, Enum):
     DIGIT_BY_DIGIT = "digit"
     FULL_NUMBER = "number"
-
-
-@dataclass
-class ReplaceableNumber:
-    """
-    Similar to Token, this class is used in number parsing.
-
-    Once we've found a number in a string, this class contains all
-    the info about the value, and where it came from in the original text.
-    In other words, it is the text, and the number that can replace it in
-    the string.
-    """
-    value: Union[int, float]
-    tokens: List[Token]
-
-    def __bool__(self) -> bool:
-        return bool(self.value is not None and self.value is not False)
-
-    @property
-    def start_index(self) -> int:
-        return self.tokens[0].index
-
-    @property
-    def end_index(self) -> int:
-        return self.tokens[-1].index
-
-    @property
-    def text(self) -> str:
-        """
-        Return the concatenated text represented by the tokens, separated by spaces.
-        """
-        return ' '.join([str(t.word) for t in self.tokens if t.word])
-
-    def __setattr__(self, key, value):
-        """
-        Prevent modification of existing attributes, allowing only new attributes to be set.
-
-        Raises:
-            Exception: If attempting to modify an attribute that already exists.
-        """
-        try:
-            getattr(self, key)
-        except AttributeError:
-            super().__setattr__(key, value)
-        else:
-            raise Exception("Immutable!")
-
-    def __str__(self):
-        return "({v}, {t})".format(v=self.value, t=self.tokens)
-
-    def __repr__(self):
-        return "{n}({v}, {t})".format(n=self.__class__.__name__, v=self.value,
-                                      t=self.tokens)
 
 
 def word_tokenize(utterance: str) -> List[str]:
@@ -150,36 +80,6 @@ def tokenize(text: str) -> List[Token]:
     return [Token(word, index) for index, word in enumerate(word_tokenize(text))]
 
 
-def partition_list(items: List[Any], split_on: Any) -> List[List[Any]]:
-    """
-    Partition a list of items.
-
-    Works similarly to str.partition
-
-    Args:
-        items:
-        split_on callable:
-            Should return a boolean. Each item will be passed to
-            this callable in succession, and partitions will be
-            created any time it returns True.
-
-    Returns:
-        [[any]]
-
-    """
-    splits = []
-    current_split = []
-    for item in items:
-        if split_on(item):
-            splits.append(current_split)
-            splits.append([item])
-            current_split = []
-        else:
-            current_split.append(item)
-    splits.append(current_split)
-    return list(filter(lambda x: len(x) != 0, splits))
-
-
 def invert_dict(original: Dict[Any, Any]) -> Dict[Any, Any]:
     """
     Produce a dictionary with the keys and values
@@ -203,40 +103,44 @@ def is_numeric(input_str: str) -> bool:
         input_str (str): The string to test for numeric value.
 
     Returns:
-        bool: True if the string is a finite number (or a plain integer string,
-            which stays exact even when it exceeds float range), False for a
-            non-finite token such as "inf", "nan" or "1e309".
+        bool: True if the string is a finite number or a plain integer string
+            that ``int`` can read, False for a non-finite token such as "inf",
+            "nan" or "1e309".
     """
     try:
         val = float(input_str)
     except ValueError:
         return False
-    if math.isfinite(val):
+    if input_str.strip().lstrip("+-").isdigit():
+        # a plain integer string is read exactly, even beyond float range.
+        # One longer than the interpreter's integer string conversion limit
+        # (sys.get_int_max_str_digits) cannot be read or written back, so it
+        # carries no usable number
+        try:
+            int(input_str)
+        except ValueError:
+            return False
         return True
-    # a plain integer string that overflows float to inf is still a usable
-    # number (Python ints are unbounded); a non-finite token such as "inf",
-    # "nan" or "1e309" carries no usable number and must not be treated as one
-    return input_str.strip().lstrip("+-").isdigit()
+    return math.isfinite(val)
 
 
-def look_for_fractions(split_list: List[str]) -> bool:
-    """"
-    This function takes a list made by fraction & determines if a fraction.
+def numeric_value(input_str: str) -> Union[int, float]:
+    """
+    Return the value of a string that ``is_numeric`` accepts.
+
+    A plain integer string, signed or not, is read with ``int`` and keeps
+    every digit, where ``float`` keeps only about 17 significant digits. Any
+    other numeric string, a decimal or an exponent, is read as a float.
 
     Args:
-        split_list (list): list created by splitting on '/'
+        input_str (str): a string for which ``is_numeric`` is True
+
     Returns:
-        (bool): False if not a fraction, otherwise True
-
+        int for a plain integer string, else float
     """
-
-    if len(split_list) == 2:
-        if is_numeric(split_list[0]) and is_numeric(split_list[1]):
-            # a zero denominator is not a fraction; callers divide by it, so
-            # reject it here rather than raise ZeroDivisionError downstream
-            return float(split_list[1]) != 0
-
-    return False
+    if input_str.strip().lstrip("+-").isdigit():
+        return int(input_str)
+    return float(input_str)
 
 
 def convert_to_mixed_fraction(number: Union[int, float], denominators=range(1, 21)) -> Optional[Tuple[int, int, int]]:
@@ -271,6 +175,54 @@ def convert_to_mixed_fraction(number: Union[int, float], denominators=range(1, 2
     return int_number, int(round(numerator)), denominator
 
 
+def round_half_up(value: Decimal, places: int) -> Decimal:
+    """
+    ``value`` rounded half away from zero to ``places`` decimals.
+
+    The context precision holds every digit the rounding keeps, so a long
+    Decimal or a large ``places`` rounds instead of raising InvalidOperation
+    at the default precision of 28 digits.
+    """
+    with localcontext() as context:
+        context.prec = max(context.prec, value.adjusted() + places + 2)
+        return value.quantize(Decimal(1).scaleb(-places), ROUND_HALF_UP)
+
+
+def scientific_parts(number: Union[int, float, Decimal],
+                     places: int) -> Tuple[Union[int, float], int]:
+    """
+    Mantissa and exponent of ``number`` in scientific notation, with the
+    mantissa rounded half away from zero to ``places`` decimals.
+
+    The mantissa is rounded from the decimal digits of ``number``, so an int
+    or a Decimal beyond the float range rounds exactly. A mantissa that rounds
+    to ten carries into the exponent: 9.9996 at 3 places is 1 and exponent 1.
+
+    Args:
+        number (int, float or Decimal): finite number to split
+        places (int): decimals of the mantissa
+    Returns:
+        (tuple): the signed mantissa (an int when it has no fraction) and the
+            exponent, e.g. (1.235, 400) for 12346 * 10 ** 396 at 3 places
+    """
+    exact = Decimal(number) if isinstance(number, int) else Decimal(str(number))
+    if not exact:
+        return 0, 0
+    sign, digits, _ = exact.as_tuple()
+    exponent = exact.adjusted()
+    # decimals past the last digit add nothing but zeros
+    places = min(places, len(digits) - 1)
+    with localcontext() as context:
+        context.prec = len(digits) + 1
+        mantissa = Decimal((sign, digits, 1 - len(digits))).quantize(
+            Decimal(1).scaleb(-places), ROUND_HALF_UP)
+    if abs(mantissa) == 10:
+        mantissa, exponent = mantissa / 10, exponent + 1
+    if mantissa == mantissa.to_integral_value():
+        return int(mantissa), exponent
+    return float(mantissa), exponent
+
+
 @dataclass
 class NumberVocabulary:
     LANG: str
@@ -294,13 +246,10 @@ class NumberVocabulary:
     SHORT_SCALE: Dict[int, str]  # 1000+
     LONG_SCALE: Dict[int, str]  # 1000+
 
-    FRACTION_FEMALE: Dict[int, str]  # spellings for 1/x feminine grammatical gender
-
     ALT_SPELLINGS: Dict[str, int]  # special cases eg. archaisms/colloquialisms
 
     # mappings default to neutral, use swap_gender/self.GENDERED_SPELLINGS if needed
     GENDERED_SPELLINGS: Dict[GrammaticalGender, Dict[int, str]]  # grammatical gender
-    DIGIT_SPELLINGS: Dict[int, str]  # for numbers that should be pronounced differently when reading digit-by-digit
 
     ORDINAL_UNITS: Dict[int, str]
     ORDINAL_TENS: Dict[int, str]
@@ -308,13 +257,11 @@ class NumberVocabulary:
     ORDINAL_SHORT_SCALE: Dict[int, str]
     ORDINAL_LONG_SCALE: Dict[int, str]
 
-    NUMBER_OVERFLOW: str  # "número exageradamente grande"
     NO_PREV_UNIT: List[int]  # cases where "1" should not be spelled before the unit. eg. "one hundred" vs "hundred" if 100 in lit
     NO_PLURAL: List[int]
 
     swap_gender: Callable[[str, GrammaticalGender], str] = lambda word, gender: word
     pluralize: Callable[[str], str] = lambda word: word
-    singularize: Callable[[str], str] = lambda word: word
 
     # restrict the tens joiner to the twenties ("vint-e-un" but "trenta dos"),
     # for languages that only join 21-29
@@ -337,32 +284,28 @@ class NumberVocabulary:
     # ends in 00 or in 20-99 ("douăzeci DE mii", "o sută DE milioane")
     SCALE_LINKER: str = ""
 
-    # extraction: the word for 100 multiplies the preceding units
-    # ("două sute" = 200) instead of being added to them
-    MULTIPLY_HUNDREDS: bool = False
+    # a count of the largest scale word from this value up has no reading in
+    # words: it would stack scale words past the compounds the language uses
+    # ("trilioane de trilioane"). None reads every count.
+    MAX_SCALE_COUNT: Optional[int] = None
 
-    # extraction: a fraction noun always multiplies the preceding cardinal
-    # ("un quarto" = 1/4, "tre quarti" = 3/4) instead of adding to it, even in
-    # its singular form. Languages that also say "e mezzo" ("two and a half")
-    # keep this off so the singular still adds.
-    FRACTIONS_ALWAYS_MULTIPLY: bool = False
-
+    #: collective nouns that count groups of a fixed size: the count before
+    #: one multiplies it ("duas dúzias" = 24, "meia dúzia" = 6), and a plural
+    #: with no count is no number ("dúzias de ovos")
+    COUNT_NOUNS: Dict[str, int] = field(default_factory=dict)
     # full spelling of "one <scale>" groups when they use an article or a
     # special form of "one" ("o mie", "un milion")
-    #: entries of JOIN_WORD that are *not* additive joiners but partitive or
-    #: multiplicative prepositions, where the value after the word is larger
-    #: than the one before it by design. Romanian inserts "de" before a scale
-    #: above twenty ("douăzeci de mii" = 20 x 1000) and before a fraction's
-    #: base ("jumătate de milion" = half *of* a million), unlike the additive
-    #: "și" ("douăzeci și unu" = 21). Listed here so the descending-joiner rule
-    #: skips them.
-    MULTIPLICATIVE_JOIN_WORD: List[str] = field(default_factory=list)
-
     SCALE_ONE: Dict[int, str] = field(default_factory=dict)
 
     # grammatical gender the count before each scale word agrees with
     # ("două mii" - feminine "două", not masculine "doi")
     SCALE_GENDERS: Dict[int, GrammaticalGender] = field(default_factory=dict)
+    # scale words that are not nouns: a feminine count before them agrees
+    # with the counted noun ("setecientas mil toneladas")
+    AGREEING_SCALES: List[int] = field(default_factory=list)
+    # the group after a scale word agrees with the counted noun
+    # ("mil doscientas personas")
+    AGREE_AFTER_SCALE: bool = False
 
     # full spelling of "1/x" fractions when they use an article
     # ("o jumătate", "un sfert")
@@ -409,40 +352,9 @@ class NumberVocabulary:
             **male,
             **female,
             **dict({self.HUNDRED_PARTICLE: 100} if self.HUNDRED_PARTICLE else {}),
-            **plural
-        }
-
-    def get_ordinal_strings(self, scale: Optional[Scale] = None) -> Dict[str, int]:
-        scale = scale or self.DEFAULT_SCALE
-        SCALES = self.ORDINAL_SHORT_SCALE if scale == Scale.SHORT else self.ORDINAL_LONG_SCALE
-        male = {
-            **{v: k for k, v in self.ORDINAL_COMPOUND_UNITS.items()},
-            **{v: k for k, v in self.ORDINAL_UNITS.items()},
-            **{v: k for k, v in self.ORDINAL_TENS.items()},
-            **{v: k for k, v in self.ORDINAL_HUNDREDS.items()},
-            **{v: k for k, v in SCALES.items()}
-        }
-        female = {
-            **{self.swap_gender(k, GrammaticalGender.FEMININE): v for k, v in male.items()},
-        }
-        plural = {
-            **{self.pluralize(k): v for k, v in male.items()},
-            **{self.pluralize(k): v for k, v in female.items()}
-        }
-        return {
-            **male,
-            **female,
-            **plural
-        }
-
-    def get_fraction_strings(self) -> Dict[str, int]:
-        male = {v: k for k, v in self.FRACTION.items()}
-        female = {v: k for k, v in self.FRACTION_FEMALE.items()}
-        plural = {self.pluralize(k): v for k, v in male.items()}
-        return {
-            **male,
-            **female,
-            **plural
+            **plural,
+            **self.COUNT_NOUNS,
+            **{self.pluralize(k): v for k, v in self.COUNT_NOUNS.items()},
         }
 
 
@@ -452,309 +364,13 @@ class RomanceNumberExtractor:
     def __init__(self, vocab: NumberVocabulary):
         self.vocab = vocab
 
-    def is_ordinal(self, input_str: str, scale: Optional[Scale] = None) -> Union[int, bool]:
-        """
-        Determine if a string is an ordinal word.
 
-        Returns:
-            (int or bool): the value of the ordinal if the input string is
-            recognized as an ordinal, otherwise False.
-        """
-        scale = scale or self.vocab.DEFAULT_SCALE
-        if self.vocab.ORDINAL_PREFIX:
-            # drop the ordinal particles ("al doilea" -> "doilea")
-            particles = set(self.vocab.ORDINAL_PREFIX.values())
-            input_str = " ".join(w for w in input_str.strip().split()
-                                 if w not in particles)
-        ordinals_map = self.vocab.get_ordinal_strings(scale)
-        if input_str in ordinals_map:
-            return ordinals_map[input_str]
-        return False
+    def numbers_to_digits(self, utterance: str, scale: Optional[Scale] = None) -> str:
+        """Deprecated: use ``ovos_number_parser.numbers_to_digits(utterance, lang)``."""
+        from ovos_number_parser import numtag_readers
+        warn_reader_removed("numbers_to_digits", "ovos_number_parser.numbers_to_digits(utterance, lang)")
+        return numtag_readers.numbers_to_digits(utterance, self.vocab.LANG, scale)
 
-    def is_fractional(self, input_str: str) -> Union[float, bool]:
-        """
-        Checks if the input string corresponds to a recognized Portuguese fractional word.
-
-        Returns:
-            The fractional value as a float if recognized; otherwise, False.
-        """
-        fractions_map = self.vocab.get_fraction_strings()
-        input_str = input_str.lower().strip()
-
-        # handle fraction denominator strings
-        for word, den in fractions_map.items():
-            if input_str == word:
-                return 1.0 / den
-
-        return False
-
-    def extract_number(self,
-                       text: str,
-                       ordinals: bool = False,
-                       scale: Scale = None,
-                       ) -> Union[int, float, bool]:
-        """
-        Extracts a numeric value from a text phrase, supporting cardinals, ordinals, fractions, and large scales.
-
-        Parameters:
-            text (str): The input phrase potentially containing a number.
-            ordinals (bool): If True, recognizes ordinal words as numbers.
-            scale (Scale): Specifies whether to use the short or long numerical scale.
-
-        Returns:
-            int or float: The extracted number if found; otherwise, False.
-        """
-        # no text, no number: honour the "no number" sentinel instead of
-        # raising on None or other non-string input
-        if not isinstance(text, str):
-            return False
-
-        scale = scale or self.vocab.DEFAULT_SCALE
-        numbers_map = self.vocab.get_number_strings(scale)
-        ordinals_map = self.vocab.get_ordinal_strings(scale)
-        scales_map = self.vocab.SHORT_SCALE if scale == Scale.SHORT else self.vocab.LONG_SCALE
-
-        # normalize and tokenize
-        clean_text = text.lower().replace('-', ' ')
-        # the joiner is kept: it is what tells "vinte e um" (21, one number)
-        # apart from "tres e vinte" (3 and 20, two numbers)
-        tokens = clean_text.split()
-
-        # a digit token wins if it appears before any spoken number word
-        for tok in tokens:
-            t = tok.strip(".,!?;:").replace(",", ".")
-            if t and t.lstrip("-").replace(".", "", 1).isdecimal():
-                val = float(t)
-                # an out-of-range digit token (e.g. "1e309" or a 400-digit
-                # string) overflows to inf/nan; it carries no usable number,
-                # so skip it rather than return a non-finite value
-                if not math.isfinite(val):
-                    continue
-                return int(val) if val.is_integer() else val
-            if tok in numbers_map or tok in ordinals_map or tok in scales_map:
-                break
-
-        # plural fraction words ("cuartos", "terzos") multiply by the preceding
-        # cardinal ("tres cuartos" = 3/4), singular ones add ("dois e meio" = 2.5)
-        singular_fractions = set(self.vocab.FRACTION.values()) | set(self.vocab.FRACTION_FEMALE.values())
-        plural_fractions = {self.vocab.pluralize(w) for w in singular_fractions} - singular_fractions
-
-        result = 0
-        current = 0
-        saw_number = False
-        is_negative = False
-
-        i = 0
-        while i < len(tokens):
-            token = tokens[i]
-            if token in self.vocab.NEGATIVE_SIGN:
-                is_negative = True
-                i += 1
-                continue
-
-            if token in self.vocab.JOIN_WORD:
-                if token in self.vocab.MULTIPLICATIVE_JOIN_WORD:
-                    i += 1
-                    continue
-                # Romance additive joiners are strictly descending: the value
-                # after the joiner is smaller than the one before it
-                # ("vinte e um" = 21, "mil e quinhentos" = 1500). An ascending
-                # pair is not one number but two ("tres y veinte" = "3:20"),
-                # so the number ends here.
-                nxt = numbers_map.get(tokens[i + 1]) if i + 1 < len(tokens) else None
-                pending = current or result
-                if saw_number and nxt is not None and pending and nxt >= pending:
-                    break
-                i += 1
-                continue
-
-            val = numbers_map.get(token)
-            if val is not None:
-                saw_number = True
-                if val >= 1000:
-                    # scale multiplier (mil, milhão, ...)
-                    if val == 1000:
-                        # thousand-level: keep accumulating so a bigger scale
-                        # (e.g. milhão) can still multiply the whole group
-                        current = (current or 1) * 1000
-                    else:
-                        current = (current or 1) * val
-                        result += current
-                        current = 0
-                elif val == 100 and self.vocab.MULTIPLY_HUNDREDS:
-                    # the hundreds word multiplies the preceding units
-                    # ("două sute" = 200, "dos cents" = 200), leaving higher
-                    # groups untouched ("două mii trei sute" -> 2000 + 3*100)
-                    below = current % 100
-                    current += (below or 1) * 100 - below
-                else:
-                    current += val
-                i += 1
-                continue
-
-            if ordinals and self.is_ordinal(token):
-                saw_number = True
-                current += ordinals_map[token]
-                i += 1
-                continue
-
-            fraction = self.is_fractional(token)
-            if fraction is not False:
-                saw_number = True
-                # look past a joiner: the scale a fraction multiplies may sit
-                # behind one ("jumătate de milion" = half a million)
-                nxt_i = i + 1
-                while nxt_i < len(tokens) and tokens[nxt_i] in self.vocab.JOIN_WORD:
-                    nxt_i += 1
-                next_token = tokens[nxt_i] if nxt_i < len(tokens) else None
-                next_val = numbers_map.get(next_token) if next_token else None
-                if token not in plural_fractions and next_val is not None \
-                        and next_val >= 1000:
-                    # a singular fraction before a scale word multiplies that
-                    # scale ("meio milhão" = 500000, "medio millón" = 500000),
-                    # so leave it pending for the scale branch to multiply
-                    current += fraction
-                else:
-                    if token in plural_fractions or self.vocab.FRACTIONS_ALWAYS_MULTIPLY:
-                        result += (current or 1) * fraction
-                    else:
-                        result += current + fraction
-                    current = 0
-                i += 1
-                continue
-
-            if token in self.vocab.DECIMAL_MARKER:
-                tail = tokens[i + 1:]
-                tail_vals = [numbers_map[t] for t in tail if t in numbers_map]
-                if tail_vals and all(
-                        0 <= v <= 9 and float(v) == int(v)
-                        for v in tail_vals):
-                    # digit-by-digit reading ("vírgula um quatro" -> .14)
-                    decimal_str = ''.join(str(int(v)) for v in tail_vals)
-                else:
-                    # composed reading ("vírgula trinta e quatro" -> .34)
-                    zeros = 0
-                    for t in tail:
-                        if numbers_map.get(t) == 0:
-                            zeros += 1
-                        else:
-                            break
-                    tail_num = self.extract_number(" ".join(tail))
-                    if tail_num is not False and tail_num >= 0 \
-                            and float(tail_num) == int(tail_num):
-                        decimal_str = "0" * zeros + str(int(tail_num))
-                    else:
-                        decimal_str = ''
-                if decimal_str:
-                    result += current + float(f"0.{decimal_str}")
-                    current = 0
-                    saw_number = True
-                    break
-                i += 1
-                continue
-
-            i += 1
-
-        result += current
-
-        if not saw_number:
-            return False
-
-        if is_negative:
-            result = -result
-        return result
-
-    def numbers_to_digits(self,
-                          utterance: str,
-                          scale: Optional[Scale] = None
-                          ) -> str:
-        """
-        Converts written numbers in a text string to their digit equivalents, preserving all other text.
-
-        Identifies spans of number words (including the joiner "e"), extracts their numeric values, and replaces them with digit strings. Non-number words and context are left unchanged.
-
-        Parameters:
-            utterance (str): Input text possibly containing written numbers.
-            scale (Scale, optional): Numerical scale (short or long) to interpret large numbers. Defaults to Scale.LONG.
-
-        Returns:
-            str: The input text with written numbers replaced by their digit representations.
-        """
-        scale = scale or self.vocab.DEFAULT_SCALE
-        words = word_tokenize(utterance)
-        output = []
-        i = 0
-
-        numbers_map = self.vocab.get_number_strings(scale)
-
-        def next_word(idx):
-            return words[idx + 1] if idx + 1 < len(words) else None
-
-        def continues_span(idx):
-            w = words[idx]
-            if w in numbers_map or w in self.vocab.JOIN_WORD:
-                return True
-            # a negative sign or decimal marker only extends a span if it is
-            # immediately followed by a number word ("menos vinte", "tres coma catorze")
-            if w in self.vocab.NEGATIVE_SIGN or w in self.vocab.DECIMAL_MARKER:
-                return next_word(idx) in numbers_map
-            return False
-
-        def starts_span(idx):
-            w = words[idx]
-            if w in numbers_map:
-                return True
-            if w in self.vocab.NEGATIVE_SIGN:
-                return next_word(idx) in numbers_map
-            return False
-
-        while i < len(words):
-            # Look for the start of a number span
-            if starts_span(i):
-                # Start a new span
-                number_span_words = []
-                j = i
-                while j < len(words) and continues_span(j):
-                    if words[j] in self.vocab.JOIN_WORD and number_span_words \
-                            and words[j] not in self.vocab.MULTIPLICATIVE_JOIN_WORD:
-                        # the span only crosses a joiner when the value after
-                        # it is smaller than the value before it ("vinte e um").
-                        # An ascending pair is two numbers, not one, and the
-                        # span has to end so the tail survives ("tres y veinte").
-                        nxt = numbers_map.get(next_word(j))
-                        sofar = self.extract_number(" ".join(number_span_words))
-                        if nxt is None or sofar is False or nxt >= sofar:
-                            break
-                    number_span_words.append(words[j])
-                    j += 1
-
-                # a joiner at the end of the span belongs to the surrounding
-                # text ("trei de mere" -> "3 de mere"), not to the number
-                while number_span_words and number_span_words[-1] in self.vocab.JOIN_WORD:
-                    number_span_words.pop()
-                    j -= 1
-
-                # Form the phrase from the span and extract the number value
-                phrase = " ".join(number_span_words)
-                number_val = self.extract_number(phrase)
-
-                if number_val is not False:
-                    # If a valid number is found, add its digit representation to the output
-                    output.append(str(number_val))
-                    # Advance the main index 'i' past the entire span
-                    i = j
-                else:
-                    # If the span doesn't form a valid number, treat the first word as non-numeric
-                    # and move to the next word. This handles cases like "e" at the beginning of a sentence.
-                    output.append(words[i])
-                    i += 1
-            else:
-                # If the current word is not a number word, add it to the output
-                # and move to the next word
-                output.append(words[i])
-                i += 1
-
-        return " ".join(output)
 
     def pronounce_number(self,
                          number: Union[int, float],
@@ -764,7 +380,8 @@ class RomanceNumberExtractor:
                          digits: DigitPronunciation = DigitPronunciation.FULL_NUMBER,
                          gender: GrammaticalGender = GrammaticalGender.MASCULINE,
                          _force_hundreds_join: bool = False,
-                         _under_higher_scale: bool = False
+                         _under_higher_scale: bool = False,
+                         _fraction_digits: bool = False
                          ) -> str:
         """
         Return the full pronunciation of a number, supporting cardinal and ordinal forms, decimals, large scales, grammatical gender, and both Brazilian and European Portuguese variants.
@@ -843,7 +460,8 @@ class RomanceNumberExtractor:
                             if after_last_digit >= 5:
                                 last_digit += 1
                             decimal_part_str = decimal_part_str[:places - 1] + str(last_digit)
-                        decimal_pronunciation_parts.append(self.pronounce_number(int(decimal_part_str), gender=gender))
+                        decimal_pronunciation_parts.append(self.pronounce_number(
+                            int(decimal_part_str), gender=gender, _fraction_digits=True))
                 else:
                     for digit in decimal_part_str:
                         decimal_pronunciation_parts.append(self.pronounce_number(int(digit), gender=gender))
@@ -870,6 +488,10 @@ class RomanceNumberExtractor:
 
         count = n // scale_val[0]
         remainder = n % scale_val[0]
+        # the digits after the decimal marker keep their reading in words
+        if self.vocab.MAX_SCALE_COUNT and count >= self.vocab.MAX_SCALE_COUNT \
+                and not _fraction_digits:
+            raise OverflowError(f"no scale word for {n}")
 
         # Pronounce the 'count' part of the number
         is_singular = count == 1 or scale_val[0] in self.vocab.NO_PLURAL
@@ -881,11 +503,16 @@ class RomanceNumberExtractor:
         elif count == 1 and scale_val[0] in self.vocab.NO_PREV_UNIT:
             count_str = scale_word
         else:
-            count_gender = self.vocab.SCALE_GENDERS.get(scale_val[0],
-                                                        GrammaticalGender.MASCULINE)
+            if gender == GrammaticalGender.FEMININE and \
+                    scale_val[0] in self.vocab.AGREEING_SCALES:
+                count_gender = gender
+            else:
+                count_gender = self.vocab.SCALE_GENDERS.get(scale_val[0],
+                                                            GrammaticalGender.MASCULINE)
             count_pronunciation = self.pronounce_number(count, places, scale,
                                                         gender=count_gender,
-                                                        _under_higher_scale=True)
+                                                        _under_higher_scale=True,
+                                                        _fraction_digits=_fraction_digits)
             # counts ending in 00 or 20-99 link to the scale word
             # ("douăzeci de mii")
             if self.vocab.SCALE_LINKER and (count % 100 == 0 or count % 100 >= 20):
@@ -901,9 +528,13 @@ class RomanceNumberExtractor:
         # number below one million takes the terminal conjunction on its hundreds
         remainder_force = scale_val[0] == 1000 and not _under_higher_scale \
             and self.vocab.JOINER_ON_SCALE_REMAINDER
+        remainder_gender = gender if self.vocab.AGREE_AFTER_SCALE \
+            else GrammaticalGender.MASCULINE
         remainder_str = self.pronounce_number(remainder, places, scale,
+                                              gender=remainder_gender,
                                               _force_hundreds_join=remainder_force,
-                                              _under_higher_scale=nested_under_higher)
+                                              _under_higher_scale=nested_under_higher,
+                                              _fraction_digits=_fraction_digits)
         # Conjunction logic: add JOIN_WORD if the remainder is the last group and is
         # less than 100 or a multiple of 100.
         join_word = self.vocab.JOIN_WORD[0] if len(self.vocab.JOIN_WORD) else ""
@@ -949,7 +580,6 @@ class RomanceNumberExtractor:
             denom = self.pronounce_number(n2_int, scale=scale)
             if n1_int > 1:  # plural
                 denom = f"{denom} {self.vocab.DENOMINATOR_PARTICLE}"
-
 
         # Pronounce the numerator (first number) as a cardinal.
         numerator_gender = self.vocab.FRACTION_NUMERATOR_GENDER or GrammaticalGender.MASCULINE

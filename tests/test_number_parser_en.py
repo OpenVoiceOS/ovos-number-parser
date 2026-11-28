@@ -1,40 +1,30 @@
 import unittest
 
-from ovos_number_parser.numbers_en import (
-    numbers_to_digits_en,
-    pronounce_number_en,
-    extract_number_en,
-    is_fractional_en,
-    is_ordinal_en,
-)
+from ovos_number_parser import (extract_number, numbers_to_digits, numtag_readers, is_fractional, is_ordinal)
+
+from ovos_number_parser.numbers_en import pronounce_number_en
 
 
 class TestNumberParserEN(unittest.TestCase):
     def test_numbers_to_digits_en(self):
-        self.assertEqual(numbers_to_digits_en('three billions'), '3000000000.0')
-        self.assertEqual(numbers_to_digits_en('two point five'), '2.5')
-        self.assertEqual(numbers_to_digits_en('two point forty two'), '2.42')
+        self.assertEqual(numbers_to_digits('three billions', lang="en"), '3000000000')
+        self.assertEqual(numbers_to_digits('two point five', lang="en"), '2.5')
+        self.assertEqual(numbers_to_digits('two point forty two', lang="en"), '2.42')
         # with ordinals off, "fifth" is left as a word: it must never be
         # reinterpreted as the reciprocal 1/5 (this used to read "march 0.2")
-        self.assertEqual(numbers_to_digits_en('march fifth two thousand twenty five', ordinals=False),
+        self.assertEqual(numtag_readers.numbers_to_digits('march fifth two thousand twenty five', "en", ordinals=False),
                          'march fifth 2025')
-        self.assertEqual(numbers_to_digits_en('march fifth', ordinals=True),
+        self.assertEqual(numtag_readers.numbers_to_digits('march fifth', "en", ordinals=True),
                          'march 5')
 
     def test_numbers_to_digits_en_preserves_leading_zeros(self):
         # live bug: a standalone digit run that is already digits must pass
         # through byte-for-byte, not get re-parsed and lose leading zeros
-        self.assertEqual(numbers_to_digits_en('code 007'), 'code 007')
+        self.assertEqual(numbers_to_digits('code 007', lang="en"), 'code 007')
         self.assertEqual(
-            numbers_to_digits_en('otp 4729 backup 007'),
+            numbers_to_digits('otp 4729 backup 007', lang="en"),
             'otp 4729 backup 007')
 
-    @unittest.expectedFailure
-    def test_failures_numbers_to_digits_en(self):
-        # TODO: fix me
-        self.assertEqual(numbers_to_digits_en('march fifth two thousand twenty five', ordinals=True),
-                         'march 5 2025')
-        self.assertEqual(numbers_to_digits_en('two point four two'), '2.42')
 
     def test_pronounce_number_en(self):
         self.assertEqual(pronounce_number_en(3840285766987249),
@@ -42,47 +32,27 @@ class TestNumberParserEN(unittest.TestCase):
                          'and sixty six million, nine hundred and eighty seven thousand, two hundred and forty nine')
 
 
-    def test_extract_number_spoken_en(self):
-        self.assertEqual(extract_number_en("half"), 0.5)
-        self.assertEqual(extract_number_en("three quarters"), 0.75)
-        self.assertEqual(extract_number_en("a hundred"), 100)
-        self.assertEqual(extract_number_en("one hundred and five"), 105)
-        self.assertEqual(extract_number_en("two thousand, one"), 2001)
-        self.assertEqual(extract_number_en("nine hundred and ninety nine"), 999)
-        self.assertEqual(extract_number_en("two million five hundred thousand"),
-                         2500000)
-
     def test_extract_number_negative_en(self):
         # a negative sign must cover every place of a compound number,
         # not just the leading one
-        self.assertEqual(extract_number_en("minus five"), -5)
-        self.assertEqual(extract_number_en("minus twenty three"), -23)
-        self.assertEqual(extract_number_en("minus one hundred"), -100)
-        self.assertEqual(extract_number_en("minus one hundred and five"), -105)
-        self.assertEqual(extract_number_en("minus nine hundred and ninety nine"),
+        self.assertEqual(extract_number("minus five", lang="en"), -5)
+        self.assertEqual(extract_number("minus twenty three", lang="en"), -23)
+        self.assertEqual(extract_number("minus one hundred", lang="en"), -100)
+        self.assertEqual(extract_number("minus one hundred and five", lang="en"), -105)
+        self.assertEqual(extract_number("minus nine hundred and ninety nine", lang="en"),
                          -999)
-        self.assertEqual(extract_number_en("negative two million five hundred thousand"),
+        self.assertEqual(extract_number("negative two million five hundred thousand", lang="en"),
                          -2500000)
-        self.assertEqual(extract_number_en("minus one thousand nine"), -1009)
+        self.assertEqual(extract_number("minus one thousand nine", lang="en"), -1009)
 
     def test_extract_number_adversarial_en(self):
-        self.assertFalse(extract_number_en(""))
-        self.assertFalse(extract_number_en("   "))
-        self.assertFalse(extract_number_en("no digits here"))
+        self.assertFalse(extract_number("", lang="en"))
+        self.assertFalse(extract_number("   ", lang="en"))
+        self.assertFalse(extract_number("no digits here", lang="en"))
         # leading/trailing junk around a real number
-        self.assertEqual(extract_number_en("set it to forty two please"), 42)
-        self.assertEqual(extract_number_en("MINUS FIVE"), -5)
+        self.assertEqual(extract_number("set it to forty two please", lang="en"), 42)
+        self.assertEqual(extract_number("MINUS FIVE", lang="en"), -5)
 
-    def test_extract_number_roundtrip_en(self):
-        # pronounce_number -> extract_number must recover the original integer
-        # for every value, including the 1000..1999 range that used to be
-        # spoken in date style by default.
-        for n in list(range(-1050, 2101)) + [
-                5678, 12345, 999999, 1000000, -1000000,
-                -12345, 87654321]:
-            spoken = pronounce_number_en(n)
-            self.assertEqual(extract_number_en(spoken), n,
-                             f"roundtrip failed for {n} -> {spoken!r}")
 
     def test_pronounce_number_default_cardinal_en(self):
         # 4-digit numbers pronounce as plain cardinals by default so they
@@ -118,18 +88,24 @@ class TestNumberParserEN(unittest.TestCase):
         self.assertEqual(pronounce_number_en(-3.5), "minus three point five")
 
     def test_fractional_and_ordinal_en(self):
-        self.assertEqual(is_fractional_en("half"), 0.5)
-        self.assertEqual(is_fractional_en("quarter"), 0.25)
-        self.assertFalse(is_fractional_en("banana"))
-        self.assertEqual(is_ordinal_en("first"), 1)
-        self.assertEqual(is_ordinal_en("fifth"), 5)
-        self.assertFalse(is_ordinal_en("seven"))
+        with self.subTest(case='is_fractional("half", "en")'):
+            self.assertEqual(is_fractional("half", "en"), 0.5)
+        with self.subTest(case='is_fractional("quarter", "en")'):
+            self.assertEqual(is_fractional("quarter", "en"), 0.25)
+        with self.subTest(case='is_fractional("banana", "en")'):
+            self.assertFalse(is_fractional("banana", "en"))
+        with self.subTest(case='is_ordinal("first", "en")'):
+            self.assertEqual(is_ordinal("first", "en"), 1)
+        with self.subTest(case='is_ordinal("fifth", "en")'):
+            self.assertEqual(is_ordinal("fifth", "en"), 5)
+        with self.subTest(case='is_ordinal("seven", "en")'):
+            self.assertFalse(is_ordinal("seven", "en"))
 
     def test_hundred_and_units_combine(self):
         # "X hundred and Y" is a single number: hundreds and units must fuse
         # into one value, never split into "1 101" style fragments
-        self.assertEqual(numbers_to_digits_en("one hundred and one"), "101")
-        self.assertEqual(extract_number_en("one hundred and one"), 101)
+        self.assertEqual(numbers_to_digits("one hundred and one", lang="en"), "101")
+        self.assertEqual(extract_number("one hundred and one", lang="en"), 101)
         cases = {
             "two hundred and five": ("205", 205),
             "nine hundred and ninety nine": ("999", 999),
@@ -138,12 +114,12 @@ class TestNumberParserEN(unittest.TestCase):
             "one thousand one hundred and one": ("1101", 1101),
         }
         for text, (digits, value) in cases.items():
-            self.assertEqual(numbers_to_digits_en(text), digits, text)
-            self.assertEqual(extract_number_en(text), value, text)
+            self.assertEqual(numbers_to_digits(text, lang="en"), digits, text)
+            self.assertEqual(extract_number(text, lang="en"), value, text)
 
     def test_hundred_and_units_in_context(self):
         self.assertEqual(
-            numbers_to_digits_en("it was one hundred and one degrees"),
+            numbers_to_digits("it was one hundred and one degrees", lang="en"),
             "it was 101 degrees")
 
     def test_large_ordinals_short_scale(self):

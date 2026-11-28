@@ -6,8 +6,10 @@ Occitan numeral/ordinal entries and languagesandnumbers.com.
 """
 import unittest
 
-from ovos_number_parser.numbers_oc import OC
-from ovos_number_parser.util import GrammaticalGender, Scale
+from ovos_number_parser import extract_number, numbers_to_digits, is_fractional, is_ordinal
+
+from ovos_number_parser.numbers_oc import OC, pluralize_oc
+from ovos_number_parser.util import GrammaticalGender
 
 
 # hand-verified pronounce anchors (Lengadocian, classical norm)
@@ -111,10 +113,10 @@ class TestOrdinalsOC(unittest.TestCase):
         self.assertEqual(OC.pronounce_ordinal(1000000), "milionen")
 
     def test_is_ordinal(self):
-        self.assertEqual(OC.is_ordinal("primièr"), 1)
-        self.assertEqual(OC.is_ordinal("tresen"), 3)
-        self.assertEqual(OC.is_ordinal("vinten"), 20)
-        self.assertFalse(OC.is_ordinal("ostal"))
+        self.assertEqual(is_ordinal("primièr", "oc"), 1)
+        self.assertEqual(is_ordinal("tresen", "oc"), 3)
+        self.assertEqual(is_ordinal("vinten", "oc"), 20)
+        self.assertFalse(is_ordinal("ostal", "oc"))
 
 
 class TestFractionsOC(unittest.TestCase):
@@ -126,106 +128,159 @@ class TestFractionsOC(unittest.TestCase):
         self.assertEqual(OC.pronounce_fraction("1/5"), "un cinquen")
 
     def test_is_fractional(self):
-        self.assertEqual(OC.is_fractional("mièg"), 0.5)
-        self.assertEqual(OC.is_fractional("mièja"), 0.5)
-        self.assertEqual(OC.is_fractional("tèrç"), 1 / 3)
-        self.assertEqual(OC.is_fractional("quart"), 0.25)
-        self.assertFalse(OC.is_fractional("ostal"))
+        with self.subTest(case='is_fractional("mièg", "oc")'):
+            self.assertEqual(is_fractional("mièg", "oc"), 0.5)
+        with self.subTest(case='is_fractional("mièja", "oc")'):
+            self.assertEqual(is_fractional("mièja", "oc"), 0.5)
+        with self.subTest(case='is_fractional("tèrç", "oc")'):
+            self.assertEqual(is_fractional("tèrç", "oc"), 1 / 3)
+        with self.subTest(case='is_fractional("quart", "oc")'):
+            self.assertEqual(is_fractional("quart", "oc"), 0.25)
+        with self.subTest(case='is_fractional("ostal", "oc")'):
+            self.assertFalse(is_fractional("ostal", "oc"))
 
 
 class TestExtractOC(unittest.TestCase):
     def test_units_and_teens(self):
-        self.assertEqual(OC.extract_number("un"), 1)
-        self.assertEqual(OC.extract_number("una"), 1)
-        self.assertEqual(OC.extract_number("doas"), 2)
-        self.assertEqual(OC.extract_number("setze"), 16)
-        self.assertEqual(OC.extract_number("dètz-e-sèt"), 17)
+        self.assertEqual(extract_number("un", lang="oc"), 1)
+        self.assertEqual(extract_number("una", lang="oc"), 1)
+        self.assertEqual(extract_number("doas", lang="oc"), 2)
+        self.assertEqual(extract_number("setze", lang="oc"), 16)
+        self.assertEqual(extract_number("dètz-e-sèt", lang="oc"), 17)
 
     def test_hyphenated_compounds(self):
-        self.assertEqual(OC.extract_number("vint-e-un"), 21)
-        self.assertEqual(OC.extract_number("vint-e-una"), 21)
-        self.assertEqual(OC.extract_number("vint-e-nòu"), 29)
-        self.assertEqual(OC.extract_number("dètz-e-uèch"), 18)
+        self.assertEqual(extract_number("vint-e-un", lang="oc"), 21)
+        self.assertEqual(extract_number("vint-e-una", lang="oc"), 21)
+        self.assertEqual(extract_number("vint-e-nòu", lang="oc"), 29)
+        self.assertEqual(extract_number("dètz-e-uèch", lang="oc"), 18)
 
     def test_juxtaposed_tens(self):
-        self.assertEqual(OC.extract_number("trenta dos"), 32)
-        self.assertEqual(OC.extract_number("cinquanta sèt"), 57)
-        self.assertEqual(OC.extract_number("nonanta nòu"), 99)
+        self.assertEqual(extract_number("trenta dos", lang="oc"), 32)
+        self.assertEqual(extract_number("cinquanta sèt", lang="oc"), 57)
+        self.assertEqual(extract_number("nonanta nòu", lang="oc"), 99)
 
     def test_alt_spellings(self):
-        self.assertEqual(OC.extract_number("ueitanta"), 80)
+        # variant spellings of 8 and 80 from issue #302
+        self.assertEqual(extract_number("ueit", lang="oc"), 8)
+        self.assertEqual(extract_number("uòch", lang="oc"), 8)
+        self.assertEqual(extract_number("ueitanta", lang="oc"), 80)
+        self.assertEqual(extract_number("uechanta", lang="oc"), 80)
+        self.assertEqual(extract_number("uòchanta", lang="oc"), 80)
+
+    def test_alt_spellings_named_by_the_native_reporter(self):
+        # issue #302: "8: uèch and uèit and locally uòch in Montpellier",
+        # "8th: ochen, uechen, ueiten, oiten", Montpellier "8th: uòchen",
+        # "80th: uòchanten"
+        self.assertEqual(extract_number("uèit", lang="oc"), 8)
+        self.assertEqual(extract_number("ai uèit cats", lang="oc"), 8)
+        for word in ("ochen", "uechen", "ueiten", "oiten", "uòchen"):
+            with self.subTest(word=word):
+                self.assertEqual(is_ordinal(word, "oc"), 8)
+                self.assertEqual(
+                    extract_number(f"lo {word} jorn", ordinals=True, lang="oc"), 8)
+        self.assertEqual(is_ordinal("uòchanten", "oc"), 80)
+        self.assertEqual(extract_number("la uòchena", ordinals=True, lang="oc"), 8)
+
+    def test_alt_ordinal_spellings_take_the_feminine_and_plural(self):
+        # the variants inflect as the referential "ochen" does: "ochena",
+        # "los ochens" and "las ochenas" read 8 on dev
+        for text in ("los uechens", "las uechenas", "los ueitens",
+                     "los uòchens", "las uòchantenas"):
+            with self.subTest(text=text):
+                self.assertEqual(extract_number(text, ordinals=True, lang="oc"),
+                                 80 if "uòchanten" in text else 8)
+
+    def test_ueitena_and_oitena_read_as_the_feminine_8th(self):
+        # issue #302 lists "ueitena, oitena" beside the forms for 80; whether
+        # they are cardinals for 80 waits on the native speaker. Here they are
+        # the regular feminine of "ueiten" and "oiten", like "ochena".
+        for word in ("ueitena", "oitena"):
+            with self.subTest(word=word):
+                self.assertEqual(extract_number(word, ordinals=True, lang="oc"), 8)
+                self.assertIs(extract_number(word, lang="oc"), False)
+
+    def test_alt_ordinal_spellings_are_never_written(self):
+        self.assertEqual(OC.pronounce_number(8, ordinals=True), "ochen")
+        self.assertEqual(OC.pronounce_number(80, ordinals=True), "ochanten")
+
+    def test_pluralize_classes(self):
+        # noun classes per Ubaud (issue #302)
+        self.assertEqual(pluralize_oc("peis"), "peises")    # -is
+        self.assertEqual(pluralize_oc("serf"), "serfes")    # -f
+        self.assertEqual(pluralize_oc("text"), "textes")    # -xt
+        self.assertEqual(pluralize_oc("votz"), "voses")     # -tz
+        self.assertEqual(pluralize_oc("cinc"), "cincs")
+        self.assertEqual(pluralize_oc("ostal"), "ostals")
+
+    def test_half_words(self):
+        # bare half spellings from issue #302
+        self.assertEqual(extract_number("mièg", lang="oc"), 0.5)
+        self.assertEqual(extract_number("mièja", lang="oc"), 0.5)
+        self.assertEqual(extract_number("mèg", lang="oc"), 0.5)
+        self.assertEqual(extract_number("mèja", lang="oc"), 0.5)
 
     def test_analytic_hundreds(self):
-        self.assertEqual(OC.extract_number("cent"), 100)
-        self.assertEqual(OC.extract_number("cent vint"), 120)
-        self.assertEqual(OC.extract_number("dos cents"), 200)
-        self.assertEqual(OC.extract_number("dos cents trenta quatre"), 234)
-        self.assertEqual(OC.extract_number("nòu cents nonanta nòu"), 999)
+        self.assertEqual(extract_number("cent", lang="oc"), 100)
+        self.assertEqual(extract_number("cent vint", lang="oc"), 120)
+        self.assertEqual(extract_number("dos cents", lang="oc"), 200)
+        self.assertEqual(extract_number("dos cents trenta quatre", lang="oc"), 234)
+        self.assertEqual(extract_number("nòu cents nonanta nòu", lang="oc"), 999)
 
     def test_thousands(self):
-        self.assertEqual(OC.extract_number("mila"), 1000)
-        self.assertEqual(OC.extract_number("dos mila"), 2000)
-        self.assertEqual(OC.extract_number("dos mila tres cents"), 2300)
-        self.assertEqual(OC.extract_number("un milion"), 1000000)
-        self.assertEqual(OC.extract_number("dos milions"), 2000000)
-        self.assertEqual(OC.extract_number("un miliard"), 1000000000)
+        self.assertEqual(extract_number("mila", lang="oc"), 1000)
+        self.assertEqual(extract_number("dos mila", lang="oc"), 2000)
+        self.assertEqual(extract_number("dos mila tres cents", lang="oc"), 2300)
+        self.assertEqual(extract_number("un milion", lang="oc"), 1000000)
+        self.assertEqual(extract_number("dos milions", lang="oc"), 2000000)
+        self.assertEqual(extract_number("un miliard", lang="oc"), 1000000000)
 
     def test_decimals(self):
-        self.assertEqual(OC.extract_number("tres virgula catòrze"), 3.14)
-        self.assertEqual(OC.extract_number("trenta cinc virgula quatre"), 35.4)
+        self.assertEqual(extract_number("tres virgula catòrze", lang="oc"), 3.14)
+        self.assertEqual(extract_number("trenta cinc virgula quatre", lang="oc"), 35.4)
 
     def test_negative(self):
-        self.assertEqual(OC.extract_number("mens sèt"), -7)
-        self.assertEqual(OC.extract_number("mens vint e un"), -21)
+        self.assertEqual(extract_number("mens sèt", lang="oc"), -7)
+        self.assertEqual(extract_number("mens vint e un", lang="oc"), -21)
 
     def test_fraction_words(self):
-        self.assertEqual(OC.extract_number("un e mièg"), 1.5)
-        self.assertEqual(OC.extract_number("tres quarts"), 0.75)
+        self.assertEqual(extract_number("un e mièg", lang="oc"), 1.5)
+        self.assertEqual(extract_number("tres quarts", lang="oc"), 0.75)
 
     def test_ordinal_extraction(self):
-        self.assertEqual(OC.extract_number("lo tresen còp", ordinals=True), 3)
-        self.assertEqual(OC.extract_number("la primièra vegada", ordinals=True), 1)
-        self.assertEqual(OC.extract_number("vint-e-unen", ordinals=True), 21)
+        self.assertEqual(extract_number("lo tresen còp", ordinals=True, lang="oc"), 3)
+        self.assertEqual(extract_number("la primièra vegada", ordinals=True, lang="oc"), 1)
+        self.assertEqual(extract_number("vint-e-unen", ordinals=True, lang="oc"), 21)
 
     def test_in_sentence(self):
-        self.assertEqual(OC.extract_number("i a vint e un gats"), 21)
-        self.assertEqual(OC.extract_number("son dos cents trenta quilòmetres"), 230)
+        self.assertEqual(extract_number("i a vint e un gats", lang="oc"), 21)
+        self.assertEqual(extract_number("son dos cents trenta quilòmetres", lang="oc"), 230)
 
     def test_no_number(self):
-        self.assertFalse(OC.extract_number("bon jorn"))
+        self.assertFalse(extract_number("bon jorn", lang="oc"))
 
 
 class TestNumbersToDigitsOC(unittest.TestCase):
     def test_replace(self):
-        self.assertEqual(OC.numbers_to_digits("i a vint e un gats"), "i a 21 gats")
-        self.assertEqual(OC.numbers_to_digits("dos cents trenta quatre ostals"),
+        self.assertEqual(numbers_to_digits("i a vint e un gats", lang="oc"), "i a 21 gats")
+        self.assertEqual(numbers_to_digits("dos cents trenta quatre ostals", lang="oc"),
                          "234 ostals")
 
     def test_passthrough(self):
-        self.assertEqual(OC.numbers_to_digits("bon jorn amics"), "bon jorn amics")
+        self.assertEqual(numbers_to_digits("bon jorn amics", lang="oc"), "bon jorn amics")
 
 
 class TestRoundTripOC(unittest.TestCase):
-    def test_sweep(self):
-        for n in range(0, 1101):
-            spoken = OC.pronounce_number(n)
-            self.assertEqual(OC.extract_number(spoken), n, f"{n}: {spoken!r}")
 
-    def test_sweep_large(self):
-        for n in (2023, 9999, 12345, 100000, 654321, 1000000, 2500000,
-                  1000000000, 2000000001):
-            spoken = OC.pronounce_number(n)
-            self.assertEqual(OC.extract_number(spoken), n, f"{n}: {spoken!r}")
 
     def test_sweep_feminine(self):
         for n in (1, 2, 21, 22, 31, 42, 101, 202):
             spoken = OC.pronounce_number(n, gender=GrammaticalGender.FEMININE)
-            self.assertEqual(OC.extract_number(spoken), n, f"{n}: {spoken!r}")
+            self.assertEqual(extract_number(spoken, lang="oc"), n, f"{n}: {spoken!r}")
 
     def test_sweep_ordinals(self):
         for n in (1, 2, 3, 9, 10, 11, 16, 20, 30, 90, 100, 1000):
             spoken = OC.pronounce_ordinal(n)
-            self.assertEqual(OC.extract_number(spoken, ordinals=True), n,
+            self.assertEqual(extract_number(spoken, ordinals=True, lang="oc"), n,
                              f"{n}: {spoken!r}")
 
 

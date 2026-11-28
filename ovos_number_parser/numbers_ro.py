@@ -81,15 +81,15 @@ _RO = NumberVocabulary(
     NO_PREV_UNIT=[],
     NO_PLURAL=[],
 
-    NUMBER_OVERFLOW="număr exagerat de mare",
     # Romanian uses the long scale: milion 10^6, miliard 10^9, bilion 10^12
     DEFAULT_SCALE=Scale.LONG,
+    # "un milion de trilioane" is the largest compound over trilion
+    MAX_SCALE_COUNT=10 ** 9,
 
     # "și" joins tens to units and is the only joiner that is pronounced;
     # "de" links counts of twenty and above to their scale word
     # ("douăzeci de mii") and is dropped during extraction
     JOIN_WORD=["și", "de"],
-    MULTIPLICATIVE_JOIN_WORD=["de"],
     JOINER_ON_TWENTYS=True,  # "douăzeci și unu"
     JOINER_ON_HUNDREDS=False,  # "o sută douăzeci" - no joiner after hundreds
     JOINER_ON_HUNDRED_PARTICLE=False,
@@ -97,7 +97,6 @@ _RO = NumberVocabulary(
     JOINER_ON_SCALE_REMAINDER=False,  # "două mii unu" - remainder stands bare
 
     SCALE_LINKER="de",  # "douăzeci de mii", "o sută de milioane"
-    MULTIPLY_HUNDREDS=True,  # "două sute" = 200
     SCALE_ONE={
         100: "o sută",
         1000: "o mie",
@@ -188,9 +187,6 @@ _RO = NumberVocabulary(
         100: "sutime",
         1000: "miime",
     },
-    FRACTION_FEMALE={
-        4: "pătrime",  # synonym of "sfert"
-    },
     FRACTION_ONE={
         2: "o jumătate",
         3: "o treime",
@@ -238,7 +234,6 @@ _RO = NumberVocabulary(
             12: "douăsprezece",
         },
     },
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         # "un"/"o" - the forms of "one" used before nouns and scale words
         "un": 1,

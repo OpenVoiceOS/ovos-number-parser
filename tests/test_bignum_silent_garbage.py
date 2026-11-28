@@ -19,6 +19,8 @@ those shapes falls back to the scientific reading instead.
 """
 import unittest
 
+import pytest
+
 from ovos_number_parser import pronounce_number
 from ovos_number_parser import (_has_padded_scale_words,
                                 _has_unread_digits)
@@ -91,35 +93,38 @@ class TestOrdinaryMagnitudesUnaffected(unittest.TestCase):
 
 
 class TestReadingValidator(unittest.TestCase):
-    """Unit coverage for the validator, including why it is scoped.
+    """Unit coverage for the validator.
 
-    The repeated-word signal is only sound for a *composed* reading. A
-    digit-by-digit rendering repeats words legitimately ("11" -> "um um"),
-    which is why the caller applies the check only when digits ==
-    FULL_NUMBER. Asserted here on the helper rather than through
-    pronounce_number, because the digit-by-digit flag is not honoured by
-    every backend.
+    A repeated scale word marks padding. A repeated digit word does not: a
+    digit-by-digit rendering repeats it legitimately ("11" -> "um um"), and
+    so does the mantissa of a scientific reading.
     """
 
     def test_detects_padded_scale_words(self):
         self.assertTrue(_has_padded_scale_words(
-            "doze mil quinhentos sextiliões vigintiliões vigintiliões"))
-        self.assertTrue(_has_padded_scale_words("bostehun trilioi trilioi"))
+            "doze mil quinhentos sextiliões vigintiliões vigintiliões", "pt"))
+        self.assertTrue(_has_padded_scale_words("bostehun trilioi trilioi",
+                                                "eu"))
 
     def test_detects_unread_digits(self):
         self.assertTrue(_has_unread_digits("125" + "0" * 400))
 
     def test_accepts_real_readings(self):
-        for good in ("um vírgula vinte e cinco", "one million, two hundred"):
-            self.assertFalse(_has_padded_scale_words(good))
+        for good, lang in (("um vírgula vinte e cinco", "pt"),
+                           ("one million, two hundred", "en")):
+            self.assertFalse(_has_padded_scale_words(good, lang))
             self.assertFalse(_has_unread_digits(good))
         # short digit groups are ordinary, e.g. a year
         self.assertFalse(_has_unread_digits("1984"))
 
-    def test_digit_by_digit_shape_would_be_rejected(self):
-        # exactly why the caller scopes the check to whole numbers: a
-        # digit-by-digit decimal repeats words legitimately
-        self.assertTrue(_has_padded_scale_words("dois vírgula dois dois"))
+    def test_repeated_digit_words_are_not_padding(self):
+        for spoken, lang in (
+                ("dois vírgula dois dois", "pt"),
+                ("jedan zarez jedan jedan puta deset na četiristo", "hr"),
+                ("one point one one times ten to the power of four hundred",
+                 "en")):
+            with self.subTest(lang=lang):
+                self.assertFalse(_has_padded_scale_words(spoken, lang))
 
 
 class TestKabyleCeilingPreserved(unittest.TestCase):
@@ -128,3 +133,18 @@ class TestKabyleCeilingPreserved(unittest.TestCase):
     def test_kab_still_raises_above_ceiling(self):
         with self.assertRaises(OverflowError):
             pronounce_number(HUGE, "kab")
+
+
+class TestRbnfNeverSpeaksDigits(unittest.TestCase):
+    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/544")
+    def test_korean_ordinal_of_ten_to_the_eighteenth_is_words(self):
+        # 10**18 is 백경: 100 x 10**16 (경 is 10**16); ordinal suffix 째
+        self.assertEqual(pronounce_number(10 ** 18, "ko", ordinals=True), "백경째")
+
+    @pytest.mark.xfail(strict=True, reason="https://github.com/OpenVoiceOS/ovos-number-parser/issues/544")
+    def test_amharic_cardinal_of_ten_to_the_twenty_fourth_is_no_digit_string(self):
+        try:
+            spoken = pronounce_number(10 ** 24, "am")
+        except NotImplementedError:
+            return
+        self.assertFalse(any(c.isdigit() for c in spoken), spoken)

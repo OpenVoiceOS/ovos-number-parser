@@ -1,171 +1,86 @@
+"""Italian number writers: ``pronounce_number_it`` and ``pronounce_ordinal_it``.
+
+Rules and their sources:
+
+Feminine of 1. Treccani, Enciclopedia dell'Italiano, "Numerali" (Faloppa
+2011): "In italiano [i cardinali] sono invariabili, a eccezione di uno, che
+varia secondo il genere [...] e che al femminile assume la forma una".
+Treccani, Vocabolario, "uno": "nella composizione con i numeri indicanti le
+decine, le centinaia, ecc.: ventuna pagina, le mille e una notte, centouna
+volte, ma più spesso in tal caso si usa la forma non declinata del masch.
+sing." Accademia della Crusca, consulenza 1077: "In passato era normale
+'femminilizzare' anche i composti di uno, mentre oggi questo è meno comune".
+With ``gender=FEMININE`` the number 1 alone takes the feminine ("una");
+a compound keeps "uno" ("ventuno pagine", "centouno", "milleuno"), the form
+both sources call the usual one today. A number with decimals keeps "uno"
+because the noun after it is plural.
+
+"centootto". Treccani, "Numerali": "con cento seguito da una decina o da
+un'unità, l'elisione è poco comune con uno, otto e undici [...] (29)
+centootto [raramente centotto]". Crusca, consulenza 1077: "108: centootto,
+meno bene centotto" and "180: centottanta o centoottanta". "Cento" and the
+other hundreds therefore keep their -o before "otto" ("centootto",
+"duecentootto") and elide it before "ottanta" ("centottanta",
+"trecentottantotto").
+
+"ventunomila". Crusca, consulenza 1077: "21.000: ventunomila o ventunmila:
+entrambe le forme vanno bene". Both forms are standard, so the writer keeps
+"ventunomila", "trentunomila".
+
+Ordinals of a round count of thousands. Treccani, Vocabolario, "tremillesimo":
+"der. di tremila, secondo l'agg. millesimo"; "ordinale": "millesimo,
+duemillesimo, ... diecimillesimo". "Ventunomillesimo" follows the same
+count as the cardinal "ventunomila", which Crusca allows.
+
+Ordinals right after "millesimo". Treccani, Vocabolario, "ordinale": the
+juxtaposed type "è pressoché l'unico per alcuni ordinali per i quali l'altro
+tipo sarebbe sentito come poco eufonico: centesimo decimo, millesimo primo,
+millesimo secondo, millesimo decimo, millesimo undecimo o undicesimo, ecc.
+(in questi casi la grafia staccata è preferita)". The writer gives these four
+as two words: 1001 "millesimo primo", 1002 "millesimo secondo", 1010
+"millesimo decimo", 1011 "millesimo undicesimo".
+
+Ordinals of a hundred and ten. The same Treccani entry lists "centesimo
+decimo" first among the ordinals for which the stem type "sarebbe sentito
+come poco eufonico", and Treccani, "centesimo": "In composizione con altri
+numerali forma gli ordinali superiori: centesimo primo (o, più com.,
+centunesimo), centesimo secondo (o, più com., centoduesimo)". So 110 reads
+"centesimo decimo", and every number from 110 that ends in 10 reads the
+ordinal of the hundreds, a space and "decimo": "duecentesimo decimo",
+"millecentesimo decimo", "duemillesimo decimo". Treccani gives the pattern
+for 110 and 1010; the other numbers follow it. Giorgio De Rienzo, Corriere
+della Sera, "Scioglilingua", 24 September 2004, answers a reader who asks
+about "gli ordinali corrispondenti a 110, 210, ecc." and finds "centodiecesimo"
+"improponibile": "Ha due alternative. O "centodecesimo" (perché in questi casi
+il "dieci" perde la "i") o "centesimo decimo", decisamente più elegante, anche
+se più antiquato." The fused forms "centodecimo" and "duecentodecimo" are in
+use, and the stem form "-diecesimo" follows Treccani's own -esimo rule but is
+not attested in use. The ruling: Treccani and De Rienzo give "centesimo
+decimo" as the preferred standard form, over the commoner fused usage.
+Numbers from a million up keep the fused form ("milionecentodecimo").
+
+Ordinals above a million. Treccani, "milionesimo", defines only the ordinal of
+one million ("occupa il posto corrispondente a un milione"). No source in
+hand gives the ordinal of a compound such as 3500000, with the scale word in
+the singular or the plural, fused or spaced. The writer keeps the CLDR RBNF
+reading, the scale word in the singular and fused into one word
+("tremilionecinquecentomillesimo"). This is a choice without a source. The
+count before the scale word is apocopated like "ventun gatti" (Crusca,
+consulenza 1077, "segue le sue stesse regole di apocope"; Treccani, "Numerali":
+"può essere apocopato se il numerale precede il nome"), so 21000000 reads
+"ventunmilionesimo" where the cardinal reads "ventuno milioni".
+"""
 import collections
+from decimal import Decimal
 
 import re
-from typing import Optional, Union
 
 from ovos_number_parser.util import (convert_to_mixed_fraction, Scale,
                                      GrammaticalGender, NumberVocabulary,
-                                     RomanceNumberExtractor)
+                                     RomanceNumberExtractor, scientific_parts)
+from ovos_number_parser import numtag_readers
+from ovos_number_parser.util import warn_reader_removed
 
-_SHORT_ORDINAL_STRING_IT = {
-    1: 'primo',
-    2: 'secondo',
-    3: 'terzo',
-    4: 'quarto',
-    5: 'quinto',
-    6: 'sesto',
-    7: 'settimo',
-    8: 'ottavo',
-    9: 'nono',
-    10: 'decimo',
-    11: 'undicesimo',
-    12: 'dodicesimo',
-    13: 'tredicesimo',
-    14: 'quattordicesimo',
-    15: 'quindicesimo',
-    16: 'sedicesimo',
-    17: 'diciassettesimo',
-    18: 'diciottesimo',
-    19: 'diciannovesimo',
-    20: 'ventesimo',
-    30: 'trentesimo',
-    40: 'quarantesimo',
-    50: 'cinquantesimo',
-    60: 'sessantesimo',
-    70: 'settantesimo',
-    80: 'ottantesimo',
-    90: 'novantesimo',
-    1e2: 'centesimo',
-    1e3: 'millesimo',
-    1e6: 'milionesimo',
-    1e9: 'miliardesimo',
-    1e12: 'trilionesimo',
-    1e15: 'quadrilionesimo',
-    1e18: 'quintilionesim',
-    1e21: 'sestilionesimo',
-    1e24: 'settilionesimo',
-    1e27: 'ottilionesimo',
-    1e30: 'nonilionesimo',
-    1e33: 'decilionesimo'
-    # TODO > 1e-33
-}
-
-#  per i > 10e12 modificata solo la desinenza: da sistemare a fine debug
-_LONG_ORDINAL_STRING_IT = {
-    1: 'primo',
-    2: 'secondo',
-    3: 'terzo',
-    4: 'quarto',
-    5: 'quinto',
-    6: 'sesto',
-    7: 'settimo',
-    8: 'ottavo',
-    9: 'nono',
-    10: 'decimo',
-    11: 'undicesimo',
-    12: 'dodicesimo',
-    13: 'tredicesimo',
-    14: 'quattordicesimo',
-    15: 'quindicesimo',
-    16: 'sedicesimo',
-    17: 'diciassettesimo',
-    18: 'diciottesimo',
-    19: 'diciannovesimo',
-    20: 'ventesimo',
-    30: 'trentesimo',
-    40: 'quarantesimo',
-    50: 'cinquantesimo',
-    60: 'sessantesimo',
-    70: 'settantesimo',
-    80: 'ottantesimo',
-    90: 'novantesimo',
-    1e2: 'centesimo',
-    1e3: 'millesimo',
-    1e6: 'milionesimo',
-    1e12: 'bilionesimo',
-    1e18: 'trilionesimo',
-    1e24: 'quadrilionesimo',
-    1e30: 'quintilionesimo',
-    1e36: 'sestilionesimo',
-    1e42: 'settilionesimo',
-    1e48: 'ottilionesimo',
-    1e54: 'nonilionesimo',
-    1e60: 'decilionesimo'
-    # TODO > 1e60
-}
-
-# Undefined articles ['un', 'una', 'un\''] can not be supressed,
-# in Italian, 'un cavallo' means 'a horse' or 'one horse'.
-_ARTICLES_IT = ['il', 'lo', 'la', 'i', 'gli', 'le']
-
-_STRING_NUM_IT = {
-    'zero': 0,
-    'un': 1,
-    'uno': 1,
-    'una': 1,
-    'un\'': 1,
-    'due': 2,
-    'tre': 3,
-    'quattro': 4,
-    'cinque': 5,
-    'sei': 6,
-    'sette': 7,
-    'otto': 8,
-    'nove': 9,
-    'dieci': 10,
-    'undici': 11,
-    'dodici': 12,
-    'tredici': 13,
-    'quattordici': 14,
-    'quindici': 15,
-    'sedici': 16,
-    'diciassette': 17,
-    'diciotto': 18,
-    'diciannove': 19,
-    'venti': 20,
-    'vent': 20,
-    'trenta': 30,
-    'trent': 30,
-    'quaranta': 40,
-    'quarant': 40,
-    'cinquanta': 50,
-    'cinquant': 50,
-    'sessanta': 60,
-    'sessant': 60,
-    'settanta': 70,
-    'settant': 70,
-    'ottanta': 80,
-    'ottant': 80,
-    'novanta': 90,
-    'novant': 90,
-    'cento': 100,
-    'duecento': 200,
-    'trecento': 300,
-    'quattrocento': 400,
-    'cinquecento': 500,
-    'seicento': 600,
-    'settecento': 700,
-    'ottocento': 800,
-    'novecento': 900,
-    'mille': 1000,
-    'mila': 1000,
-    'centomila': 100000,
-    'milione': 1000000,
-    'miliardo': 1000000000,
-    'primo': 1,
-    'secondo': 2,
-    'mezzo': 0.5,
-    'mezza': 0.5,
-    'paio': 2,
-    'decina': 10,
-    'decine': 10,
-    'dozzina': 12,
-    'dozzine': 12,
-    'centinaio': 100,
-    'centinaia': 100,
-    'migliaio': 1000,
-    'migliaia': 1000
-}
 
 _NUM_STRING_IT = {
     0: 'zero',
@@ -220,46 +135,24 @@ _FRACTION_STRING_IT = {
     20: 'ventesim'
 }
 
-# fonte: http://tulengua.es/numeros-texto/default.aspx
+#: Italian long scale: every power of a thousand from a million to 10 ** 39
+#: has a name, the -iardo word being a thousand times the -ione word before it
 _LONG_SCALE_IT = collections.OrderedDict([
     (100, 'cento'),
     (1000, 'mila'),
-    (1000000, 'milioni'),
-    (1e9, "miliardi"),
-    (1e12, "bilioni"),
-    (1e18, 'trilioni'),
-    (1e24, "quadrilioni"),
-    (1e30, "quintilioni"),
-    (1e36, "sestilioni"),
-    (1e42, "settilioni"),
-    (1e48, "ottillioni"),
-    (1e54, "nonillioni"),
-    (1e60, "decemillioni"),
-    (1e66, "undicilione"),
-    (1e72, "dodicilione"),
-    (1e78, "tredicilione"),
-    (1e84, "quattordicilione"),
-    (1e90, "quindicilione"),
-    (1e96, "sedicilione"),
-    (1e102, "diciasettilione"),
-    (1e108, "diciottilione"),
-    (1e114, "dicianovilione"),
-    (1e120, "vintilione"),
-    (1e306, "unquinquagintilione"),
-    (1e312, "duoquinquagintilione"),
-    (1e336, "sesquinquagintilione"),
-    (1e366, "unsexagintilione")
+    (10 ** 6, 'milioni'),
+    (10 ** 9, 'miliardi'),
+    (10 ** 12, 'bilioni'),
+    (10 ** 15, 'biliardi'),
+    (10 ** 18, 'trilioni'),
+    (10 ** 21, 'triliardi'),
+    (10 ** 24, 'quadrilioni'),
+    (10 ** 27, 'quadriliardi'),
+    (10 ** 30, 'quintilioni'),
+    (10 ** 33, 'quintiliardi'),
+    (10 ** 36, 'sistilioni'),
+    (10 ** 39, 'sistiliardi'),
 ])
-
-#: singular form of the large scale words, used when the count is exactly one
-#: ("un milione", "un miliardo"). The scale tables hold the plurals; most go
-#: -i -> -e, but miliardi -> miliardo is irregular.
-_LONG_SCALE_SINGULAR_IT = {
-    'milioni': 'milione',
-    'miliardi': 'miliardo',
-    'bilioni': 'bilione',
-    'triliardi': 'triliardo',
-}
 
 _SHORT_SCALE_IT = collections.OrderedDict([
     (100, 'cento'),
@@ -336,38 +229,6 @@ _SHORT_SCALE_IT = collections.OrderedDict([
 ])
 
 
-def is_fractional_it(input_str, short_scale=False):
-    """
-    This function takes the given text and checks if it is a fraction.
-    Updated to italian from en version 18.8.9
-
-    Args:
-        input_str (str): the string to check if fractional
-        short_scale (bool): use short scale if True, long scale if False
-    Returns:
-        (bool) or (float): False if not a fraction, otherwise the fraction
-
-    """
-    input_str = input_str.lower()
-    if input_str.endswith('i', -1) and len(input_str) > 2:
-        input_str = input_str[:-1] + "o"  # normalizza plurali
-
-    fracts_it = {"intero": 1, "mezza": 2, "mezzo": 2}
-
-    if short_scale:
-        for num in _SHORT_ORDINAL_STRING_IT:
-            if num > 2:
-                fracts_it[_SHORT_ORDINAL_STRING_IT[num]] = num
-    else:
-        for num in _LONG_ORDINAL_STRING_IT:
-            if num > 2:
-                fracts_it[_LONG_ORDINAL_STRING_IT[num]] = num
-
-    if input_str in fracts_it:
-        return 1.0 / fracts_it[input_str]
-    return False
-
-
 # ---------------------------------------------------------------------------
 # Vocabulary-driven extraction on the shared RomanceNumberExtractor engine.
 #
@@ -424,7 +285,6 @@ _IT = NumberVocabulary(
     NO_PREV_UNIT=[1000],               # "mille", never "un mille"
     NO_PLURAL=[1000],                  # "duemila", pluralised as "mila"
 
-    NUMBER_OVERFLOW="numero davvero enorme",
     # Italy follows the long scale: milione 10^6, miliardo 10^9, bilione 10^12
     DEFAULT_SCALE=Scale.LONG,
     JOIN_WORD=["e"],
@@ -432,8 +292,6 @@ _IT = NumberVocabulary(
     JOINER_ON_HUNDREDS=False,
     JOINER_ON_THOUSANDS=False,
     JOINER_ON_SCALE_REMAINDER=False,
-    MULTIPLY_HUNDREDS=True,            # "duecento" split to "due cento" = 200
-    FRACTIONS_ALWAYS_MULTIPLY=True,    # "un quarto" = 1/4, "tre quarti" = 3/4
 
     DECIMAL_MARKER=["virgola", "punto"],
     NEGATIVE_SIGN=["meno"],
@@ -446,16 +304,18 @@ _IT = NumberVocabulary(
               14: 'quattordicesimo', 15: 'quindicesimo', 16: 'sedicesimo',
               17: 'diciassettesimo', 18: 'diciottesimo', 19: 'diciannovesimo',
               20: 'ventesimo', 100: 'centesimo', 1000: 'millesimo'},
-    FRACTION_FEMALE={2: 'mezza'},
     SHORT_SCALE={1000: 'mille', 10 ** 6: 'milione', 10 ** 9: 'miliardo',
                  10 ** 12: 'bilione', 10 ** 15: 'biliardo', 10 ** 18: 'trilione',
                  10 ** 21: 'triliardo', 10 ** 24: 'quadrilione'},
     LONG_SCALE={1000: 'mille', 10 ** 6: 'milione', 10 ** 9: 'miliardo',
-                10 ** 12: 'bilione', 10 ** 18: 'trilione', 10 ** 24: 'quadrilione',
-                10 ** 30: 'quintilione', 10 ** 36: 'sestilione'},
+                10 ** 12: 'bilione', 10 ** 15: 'biliardo',
+                10 ** 18: 'trilione', 10 ** 21: 'triliardo',
+                10 ** 24: 'quadrilione', 10 ** 27: 'quadriliardo',
+                10 ** 30: 'quintilione', 10 ** 33: 'quintiliardo',
+                10 ** 36: 'sistilione', 10 ** 39: 'sistiliardo',
+                10 ** 60: 'decilione'},
 
     GENDERED_SPELLINGS={GrammaticalGender.FEMININE: {1: 'una'}},
-    DIGIT_SPELLINGS={},
     ALT_SPELLINGS={
         'un': 1,                       # "un milione"
         'mila': 1000,                  # plural of mille inside compounds
@@ -492,97 +352,9 @@ for _s in ('mille', 'mila', 'milione', 'milioni', 'miliardo', 'miliardi',
 for _full in ('venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta',
               'settanta', 'ottanta', 'novanta'):
     _MORPHEMES_IT[_full[:-1]] = _full
-# longest surface first, so "trenta" wins over "trent" and "sette" over "sei"
-_MORPHEME_SURFACES_IT = sorted(_MORPHEMES_IT, key=len, reverse=True)
 
 
-def _split_fused_it(word: str) -> str:
-    """Break a fused Italian numeral into space-separated morphemes.
-
-    Restores the accent (ventitré -> ventitre) and the vowel elided before
-    "uno"/"otto" in the tens and hundreds (ventuno -> venti uno, centotto ->
-    cento otto). A word that does not decompose cleanly into numeral morphemes
-    is returned unchanged, so non-numbers ("trentini") stay non-numbers.
-    """
-    w = word.lower().replace('é', 'e').replace('è', 'e')
-    # cento elides its final -o before uno and before any o-word (otto,
-    # ottanta...): "centuno", "centottanta", "trecentottantotto". Restore the
-    # dropped vowel so the morpheme splitter sees "cento" + remainder.
-    w = w.replace('centuno', 'centouno').replace('centott', 'centoott')
-    out = []
-    i = 0
-    while i < len(w):
-        for surf in _MORPHEME_SURFACES_IT:
-            if w.startswith(surf, i):
-                out.append(_MORPHEMES_IT[surf])
-                i += len(surf)
-                break
-        else:
-            return word
-    return ' '.join(out)
-
-
-class ItalianNumberExtractor(RomanceNumberExtractor):
-    """Italian number engine.
-
-    Adds the one Italian-specific surface convention the shared engine does not
-    model: cardinals are written as a single fused word. The extractor splits
-    each fused token back into numeral morphemes before delegating to the shared
-    vocabulary-driven parser.
-    """
-
-    def _presplit(self, text: str) -> str:
-        # a comma glued to a word is a group separator ("duemila, ventitre"),
-        # not part of the number
-        text = re.sub(r"(?<=[^\W\d]),", " ", text)
-        return " ".join(_split_fused_it(tok) for tok in text.split())
-
-    def extract_number(self,
-                       text: str,
-                       ordinals: bool = False,
-                       scale: Optional[Scale] = None
-                       ) -> Union[int, float, bool]:
-        if isinstance(text, str):
-            text = self._presplit(text)
-        return super().extract_number(text, ordinals=ordinals, scale=scale)
-
-    def numbers_to_digits(self,
-                          utterance: str,
-                          scale: Optional[Scale] = None) -> str:
-        return super().numbers_to_digits(self._presplit(utterance), scale=scale)
-
-
-IT = ItalianNumberExtractor(_IT)
-
-
-def extract_number_it(text, short_scale=False, ordinals=False):
-    """Extract a number from Italian text.
-
-    Delegates to the shared :class:`RomanceNumberExtractor`. Italian writes each
-    cardinal as a single fused word, so a per-language splitter first tokenises
-    the fused form back into numeral morphemes, restoring the vowel elided
-    before "uno"/"otto" (ventuno -> venti uno, centotto -> cento otto) and the
-    accented -tré ending (ventitré -> venti tre). These fusion, elision and
-    accent rules follow the Accademia della Crusca consulenza "Quarantaquattro
-    gatti in fila per sei col resto di due, o di quando e come scrivere i numeri
-    in lettere"
-    (https://accademiadellacrusca.it/it/consulenza/quarantaquattro-gatti-in-
-    fila-per-sei-col-resto-di-due-o-di-quando-e-come-scrivere-i-numeri-in-
-    lettere/1077): the tens drop their final vowel before "uno" and "otto"
-    (ventuno, ventotto, trentuno, quarantotto), "tre" is written "-tré" in every
-    compound, "cento" is invariable and "mille" pluralises to "mila" (duemila).
-    The ``scale`` defaults to the long scale used in Italy (miliardo 10^9,
-    bilione 10^12).
-
-    Args:
-        text (str): the string to extract a number from
-        short_scale (bool): use the short scale instead of the default long scale
-        ordinals (bool): also recognise ordinal words
-    Returns:
-        (int, float) or False: the extracted number, or False if none is found
-    """
-    scale = Scale.SHORT if short_scale else _IT.DEFAULT_SCALE
-    return IT.extract_number(text, ordinals=ordinals, scale=scale)
+IT = RomanceNumberExtractor(_IT)
 
 
 def nice_number_it(number, speech=True, denominators=range(1, 21)):
@@ -642,7 +414,137 @@ def nice_number_it(number, speech=True, denominators=range(1, 21)):
     return return_string
 
 
-def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
+#: the ordinals up to ten have their own form (Treccani, Vocabolario,
+#: "-esimo": "Suffisso dei numerali ordinali: undicesimo, dodicesimo,
+#: ventesimo, ecc. (a eccezione dei primi numeri, da 1 a 10)"); 0 is
+#: "zeresimo" (the same entry: "0-esimo (zeresimo, di posto zero)")
+_ORDINAL_UNITS_IT = ["zeresimo", "primo", "secondo", "terzo", "quarto",
+                     "quinto", "sesto", "settimo", "ottavo", "nono", "decimo"]
+
+
+#: the ordinals right after "millesimo" that are written as two words
+_SPACED_AFTER_MILLESIMO_IT = {1: "primo", 2: "secondo", 10: "decimo",
+                              11: "undicesimo"}
+
+
+def _esimo_it(word):
+    """The -esimo ordinal of one fused cardinal word.
+
+    The cardinal drops its final vowel, except a final "tre" or "sei": CLDR
+    RBNF it spellout-ordinal-masculine, "20: vent→%%ordinal-esimo-with-i→"
+    with "3: itreesimo", "6: iseiesimo", "8: ottesimo". Treccani,
+    Vocabolario, "ventesimo": "Gli ordinali successivi sono: ventunèsimo,
+    ventiduèsimo, ... ventiseèsimo (o ventiseièsimo), ecc.", where
+    "ventiseiesimo" is the second form. A round count of thousands follows
+    "millesimo": Treccani, Vocabolario, "tremillesimo" ("der. di tremila,
+    secondo l'agg. millesimo") and "centomillesimo".
+    """
+    if word.endswith("mila"):
+        return word[:-len("mila")] + "millesimo"
+    if word.endswith("dieci"):
+        # CLDR RBNF it spellout-ordinal-masculine reads a final ten as
+        # "decimo" ("centodecimo")
+        return word[:-len("dieci")] + "decimo"
+    if word.endswith("centouno"):
+        # "centunesimo" (Treccani, Vocabolario, "centesimo")
+        return word[:-len("ouno")] + "unesimo"
+    if word.endswith("tré"):
+        word = word[:-1] + "e"
+    if word.endswith(("tre", "sei")):
+        return word + "esimo"
+    return word[:-1] + "esimo"
+
+
+def _ordinal_from_a_million_it(number: int) -> str:
+    """The masculine ordinal of a whole number from a million up, one word.
+
+    CLDR RBNF it spellout-ordinal-masculine joins the count, the singular
+    scale word and the ordinal of the rest: "1000000: milione→%%ordinal-esimo→",
+    "2000000: ←%spellout-cardinal-masculine←milione→%%ordinal-esimo→" and
+    "1000000000: miliard→%%ordinal-esimo-with-o→". The rest takes "simo"
+    (after -e) or "esimo" (after -ard) when it is 0, the unit forms
+    "unesimo", "duesimo", "treesimo" ... "novesimo" below ten, and its own
+    ordinal from ten up, so 1000003 is "milionetreesimo" and 10^9 + 3 is
+    "miliardotreesimo". The scale words above "biliardo" follow the same
+    two patterns.
+    """
+    scale = max(n for n in _LONG_SCALE_IT if 10 ** 6 <= n <= number)
+    count, rest = divmod(number, scale)
+    plural = _LONG_SCALE_IT[scale]
+    # the count is "%spellout-cardinal-masculine": a ten ends in "un" there
+    # ("20: vent→%%msc-with-i→" with "1: un", so "ventunmilionesimo"), a
+    # hundred keeps "uno" ("msc-with-o", "1: ouno"); inside a word "tré"
+    # loses its accent, as in the cardinal "ventitremila"
+    head = "" if count == 1 else pronounce_number_it(count).replace("tré", "tre")
+    if count < 100 and head.endswith("uno"):
+        head = head[:-1]
+    if plural.endswith("di"):
+        # "miliard→%%ordinal-esimo-with-o→"
+        stem = plural[:-1]
+        if rest == 0:
+            tail = "esimo"
+        elif rest < 10:
+            unit = _esimo_it(pronounce_number_it(rest))
+            tail = unit if unit.startswith(("u", "o")) else "o" + unit
+        else:
+            tail = "o" + _ordinal_it(rest)
+    else:
+        # "milione→%%ordinal-esimo→"
+        stem = plural[:-1] + "e"
+        if rest == 0:
+            tail = "simo"
+        elif rest < 10:
+            tail = _esimo_it(pronounce_number_it(rest))
+        else:
+            tail = _ordinal_it(rest)
+    return head + stem + tail
+
+
+def _ordinal_it(number: int) -> str:
+    """The masculine ordinal of a whole number, one word, with no
+    two-word reading."""
+    if number <= 10:
+        return _ORDINAL_UNITS_IT[number]
+    if number < 10 ** 6:
+        return _esimo_it(pronounce_number_it(number))
+    return _ordinal_from_a_million_it(number)
+
+
+def pronounce_ordinal_it(number: int,
+                         gender: GrammaticalGender = GrammaticalGender.MASCULINE
+                         ) -> str:
+    """Spoken Italian ordinal of a whole number.
+
+    Up to ten the ordinal has its own form; above ten the cardinal, one fused
+    word below a million, takes -esimo (see ``_esimo_it``). From a million up
+    the ordinal is one word as well (see ``_ordinal_from_a_million_it``).
+    The feminine ends in -a.
+    """
+    words = None
+    if number - 1000 in _SPACED_AFTER_MILLESIMO_IT:
+        words = ["millesimo", _SPACED_AFTER_MILLESIMO_IT[number - 1000]]
+    elif 110 <= number < 10 ** 6 and number % 100 == 10:
+        words = [_ordinal_it(number - 10), "decimo"]
+    if words:
+        if gender == GrammaticalGender.FEMININE:
+            words = [word[:-1] + "a" for word in words]
+        return " ".join(words)
+    if number < 0:
+        return "meno " + pronounce_ordinal_it(-number, gender)
+    if number >= 10 ** 6:
+        spoken = pronounce_number_it(number, short_scale=False)
+        if spoken == pronounce_number_it(number, short_scale=False,
+                                         scientific=True):
+            # past the last scale word: no ordinal reading
+            return spoken
+    word = _ordinal_it(number)
+    if gender == GrammaticalGender.FEMININE:
+        word = word[:-1] + "a"
+    return word
+
+
+def pronounce_number_it(number, places=2, short_scale=False, scientific=False,
+                        gender: GrammaticalGender = GrammaticalGender.MASCULINE):
     """
     Convert a number to it's spoken equivalent
     adapted to italian fron en version
@@ -655,6 +557,8 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
         short_scale (bool) : use short (True) or long scale (False)
             https://en.wikipedia.org/wiki/Names_of_large_numbers
         scientific (bool): pronounce in scientific notation
+        gender (GrammaticalGender): the number 1 alone agrees with a
+            feminine noun: "una"; compounds keep "ventuno", "centouno"
     Returns:
         (str): The pronounced number
     """
@@ -666,13 +570,11 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
         return "meno infinito"
 
     if scientific:
-        number = '%E' % num
-        n, power = number.replace("+", "").split("E")
-        power = int(power)
+        n, power = scientific_parts(num, places)
         if power != 0:
             return '{}{} per dieci elevato alla {}{}'.format(
-                'meno ' if float(n) < 0 else '',
-                pronounce_number_it(abs(float(n)), places, short_scale, False),
+                'meno ' if n < 0 else '',
+                pronounce_number_it(abs(n), places, short_scale, False),
                 'meno ' if power < 0 else '',
                 pronounce_number_it(abs(power), places, short_scale, False))
 
@@ -680,17 +582,16 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
         number_names = _NUM_STRING_IT.copy()
         number_names.update(_SHORT_SCALE_IT)
     else:
+        # a round million or more is read by _long_scale ("un bilione")
         number_names = _NUM_STRING_IT.copy()
-        number_names.update(_LONG_SCALE_IT)
+        number_names.update({n: word for n, word in _LONG_SCALE_IT.items()
+                             if n < 1000000})
 
     digits = [number_names[n] for n in range(0, 20)]
 
     tens = [number_names[n] for n in range(10, 100, 10)]
 
-    if short_scale:
-        hundreds = [_SHORT_SCALE_IT[n] for n in _SHORT_SCALE_IT.keys()]
-    else:
-        hundreds = [_LONG_SCALE_IT[n] for n in _LONG_SCALE_IT.keys()]
+    hundreds = [_SHORT_SCALE_IT[n] for n in _SHORT_SCALE_IT.keys()]
 
     # deal with negatives
     result = ""
@@ -728,10 +629,9 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
                 # eccezioni, senza spazi: duecentodiecimila". Cardinals below a
                 # million are one fused word, so the hundreds join directly.
                 rest = _sub_thousand(r) if r else ""
-                # "cento" drops its final -o before a word beginning with o
-                # (otto, ottanta...): "centottanta", "trecentottantotto", not
-                # "centoottanta". Both ICU and num2words agree.
-                if rest.startswith("o"):
+                # "cento" drops its final -o before "ottanta": "centottanta",
+                # "trecentottantotto"; it keeps it before "otto": "centootto".
+                if rest.startswith("o") and r != 8:
                     _partial = _partial[:-1]
                 _partial += rest
                 return _partial
@@ -766,28 +666,25 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
             return res
 
         def _long_scale(n):
-            if n >= max(_LONG_SCALE_IT.keys()):
-                return "numero davvero enorme"
             n = int(n)
             assert 0 <= n
-            res = []
-            for i, z in enumerate(_split_by(n, 1000000)):
+            high, low = divmod(n, 1000000)
+            # the sub-million group is one fused word
+            res = [pronounce_number_it(low, places, True, scientific)] \
+                if low else []
+            for i, z in enumerate(_split_by(high, 1000), start=2):
                 if not z:
                     continue
-                if not i:
-                    # the sub-million group is one fused word
-                    number = pronounce_number_it(z, places, True, scientific)
-                    res.append(number)
-                    continue
+                plural = _LONG_SCALE_IT.get(1000 ** i)
+                if plural is None:
+                    return ""
                 # milione/miliardo are separate words, unlike the fused "mila":
                 # "un milione", "due milioni", "un miliardo" (Crusca allows the
-                # spaced form for these large scale words). The plural table
-                # holds "milioni"/"miliardi"; 1 takes the apocopated "un" and
-                # the singular.
-                plural = hundreds[i + 1]
-                singular = _LONG_SCALE_SINGULAR_IT.get(
-                    plural, plural[:-1] + "e")
+                # spaced form for these large scale words). The table holds
+                # the plurals; 1 takes the apocopated "un" and the singular.
                 if z == 1:
+                    singular = plural[:-1] + ("o" if plural.endswith("di")
+                                              else "e")
                     number = "un " + singular
                 else:
                     count = pronounce_number_it(z, places, True, scientific)
@@ -799,7 +696,12 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
         if short_scale:
             result += _short_scale(num)
         else:
-            result += _long_scale(num)
+            spoken = _long_scale(num)
+            # a magnitude with no spoken name reads scientifically
+            if not spoken and num >= 1000000:
+                return result + pronounce_number_it(num, places, short_scale,
+                                                    scientific=True)
+            result += spoken
 
     # normalizza unità misura singole e 'ragionevoli' ed ad inizio stringa
     if result == 'mila':
@@ -822,13 +724,23 @@ def pronounce_number_it(number, places=2, short_scale=False, scientific=False):
     # takes none, so only a "tre" that ends a longer word is accented.
     result = re.sub(r"(?<=[a-zàèéìòù])tre\b", "tré", result)
 
+    if gender == GrammaticalGender.FEMININE and num == 1:
+        result = result[:-1] + "a"
+
+    if num != int(num) and abs(num) < 1.0 \
+            and (result == "meno " or not result):
+        result += "zero"
     # Deal with fractional part
     if not num == int(num) and places > 0:
-        if abs(num) < 1.0 and (result == "meno " or not result):
-            result += "zero"
         result += " virgola"
-        _num_str = str(num)
+        _num_str = f"{Decimal(str(num)):f}"
         _num_str = _num_str.split(".")[1][0:places]
         for char in _num_str:
             result += " " + number_names[int(char)]
     return result
+
+
+def extract_number_it(text, short_scale=False, ordinals=False):
+    """Deprecated: use ``ovos_number_parser.extract_number(text, "it")``."""
+    warn_reader_removed("extract_number_it", 'ovos_number_parser.extract_number(text, "it")')
+    return numtag_readers.extract_number(text, "it", short_scale, ordinals)
