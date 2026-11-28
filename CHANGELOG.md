@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.31.7a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.7a1) (2026-11-28)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.6a3...0.31.7a1)
+
+**Closed issues:**
+
+- de: pronounce\_number gives "einhunderteins Millionen" [\#612](https://github.com/OpenVoiceOS/ovos-number-parser/issues/612)
+
+**Merged pull requests:**
+
+- fix\(de\): einhundertein Millionen, not einhunderteins \(\#612\) [\#613](https://github.com/OpenVoiceOS/ovos-number-parser/pull/613) ([mamoun123121314](https://github.com/mamoun123121314))
+
 ## [0.31.6a3](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.31.6a3) (2026-11-28)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.31.6a2...0.31.6a3)
@@ -382,17 +394,9 @@
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.60a1...0.24.61a1)
 
-**Merged pull requests:**
-
-- fix\(pt\): a half after a noun is no part of the first number [\#506](https://github.com/OpenVoiceOS/ovos-number-parser/pull/506) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
-
 ## [0.24.60a1](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.60a1) (2026-11-15)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-number-parser/compare/0.24.59a2...0.24.60a1)
-
-**Merged pull requests:**
-
-- fix\(pt\): extract\_number gives the first number of the text [\#504](https://github.com/OpenVoiceOS/ovos-number-parser/pull/504) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
 
 ## [0.24.59a2](https://github.com/OpenVoiceOS/ovos-number-parser/tree/0.24.59a2) (2026-11-15)
 
