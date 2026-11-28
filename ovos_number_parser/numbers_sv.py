@@ -249,6 +249,10 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
         elif last_triplet > 1:
             result += pronounce_triplet_sv(last_triplet)
             if scale_level == 1:
+                # "ett" + "tusen" joins with two t's ("ettusen"), so drop the
+                # extra t: "trettioetttusen" -> "trettioettusen".
+                if result.endswith("ett"):
+                    result = result[:-1]
                 result += 'tusen' + _EXTRA_SPACE_SV
             if scale_level >= 2:
                 # miljon/miljard are separate words ("två miljoner"), unlike
@@ -276,6 +280,8 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
             # the counting form "ett", as NEUTRAL does.
             if gender == GrammaticalGender.FEMININE and spoken.endswith("ett"):
                 spoken = spoken[:-3] + "en"
+            # The trailing scale separator is kept deliberately: extract_number
+            # round-trips these spellings (see test_number_parser_sv.py).
             return spoken
         else:
             whole_number_part = floor(number)
