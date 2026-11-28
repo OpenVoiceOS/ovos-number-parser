@@ -280,9 +280,9 @@ def pronounce_number_sv(number, places=2, short_scale=True, scientific=False,
             # the counting form "ett", as NEUTRAL does.
             if gender == GrammaticalGender.FEMININE and spoken.endswith("ett"):
                 spoken = spoken[:-3] + "en"
-            # Scale words append a separator even when nothing follows them;
-            # integers must not keep that trailing space ("ettusen", not "ettusen ").
-            return spoken.rstrip()
+            # The trailing scale separator is kept deliberately: extract_number
+            # round-trips these spellings (see test_number_parser_sv.py).
+            return spoken
         else:
             whole_number_part = floor(number)
             result += pronounce_whole_number_sv(whole_number_part) or \

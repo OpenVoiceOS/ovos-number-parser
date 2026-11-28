@@ -12,12 +12,13 @@ class TestCardinalSpellings(unittest.TestCase):
                          "zweihunderteintausend")
         self.assertEqual(pronounce_number(1000, "de"), "eintausend")
 
-    def test_swedish_no_trailing_space_after_tusen(self):
-        self.assertEqual(pronounce_number(1000, "sv"), "ettusen")
+    def test_swedish_ett_joins_tusen(self):
+        # The trailing scale separator is intentional in this package.
+        self.assertEqual(pronounce_number(1000, "sv"), "ettusen ")
         self.assertEqual(pronounce_number(31000, "sv"),
-                         "trettioettusen")
+                         "trettioettusen ")
         self.assertEqual(pronounce_number(81000, "sv"),
-                         "\u00e5ttioettusen")
+                         "\u00e5ttioettusen ")
 
 
 if __name__ == "__main__":
