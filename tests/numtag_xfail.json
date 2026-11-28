@@ -1,7 +1,4 @@
 {
- "tests/test_da_hundreds_thousands.py::TestAdversarial::test_bare_addends_not_summed": {
-  "": "https://github.com/TigreGotico/numtag/issues/168"
- },
  "tests/test_digits_before_scale.py::TestDigitsBeforeScale::test_a_digit_string_that_opens_no_count_keeps_its_digits": {
   "lang='pt-PT', text='10 000 milhões de euros'": "https://github.com/TigreGotico/numtag/issues/166",
   "lang='pt-PT', text='10\\xa0000 milhões de euros'": "https://github.com/TigreGotico/numtag/issues/166",
@@ -3981,9 +3978,6 @@
   "number=1234": "https://github.com/TigreGotico/numtag/issues/157",
   "number=1972": "https://github.com/TigreGotico/numtag/issues/157",
   "number=1999": "https://github.com/TigreGotico/numtag/issues/157"
- },
- "tests/test_number_parser_da.py::TestDanishNaturalSentences::test_fractions": {
-  "": "https://github.com/TigreGotico/numtag/issues/168"
  },
  "tests/test_number_parser_es.py::TestSpanishLongScale::test_bare_scale_word_without_multiplier": {
   "": "https://github.com/TigreGotico/numtag/issues/161"
